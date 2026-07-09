@@ -7,16 +7,16 @@ distinct letter it contains). All-ones multipliers -> all frequencies 1.
 
 Search. Coordinate pattern-search that MAXIMIZES the greedy strategy's average
 misses (an adversarial word-setter vs. the greedy guesser), in phases:
-  1. DOUBLING -- repeatedly try m*2 for every multiplier, keep it if the average
-     strictly increases; loop until no multiplier benefits. Reaches large scales
-     in log-many steps (so a runaway multiplier doesn't crawl up additively).
+  1. DOUBLE/HALVE -- for every multiplier try x2 or /2 (down to a floor of 0.125;
+     0.125 can drop to 0, and 0 can come back to 0.125), keeping whichever raises
+     the average (loop until none benefit).
   2. +/- POWERS OF 2 -- additive steps of powers of two from the largest scale
      reached (>= max multiplier) down to 1; try both m+s and m-s (never below 0).
-  3. +/- FINE -- additive steps FINE_STEPS = 0.5, 0.2, 0.1.
+  3. +/- FINE -- additive steps FINE_STEPS = 0.5, 0.25, 0.125.
 Each phase loops in a fixed order (sequential / Gauss-Seidel), keeping whichever
 move most increases the average, until a full pass makes no change; then the next
-phase/step begins. Each accepted change prints `<pattern> ->x<mult> (<phase>)
-avg=<new>` and is appended to a CSV log; each loop prints its change count.
+phase/step begins. Each accepted change prints `<pattern> ->x<mult> (<move>)
+avg=<new>`, where <move> is x2, /2, +s or -s; each loop prints its change count.
 
 Every accepted change is logged (data/freq_search/len<LL>.csv) so the frequency
 state can be reconstructed later -- see ``reconstruct``.
@@ -37,8 +37,17 @@ from strategy import GreedyGame, ALPHABET
 from wordlist import DEFAULT_ZIPF
 
 DATA_DIR = Path(__file__).resolve().parent / "data" / "freq_search"
-EPS = 1e-9
-FINE_STEPS = [0.5, 0.2, 0.1]
+FINE_STEPS = [0.5, 0.25, 0.125]
+
+
+def _double_candidates(b):
+    """Double/halve-phase moves for a multiplier b: x2, /2 (floor 0.125),
+    0.125 -> 0, and 0 -> 0.125 (revive)."""
+    if b == 0.0:
+        return (0.125,)                 # revive: 0 -> 0.125
+    if b <= 0.125:                       # 0.125 is the smallest positive rung
+        return (b * 2.0, 0.0)           # x2, or drop to 0
+    return (b * 2.0, b / 2.0)           # x2 or /2
 
 
 def _pattern_string(length: int, letter_idx: int, mask: int) -> str:
@@ -99,12 +108,36 @@ class FrequencySearch:
     def freq_from_multipliers(self, mult: np.ndarray) -> np.ndarray:
         return np.multiply.reduceat(mult[self.flat_keys].astype(np.float64), self.word_ptr)
 
+    # ---- results as DataFrames ---------------------------------------------
+    def multipliers_df(self):
+        """Every (letter, pattern) multiplier for this length, highest first."""
+        import pandas as pd
+        n_words = np.bincount(self.flat_keys, minlength=self.M)
+        return pd.DataFrame({
+            "letter": [ALPHABET[int(c)] for c in self.key_letter],
+            "pattern": self.pattern,
+            "mask": [int(m) for m in self.key_mask],
+            "multiplier": self.mult,
+            "n_words": n_words,          # how many words carry this pattern
+        }).sort_values("multiplier", ascending=False).reset_index(drop=True)
+
+    def frequencies_df(self):
+        """Every word's frequency for this length, heaviest first."""
+        import pandas as pd
+        return pd.DataFrame({
+            "word": self.game.words,
+            "frequency": self.freq,
+        }).sort_values("frequency", ascending=False).reset_index(drop=True)
+
     # ---- the search --------------------------------------------------------
-    def _phase(self, cand_fn, label, avg, *, max_loops, verbose, writer, fh, cols):
-        """Loop one phase (candidate values from cand_fn) until a pass makes no change."""
+    def _phase(self, cand_fn, header, move_label, avg, *, max_loops, verbose, writer, fh, cols):
+        """Loop one phase (candidate values from cand_fn) until a pass makes no change.
+
+        move_label(base, new) -> the per-change label (e.g. 'x2', '/2', '+8', '-8').
+        """
         g = self.game
         if verbose:
-            print(f"--- {label} ---")
+            print(f"--- {header} ---")
         loop = 0
         while max_loops is None or loop < max_loops:
             changes = 0
@@ -117,20 +150,21 @@ class FrequencySearch:
                     self.mult[k] = cand
                     self._recompute_freq()
                     a = g.average_misses(self.freq)
-                    if math.isfinite(a) and a > best_avg + EPS:
+                    if math.isfinite(a) and a > best_avg:
                         best_avg, best_val = a, cand
                 self.mult[k] = best_val
                 self._recompute_freq()
                 if best_val != base:
                     avg = best_avg
-                    rec = {"phase": label, "loop": loop, "seq": len(self.records),
+                    move = move_label(base, best_val)
+                    rec = {"move": move, "loop": loop, "seq": len(self.records),
                            "letter": ALPHABET[int(self.key_letter[k])],
                            "pattern": self.pattern[k], "mask": int(self.key_mask[k]),
                            "multiplier": best_val, "avg_misses": avg}
                     self.records.append(rec)
                     changes += 1
                     if verbose:
-                        print(f"  {self.pattern[k]}  ->x{best_val:g}  ({label})  avg={avg:.4f}")
+                        print(f"  {self.pattern[k]}  ->x{best_val:g}  ({move})  avg={avg:.4f}")
                     if writer:
                         writer.writerow([rec[c] for c in cols])
                         fh.flush()
@@ -148,10 +182,11 @@ class FrequencySearch:
         self.mult[:] = 1.0
         self._recompute_freq()
         avg = g.average_misses(self.freq)   # also warms the JIT
+        start_avg = avg
         self.records = []
 
         fh = writer = None
-        cols = ("phase", "loop", "seq", "letter", "pattern", "mask",
+        cols = ("move", "loop", "seq", "letter", "pattern", "mask",
                 "multiplier", "avg_misses")
         if log_path is not None:
             log_path = Path(log_path)
@@ -164,10 +199,12 @@ class FrequencySearch:
             print(f"length {self.length}: {g.N} words, {self.M} patterns; "
                   f"start avg = {avg:.4f}")
 
-        kw = dict(max_loops=max_loops, verbose=verbose, writer=writer, fh=fh, cols=cols)
+        kw = dict(max_loops=max_loops, verbose=verbose,
+                  writer=writer, fh=fh, cols=cols)
 
-        # Phase 1: doubling -- reach the right scale in log-many steps.
-        avg = self._phase(lambda b: (b * 2.0,), "x2", avg, **kw)
+        # Phase 1: double / halve (x2, /2, floor 0.125, 0.125 <-> 0).
+        avg = self._phase(_double_candidates, "double/halve",
+                          lambda base, new: "x2" if new > base else "/2", avg, **kw)
 
         # Phase 2: +/- powers of 2, from the largest scale reached down to 1.
         p = 1
@@ -176,17 +213,22 @@ class FrequencySearch:
             p *= 2
         while p >= 1:
             s = float(p)
-            avg = self._phase(lambda b, s=s: (b + s, b - s), f"+/-{s:g}", avg, **kw)
+            avg = self._phase(lambda b, s=s: (b + s, b - s), f"step {s:g}",
+                              lambda base, new, s=s: f"+{s:g}" if new > base else f"-{s:g}",
+                              avg, **kw)
             p //= 2
 
         # Phase 3: fine additive steps.
         for s in fine_steps:
-            avg = self._phase(lambda b, s=s: (b + s, b - s), f"+/-{s:g}", avg, **kw)
+            avg = self._phase(lambda b, s=s: (b + s, b - s), f"step {s:g}",
+                              lambda base, new, s=s: f"+{s:g}" if new > base else f"-{s:g}",
+                              avg, **kw)
 
         if fh:
             fh.close()
         if verbose:
-            print(f"done: {len(self.records)} changes, final avg = {avg:.4f}")
+            print(f"done: {len(self.records)} changes, "
+                  f"initial avg = {start_avg:.4f}, final avg = {avg:.4f}")
         return self.records
 
     # ---- reconstruction ----------------------------------------------------
