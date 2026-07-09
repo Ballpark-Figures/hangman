@@ -1,0 +1,10 @@
+# Curated allowlist — real words hunspell wrongly rejects (British spellings,
+# a few genuine words hunspell's en_US dictionary lacks). Force-kept even
+# though hunspell drops them. One word per line; blank lines / #comments ignored.
+
+albedo
+amongst
+cava
+learnt
+styrofoam
+tsar

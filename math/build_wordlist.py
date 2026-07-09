@@ -1,6 +1,6 @@
 """Generate the curated master hangman wordlist from the `wordfreq` package.
 
-Run once (regenerate only if you want to change the floor or filters):
+Run once (regenerate only if you want to change the floor or the curated lists):
 
     .venv/bin/python math/build_wordlist.py
 
@@ -10,26 +10,19 @@ billion words), so 3.0 == ~1 per million, 4.0 == ~10 per million. Higher =
 more common. The Zipf value is kept in the file so the loader can apply the
 "words players know" cutoff without regenerating (see wordlist.py).
 
-Why wordfreq instead of raw Norvig: it's a curated multi-corpus list that
-excludes most web junk (proper nouns, initialisms, code tokens, misspellings)
-while KEEPING inflected forms (plurals, conjugations) -- exactly what we want.
+Pipeline: wordfreq (frequency + inflections) -> Zipf floor -> a HUNSPELL
+spellcheck (the `spylls` pure-Python implementation, en_US dictionary) -> two
+hand-curated override lists:
 
-wordfreq alone still leaks proper nouns/initialisms, because it lowercases
-everything (so "Ares"/"Amtrak"/"ATC" become candidate words). We remove those
-with a HUNSPELL spellcheck (the `spylls` pure-Python implementation, en_US
-dictionary): a token is kept only if hunspell accepts it as-is. Because
-hunspell dictionaries store case, a lowercase proper noun ("amtrak" vs the
-stored "Amtrak") is rejected, as are abbreviations and misspellings ("qr",
-"wierd"). Hunspell's affix rules accept regular inflections (plurals,
-conjugations) by construction, so we keep those. Measured on this data the
-filter leaves ~1% junk while cutting ~0.7% genuine words (British spellings,
-days/demonyms, a few real words like "albedo").
+  - data/blocklist.txt : junk hunspell WRONGLY keeps -- abbreviations, unit
+    symbols, initialisms, roman numerals, and the single letters hunspell
+    accepts (e.g. bbl, mph, kg, xiv, plus b..z). Removed.
+  - data/allowlist.txt : real words hunspell WRONGLY drops (British spellings
+    and a few genuine words like albedo/tsar). Force-kept.
 
-Filters applied here:
-  - lowercase ASCII a-z only (drops punctuation, digits, accents, "don't")
-  - zipf >= FLOOR (a small buffer below the game cutoff, so the loader's
-    cutoff can be loosened later without a rebuild)
-  - accepted by hunspell (proper-noun / abbreviation / misspelling rejection)
+A word is kept iff  (hunspell accepts it OR it's in the allowlist)  AND  it's
+not in the blocklist. Hunspell does the bulk proper-noun removal; the curated
+lists fix its specific failures (chiefly the junk-heavy short-length buckets).
 """
 
 from __future__ import annotations
@@ -46,16 +39,34 @@ WORDLIST = "large"  # wordfreq's large English list (deeper tail than "small")
 
 DATA_DIR = Path(__file__).resolve().parent / "data"
 OUT = DATA_DIR / "wordlist_master.txt"
+BLOCKLIST_FILE = DATA_DIR / "blocklist.txt"
+ALLOWLIST_FILE = DATA_DIR / "allowlist.txt"
+
+
+def load_wordset(path: Path) -> set[str]:
+    """Read a curated word list: one word per line; blank lines / #comments skipped."""
+    if not path.exists():
+        return set()
+    words = set()
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.split("#", 1)[0].strip()
+        if line:
+            words.add(line)
+    return words
 
 
 def build() -> list[tuple[str, float]]:
     speller = Dictionary.from_files("en_US")
+    blocklist = load_wordset(BLOCKLIST_FILE)
+    allowlist = load_wordset(ALLOWLIST_FILE)
     freqs = get_frequency_dict("en", wordlist=WORDLIST)
     rows: list[tuple[str, float]] = []
     for word in freqs:
         if not (word.isascii() and word.isalpha() and word.islower()):
             continue
-        if not speller.lookup(word):
+        if word in blocklist:
+            continue
+        if not (speller.lookup(word) or word in allowlist):
             continue
         z = zipf_frequency(word, "en", wordlist=WORDLIST)
         if z < FLOOR:

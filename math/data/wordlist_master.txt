@@ -132,7 +132,6 @@ down	5.88
 great	5.88
 through	5.87
 last	5.86
-s	5.86
 while	5.86
 best	5.84
 such	5.84
@@ -292,7 +291,6 @@ service	5.49
 country	5.48
 open	5.48
 season	5.48
-shit	5.48
 thank	5.48
 children	5.47
 everyone	5.47
@@ -302,7 +300,6 @@ united	5.47
 using	5.47
 area	5.46
 black	5.46
-d	5.46
 following	5.46
 law	5.46
 makes	5.46
@@ -333,9 +330,7 @@ early	5.43
 friends	5.43
 information	5.43
 local	5.43
-oh	5.43
 post	5.43
-t	5.43
 thanks	5.43
 video	5.43
 young	5.43
@@ -367,12 +362,10 @@ problem	5.40
 south	5.40
 true	5.40
 almost	5.39
-fuck	5.39
 history	5.39
 known	5.39
 large	5.39
 lost	5.39
-m	5.39
 research	5.39
 room	5.39
 several	5.39
@@ -399,7 +392,6 @@ playing	5.37
 probably	5.37
 saying	5.37
 understand	5.37
-yeah	5.37
 class	5.36
 close	5.36
 comes	5.36
@@ -409,7 +401,6 @@ looks	5.36
 past	5.36
 possible	5.36
 wanted	5.36
-b	5.35
 cause	5.35
 due	5.35
 happy	5.35
@@ -418,7 +409,6 @@ members	5.35
 months	5.35
 move	5.35
 question	5.35
-r	5.35
 series	5.35
 wait	5.35
 woman	5.35
@@ -431,9 +421,7 @@ north	5.34
 saw	5.34
 special	5.34
 watch	5.34
-c	5.33
 either	5.33
-fucking	5.33
 future	5.33
 light	5.33
 low	5.33
@@ -492,7 +480,6 @@ west	5.29
 works	5.29
 according	5.28
 available	5.28
-e	5.28
 education	5.28
 final	5.28
 former	5.28
@@ -576,7 +563,6 @@ shot	5.22
 site	5.22
 strong	5.22
 account	5.21
-co	5.21
 especially	5.21
 eyes	5.21
 include	5.21
@@ -586,7 +572,6 @@ position	5.21
 record	5.21
 similar	5.21
 total	5.21
-w	5.21
 above	5.20
 club	5.20
 common	5.20
@@ -601,9 +586,7 @@ perfect	5.20
 personal	5.20
 security	5.20
 share	5.20
-st	5.20
 won	5.20
-x	5.20
 center	5.19
 county	5.19
 couple	5.19
@@ -629,7 +612,6 @@ companies	5.18
 event	5.18
 higher	5.18
 hour	5.18
-l	5.18
 member	5.18
 middle	5.18
 needed	5.18
@@ -686,7 +668,6 @@ exactly	5.15
 giving	5.15
 ground	5.15
 meeting	5.15
-n	5.15
 provide	5.15
 questions	5.15
 relationship	5.15
@@ -722,7 +703,6 @@ league	5.13
 management	5.13
 match	5.13
 model	5.13
-p	5.13
 picture	5.13
 size	5.13
 step	5.13
@@ -731,10 +711,8 @@ central	5.12
 changes	5.12
 forward	5.12
 groups	5.12
-hey	5.12
 key	5.12
 mom	5.12
-o	5.12
 page	5.12
 paid	5.12
 range	5.12
@@ -759,7 +737,6 @@ property	5.11
 quality	5.11
 send	5.11
 style	5.11
-u	5.11
 vote	5.11
 amazing	5.10
 august	5.10
@@ -768,7 +745,6 @@ china	5.10
 complete	5.10
 dog	5.10
 economic	5.10
-hell	5.10
 involved	5.10
 itself	5.10
 language	5.10
@@ -783,7 +759,6 @@ add	5.09
 article	5.09
 attack	5.09
 born	5.09
-damn	5.09
 decided	5.09
 decision	5.09
 enjoy	5.09
@@ -809,7 +784,6 @@ currently	5.08
 door	5.08
 election	5.08
 events	5.08
-f	5.08
 financial	5.08
 foreign	5.08
 hair	5.08
@@ -858,7 +832,6 @@ army	5.06
 earth	5.06
 forget	5.06
 goal	5.06
-h	5.06
 huge	5.06
 internet	5.06
 listen	5.06
@@ -869,7 +842,6 @@ sea	5.06
 sir	5.06
 success	5.06
 towards	5.06
-v	5.06
 waiting	5.06
 ways	5.06
 access	5.05
@@ -914,7 +886,6 @@ wrote	5.04
 allowed	5.03
 boys	5.03
 culture	5.03
-etc	5.03
 fans	5.03
 gives	5.03
 growth	5.03
@@ -933,7 +904,6 @@ specific	5.03
 standard	5.03
 tonight	5.03
 write	5.03
-y	5.03
 album	5.02
 century	5.02
 charge	5.02
@@ -944,7 +914,6 @@ eight	5.02
 except	5.02
 eye	5.02
 funny	5.02
-ii	5.02
 limited	5.02
 moving	5.02
 network	5.02
@@ -987,7 +956,6 @@ station	5.01
 text	5.01
 treatment	5.01
 western	5.01
-ass	5.00
 beginning	5.00
 campaign	5.00
 certainly	5.00
@@ -999,13 +967,11 @@ described	5.00
 despite	5.00
 female	5.00
 focus	5.00
-g	5.00
 hi	5.00
 husband	5.00
 ice	5.00
 individual	5.00
 interesting	5.00
-j	5.00
 join	5.00
 kept	5.00
 leading	5.00
@@ -1095,7 +1061,6 @@ search	4.96
 subject	4.96
 train	4.96
 wide	4.96
-wow	4.96
 author	4.95
 claim	4.95
 dad	4.95
@@ -1216,7 +1181,6 @@ easily	4.91
 finish	4.91
 grand	4.91
 increased	4.91
-k	4.91
 literally	4.91
 luck	4.91
 marriage	4.91
@@ -1291,7 +1255,6 @@ broken	4.88
 caused	4.88
 challenge	4.88
 characters	4.88
-christian	4.88
 comment	4.88
 equipment	4.88
 eventually	4.88
@@ -1406,7 +1369,6 @@ speech	4.85
 traffic	4.85
 tree	4.85
 types	4.85
-vs	4.85
 wearing	4.85
 whom	4.85
 wonderful	4.85
@@ -1572,7 +1534,6 @@ cast	4.79
 continues	4.79
 correct	4.79
 dangerous	4.79
-ed	4.79
 extremely	4.79
 firm	4.79
 greatest	4.79
@@ -1635,7 +1596,6 @@ efforts	4.77
 garden	4.77
 host	4.77
 housing	4.77
-inc	4.77
 journal	4.77
 labor	4.77
 leadership	4.77
@@ -1658,7 +1618,6 @@ alive	4.76
 apple	4.76
 balance	4.76
 birthday	4.76
-bitch	4.76
 boss	4.76
 cards	4.76
 changing	4.76
@@ -1893,7 +1852,6 @@ command	4.70
 crew	4.70
 crowd	4.70
 dating	4.70
-dick	4.70
 elements	4.70
 enemy	4.70
 ensure	4.70
@@ -1938,7 +1896,6 @@ native	4.69
 noted	4.69
 originally	4.69
 planned	4.69
-pm	4.69
 ray	4.69
 sets	4.69
 suddenly	4.69
@@ -1996,7 +1953,6 @@ appeal	4.67
 applied	4.67
 appropriate	4.67
 artists	4.67
-ca	4.67
 confirmed	4.67
 device	4.67
 drama	4.67
@@ -2015,7 +1971,6 @@ legs	4.67
 lying	4.67
 measures	4.67
 mistake	4.67
-ms	4.67
 organizations	4.67
 platform	4.67
 pool	4.67
@@ -2061,7 +2016,6 @@ leg	4.66
 letters	4.66
 liberal	4.66
 listening	4.66
-ll	4.66
 loves	4.66
 lunch	4.66
 max	4.66
@@ -2100,7 +2054,6 @@ kitchen	4.65
 leads	4.65
 maintain	4.65
 measure	4.65
-mm	4.65
 numerous	4.65
 owners	4.65
 posts	4.65
@@ -2161,7 +2114,6 @@ tony	4.64
 troops	4.64
 truck	4.64
 votes	4.64
-ah	4.63
 authorities	4.63
 basically	4.63
 besides	4.63
@@ -2186,7 +2138,6 @@ fired	4.63
 forgot	4.63
 funding	4.63
 identified	4.63
-iii	4.63
 incredible	4.63
 inspired	4.63
 launched	4.63
@@ -2361,7 +2312,6 @@ enjoyed	4.59
 explained	4.59
 faces	4.59
 folks	4.59
-fucked	4.59
 gender	4.59
 instance	4.59
 kinda	4.59
@@ -2398,7 +2348,6 @@ favor	4.58
 flag	4.58
 frame	4.58
 guest	4.58
-ha	4.58
 heaven	4.58
 independence	4.58
 institutions	4.58
@@ -2476,7 +2425,6 @@ counter	4.56
 creation	4.56
 crown	4.56
 crying	4.56
-dc	4.56
 defined	4.56
 depending	4.56
 depression	4.56
@@ -2505,7 +2453,6 @@ perspective	4.56
 pregnant	4.56
 premier	4.56
 promote	4.56
-q	4.56
 revolution	4.56
 rooms	4.56
 severe	4.56
@@ -2544,7 +2491,6 @@ factory	4.55
 headed	4.55
 interior	4.55
 joy	4.55
-jr	4.55
 legislation	4.55
 maintenance	4.55
 manner	4.55
@@ -2682,7 +2628,6 @@ experts	4.52
 expressed	4.52
 external	4.52
 fantasy	4.52
-ft	4.52
 grab	4.52
 immediate	4.52
 introduction	4.52
@@ -2791,7 +2736,6 @@ neighborhood	4.50
 operate	4.50
 outstanding	4.50
 permission	4.50
-porn	4.50
 racing	4.50
 recommended	4.50
 regulations	4.50
@@ -2886,7 +2830,6 @@ pocket	4.48
 practical	4.48
 primarily	4.48
 proved	4.48
-rape	4.48
 regardless	4.48
 relative	4.48
 represents	4.48
@@ -2906,7 +2849,6 @@ trick	4.48
 attended	4.47
 audio	4.47
 bone	4.47
-bullshit	4.47
 chamber	4.47
 chart	4.47
 circuit	4.47
@@ -2933,7 +2875,6 @@ killer	4.47
 lesson	4.47
 limits	4.47
 loving	4.47
-ltd	4.47
 managers	4.47
 membership	4.47
 mirror	4.47
@@ -2954,7 +2895,6 @@ tears	4.47
 technique	4.47
 thin	4.47
 tied	4.47
-z	4.47
 accused	4.46
 adventure	4.46
 argue	4.46
@@ -3320,7 +3260,6 @@ confirm	4.40
 congratulations	4.40
 contracts	4.40
 convinced	4.40
-crap	4.40
 crystal	4.40
 dean	4.40
 decent	4.40
@@ -3343,7 +3282,6 @@ landing	4.40
 layer	4.40
 managing	4.40
 marry	4.40
-nah	4.40
 nowhere	4.40
 nurse	4.40
 obtain	4.40
@@ -3424,7 +3362,6 @@ subsequent	4.39
 towns	4.39
 translation	4.39
 visible	4.39
-yep	4.39
 adds	4.38
 amendment	4.38
 angle	4.38
@@ -3448,7 +3385,6 @@ grass	4.38
 hence	4.38
 increasingly	4.38
 incredibly	4.38
-iv	4.38
 jay	4.38
 journalist	4.38
 kicked	4.38
@@ -3456,7 +3392,6 @@ lessons	4.38
 lists	4.38
 maintained	4.38
 mill	4.38
-mo	4.38
 occasion	4.38
 oxford	4.38
 pace	4.38
@@ -3464,7 +3399,6 @@ passenger	4.38
 pen	4.38
 pope	4.38
 possession	4.38
-pp	4.38
 races	4.38
 rapid	4.38
 regulation	4.38
@@ -3501,7 +3435,6 @@ immigrants	4.37
 improving	4.37
 instructions	4.37
 introduce	4.37
-km	4.37
 lands	4.37
 legacy	4.37
 log	4.37
@@ -3651,7 +3584,6 @@ wishes	4.35
 wolf	4.35
 absence	4.34
 agricultural	4.34
-asshole	4.34
 ate	4.34
 athletes	4.34
 bears	4.34
@@ -3681,7 +3613,6 @@ investors	4.34
 involves	4.34
 kills	4.34
 liberty	4.34
-maria	4.34
 ministers	4.34
 monitoring	4.34
 occurs	4.34
@@ -3840,6 +3771,7 @@ versus	4.32
 virtual	4.32
 walks	4.32
 wounded	4.32
+amongst	4.31
 announcement	4.31
 arranged	4.31
 arsenal	4.31
@@ -3924,7 +3856,6 @@ finishing	4.30
 fortune	4.30
 gates	4.30
 goodbye	4.30
-graham	4.30
 hardware	4.30
 hurts	4.30
 intellectual	4.30
@@ -4005,7 +3936,6 @@ lifestyle	4.29
 lighting	4.29
 loop	4.29
 mall	4.29
-mp	4.29
 overseas	4.29
 performances	4.29
 polish	4.29
@@ -4038,7 +3968,6 @@ alarm	4.28
 bass	4.28
 bloody	4.28
 breathing	4.28
-butt	4.28
 characteristics	4.28
 collaboration	4.28
 con	4.28
@@ -4104,7 +4033,6 @@ bonds	4.27
 challenging	4.27
 chaos	4.27
 churches	4.27
-cm	4.27
 composed	4.27
 concentration	4.27
 copper	4.27
@@ -4123,7 +4051,6 @@ frequent	4.27
 gardens	4.27
 gathered	4.27
 hilarious	4.27
-huh	4.27
 ignored	4.27
 improvements	4.27
 investments	4.27
@@ -4176,7 +4103,6 @@ controversy	4.26
 convince	4.26
 cooper	4.26
 disappeared	4.26
-eh	4.26
 encounter	4.26
 equality	4.26
 exam	4.26
@@ -4193,7 +4119,6 @@ mainstream	4.26
 menu	4.26
 mounted	4.26
 mutual	4.26
-nope	4.26
 occasions	4.26
 offense	4.26
 oral	4.26
@@ -4213,14 +4138,12 @@ spectrum	4.26
 stays	4.26
 ted	4.26
 terror	4.26
-uh	4.26
 venture	4.26
 virtually	4.26
 waited	4.26
 warren	4.26
 worn	4.26
 yea	4.26
-ac	4.25
 accompanied	4.25
 aids	4.25
 aimed	4.25
@@ -4263,7 +4186,6 @@ newspapers	4.25
 outer	4.25
 oxygen	4.25
 pipe	4.25
-pissed	4.25
 poem	4.25
 powder	4.25
 powered	4.25
@@ -4315,7 +4237,6 @@ dirt	4.24
 diverse	4.24
 divine	4.24
 emails	4.24
-er	4.24
 exclusively	4.24
 export	4.24
 fastest	4.24
@@ -4344,7 +4265,6 @@ pat	4.24
 picks	4.24
 popularity	4.24
 professionals	4.24
-pussy	4.24
 reactions	4.24
 relate	4.24
 robot	4.24
@@ -4458,7 +4378,6 @@ briefly	4.22
 canal	4.22
 cheaper	4.22
 climb	4.22
-com	4.22
 competing	4.22
 completion	4.22
 cruise	4.22
@@ -4477,7 +4396,6 @@ fluid	4.22
 folk	4.22
 generate	4.22
 handsome	4.22
-ho	4.22
 holidays	4.22
 hotels	4.22
 imagination	4.22
@@ -4515,7 +4433,6 @@ theories	4.22
 touching	4.22
 transactions	4.22
 twist	4.22
-ugh	4.22
 unemployment	4.22
 unity	4.22
 useless	4.22
@@ -4634,7 +4551,6 @@ flip	4.20
 forty	4.20
 generous	4.20
 hated	4.20
-hr	4.20
 implement	4.20
 incorporated	4.20
 influenced	4.20
@@ -4734,7 +4650,6 @@ pie	4.19
 platforms	4.19
 populations	4.19
 poster	4.19
-pr	4.19
 practically	4.19
 preserve	4.19
 produces	4.19
@@ -4833,7 +4748,6 @@ reserved	4.18
 restore	4.18
 rifle	4.18
 rival	4.18
-rs	4.18
 runner	4.18
 sadly	4.18
 shoulders	4.18
@@ -4903,7 +4817,6 @@ monsters	4.17
 mysterious	4.17
 notion	4.17
 partial	4.17
-piss	4.17
 placing	4.17
 propaganda	4.17
 rat	4.17
@@ -4951,7 +4864,6 @@ emerged	4.16
 exhibit	4.16
 flew	4.16
 gentleman	4.16
-gm	4.16
 hammer	4.16
 hosting	4.16
 icon	4.16
@@ -5008,7 +4920,6 @@ yield	4.16
 accomplished	4.15
 admission	4.15
 adventures	4.15
-aka	4.15
 appearing	4.15
 bacon	4.15
 barrier	4.15
@@ -5019,7 +4930,6 @@ burst	4.15
 caps	4.15
 casting	4.15
 cattle	4.15
-cc	4.15
 classroom	4.15
 compromise	4.15
 convenient	4.15
@@ -5177,7 +5087,6 @@ alike	4.13
 applicable	4.13
 arrow	4.13
 availability	4.13
-aw	4.13
 bend	4.13
 boundary	4.13
 breach	4.13
@@ -5216,7 +5125,6 @@ haven	4.13
 helicopter	4.13
 homework	4.13
 households	4.13
-hp	4.13
 iconic	4.13
 infected	4.13
 keen	4.13
@@ -5228,7 +5136,6 @@ manufactured	4.13
 mechanics	4.13
 mere	4.13
 miracle	4.13
-mt	4.13
 mud	4.13
 observation	4.13
 operates	4.13
@@ -5255,7 +5162,6 @@ skilled	4.13
 sterling	4.13
 surgeon	4.13
 theft	4.13
-um	4.13
 understands	4.13
 valve	4.13
 visa	4.13
@@ -5297,7 +5203,6 @@ jewelry	4.12
 journalism	4.12
 jungle	4.12
 linear	4.12
-mg	4.12
 occasional	4.12
 oriented	4.12
 pilots	4.12
@@ -5325,7 +5230,6 @@ tribe	4.12
 unfortunate	4.12
 variable	4.12
 worrying	4.12
-xi	4.12
 zones	4.12
 ace	4.11
 adjusted	4.11
@@ -5345,7 +5249,6 @@ cognitive	4.11
 competitors	4.11
 convert	4.11
 cooked	4.11
-ct	4.11
 cups	4.11
 deciding	4.11
 defender	4.11
@@ -5356,7 +5259,6 @@ drum	4.11
 editorial	4.11
 enabled	4.11
 entertaining	4.11
-est	4.11
 establishing	4.11
 eternal	4.11
 freeze	4.11
@@ -5366,7 +5268,6 @@ grip	4.11
 handful	4.11
 happily	4.11
 harmony	4.11
-hmm	4.11
 humble	4.11
 hurting	4.11
 hybrid	4.11
@@ -5398,7 +5299,6 @@ promising	4.11
 proportion	4.11
 purchases	4.11
 rage	4.11
-rd	4.11
 reflects	4.11
 respected	4.11
 restoration	4.11
@@ -5520,11 +5420,9 @@ euro	4.09
 evolved	4.09
 exports	4.09
 fixing	4.09
-fl	4.09
 flags	4.09
 flies	4.09
 forecast	4.09
-fr	4.09
 governance	4.09
 heated	4.09
 hug	4.09
@@ -5551,7 +5449,6 @@ prevented	4.09
 receiver	4.09
 recommendation	4.09
 riot	4.09
-rogers	4.09
 roster	4.09
 safer	4.09
 sells	4.09
@@ -5572,7 +5469,6 @@ treatments	4.09
 tweeted	4.09
 vacuum	4.09
 variations	4.09
-vi	4.09
 wont	4.09
 acknowledged	4.08
 advances	4.08
@@ -5624,7 +5520,6 @@ historically	4.08
 hub	4.08
 inevitable	4.08
 investigating	4.08
-kg	4.08
 labels	4.08
 lacking	4.08
 laughs	4.08
@@ -5653,7 +5548,6 @@ presidents	4.08
 pressing	4.08
 prints	4.08
 provincial	4.08
-raped	4.08
 rebel	4.08
 repairs	4.08
 rotation	4.08
@@ -5834,7 +5728,6 @@ intensive	4.06
 interactive	4.06
 intimate	4.06
 laundry	4.06
-lbs	4.06
 lifting	4.06
 martial	4.06
 northeast	4.06
@@ -5878,7 +5771,6 @@ traveled	4.06
 treats	4.06
 unhappy	4.06
 whites	4.06
-yup	4.06
 accomplish	4.05
 adequate	4.05
 alter	4.05
@@ -5995,7 +5887,6 @@ cope	4.04
 counted	4.04
 crashed	4.04
 creepy	4.04
-cum	4.04
 divorced	4.04
 donate	4.04
 drawings	4.04
@@ -6037,15 +5928,12 @@ pipeline	4.04
 placement	4.04
 planted	4.04
 pricing	4.04
-pt	4.04
 questioning	4.04
 recreation	4.04
 renewed	4.04
 resigned	4.04
-rt	4.04
 shallow	4.04
 shanghai	4.04
-shitty	4.04
 sins	4.04
 sketch	4.04
 smells	4.04
@@ -6107,7 +5995,6 @@ mineral	4.03
 mob	4.03
 modest	4.03
 motors	4.03
-mph	4.03
 navigation	4.03
 orbit	4.03
 paragraph	4.03
@@ -6281,7 +6168,6 @@ evaluate	4.01
 formally	4.01
 frames	4.01
 goddess	4.01
-gov	4.01
 harassment	4.01
 hats	4.01
 insert	4.01
@@ -6295,7 +6181,6 @@ musician	4.01
 nephew	4.01
 notably	4.01
 orchestra	4.01
-oz	4.01
 packages	4.01
 pad	4.01
 participated	4.01
@@ -6422,7 +6307,6 @@ subscribers	4.00
 surveys	4.00
 survivor	4.00
 telegraph	4.00
-tits	4.00
 vaccine	4.00
 vinyl	4.00
 wished	4.00
@@ -6819,8 +6703,6 @@ brake	3.95
 builds	3.95
 businessman	3.95
 cab	3.95
-ch	3.95
-chi	3.95
 col	3.95
 collision	3.95
 compassion	3.95
@@ -6907,7 +6789,6 @@ wilderness	3.95
 admits	3.94
 adviser	3.94
 aggregate	3.94
-anal	3.94
 anatomy	3.94
 announces	3.94
 applicants	3.94
@@ -6942,7 +6823,6 @@ hunters	3.94
 idol	3.94
 illusion	3.94
 incorrect	3.94
-jun	3.94
 junction	3.94
 lance	3.94
 leap	3.94
@@ -6951,7 +6831,6 @@ locks	3.94
 lynch	3.94
 manages	3.94
 masses	3.94
-medicare	3.94
 modeling	3.94
 motive	3.94
 networking	3.94
@@ -7042,7 +6921,6 @@ drilling	3.93
 drums	3.93
 elimination	3.93
 enjoys	3.93
-es	3.93
 ginger	3.93
 governors	3.93
 guild	3.93
@@ -7053,7 +6931,6 @@ impress	3.93
 inability	3.93
 incoming	3.93
 jar	3.93
-lb	3.93
 litigation	3.93
 mentor	3.93
 merchandise	3.93
@@ -7114,7 +6991,6 @@ baked	3.92
 baking	3.92
 beautifully	3.92
 biblical	3.92
-boo	3.92
 collapsed	3.92
 competent	3.92
 countryside	3.92
@@ -7211,7 +7087,6 @@ continually	3.91
 coordinator	3.91
 damaging	3.91
 danish	3.91
-def	3.91
 deployment	3.91
 drafted	3.91
 enjoyable	3.91
@@ -7302,7 +7177,6 @@ beers	3.90
 bells	3.90
 blamed	3.90
 blunt	3.90
-boobs	3.90
 bosses	3.90
 brakes	3.90
 brigade	3.90
@@ -7322,7 +7196,6 @@ conclude	3.90
 confidential	3.90
 coordination	3.90
 cracks	3.90
-cs	3.90
 dancers	3.90
 directing	3.90
 discretion	3.90
@@ -7340,7 +7213,6 @@ finances	3.90
 finishes	3.90
 fog	3.90
 framed	3.90
-fucks	3.90
 gesture	3.90
 gosh	3.90
 griffin	3.90
@@ -7396,7 +7268,6 @@ striker	3.90
 sued	3.90
 sums	3.90
 sworn	3.90
-tel	3.90
 terrific	3.90
 titans	3.90
 tomatoes	3.90
@@ -7416,7 +7287,6 @@ aiming	3.89
 alumni	3.89
 awhile	3.89
 aye	3.89
-bastard	3.89
 behaviors	3.89
 bikes	3.89
 biography	3.89
@@ -7574,8 +7444,6 @@ obstacles	3.88
 opener	3.88
 overwhelmed	3.88
 performers	3.88
-pg	3.88
-pl	3.88
 pointless	3.88
 poles	3.88
 preferences	3.88
@@ -7592,7 +7460,6 @@ sadness	3.88
 scenarios	3.88
 selective	3.88
 seniors	3.88
-sf	3.88
 shiny	3.88
 socialism	3.88
 sour	3.88
@@ -7631,7 +7498,6 @@ conceived	3.87
 consult	3.87
 crashes	3.87
 crowds	3.87
-cunt	3.87
 damned	3.87
 dissolved	3.87
 distinguish	3.87
@@ -7656,6 +7522,7 @@ illegally	3.87
 illustrations	3.87
 inclined	3.87
 informal	3.87
+learnt	3.87
 lending	3.87
 marker	3.87
 marsh	3.87
@@ -7715,7 +7582,6 @@ advancing	3.86
 ant	3.86
 antique	3.86
 autonomy	3.86
-baptist	3.86
 behavioral	3.86
 booking	3.86
 breeze	3.86
@@ -7736,7 +7602,6 @@ defines	3.86
 delivers	3.86
 demonstrates	3.86
 dentist	3.86
-dodgers	3.86
 dough	3.86
 dug	3.86
 endangered	3.86
@@ -7785,7 +7650,6 @@ oils	3.86
 operative	3.86
 outs	3.86
 owed	3.86
-panama	3.86
 patches	3.86
 pickup	3.86
 portraits	3.86
@@ -7801,7 +7665,6 @@ risen	3.86
 rows	3.86
 scroll	3.86
 searches	3.86
-sh	3.86
 smiled	3.86
 snacks	3.86
 snakes	3.86
@@ -7820,7 +7683,6 @@ thrust	3.86
 trilogy	3.86
 weights	3.86
 wheelchair	3.86
-whore	3.86
 wiped	3.86
 yahoo	3.86
 yourselves	3.86
@@ -7845,8 +7707,6 @@ cakes	3.85
 carriage	3.85
 celebrations	3.85
 censorship	3.85
-cf	3.85
-cl	3.85
 clarify	3.85
 climbed	3.85
 comp	3.85
@@ -7934,7 +7794,6 @@ analysts	3.84
 analyze	3.84
 atmospheric	3.84
 batting	3.84
-bitches	3.84
 bracket	3.84
 branded	3.84
 cardiac	3.84
@@ -7970,7 +7829,6 @@ knives	3.84
 margins	3.84
 marina	3.84
 mat	3.84
-ml	3.84
 monopoly	3.84
 nationally	3.84
 outrage	3.84
@@ -8016,7 +7874,6 @@ trustees	3.84
 typing	3.84
 urine	3.84
 vanilla	3.84
-vii	3.84
 violet	3.84
 weighing	3.84
 activation	3.83
@@ -8121,7 +7978,6 @@ simpler	3.83
 sinking	3.83
 slots	3.83
 sorted	3.83
-sq	3.83
 staged	3.83
 startup	3.83
 statute	3.83
@@ -8272,7 +8128,6 @@ vagina	3.82
 verses	3.82
 vocabulary	3.82
 wellington	3.82
-whoa	3.82
 willingness	3.82
 woody	3.82
 worthless	3.82
@@ -8285,7 +8140,6 @@ algorithms	3.81
 alt	3.81
 alternatively	3.81
 archer	3.81
-asap	3.81
 assurance	3.81
 barber	3.81
 bash	3.81
@@ -8305,7 +8159,6 @@ dioxide	3.81
 dolls	3.81
 doom	3.81
 dubbed	3.81
-ea	3.81
 eclipse	3.81
 eighteen	3.81
 elephants	3.81
@@ -8439,8 +8292,6 @@ melting	3.80
 messaging	3.80
 microwave	3.80
 minimize	3.80
-morocco	3.80
-ops	3.80
 organisms	3.80
 originated	3.80
 ounce	3.80
@@ -8500,7 +8351,6 @@ assessments	3.79
 assisting	3.79
 backgrounds	3.79
 belle	3.79
-bf	3.79
 bites	3.79
 bombers	3.79
 bonuses	3.79
@@ -8541,7 +8391,6 @@ fuller	3.79
 gamble	3.79
 goalkeeper	3.79
 grandchildren	3.79
-gt	3.79
 guardians	3.79
 harmless	3.79
 hearings	3.79
@@ -8549,12 +8398,10 @@ hesitate	3.79
 hid	3.79
 hips	3.79
 hopeful	3.79
-horny	3.79
 hygiene	3.79
 imaginary	3.79
 imprisoned	3.79
 inconsistent	3.79
-int	3.79
 kindergarten	3.79
 loudly	3.79
 mechanic	3.79
@@ -8583,7 +8430,6 @@ rehab	3.79
 remake	3.79
 rendering	3.79
 reproduction	3.79
-res	3.79
 reservations	3.79
 shrimp	3.79
 similarities	3.79
@@ -8606,7 +8452,6 @@ trillion	3.79
 tucker	3.79
 vendor	3.79
 watts	3.79
-yr	3.79
 aboriginal	3.78
 academics	3.78
 adopting	3.78
@@ -8615,7 +8460,6 @@ allergic	3.78
 amended	3.78
 apparatus	3.78
 assumes	3.78
-avengers	3.78
 backpack	3.78
 balcony	3.78
 banker	3.78
@@ -8650,7 +8494,6 @@ exempt	3.78
 exposing	3.78
 faint	3.78
 fertility	3.78
-ff	3.78
 fines	3.78
 floods	3.78
 foam	3.78
@@ -8706,7 +8549,6 @@ shouted	3.78
 sims	3.78
 slides	3.78
 sociology	3.78
-somerset	3.78
 specify	3.78
 splitting	3.78
 stab	3.78
@@ -8756,7 +8598,6 @@ continuity	3.77
 crawl	3.77
 credible	3.77
 cursed	3.77
-db	3.77
 deepest	3.77
 defects	3.77
 delightful	3.77
@@ -8933,7 +8774,6 @@ nineteenth	3.76
 nitrogen	3.76
 norms	3.76
 oceans	3.76
-ooh	3.76
 payroll	3.76
 phenomenal	3.76
 photographic	3.76
@@ -8959,7 +8799,6 @@ scars	3.76
 scholarships	3.76
 shelves	3.76
 shipment	3.76
-slut	3.76
 sparks	3.76
 spatial	3.76
 stainless	3.76
@@ -9035,7 +8874,6 @@ gems	3.75
 glowing	3.75
 glucose	3.75
 gore	3.75
-govt	3.75
 gown	3.75
 greedy	3.75
 halo	3.75
@@ -9082,7 +8920,6 @@ remotely	3.75
 resorts	3.75
 retailer	3.75
 rigid	3.75
-rm	3.75
 sailors	3.75
 sampling	3.75
 screenshot	3.75
@@ -9191,7 +9028,6 @@ kisses	3.74
 laden	3.74
 learns	3.74
 limbs	3.74
-medicaid	3.74
 meta	3.74
 mil	3.74
 nod	3.74
@@ -9245,7 +9081,6 @@ violin	3.74
 whereby	3.74
 whisper	3.74
 worthwhile	3.74
-xx	3.74
 acceleration	3.73
 aerospace	3.73
 analog	3.73
@@ -9279,7 +9114,6 @@ dilemma	3.73
 dis	3.73
 discoveries	3.73
 disgrace	3.73
-emirates	3.73
 employing	3.73
 employs	3.73
 escaping	3.73
@@ -9313,12 +9147,10 @@ metaphor	3.73
 millionaire	3.73
 motives	3.73
 mysteries	3.73
-negro	3.73
 nightmares	3.73
 notify	3.73
 null	3.73
 ole	3.73
-oops	3.73
 oriental	3.73
 owing	3.73
 pact	3.73
@@ -9335,7 +9167,6 @@ regain	3.73
 reminding	3.73
 renew	3.73
 resemble	3.73
-retarded	3.73
 retro	3.73
 revolt	3.73
 rightly	3.73
@@ -9357,7 +9188,6 @@ taller	3.73
 termination	3.73
 thigh	3.73
 thrive	3.73
-tr	3.73
 troll	3.73
 uncovered	3.73
 undertake	3.73
@@ -9370,7 +9200,6 @@ viruses	3.73
 warns	3.73
 warranty	3.73
 weakened	3.73
-xxx	3.73
 yen	3.73
 admired	3.72
 airways	3.72
@@ -9511,7 +9340,6 @@ unpopular	3.72
 vanished	3.72
 verb	3.72
 versa	3.72
-viii	3.72
 volatile	3.72
 voluntarily	3.72
 withdrew	3.72
@@ -9525,7 +9353,6 @@ analyzing	3.71
 apex	3.71
 apocalypse	3.71
 appliances	3.71
-assholes	3.71
 backward	3.71
 barred	3.71
 beck	3.71
@@ -9534,7 +9361,6 @@ blogging	3.71
 boiler	3.71
 boulder	3.71
 calf	3.71
-capt	3.71
 coating	3.71
 commentators	3.71
 consolidation	3.71
@@ -9547,7 +9373,6 @@ cubic	3.71
 declares	3.71
 defeats	3.71
 defenses	3.71
-dept	3.71
 deputies	3.71
 descendants	3.71
 detector	3.71
@@ -9587,7 +9412,6 @@ limitation	3.71
 linguistic	3.71
 listeners	3.71
 litter	3.71
-ls	3.71
 lump	3.71
 macro	3.71
 mag	3.71
@@ -9602,7 +9426,6 @@ neurons	3.71
 ninety	3.71
 nutrients	3.71
 observatory	3.71
-oi	3.71
 openings	3.71
 outdoors	3.71
 pedestrian	3.71
@@ -9646,12 +9469,10 @@ sticker	3.71
 stove	3.71
 submissions	3.71
 tactic	3.71
-tb	3.71
 template	3.71
 texting	3.71
 theorem	3.71
 tiles	3.71
-tn	3.71
 tore	3.71
 tract	3.71
 treaties	3.71
@@ -9659,7 +9480,6 @@ tribune	3.71
 undergoing	3.71
 unexpectedly	3.71
 upward	3.71
-val	3.71
 vista	3.71
 vogue	3.71
 volcanic	3.71
@@ -9750,7 +9570,6 @@ offender	3.70
 oracle	3.70
 overlap	3.70
 patrons	3.70
-pd	3.70
 peek	3.70
 pentagon	3.70
 peters	3.70
@@ -9863,14 +9682,12 @@ intervals	3.69
 intriguing	3.69
 invasive	3.69
 irrigation	3.69
-ix	3.69
 killings	3.69
 lastly	3.69
 liberties	3.69
 lipstick	3.69
 manipulate	3.69
 mart	3.69
-midlands	3.69
 midway	3.69
 minors	3.69
 moist	3.69
@@ -9878,7 +9695,6 @@ monarch	3.69
 monuments	3.69
 mortgages	3.69
 mourning	3.69
-mu	3.69
 mustard	3.69
 negatively	3.69
 objections	3.69
@@ -9957,7 +9773,6 @@ copying	3.68
 countdown	3.68
 courier	3.68
 danced	3.68
-dd	3.68
 debating	3.68
 decreasing	3.68
 defect	3.68
@@ -10099,7 +9914,6 @@ fixture	3.67
 focal	3.67
 friendships	3.67
 frightening	3.67
-fucker	3.67
 gala	3.67
 gardening	3.67
 garrison	3.67
@@ -10125,7 +9939,6 @@ irresponsible	3.67
 lag	3.67
 lays	3.67
 lenders	3.67
-lg	3.67
 locality	3.67
 lure	3.67
 malicious	3.67
@@ -10139,7 +9952,6 @@ monarchy	3.67
 muscular	3.67
 neutrality	3.67
 noisy	3.67
-orgasm	3.67
 panties	3.67
 parcel	3.67
 partition	3.67
@@ -10188,7 +10000,6 @@ translates	3.67
 translator	3.67
 transmit	3.67
 trophies	3.67
-ts	3.67
 tuning	3.67
 tutor	3.67
 unsafe	3.67
@@ -10245,7 +10056,6 @@ drunken	3.66
 earnest	3.66
 erase	3.66
 evacuated	3.66
-exp	3.66
 extinct	3.66
 forbid	3.66
 forgiven	3.66
@@ -10286,8 +10096,6 @@ peripheral	3.66
 pinned	3.66
 pint	3.66
 pleaded	3.66
-poop	3.66
-pornography	3.66
 prepares	3.66
 prevalence	3.66
 proceeding	3.66
@@ -10377,7 +10185,6 @@ helm	3.65
 herbs	3.65
 highlands	3.65
 hooks	3.65
-hrs	3.65
 hugely	3.65
 hypocrisy	3.65
 imagining	3.65
@@ -10446,7 +10253,6 @@ unconstitutional	3.65
 undermine	3.65
 underwent	3.65
 vacancy	3.65
-var	3.65
 veto	3.65
 villains	3.65
 vocational	3.65
@@ -10464,7 +10270,6 @@ assemble	3.64
 averages	3.64
 ballots	3.64
 bargaining	3.64
-bates	3.64
 baton	3.64
 beginnings	3.64
 births	3.64
@@ -10537,7 +10342,6 @@ northeastern	3.64
 noticing	3.64
 nun	3.64
 nutritional	3.64
-ow	3.64
 pathways	3.64
 pedal	3.64
 pest	3.64
@@ -10567,7 +10371,6 @@ screws	3.64
 sensing	3.64
 sewer	3.64
 shipments	3.64
-shits	3.64
 smack	3.64
 sonny	3.64
 southwestern	3.64
@@ -10609,9 +10412,7 @@ atop	3.63
 attic	3.63
 attracts	3.63
 autobiography	3.63
-av	3.63
 await	3.63
-bastards	3.63
 bothering	3.63
 broadcaster	3.63
 buds	3.63
@@ -10678,7 +10479,6 @@ lyric	3.63
 maximize	3.63
 morally	3.63
 mushroom	3.63
-nigga	3.63
 noel	3.63
 occupying	3.63
 organizers	3.63
@@ -10693,7 +10493,6 @@ progressed	3.63
 puck	3.63
 ratios	3.63
 reconsider	3.63
-redskins	3.63
 reductions	3.63
 refrain	3.63
 replaces	3.63
@@ -10798,7 +10597,6 @@ gamer	3.62
 generosity	3.62
 gluten	3.62
 gorilla	3.62
-hamburg	3.62
 harvested	3.62
 hath	3.62
 heavyweight	3.62
@@ -10836,7 +10634,6 @@ predicting	3.62
 presume	3.62
 presumed	3.62
 printers	3.62
-rapist	3.62
 reacting	3.62
 rebuilt	3.62
 rec	3.62
@@ -10949,7 +10746,6 @@ moonlight	3.61
 moose	3.61
 mosquito	3.61
 motel	3.61
-motherfucker	3.61
 narratives	3.61
 noun	3.61
 novelist	3.61
@@ -11069,7 +10865,6 @@ degradation	3.60
 disappearing	3.60
 discs	3.60
 distributors	3.60
-duh	3.60
 electrons	3.60
 emerald	3.60
 ensures	3.60
@@ -11173,7 +10968,6 @@ browse	3.59
 brutally	3.59
 buff	3.59
 calorie	3.59
-chamberlain	3.59
 cis	3.59
 claw	3.59
 collects	3.59
@@ -11204,7 +10998,6 @@ empowered	3.59
 examines	3.59
 exceeds	3.59
 exposition	3.59
-fart	3.59
 fearing	3.59
 fetish	3.59
 fixes	3.59
@@ -11364,7 +11157,6 @@ foreman	3.58
 framing	3.58
 geared	3.58
 glacier	3.58
-gs	3.58
 hunted	3.58
 hurricanes	3.58
 implying	3.58
@@ -11493,7 +11285,6 @@ homeowners	3.57
 immensely	3.57
 inauguration	3.57
 incorrectly	3.57
-ind	3.57
 indicative	3.57
 inexpensive	3.57
 instructors	3.57
@@ -11583,7 +11374,6 @@ youngsters	3.57
 abdomen	3.56
 abducted	3.56
 abruptly	3.56
-aha	3.56
 alerts	3.56
 alps	3.56
 antarctic	3.56
@@ -11678,7 +11468,6 @@ nationalists	3.56
 oasis	3.56
 oddly	3.56
 oppressed	3.56
-ouch	3.56
 outsiders	3.56
 outskirts	3.56
 overlapping	3.56
@@ -11753,7 +11542,6 @@ blasting	3.55
 bloke	3.55
 blond	3.55
 blur	3.55
-blvd	3.55
 boogie	3.55
 bothers	3.55
 bowel	3.55
@@ -11774,7 +11562,6 @@ continents	3.55
 convertible	3.55
 crater	3.55
 creeping	3.55
-cu	3.55
 cumulative	3.55
 curator	3.55
 deity	3.55
@@ -11791,7 +11578,6 @@ drifting	3.55
 edged	3.55
 educator	3.55
 entitlement	3.55
-esp	3.55
 faux	3.55
 fearless	3.55
 finch	3.55
@@ -11812,7 +11598,6 @@ incorporates	3.55
 insisting	3.55
 intricate	3.55
 karate	3.55
-kc	3.55
 kingdoms	3.55
 kite	3.55
 labeling	3.55
@@ -11823,7 +11608,6 @@ lore	3.55
 lush	3.55
 luxurious	3.55
 mash	3.55
-meg	3.55
 meltdown	3.55
 messiah	3.55
 meteor	3.55
@@ -11831,18 +11615,15 @@ ministerial	3.55
 mocking	3.55
 motions	3.55
 mystical	3.55
-nu	3.55
 obstruction	3.55
 odyssey	3.55
 om	3.55
 onboard	3.55
 oneself	3.55
-org	3.55
 outsider	3.55
 overcoming	3.55
 palms	3.55
 penetrate	3.55
-phi	3.55
 pioneers	3.55
 plaintiff	3.55
 planners	3.55
@@ -11934,7 +11715,6 @@ corresponds	3.54
 counters	3.54
 covert	3.54
 cringe	3.54
-cw	3.54
 dagger	3.54
 dealings	3.54
 deferred	3.54
@@ -12004,7 +11784,6 @@ prophets	3.54
 prosecute	3.54
 quartet	3.54
 radically	3.54
-raping	3.54
 reactive	3.54
 reboot	3.54
 renamed	3.54
@@ -12067,7 +11846,6 @@ blizzard	3.53
 booklet	3.53
 bottoms	3.53
 brawl	3.53
-bu	3.53
 butts	3.53
 celestial	3.53
 characterization	3.53
@@ -12268,7 +12046,6 @@ forefront	3.52
 formulated	3.52
 freaked	3.52
 freshwater	3.52
-gr	3.52
 grouped	3.52
 halted	3.52
 harden	3.52
@@ -12287,7 +12064,6 @@ integrating	3.52
 intensely	3.52
 ions	3.52
 jeopardy	3.52
-ks	3.52
 listener	3.52
 mandarin	3.52
 mast	3.52
@@ -12367,7 +12143,6 @@ aloud	3.51
 angular	3.51
 anterior	3.51
 appendix	3.51
-approx	3.51
 attackers	3.51
 auditorium	3.51
 barking	3.51
@@ -12794,7 +12569,6 @@ remorse	3.49
 reopened	3.49
 revoked	3.49
 rhymes	3.49
-rpm	3.49
 sanity	3.49
 scratched	3.49
 sears	3.49
@@ -12897,7 +12671,6 @@ exploiting	3.48
 expressly	3.48
 fabrication	3.48
 facilitated	3.48
-faggot	3.48
 fascination	3.48
 fir	3.48
 foreigner	3.48
@@ -12988,7 +12761,6 @@ textures	3.48
 thinkers	3.48
 thorn	3.48
 thug	3.48
-tit	3.48
 toned	3.48
 totals	3.48
 triggering	3.48
@@ -13005,7 +12777,6 @@ waived	3.48
 wharf	3.48
 wiser	3.48
 wrestle	3.48
-xv	3.48
 accountants	3.47
 aggravated	3.47
 alleging	3.47
@@ -13243,7 +13014,6 @@ liter	3.46
 looting	3.46
 manpower	3.46
 martyr	3.46
-masturbation	3.46
 mitigation	3.46
 motorway	3.46
 obscene	3.46
@@ -13307,7 +13077,6 @@ vertically	3.46
 vigorous	3.46
 wandered	3.46
 wrongly	3.46
-yum	3.46
 abiding	3.45
 alcoholism	3.45
 amplifier	3.45
@@ -13482,13 +13251,11 @@ wagons	3.45
 wally	3.45
 wavelength	3.45
 workload	3.45
-xii	3.45
 yells	3.45
 acquitted	3.44
 admiralty	3.44
 aiding	3.44
 artificially	3.44
-aux	3.44
 barring	3.44
 bead	3.44
 berth	3.44
@@ -13541,7 +13308,6 @@ federally	3.44
 flavored	3.44
 formulas	3.44
 frenzy	3.44
-fuckers	3.44
 fulfillment	3.44
 godfather	3.44
 gran	3.44
@@ -13584,7 +13350,6 @@ parted	3.44
 patio	3.44
 peacock	3.44
 pedestrians	3.44
-pf	3.44
 pines	3.44
 pitchers	3.44
 plugged	3.44
@@ -13655,7 +13420,6 @@ winged	3.44
 wiping	3.44
 wolverine	3.44
 wrought	3.44
-xiii	3.44
 yearbook	3.44
 yikes	3.44
 abbot	3.43
@@ -13672,7 +13436,6 @@ aspen	3.43
 autistic	3.43
 bearer	3.43
 bins	3.43
-bk	3.43
 bleak	3.43
 blender	3.43
 bogus	3.43
@@ -13737,7 +13500,6 @@ interception	3.43
 invaders	3.43
 juniors	3.43
 karaoke	3.43
-kw	3.43
 lagoon	3.43
 lesions	3.43
 limp	3.43
@@ -13765,7 +13527,6 @@ narrowed	3.43
 nay	3.43
 nests	3.43
 nutshell	3.43
-ob	3.43
 obsessive	3.43
 offending	3.43
 overboard	3.43
@@ -13897,7 +13658,6 @@ headquartered	3.42
 helium	3.42
 hemp	3.42
 hitch	3.42
-hoc	3.42
 incarnation	3.42
 inhibitors	3.42
 intrusion	3.42
@@ -13950,7 +13710,6 @@ sneaking	3.42
 solitude	3.42
 spacing	3.42
 standby	3.42
-std	3.42
 straps	3.42
 strikers	3.42
 stronghold	3.42
@@ -13988,7 +13747,6 @@ awfully	3.41
 axes	3.41
 battered	3.41
 biking	3.41
-boob	3.41
 boosts	3.41
 bouquet	3.41
 boxers	3.41
@@ -14013,7 +13771,6 @@ coop	3.41
 cooperating	3.41
 coronary	3.41
 cottages	3.41
-cps	3.41
 crook	3.41
 cucumber	3.41
 cupcakes	3.41
@@ -14190,7 +13947,6 @@ daunting	3.40
 demos	3.40
 deviation	3.40
 diffusion	3.40
-dildo	3.40
 distrust	3.40
 dominates	3.40
 echoed	3.40
@@ -14235,7 +13991,6 @@ legalization	3.40
 localized	3.40
 mammoth	3.40
 martyrs	3.40
-meh	3.40
 modem	3.40
 mosques	3.40
 motif	3.40
@@ -14250,7 +14005,6 @@ overheard	3.40
 panicked	3.40
 papal	3.40
 peril	3.40
-pk	3.40
 playable	3.40
 plunged	3.40
 pores	3.40
@@ -14277,7 +14031,6 @@ semantic	3.40
 shear	3.40
 shedding	3.40
 sherry	3.40
-shitting	3.40
 silicone	3.40
 skepticism	3.40
 sly	3.40
@@ -14305,7 +14058,6 @@ weakening	3.40
 wildcats	3.40
 wipes	3.40
 wrists	3.40
-xvi	3.40
 yielding	3.40
 zebra	3.40
 aces	3.39
@@ -14408,11 +14160,9 @@ mashed	3.39
 maxim	3.39
 melancholy	3.39
 meteorological	3.39
-milf	3.39
 misplaced	3.39
 misty	3.39
 modifying	3.39
-monsieur	3.39
 mop	3.39
 multicultural	3.39
 nearing	3.39
@@ -14498,7 +14248,6 @@ vowed	3.39
 waterways	3.39
 wetlands	3.39
 wrecking	3.39
-xiv	3.39
 abrupt	3.38
 acronym	3.38
 adaptations	3.38
@@ -14572,7 +14321,6 @@ gutter	3.38
 hearty	3.38
 hillside	3.38
 hovering	3.38
-ht	3.38
 hysteria	3.38
 impartial	3.38
 imperialism	3.38
@@ -14667,7 +14415,6 @@ antitrust	3.37
 apologizing	3.37
 archaeologists	3.37
 arid	3.37
-avg	3.37
 bandit	3.37
 barrister	3.37
 bazaar	3.37
@@ -14675,7 +14422,6 @@ beneficiary	3.37
 biker	3.37
 bipartisan	3.37
 birthplace	3.37
-bl	3.37
 bracelets	3.37
 brides	3.37
 brochure	3.37
@@ -14695,7 +14441,6 @@ collaborated	3.37
 collapses	3.37
 collier	3.37
 colossal	3.37
-comm	3.37
 commodore	3.37
 compiler	3.37
 conserve	3.37
@@ -14723,7 +14468,6 @@ endemic	3.37
 enlist	3.37
 entails	3.37
 envisioned	3.37
-eta	3.37
 exchanging	3.37
 exiled	3.37
 eyebrow	3.37
@@ -14791,7 +14535,6 @@ registrar	3.37
 regulars	3.37
 rein	3.37
 relic	3.37
-retard	3.37
 reunite	3.37
 reuse	3.37
 risked	3.37
@@ -14863,7 +14606,6 @@ bop	3.36
 breached	3.36
 burr	3.36
 carbs	3.36
-cavaliers	3.36
 censor	3.36
 centennial	3.36
 civilizations	3.36
@@ -14919,7 +14661,6 @@ idiotic	3.36
 ids	3.36
 implements	3.36
 incarceration	3.36
-incest	3.36
 infect	3.36
 insertion	3.36
 interruption	3.36
@@ -14955,13 +14696,11 @@ pertinent	3.36
 pigeons	3.36
 plentiful	3.36
 plumber	3.36
-porno	3.36
 portfolios	3.36
 preserves	3.36
 promoters	3.36
 prosecuting	3.36
 purchaser	3.36
-rapes	3.36
 rarity	3.36
 realty	3.36
 rebellious	3.36
@@ -15013,7 +14752,6 @@ wildfire	3.36
 withheld	3.36
 withholding	3.36
 wreath	3.36
-wt	3.36
 yer	3.36
 administrations	3.35
 afar	3.35
@@ -15029,7 +14767,6 @@ azure	3.35
 bedside	3.35
 besieged	3.35
 biologist	3.35
-blowjob	3.35
 boilers	3.35
 bonnet	3.35
 breaches	3.35
@@ -15080,7 +14817,6 @@ fiercely	3.35
 flashed	3.35
 fostering	3.35
 fourteenth	3.35
-fps	3.35
 geese	3.35
 genealogy	3.35
 geographically	3.35
@@ -15116,7 +14852,6 @@ mechanically	3.35
 millionaires	3.35
 moor	3.35
 muffin	3.35
-nigger	3.35
 obi	3.35
 oily	3.35
 olives	3.35
@@ -15136,7 +14871,6 @@ pinpoint	3.35
 pip	3.35
 pleasantly	3.35
 ponder	3.35
-protestants	3.35
 prowess	3.35
 psychologically	3.35
 pursuits	3.35
@@ -15177,7 +14911,6 @@ warped	3.35
 wasp	3.35
 watermelon	3.35
 westward	3.35
-whores	3.35
 widened	3.35
 yin	3.35
 academies	3.34
@@ -15216,7 +14949,6 @@ calibration	3.34
 cams	3.34
 capitalize	3.34
 charisma	3.34
-ck	3.34
 classmate	3.34
 cognition	3.34
 cooker	3.34
@@ -15368,7 +15100,6 @@ adept	3.33
 advantageous	3.33
 afloat	3.33
 agility	3.33
-airbus	3.33
 alteration	3.33
 annoyance	3.33
 anon	3.33
@@ -15402,7 +15133,6 @@ compromising	3.33
 corvette	3.33
 cowards	3.33
 cranes	3.33
-cunts	3.33
 cutest	3.33
 dashboard	3.33
 deficient	3.33
@@ -15531,7 +15261,6 @@ swans	3.33
 temperate	3.33
 temps	3.33
 thematic	3.33
-threesome	3.33
 thunderstorms	3.33
 tilted	3.33
 toaster	3.33
@@ -15608,7 +15337,6 @@ ethos	3.32
 eureka	3.32
 exec	3.32
 eyewitness	3.32
-fag	3.32
 fleeting	3.32
 flourished	3.32
 forfeit	3.32
@@ -15696,7 +15424,6 @@ sidelines	3.32
 simplistic	3.32
 skater	3.32
 skincare	3.32
-soc	3.32
 spawning	3.32
 stabilized	3.32
 stares	3.32
@@ -15732,7 +15459,6 @@ wrongs	3.32
 abnormalities	3.31
 allocate	3.31
 analytic	3.31
-ans	3.31
 apprehended	3.31
 ascending	3.31
 attributable	3.31
@@ -15746,7 +15472,6 @@ briefs	3.31
 canning	3.31
 capitalists	3.31
 categorized	3.31
-cg	3.31
 chopper	3.31
 chromosomes	3.31
 chunky	3.31
@@ -15941,7 +15666,6 @@ carbohydrates	3.30
 carnage	3.30
 cavities	3.30
 chateau	3.30
-colleen	3.30
 comedies	3.30
 commended	3.30
 commune	3.30
@@ -15950,7 +15674,6 @@ conclusive	3.30
 conservatory	3.30
 considerate	3.30
 constructions	3.30
-coo	3.30
 cryptocurrency	3.30
 cultured	3.30
 daycare	3.30
@@ -16001,7 +15724,6 @@ leafy	3.30
 lobe	3.30
 loo	3.30
 margarita	3.30
-masturbating	3.30
 meddling	3.30
 nods	3.30
 omission	3.30
@@ -16010,7 +15732,6 @@ orchid	3.30
 overtake	3.30
 paramedics	3.30
 peat	3.30
-pedophile	3.30
 peptide	3.30
 perfected	3.30
 periphery	3.30
@@ -16164,7 +15885,6 @@ impulses	3.29
 incarcerated	3.29
 ineligible	3.29
 infusion	3.29
-jaguars	3.29
 journalistic	3.29
 justifying	3.29
 kart	3.29
@@ -16240,7 +15960,6 @@ spiritually	3.29
 sporadic	3.29
 stationery	3.29
 sunscreen	3.29
-tau	3.29
 tempest	3.29
 tending	3.29
 terraces	3.29
@@ -16252,7 +15971,6 @@ transports	3.29
 truss	3.29
 tubing	3.29
 turnovers	3.29
-twat	3.29
 undue	3.29
 unionist	3.29
 unprotected	3.29
@@ -16347,7 +16065,6 @@ hallucinations	3.28
 harass	3.28
 hooded	3.28
 horrid	3.28
-hwy	3.28
 impractical	3.28
 indexed	3.28
 insecurities	3.28
@@ -16445,7 +16162,6 @@ uptake	3.28
 vantage	3.28
 ventured	3.28
 virgins	3.28
-waldo	3.28
 watchers	3.28
 whim	3.28
 whine	3.28
@@ -16708,7 +16424,6 @@ exposures	3.26
 facets	3.26
 fad	3.26
 fledged	3.26
-fol	3.26
 forcefully	3.26
 foreground	3.26
 frown	3.26
@@ -16794,7 +16509,6 @@ resigning	3.26
 restraints	3.26
 revoke	3.26
 richness	3.26
-riviera	3.26
 scanners	3.26
 secretive	3.26
 sediments	3.26
@@ -16841,7 +16555,6 @@ abusers	3.25
 accommodating	3.25
 additives	3.25
 aggregation	3.25
-ahem	3.25
 alkaline	3.25
 alum	3.25
 antidote	3.25
@@ -16893,7 +16606,6 @@ cypress	3.25
 dandy	3.25
 dependable	3.25
 deteriorating	3.25
-dickhead	3.25
 disagrees	3.25
 eased	3.25
 easing	3.25
@@ -16957,7 +16669,6 @@ memberships	3.25
 microbiology	3.25
 migrating	3.25
 modernity	3.25
-motherfuckers	3.25
 narrowing	3.25
 nectar	3.25
 nitrate	3.25
@@ -17028,7 +16739,6 @@ tracts	3.25
 triathlon	3.25
 trickle	3.25
 troupe	3.25
-tsp	3.25
 tweed	3.25
 ultimatum	3.25
 uncut	3.25
@@ -17147,7 +16857,6 @@ nocturnal	3.24
 nozzle	3.24
 nudes	3.24
 offside	3.24
-orgy	3.24
 overlay	3.24
 paleo	3.24
 pastures	3.24
@@ -17211,7 +16920,6 @@ thirties	3.24
 thistle	3.24
 thumbnail	3.24
 tickle	3.24
-titties	3.24
 trays	3.24
 tubular	3.24
 tumbling	3.24
@@ -17281,7 +16989,6 @@ domino	3.23
 downgrade	3.23
 dreamy	3.23
 drenched	3.23
-droid	3.23
 dukes	3.23
 dummies	3.23
 dung	3.23
@@ -17309,7 +17016,6 @@ gracefully	3.23
 gubernatorial	3.23
 gunmen	3.23
 hawthorn	3.23
-hf	3.23
 hoard	3.23
 horde	3.23
 humming	3.23
@@ -17366,7 +17072,6 @@ prologue	3.23
 pueblo	3.23
 pulpit	3.23
 puncture	3.23
-pussies	3.23
 recounts	3.23
 redhead	3.23
 relational	3.23
@@ -17505,7 +17210,6 @@ handlers	3.22
 hanks	3.22
 haunts	3.22
 homogeneous	3.22
-incl	3.22
 inserts	3.22
 intangible	3.22
 interceptions	3.22
@@ -17514,7 +17218,6 @@ inventors	3.22
 ire	3.22
 kiddo	3.22
 knuckle	3.22
-kt	3.22
 landscaping	3.22
 laureate	3.22
 leveling	3.22
@@ -17747,7 +17450,6 @@ prolong	3.21
 propane	3.21
 publicized	3.21
 purest	3.21
-qt	3.21
 queues	3.21
 rambling	3.21
 recruiters	3.21
@@ -18029,7 +17731,6 @@ cert	3.19
 chandelier	3.19
 chests	3.19
 chute	3.19
-cir	3.19
 clipping	3.19
 clot	3.19
 comets	3.19
@@ -18127,7 +17828,6 @@ notoriety	3.19
 nuclei	3.19
 nutty	3.19
 obedient	3.19
-orgasms	3.19
 originates	3.19
 ornate	3.19
 ousted	3.19
@@ -18178,7 +17878,6 @@ shrub	3.19
 signage	3.19
 skis	3.19
 slag	3.19
-sluts	3.19
 sneeze	3.19
 soaps	3.19
 sobriety	3.19
@@ -18207,7 +17906,6 @@ unravel	3.19
 variously	3.19
 vests	3.19
 veterinarian	3.19
-viz	3.19
 warms	3.19
 wasteland	3.19
 watchdog	3.19
@@ -18317,7 +18015,6 @@ laughable	3.18
 locus	3.18
 makeshift	3.18
 marquee	3.18
-masturbate	3.18
 mathematically	3.18
 matrices	3.18
 melanoma	3.18
@@ -18672,7 +18369,6 @@ inspecting	3.16
 intensify	3.16
 invitational	3.16
 kennel	3.16
-kl	3.16
 knitted	3.16
 lager	3.16
 laird	3.16
@@ -18710,7 +18406,6 @@ procure	3.16
 propel	3.16
 propensity	3.16
 purchasers	3.16
-pvt	3.16
 rattled	3.16
 receptions	3.16
 remodeling	3.16
@@ -18753,6 +18448,7 @@ thumping	3.16
 tot	3.16
 transcribed	3.16
 tropics	3.16
+tsar	3.16
 tycoon	3.16
 unconditionally	3.16
 uncontrollable	3.16
@@ -18907,7 +18603,6 @@ overarching	3.15
 overseen	3.15
 overwhelm	3.15
 pathologist	3.15
-pct	3.15
 peacekeeping	3.15
 peptides	3.15
 pharmacology	3.15
@@ -18916,7 +18611,6 @@ pixie	3.15
 ply	3.15
 poaching	3.15
 powders	3.15
-ppm	3.15
 preventable	3.15
 primed	3.15
 proponent	3.15
@@ -19125,7 +18819,6 @@ pancreas	3.14
 pandas	3.14
 pasha	3.14
 periodical	3.14
-phew	3.14
 pickups	3.14
 pinched	3.14
 plating	3.14
@@ -19248,7 +18941,6 @@ endearing	3.13
 epilogue	3.13
 etching	3.13
 exemplified	3.13
-ext	3.13
 extermination	3.13
 fancied	3.13
 firefly	3.13
@@ -19307,7 +18999,6 @@ modernism	3.13
 monasteries	3.13
 narrows	3.13
 negotiator	3.13
-niggas	3.13
 nomadic	3.13
 observance	3.13
 overloaded	3.13
@@ -19406,7 +19097,6 @@ authorizing	3.12
 autographs	3.12
 autos	3.12
 backups	3.12
-bah	3.12
 beacons	3.12
 bearers	3.12
 bouncer	3.12
@@ -19522,7 +19212,6 @@ nab	3.12
 neonatal	3.12
 neuronal	3.12
 neutralize	3.12
-nickelodeon	3.12
 omen	3.12
 orally	3.12
 orchids	3.12
@@ -19574,7 +19263,6 @@ somethings	3.12
 spokeswoman	3.12
 spotless	3.12
 sprang	3.12
-ssh	3.12
 stabilizing	3.12
 stinky	3.12
 stitching	3.12
@@ -19800,7 +19488,6 @@ unwarranted	3.11
 unwillingness	3.11
 vases	3.11
 vetting	3.11
-vibrator	3.11
 wailing	3.11
 whisk	3.11
 wishful	3.11
@@ -19837,7 +19524,6 @@ centerpiece	3.10
 chameleon	3.10
 checkers	3.10
 clasp	3.10
-clit	3.10
 compulsion	3.10
 concealing	3.10
 condescending	3.10
@@ -19958,7 +19644,6 @@ palliative	3.10
 parable	3.10
 pastime	3.10
 patchwork	3.10
-pedophilia	3.10
 peed	3.10
 peeps	3.10
 pellet	3.10
@@ -20070,7 +19755,6 @@ beater	3.09
 benefactor	3.09
 biographer	3.09
 blackness	3.09
-bollocks	3.09
 booed	3.09
 boyhood	3.09
 briefcase	3.09
@@ -20094,7 +19778,6 @@ conforming	3.09
 connotations	3.09
 consonant	3.09
 correlations	3.09
-cpl	3.09
 crazier	3.09
 cricketers	3.09
 crisps	3.09
@@ -20205,8 +19888,6 @@ potentials	3.09
 prefect	3.09
 prevails	3.09
 propagate	3.09
-qr	3.09
-quot	3.09
 redefine	3.09
 reeling	3.09
 reinstate	3.09
@@ -20225,7 +19906,6 @@ salmonella	3.09
 savoy	3.09
 scarecrow	3.09
 scrubbing	3.09
-seq	3.09
 servings	3.09
 shiv	3.09
 shrinks	3.09
@@ -20532,7 +20212,6 @@ competitively	3.07
 compress	3.07
 comptroller	3.07
 conventionally	3.07
-coon	3.07
 correlates	3.07
 creole	3.07
 crusades	3.07
@@ -20594,7 +20273,6 @@ hunch	3.07
 impenetrable	3.07
 inconceivable	3.07
 industrialization	3.07
-inf	3.07
 infringing	3.07
 innovators	3.07
 issuer	3.07
@@ -20667,7 +20345,6 @@ roper	3.07
 rosters	3.07
 sacking	3.07
 scarring	3.07
-sch	3.07
 scheming	3.07
 scorched	3.07
 scripting	3.07
@@ -20689,7 +20366,6 @@ steamship	3.07
 stinging	3.07
 subbed	3.07
 summoning	3.07
-tbsp	3.07
 telecast	3.07
 tenancy	3.07
 testimonial	3.07
@@ -20714,7 +20390,6 @@ unwittingly	3.07
 upland	3.07
 upped	3.07
 ushered	3.07
-vb	3.07
 verbatim	3.07
 willfully	3.07
 yawn	3.07
@@ -20841,7 +20516,6 @@ loyalties	3.06
 lynching	3.06
 lynx	3.06
 mage	3.06
-mahatma	3.06
 mainline	3.06
 mainstay	3.06
 mannequin	3.06
@@ -20856,7 +20530,6 @@ mites	3.06
 mobiles	3.06
 modestly	3.06
 moniker	3.06
-mpg	3.06
 multidisciplinary	3.06
 mythological	3.06
 nave	3.06
@@ -20885,7 +20558,6 @@ regroup	3.06
 rehearsed	3.06
 reimburse	3.06
 reinvent	3.06
-rel	3.06
 repatriation	3.06
 requiem	3.06
 resurrect	3.06
@@ -20964,7 +20636,6 @@ augmentation	3.05
 azalea	3.05
 bacterium	3.05
 barter	3.05
-bbl	3.05
 beet	3.05
 bigoted	3.05
 bistro	3.05
@@ -21127,7 +20798,6 @@ swede	3.05
 sweepstakes	3.05
 syndicated	3.05
 tailoring	3.05
-tbs	3.05
 teeny	3.05
 tendered	3.05
 thoracic	3.05
@@ -21156,7 +20826,6 @@ abbreviations	3.04
 acquittal	3.04
 acupuncture	3.04
 admins	3.04
-adv	3.04
 aggregated	3.04
 anvil	3.04
 armament	3.04
@@ -21286,7 +20955,6 @@ mocks	3.04
 mongols	3.04
 monochrome	3.04
 mortuary	3.04
-mtg	3.04
 muffled	3.04
 muses	3.04
 nationalistic	3.04
@@ -21394,7 +21062,6 @@ amour	3.03
 annuities	3.03
 apprehensive	3.03
 assent	3.03
-assn	3.03
 atrocity	3.03
 babysit	3.03
 backdoor	3.03
@@ -21588,7 +21255,6 @@ substituting	3.03
 subversion	3.03
 sufficiency	3.03
 suitcases	3.03
-syn	3.03
 tasteless	3.03
 tensor	3.03
 terminally	3.03
@@ -21728,7 +21394,6 @@ infallible	3.02
 infuriating	3.02
 insulating	3.02
 integers	3.02
-jg	3.02
 jolt	3.02
 juggle	3.02
 jukebox	3.02
@@ -21834,7 +21499,6 @@ weirder	3.02
 whereupon	3.02
 withdraws	3.02
 wither	3.02
-wk	3.02
 wobble	3.02
 zed	3.02
 abridged	3.01
@@ -21916,7 +21580,6 @@ flapping	3.01
 florist	3.01
 foreplay	3.01
 formatted	3.01
-ftp	3.01
 gangsta	3.01
 garb	3.01
 gassed	3.01
@@ -21950,7 +21613,6 @@ intermission	3.01
 irreplaceable	3.01
 kanji	3.01
 kilogram	3.01
-kn	3.01
 landline	3.01
 lashed	3.01
 legislate	3.01
@@ -21963,7 +21625,6 @@ mirroring	3.01
 mistaking	3.01
 moderators	3.01
 mouthful	3.01
-mun	3.01
 mustangs	3.01
 mutton	3.01
 nestled	3.01
@@ -22026,7 +21687,6 @@ sepsis	3.01
 sharpening	3.01
 sharpness	3.01
 shelved	3.01
-shh	3.01
 shipper	3.01
 shopped	3.01
 sketching	3.01
@@ -22060,7 +21720,6 @@ terraced	3.01
 testers	3.01
 thrived	3.01
 tickled	3.01
-titty	3.01
 toppings	3.01
 traffickers	3.01
 transcends	3.01
@@ -22084,7 +21743,6 @@ wanderer	3.01
 warts	3.01
 watchman	3.01
 xerox	3.01
-yd	3.01
 yeti	3.01
 abject	3.00
 actionable	3.00
@@ -22096,7 +21754,6 @@ amazement	3.00
 amending	3.00
 appointees	3.00
 armpit	3.00
-arr	3.00
 austere	3.00
 authoritarianism	3.00
 awkwardness	3.00
@@ -22576,7 +22233,6 @@ archangel	2.98
 athleticism	2.98
 axles	2.98
 bailing	2.98
-baptists	2.98
 baritone	2.98
 bestow	2.98
 blistering	2.98
@@ -22773,7 +22429,6 @@ substitutions	2.98
 suitor	2.98
 suitors	2.98
 supposing	2.98
-supt	2.98
 taint	2.98
 tantrums	2.98
 tarp	2.98
@@ -22849,7 +22504,6 @@ constabulary	2.97
 coordinators	2.97
 cote	2.97
 crumb	2.97
-ctr	2.97
 dames	2.97
 darkly	2.97
 deactivate	2.97
@@ -22943,7 +22597,6 @@ mullet	2.97
 natures	2.97
 navigable	2.97
 negotiators	2.97
-niggers	2.97
 nothingness	2.97
 odors	2.97
 offensively	2.97
@@ -23009,7 +22662,6 @@ stifling	2.97
 strayed	2.97
 stunted	2.97
 supremacists	2.97
-swastika	2.97
 symbolically	2.97
 talkative	2.97
 talon	2.97
@@ -23062,7 +22714,6 @@ blurring	2.96
 boardroom	2.96
 bobcats	2.96
 bottomless	2.96
-bpm	2.96
 breakfasts	2.96
 bunches	2.96
 cautions	2.96
@@ -23205,7 +22856,6 @@ sisterhood	2.96
 sketched	2.96
 smuggler	2.96
 snob	2.96
-sodomy	2.96
 soldering	2.96
 solubility	2.96
 sonnet	2.96
@@ -23266,7 +22916,6 @@ antlers	2.95
 armaments	2.95
 arroyo	2.95
 audacious	2.95
-balboa	2.95
 battleships	2.95
 befriended	2.95
 beheading	2.95
@@ -23292,7 +22941,6 @@ centering	2.95
 chimp	2.95
 chromatography	2.95
 classifying	2.95
-clitoris	2.95
 coincidental	2.95
 colliding	2.95
 colliery	2.95
@@ -23466,7 +23114,6 @@ uninstall	2.95
 unplug	2.95
 unproven	2.95
 vac	2.95
-wanker	2.95
 watchmen	2.95
 affixed	2.94
 airbags	2.94
@@ -23534,7 +23181,6 @@ evidences	2.94
 exasperated	2.94
 exorcist	2.94
 faceted	2.94
-faggots	2.94
 fags	2.94
 federated	2.94
 fibrous	2.94
@@ -23554,7 +23200,6 @@ hooligans	2.94
 hopelessness	2.94
 householder	2.94
 hubris	2.94
-hurrah	2.94
 hysterically	2.94
 idealized	2.94
 idiosyncratic	2.94
@@ -23576,7 +23221,6 @@ mausoleum	2.94
 melodramatic	2.94
 messaged	2.94
 metallurgy	2.94
-misc	2.94
 mugged	2.94
 mull	2.94
 mushy	2.94
@@ -23597,7 +23241,6 @@ picturing	2.94
 pituitary	2.94
 plumage	2.94
 poachers	2.94
-poof	2.94
 possum	2.94
 potted	2.94
 premeditated	2.94
@@ -23640,7 +23283,6 @@ skimmed	2.94
 skirmishes	2.94
 slaughterhouse	2.94
 slideshow	2.94
-smurfs	2.94
 sociologists	2.94
 sparrows	2.94
 speculators	2.94
@@ -23682,13 +23324,10 @@ verifiable	2.94
 viscous	2.94
 vitally	2.94
 vixen	2.94
-wank	2.94
 whims	2.94
-whitey	2.94
 windfall	2.94
 workday	2.94
 wreak	2.94
-xviii	2.94
 yap	2.94
 yous	2.94
 ablaze	2.93
@@ -23763,7 +23402,6 @@ encircled	2.93
 endpoint	2.93
 entailed	2.93
 ethyl	2.93
-everglades	2.93
 excels	2.93
 expatriate	2.93
 expats	2.93
@@ -23911,7 +23549,6 @@ tosses	2.93
 traversed	2.93
 trifle	2.93
 twine	2.93
-twink	2.93
 unfulfilled	2.93
 unjustly	2.93
 unoccupied	2.93
@@ -23926,8 +23563,6 @@ whiter	2.93
 wickedness	2.93
 worksheet	2.93
 wrappers	2.93
-xxi	2.93
-xxiii	2.93
 yarns	2.93
 abysmal	2.92
 adores	2.92
@@ -24000,7 +23635,6 @@ distaste	2.92
 dost	2.92
 dribbling	2.92
 dwindled	2.92
-ejaculation	2.92
 enveloped	2.92
 environmentalist	2.92
 epileptic	2.92
@@ -24244,7 +23878,6 @@ disinterested	2.91
 dispensaries	2.91
 disrespecting	2.91
 dissected	2.91
-dist	2.91
 diversions	2.91
 downplay	2.91
 drapes	2.91
@@ -24532,7 +24165,6 @@ inevitability	2.90
 infatuated	2.90
 infatuation	2.90
 infighting	2.90
-infra	2.90
 infraction	2.90
 inhabiting	2.90
 inkling	2.90
@@ -24684,7 +24316,6 @@ altars	2.89
 alternates	2.89
 amenable	2.89
 amity	2.89
-amt	2.89
 annotation	2.89
 antibacterial	2.89
 apprenticeships	2.89
@@ -24715,7 +24346,6 @@ checkered	2.89
 cheekbones	2.89
 cilantro	2.89
 circumcised	2.89
-cit	2.89
 civics	2.89
 clamped	2.89
 claps	2.89
@@ -24735,7 +24365,6 @@ dag	2.89
 damsel	2.89
 daze	2.89
 debugging	2.89
-deg	2.89
 deliciously	2.89
 dickey	2.89
 diocesan	2.89
@@ -24853,7 +24482,6 @@ repeater	2.89
 reprisals	2.89
 reruns	2.89
 retardation	2.89
-retards	2.89
 retort	2.89
 revitalization	2.89
 rework	2.89
@@ -25059,7 +24687,6 @@ neanderthals	2.88
 nears	2.88
 neuter	2.88
 newlyweds	2.88
-obj	2.88
 och	2.88
 omitting	2.88
 opinionated	2.88
@@ -25078,7 +24705,6 @@ patently	2.88
 pecking	2.88
 pertain	2.88
 pesto	2.88
-phys	2.88
 plowing	2.88
 polity	2.88
 pooped	2.88
@@ -25132,7 +24758,6 @@ subordinated	2.88
 subpoenas	2.88
 subside	2.88
 subways	2.88
-supp	2.88
 swoon	2.88
 syringes	2.88
 tactically	2.88
@@ -25162,7 +24787,6 @@ womanhood	2.88
 worrisome	2.88
 wort	2.88
 wreaths	2.88
-xix	2.88
 acronyms	2.87
 admissible	2.87
 airlift	2.87
@@ -25177,7 +24801,6 @@ battering	2.87
 bimbo	2.87
 blackmailed	2.87
 blazed	2.87
-blowjobs	2.87
 boarders	2.87
 bongo	2.87
 bootstrap	2.87
@@ -25418,7 +25041,6 @@ welt	2.87
 wheezing	2.87
 winded	2.87
 wisest	2.87
-wop	2.87
 yaw	2.87
 accusers	2.86
 adaptability	2.86
@@ -25484,7 +25106,6 @@ defamatory	2.86
 depravity	2.86
 depress	2.86
 disheartening	2.86
-dz	2.86
 eavesdropping	2.86
 eclipses	2.86
 edibles	2.86
@@ -25548,7 +25169,6 @@ neutralized	2.86
 notepad	2.86
 numerically	2.86
 nutcracker	2.86
-obs	2.86
 outboard	2.86
 outlier	2.86
 outweighs	2.86
@@ -25689,7 +25309,6 @@ dispensation	2.85
 domed	2.85
 dowager	2.85
 drips	2.85
-dunning	2.85
 eaves	2.85
 emboldened	2.85
 enema	2.85
@@ -25780,7 +25399,6 @@ potters	2.85
 prairies	2.85
 predicate	2.85
 predictability	2.85
-prov	2.85
 puking	2.85
 quintet	2.85
 radiated	2.85
@@ -25839,7 +25457,6 @@ tugs	2.85
 tumbler	2.85
 typeface	2.85
 uglier	2.85
-ult	2.85
 unaccounted	2.85
 unbound	2.85
 uncalled	2.85
@@ -25878,7 +25495,6 @@ apathetic	2.84
 apologists	2.84
 appended	2.84
 artiste	2.84
-atty	2.84
 backwater	2.84
 ballistics	2.84
 bequest	2.84
@@ -25924,7 +25540,6 @@ disloyal	2.84
 disowned	2.84
 dissociation	2.84
 dormitories	2.84
-dpi	2.84
 dreads	2.84
 drowns	2.84
 druids	2.84
@@ -26022,7 +25637,6 @@ obsessions	2.84
 olden	2.84
 oneness	2.84
 opacity	2.84
-opp	2.84
 otherworldly	2.84
 overdo	2.84
 overdraft	2.84
@@ -26248,7 +25862,6 @@ margarine	2.83
 mashup	2.83
 massed	2.83
 mauled	2.83
-mayflower	2.83
 melanin	2.83
 minis	2.83
 mists	2.83
@@ -26415,7 +26028,6 @@ covertly	2.82
 covet	2.82
 curbing	2.82
 dales	2.82
-dds	2.82
 deacons	2.82
 depressions	2.82
 dingy	2.82
@@ -26492,7 +26104,6 @@ millionth	2.82
 mores	2.82
 nae	2.82
 narrates	2.82
-neg	2.82
 outgrown	2.82
 outpouring	2.82
 overdone	2.82
@@ -26530,7 +26141,6 @@ retainers	2.82
 retrospectively	2.82
 revolts	2.82
 rotted	2.82
-rte	2.82
 rusher	2.82
 sanctum	2.82
 scooping	2.82
@@ -26574,10 +26184,8 @@ winking	2.82
 withering	2.82
 woodpecker	2.82
 workstations	2.82
-xvii	2.82
 yip	2.82
 zigzag	2.82
-aah	2.81
 abscess	2.81
 absorbent	2.81
 acorns	2.81
@@ -26603,7 +26211,6 @@ beholder	2.81
 blogged	2.81
 blushes	2.81
 boas	2.81
-bolivar	2.81
 bookmarks	2.81
 bubblegum	2.81
 bungalows	2.81
@@ -26765,7 +26372,6 @@ remarking	2.81
 resetting	2.81
 reshuffle	2.81
 retiree	2.81
-rho	2.81
 roughness	2.81
 salter	2.81
 salve	2.81
@@ -26873,7 +26479,6 @@ computations	2.80
 consuls	2.80
 convergent	2.80
 cosmological	2.80
-cpd	2.80
 craps	2.80
 crazies	2.80
 creaking	2.80
@@ -26962,7 +26567,6 @@ manna	2.80
 massaging	2.80
 materiel	2.80
 messier	2.80
-mgr	2.80
 microcosm	2.80
 miscarriages	2.80
 misdeeds	2.80
@@ -26978,7 +26582,6 @@ orangutan	2.80
 orbs	2.80
 oregano	2.80
 organics	2.80
-orig	2.80
 outdone	2.80
 outplayed	2.80
 outrageously	2.80
@@ -26998,7 +26601,6 @@ perv	2.80
 photojournalist	2.80
 pinks	2.80
 plunges	2.80
-politburo	2.80
 polystyrene	2.80
 pontiff	2.80
 portrayals	2.80
@@ -27034,7 +26636,6 @@ revives	2.80
 revolted	2.80
 royalist	2.80
 sawed	2.80
-schilling	2.80
 screenwriting	2.80
 sculpt	2.80
 selectivity	2.80
@@ -27106,7 +26707,6 @@ bitty	2.79
 blurb	2.79
 bonsai	2.79
 boyish	2.79
-bps	2.79
 buckwheat	2.79
 bushel	2.79
 busses	2.79
@@ -27151,7 +26751,6 @@ desalination	2.79
 desktops	2.79
 determinations	2.79
 dictatorships	2.79
-dildos	2.79
 dimly	2.79
 discernment	2.79
 dislodge	2.79
@@ -27349,7 +26948,6 @@ unsightly	2.79
 uptick	2.79
 urchin	2.79
 vandal	2.79
-vhf	2.79
 violators	2.79
 vise	2.79
 watertight	2.79
@@ -27371,7 +26969,6 @@ appetizers	2.78
 appraised	2.78
 appreciable	2.78
 associative	2.78
-asst	2.78
 assuredly	2.78
 atherosclerosis	2.78
 auctioneers	2.78
@@ -27505,7 +27102,6 @@ mandolin	2.78
 marinated	2.78
 megaphone	2.78
 megawatts	2.78
-milfs	2.78
 militarism	2.78
 misfortunes	2.78
 mismatched	2.78
@@ -27651,7 +27247,6 @@ buoys	2.77
 camouflaged	2.77
 catastrophes	2.77
 chalkboard	2.77
-cheerios	2.77
 cockney	2.77
 collated	2.77
 comically	2.77
@@ -27696,7 +27291,6 @@ flirtatious	2.77
 flue	2.77
 formulae	2.77
 frescoes	2.77
-fwd	2.77
 gatherer	2.77
 generative	2.77
 gentleness	2.77
@@ -27717,7 +27311,6 @@ infidel	2.77
 inhabits	2.77
 insemination	2.77
 insinuating	2.77
-inst	2.77
 intelligible	2.77
 intervenes	2.77
 ionizing	2.77
@@ -27779,7 +27372,6 @@ powdery	2.77
 pram	2.77
 prescriptive	2.77
 preying	2.77
-psst	2.77
 purifying	2.77
 puritans	2.77
 quads	2.77
@@ -27823,7 +27415,6 @@ sounders	2.77
 soured	2.77
 southernmost	2.77
 splatter	2.77
-sputnik	2.77
 squirting	2.77
 stipulate	2.77
 stipulations	2.77
@@ -28130,7 +27721,6 @@ attenuated	2.75
 avenging	2.75
 bangles	2.75
 barbarism	2.75
-bareback	2.75
 battlefront	2.75
 beaters	2.75
 billet	2.75
@@ -28358,6 +27948,7 @@ stilts	2.75
 stoning	2.75
 straddling	2.75
 strikeout	2.75
+styrofoam	2.75
 subpoenaed	2.75
 subprime	2.75
 subtleties	2.75
@@ -28425,6 +28016,7 @@ camcorder	2.74
 canola	2.74
 casters	2.74
 castrated	2.74
+cava	2.74
 chipmunk	2.74
 chronicling	2.74
 chucking	2.74
@@ -28601,7 +28193,6 @@ underfunded	2.74
 unlisted	2.74
 unpredictability	2.74
 ventricle	2.74
-vulva	2.74
 waistband	2.74
 whistled	2.74
 wizardry	2.74
@@ -28624,7 +28215,6 @@ baboon	2.73
 backfield	2.73
 bakes	2.73
 balled	2.73
-bally	2.73
 beeps	2.73
 begotten	2.73
 beleaguered	2.73
@@ -28661,7 +28251,6 @@ deceleration	2.73
 defaulting	2.73
 detergents	2.73
 developmentally	2.73
-dickheads	2.73
 diffused	2.73
 dint	2.73
 dioceses	2.73
@@ -28691,7 +28280,6 @@ flinging	2.73
 floodplain	2.73
 foodies	2.73
 franchisees	2.73
-freemasonry	2.73
 fugue	2.73
 gelding	2.73
 glandular	2.73
@@ -28832,7 +28420,6 @@ weevil	2.73
 whirling	2.73
 wintry	2.73
 worshipers	2.73
-yow	2.73
 zealots	2.73
 acetyl	2.72
 achievers	2.72
@@ -28846,7 +28433,6 @@ analogues	2.72
 anchovies	2.72
 ashtray	2.72
 askew	2.72
-assoc	2.72
 attendee	2.72
 authenticate	2.72
 awoken	2.72
@@ -29102,7 +28688,6 @@ boathouse	2.71
 bonfires	2.71
 brickwork	2.71
 brooms	2.71
-calumet	2.71
 cardamom	2.71
 carrion	2.71
 casks	2.71
@@ -29139,7 +28724,6 @@ dissociative	2.71
 diverging	2.71
 earpiece	2.71
 elegy	2.71
-emf	2.71
 encircling	2.71
 entitle	2.71
 entomologist	2.71
@@ -29198,7 +28782,6 @@ joyfully	2.71
 kibbutz	2.71
 kilns	2.71
 larynx	2.71
-lassie	2.71
 lifter	2.71
 lithography	2.71
 loathsome	2.71
@@ -29343,7 +28926,6 @@ wistful	2.71
 wolfram	2.71
 workaround	2.71
 yeoman	2.71
-yuk	2.71
 yule	2.71
 abounds	2.70
 accumulator	2.70
@@ -29654,7 +29236,6 @@ cryptocurrencies	2.69
 cuticle	2.69
 dateline	2.69
 dauntless	2.69
-degas	2.69
 depleting	2.69
 devotions	2.69
 dialectic	2.69
@@ -29692,7 +29273,6 @@ forges	2.69
 frowns	2.69
 frustrates	2.69
 fuchsia	2.69
-gillies	2.69
 glittery	2.69
 globular	2.69
 grandmas	2.69
@@ -29709,7 +29289,6 @@ hunchback	2.69
 hydrothermal	2.69
 hyperspace	2.69
 hypo	2.69
-ibid	2.69
 impurity	2.69
 inactivated	2.69
 inalienable	2.69
@@ -29801,7 +29380,6 @@ replicates	2.69
 requisition	2.69
 resettled	2.69
 resistances	2.69
-resp	2.69
 restarts	2.69
 retrace	2.69
 reusing	2.69
@@ -29938,7 +29516,6 @@ dopey	2.68
 ducky	2.68
 easel	2.68
 eastwards	2.68
-eek	2.68
 eliminations	2.68
 ellipse	2.68
 encoder	2.68
@@ -30042,7 +29619,6 @@ pontifical	2.68
 postcolonial	2.68
 precluded	2.68
 prostrate	2.68
-pubes	2.68
 pushover	2.68
 quicksand	2.68
 quilting	2.68
@@ -30062,7 +29638,6 @@ restaurateur	2.68
 rickety	2.68
 ricotta	2.68
 ridership	2.68
-rps	2.68
 sacra	2.68
 saddens	2.68
 sappy	2.68
@@ -30086,7 +29661,6 @@ songbird	2.68
 sorties	2.68
 splendidly	2.68
 sprawled	2.68
-squaw	2.68
 stiller	2.68
 storehouse	2.68
 straighter	2.68
@@ -30122,7 +29696,6 @@ upshot	2.68
 upsurge	2.68
 vivacious	2.68
 vowing	2.68
-voyeur	2.68
 warlike	2.68
 watercolors	2.68
 watermelons	2.68
@@ -30371,7 +29944,6 @@ wench	2.67
 wheres	2.67
 wiggles	2.67
 worsens	2.67
-xxii	2.67
 yeshiva	2.67
 zany	2.67
 abalone	2.66
@@ -30554,7 +30126,6 @@ pimping	2.66
 plateaus	2.66
 pocketbook	2.66
 polymeric	2.66
-ppr	2.66
 precludes	2.66
 prescient	2.66
 procurator	2.66
@@ -30637,13 +30208,11 @@ vastness	2.66
 veganism	2.66
 wags	2.66
 waistcoat	2.66
-wankers	2.66
 wheelbarrow	2.66
 wrangling	2.66
 yawns	2.66
 abacus	2.65
 abolitionists	2.65
-acct	2.65
 acetic	2.65
 affidavits	2.65
 agape	2.65
@@ -30655,7 +30224,6 @@ anise	2.65
 argumentation	2.65
 asphyxiation	2.65
 assessors	2.65
-attn	2.65
 backstroke	2.65
 baits	2.65
 balsam	2.65
@@ -30691,7 +30259,6 @@ confirmations	2.65
 confound	2.65
 conjugal	2.65
 contouring	2.65
-corr	2.65
 couplings	2.65
 courageously	2.65
 covalent	2.65
@@ -30757,7 +30324,6 @@ harshness	2.65
 headscarf	2.65
 heaping	2.65
 heartbeats	2.65
-hons	2.65
 hotbed	2.65
 hotness	2.65
 immunoglobulin	2.65
@@ -30906,7 +30472,6 @@ upholstered	2.65
 upturned	2.65
 vaporized	2.65
 variances	2.65
-vela	2.65
 vignette	2.65
 vulgarity	2.65
 wanderlust	2.65
@@ -30920,7 +30485,6 @@ withstanding	2.65
 yucca	2.65
 abhor	2.64
 accursed	2.64
-adj	2.64
 afterglow	2.64
 aghast	2.64
 agitate	2.64
@@ -30942,7 +30506,6 @@ birding	2.64
 blushed	2.64
 bombarding	2.64
 buts	2.64
-bx	2.64
 caldera	2.64
 cataclysm	2.64
 catapulted	2.64
@@ -30990,7 +30553,6 @@ dings	2.64
 discontinuous	2.64
 docklands	2.64
 dolomite	2.64
-dominatrix	2.64
 doze	2.64
 elaborates	2.64
 elongation	2.64
@@ -31021,7 +30583,6 @@ footpaths	2.64
 forays	2.64
 freelancing	2.64
 freezers	2.64
-fut	2.64
 garnished	2.64
 gastronomy	2.64
 generics	2.64
@@ -31130,7 +30691,6 @@ prunes	2.64
 puffer	2.64
 purport	2.64
 quarts	2.64
-ques	2.64
 quint	2.64
 radicalization	2.64
 radiologist	2.64
@@ -31171,7 +30731,6 @@ shortfalls	2.64
 sickest	2.64
 sincerest	2.64
 snazzy	2.64
-snider	2.64
 snipes	2.64
 sorbet	2.64
 spiny	2.64
@@ -31379,7 +30938,6 @@ mammary	2.63
 maximized	2.63
 menopausal	2.63
 metered	2.63
-mfg	2.63
 microbe	2.63
 millstone	2.63
 mimicry	2.63
@@ -31391,7 +30949,6 @@ mutate	2.63
 neglects	2.63
 nimrod	2.63
 novelties	2.63
-oeuvres	2.63
 offhand	2.63
 okra	2.63
 omelet	2.63
@@ -31482,7 +31039,6 @@ transvestite	2.63
 trodden	2.63
 tucks	2.63
 tussle	2.63
-twp	2.63
 typist	2.63
 unaided	2.63
 unbecoming	2.63
@@ -31517,7 +31073,6 @@ astrophysicist	2.62
 autocracy	2.62
 balloting	2.62
 basset	2.62
-bestiality	2.62
 biracial	2.62
 blurs	2.62
 blurted	2.62
@@ -31737,7 +31292,6 @@ traditionalists	2.62
 trappers	2.62
 tulle	2.62
 turtleneck	2.62
-twats	2.62
 unconvinced	2.62
 underclass	2.62
 undertone	2.62
@@ -31802,7 +31356,6 @@ castaway	2.61
 cenotaph	2.61
 chafing	2.61
 chambered	2.61
-chink	2.61
 circumscribed	2.61
 clack	2.61
 clicker	2.61
@@ -32055,7 +31608,6 @@ bimonthly	2.60
 binocular	2.60
 bioethics	2.60
 biter	2.60
-bldg	2.60
 bloat	2.60
 bolus	2.60
 botanists	2.60
@@ -32145,7 +31697,6 @@ inlets	2.60
 interactivity	2.60
 interdiction	2.60
 intros	2.60
-isl	2.60
 jarred	2.60
 jaunt	2.60
 jointed	2.60
@@ -32155,7 +31706,6 @@ khans	2.60
 kindergartens	2.60
 kneels	2.60
 knits	2.60
-kph	2.60
 laud	2.60
 legation	2.60
 letterhead	2.60
@@ -32290,6 +31840,7 @@ acoustical	2.59
 afflictions	2.59
 aggregating	2.59
 agitator	2.59
+albedo	2.59
 amateurish	2.59
 angora	2.59
 anyplace	2.59
@@ -32551,7 +32102,6 @@ vagaries	2.59
 vamps	2.59
 vermouth	2.59
 viewfinder	2.59
-wanking	2.59
 watchdogs	2.59
 watchmaker	2.59
 whitefish	2.59
@@ -32993,7 +32543,6 @@ militarization	2.57
 minimization	2.57
 mitral	2.57
 moribund	2.57
-mulatto	2.57
 musicianship	2.57
 needlework	2.57
 nematode	2.57
@@ -33159,7 +32708,6 @@ concurrence	2.56
 conscripted	2.56
 conspiratorial	2.56
 cornucopia	2.56
-corvettes	2.56
 covariance	2.56
 creepiest	2.56
 crustacean	2.56
@@ -33532,7 +33080,6 @@ miscellany	2.55
 misdiagnosed	2.55
 moxie	2.55
 multiplies	2.55
-natl	2.55
 necktie	2.55
 necrotic	2.55
 negating	2.55
@@ -33754,7 +33301,6 @@ herons	2.54
 hillbillies	2.54
 homeroom	2.54
 honeybee	2.54
-hosp	2.54
 hounding	2.54
 hovercraft	2.54
 huffing	2.54
@@ -34220,7 +33766,6 @@ conditionally	2.52
 consummation	2.52
 convents	2.52
 conveyors	2.52
-coons	2.52
 crags	2.52
 creak	2.52
 creditable	2.52
@@ -34281,7 +33826,6 @@ herculean	2.52
 hereunder	2.52
 heterosexuality	2.52
 heuristics	2.52
-illus	2.52
 imploding	2.52
 improvisational	2.52
 incubus	2.52
@@ -34673,7 +34217,6 @@ tacking	2.51
 tadpole	2.51
 tarred	2.51
 terns	2.51
-terr	2.51
 theologically	2.51
 travail	2.51
 unbuttoned	2.51
@@ -34937,7 +34480,6 @@ wishbone	2.50
 wistfully	2.50
 worshipful	2.50
 wows	2.50
-xxiv	2.50
 yeasts	2.50
 aeration	2.49
 aftershocks	2.49
@@ -35032,7 +34574,6 @@ fathoms	2.49
 feathery	2.49
 feedings	2.49
 feelgood	2.49
-fellatio	2.49
 fizzled	2.49
 flapper	2.49
 flay	2.49
@@ -35439,7 +34980,6 @@ suffragette	2.48
 supercomputers	2.48
 superconductivity	2.48
 supposes	2.48
-swastikas	2.48
 swisher	2.48
 swooning	2.48
 tamale	2.48
@@ -35718,7 +35258,6 @@ wads	2.47
 waists	2.47
 wast	2.47
 whittled	2.47
-xxv	2.47
 zilch	2.47
 abductor	2.46
 abstentions	2.46
@@ -35740,7 +35279,6 @@ audios	2.46
 aunties	2.46
 autobiographies	2.46
 avidly	2.46
-baileys	2.46
 barbecued	2.46
 baristas	2.46
 bartering	2.46
@@ -35910,7 +35448,6 @@ plotter	2.46
 policyholder	2.46
 polyunsaturated	2.46
 popularize	2.46
-poss	2.46
 praiseworthy	2.46
 predated	2.46
 prelates	2.46
@@ -35951,7 +35488,6 @@ slurping	2.46
 slyly	2.46
 snagging	2.46
 soiree	2.46
-soph	2.46
 sounder	2.46
 spaceman	2.46
 spars	2.46
@@ -36316,7 +35852,6 @@ calving	2.44
 cantata	2.44
 chanced	2.44
 chartreuse	2.44
-cocksucker	2.44
 colonialist	2.44
 combust	2.44
 commercialism	2.44
@@ -36432,7 +35967,6 @@ phoneme	2.44
 phonemic	2.44
 physiologic	2.44
 pimped	2.44
-pkg	2.44
 plebeian	2.44
 possums	2.44
 preempt	2.44
@@ -36499,7 +36033,6 @@ threshing	2.44
 throngs	2.44
 torchlight	2.44
 touristic	2.44
-transl	2.44
 transom	2.44
 transsexuals	2.44
 trigonometric	2.44
@@ -36649,7 +36182,6 @@ labyrinthine	2.43
 lambasted	2.43
 lapels	2.43
 laryngeal	2.43
-lbw	2.43
 lemongrass	2.43
 leucine	2.43
 lineal	2.43
@@ -37094,7 +36626,6 @@ engravers	2.41
 enliven	2.41
 ennui	2.41
 epitomized	2.41
-excl	2.41
 exorcise	2.41
 expropriated	2.41
 extendable	2.41
@@ -37279,7 +36810,6 @@ aphorisms	2.40
 asceticism	2.40
 atomizer	2.40
 ballooned	2.40
-barbies	2.40
 bathes	2.40
 beachhead	2.40
 befallen	2.40
@@ -37328,7 +36858,6 @@ crowed	2.40
 cubism	2.40
 cubist	2.40
 cud	2.40
-cwt	2.40
 cyclonic	2.40
 daunted	2.40
 deadlier	2.40
@@ -37349,7 +36878,6 @@ dietitians	2.40
 diminution	2.40
 directorship	2.40
 disaffection	2.40
-dobbins	2.40
 downcast	2.40
 eluding	2.40
 embarrasses	2.40
@@ -37404,7 +36932,6 @@ inopportune	2.40
 jinxed	2.40
 junker	2.40
 keystrokes	2.40
-kike	2.40
 labial	2.40
 lacquered	2.40
 leaden	2.40
@@ -37519,7 +37046,6 @@ unmade	2.40
 unravels	2.40
 unreliability	2.40
 untainted	2.40
-usu	2.40
 usurping	2.40
 vicars	2.40
 wain	2.40
@@ -37609,7 +37135,6 @@ divisiveness	2.39
 doctoring	2.39
 doorsteps	2.39
 dotting	2.39
-dpt	2.39
 draping	2.39
 ducal	2.39
 earnestness	2.39
@@ -37712,7 +37237,6 @@ perked	2.39
 perpetuation	2.39
 persuasions	2.39
 piste	2.39
-pkwy	2.39
 plainclothes	2.39
 pleasuring	2.39
 polemics	2.39
@@ -37849,7 +37373,6 @@ burping	2.38
 buxom	2.38
 byways	2.38
 calisthenics	2.38
-callas	2.38
 callbacks	2.38
 canker	2.38
 cantonment	2.38
@@ -37902,7 +37425,6 @@ farmstead	2.38
 fens	2.38
 flagrantly	2.38
 flotsam	2.38
-flt	2.38
 flutters	2.38
 forefinger	2.38
 fracas	2.38
@@ -38042,7 +37564,6 @@ wellspring	2.38
 wikis	2.38
 winced	2.38
 wreckers	2.38
-xxvii	2.38
 yearlong	2.38
 yuletide	2.38
 absconded	2.37
@@ -38092,7 +37613,6 @@ colander	2.37
 concoctions	2.37
 condenses	2.37
 conservatories	2.37
-crayola	2.37
 crevasse	2.37
 crooner	2.37
 cruelest	2.37
@@ -38306,7 +37826,6 @@ voyagers	2.37
 wayfarer	2.37
 weedy	2.37
 winches	2.37
-xxvi	2.37
 xylophone	2.37
 abeyance	2.36
 accentuates	2.36
@@ -38355,7 +37874,6 @@ commodores	2.36
 compensations	2.36
 conflating	2.36
 conscientiously	2.36
-coolie	2.36
 corpora	2.36
 cyclotron	2.36
 dalmatians	2.36
@@ -38714,7 +38232,6 @@ luxuriant	2.35
 majesties	2.35
 malarial	2.35
 masseur	2.35
-mfr	2.35
 moistened	2.35
 monad	2.35
 multiyear	2.35
@@ -39246,7 +38763,6 @@ minarets	2.33
 miserly	2.33
 modulates	2.33
 modulo	2.33
-mongoloid	2.33
 motile	2.33
 nibbled	2.33
 nonpublic	2.33
@@ -39440,7 +38956,6 @@ fomenting	2.32
 fondled	2.32
 footings	2.32
 forfeits	2.32
-freq	2.32
 ganged	2.32
 garters	2.32
 genuineness	2.32
@@ -39671,7 +39186,6 @@ creditworthiness	2.31
 crossbones	2.31
 curfews	2.31
 curios	2.31
-dbl	2.31
 declaratory	2.31
 declension	2.31
 dehumidifier	2.31
@@ -39758,7 +39272,6 @@ longings	2.31
 lozenge	2.31
 lozenges	2.31
 magnifies	2.31
-masc	2.31
 mayoralty	2.31
 mealtime	2.31
 meany	2.31
@@ -39877,7 +39390,6 @@ whinge	2.31
 willies	2.31
 windstorm	2.31
 workup	2.31
-xxviii	2.31
 zines	2.31
 zits	2.31
 absentees	2.30
@@ -39930,7 +39442,6 @@ coupes	2.30
 couturier	2.30
 crackheads	2.30
 cretins	2.30
-cunnilingus	2.30
 daemons	2.30
 decriminalize	2.30
 demigods	2.30
@@ -40077,7 +39588,6 @@ resisters	2.30
 resourcing	2.30
 retouched	2.30
 reverberated	2.30
-rimming	2.30
 romanticize	2.30
 roomed	2.30
 rustlers	2.30
@@ -40092,7 +39602,6 @@ shipmates	2.30
 sicken	2.30
 sleeplessness	2.30
 sleuthing	2.30
-slumdog	2.30
 smote	2.30
 sockeye	2.30
 softwood	2.30
@@ -40110,7 +39619,6 @@ submerging	2.30
 superwoman	2.30
 talcum	2.30
 tamp	2.30
-telecaster	2.30
 tetrahedron	2.30
 topiary	2.30
 tracheal	2.30
@@ -40199,7 +39707,6 @@ drafters	2.29
 dysfunctions	2.29
 edification	2.29
 electroshock	2.29
-elem	2.29
 elopement	2.29
 elucidation	2.29
 embellishing	2.29
@@ -40228,7 +39735,6 @@ frosh	2.29
 fuckhead	2.29
 gearboxes	2.29
 generalissimo	2.29
-gook	2.29
 groundnut	2.29
 groundswell	2.29
 grump	2.29
@@ -40270,7 +39776,6 @@ leafed	2.29
 legalities	2.29
 leukocyte	2.29
 liberates	2.29
-lii	2.29
 lithographic	2.29
 lollies	2.29
 lunching	2.29
@@ -40440,7 +39945,6 @@ callousness	2.28
 cantos	2.28
 categorizes	2.28
 chafed	2.28
-chinks	2.28
 clobber	2.28
 clothier	2.28
 coattails	2.28
@@ -40496,7 +40000,6 @@ fiercer	2.28
 finis	2.28
 finned	2.28
 foisted	2.28
-foll	2.28
 foreshadows	2.28
 fount	2.28
 fountainhead	2.28
@@ -40831,7 +40334,6 @@ matriarchal	2.27
 miasma	2.27
 microeconomics	2.27
 milady	2.27
-mks	2.27
 monetized	2.27
 monoliths	2.27
 mudslide	2.27
@@ -40869,7 +40371,6 @@ priestesses	2.27
 prokaryotic	2.27
 prorated	2.27
 pubis	2.27
-qty	2.27
 quails	2.27
 razing	2.27
 reconciles	2.27
@@ -40957,8 +40458,6 @@ wholehearted	2.27
 wholesaling	2.27
 wombs	2.27
 worksite	2.27
-xor	2.27
-xxxi	2.27
 acknowledgments	2.26
 admissibility	2.26
 admonishing	2.26
@@ -41179,7 +40678,6 @@ substructure	2.26
 sunning	2.26
 superego	2.26
 superseding	2.26
-suppl	2.26
 sweeties	2.26
 swishing	2.26
 syncopated	2.26
@@ -41488,7 +40986,6 @@ deism	2.24
 denigration	2.24
 determinedly	2.24
 detonations	2.24
-diam	2.24
 didgeridoo	2.24
 dinning	2.24
 disassociated	2.24
@@ -41496,7 +40993,6 @@ disperses	2.24
 doughy	2.24
 dudgeon	2.24
 earmark	2.24
-educ	2.24
 emplacements	2.24
 engenders	2.24
 erythromycin	2.24
@@ -41530,7 +41026,6 @@ indecipherable	2.24
 infers	2.24
 ingratiate	2.24
 inguinal	2.24
-initio	2.24
 instrumentality	2.24
 insurgencies	2.24
 jaundiced	2.24
@@ -41828,7 +41323,6 @@ preordained	2.23
 prepay	2.23
 pricking	2.23
 prions	2.23
-pron	2.23
 psychoanalysts	2.23
 pulpy	2.23
 pulsation	2.23
@@ -41982,7 +41476,6 @@ dimpled	2.22
 dinnerware	2.22
 disproving	2.22
 divvy	2.22
-dixieland	2.22
 egomaniac	2.22
 elbowing	2.22
 embeds	2.22
@@ -42069,12 +41562,10 @@ monosyllabic	2.22
 moonbeam	2.22
 motorcar	2.22
 mycology	2.22
-nauseam	2.22
 neocortex	2.22
 nimbly	2.22
 noddy	2.22
 nonchalance	2.22
-nympho	2.22
 obstructionist	2.22
 oligonucleotide	2.22
 optimizes	2.22
@@ -42107,7 +41598,6 @@ recapitulation	2.22
 recce	2.22
 reclassify	2.22
 redoubled	2.22
-redskin	2.22
 reorientation	2.22
 restrains	2.22
 retentive	2.22
@@ -42258,7 +41748,6 @@ depolarization	2.21
 deregulate	2.21
 desiccation	2.21
 detains	2.21
-dict	2.21
 discriminant	2.21
 dispirited	2.21
 disrespectfully	2.21
@@ -42452,7 +41941,6 @@ wrack	2.21
 wrathful	2.21
 wrongdoers	2.21
 wurst	2.21
-xxix	2.21
 xylem	2.21
 youthfulness	2.21
 abductors	2.20
@@ -42570,7 +42058,6 @@ insubordinate	2.20
 intemperate	2.20
 invalidity	2.20
 inverts	2.20
-jct	2.20
 jeopardizes	2.20
 jiggly	2.20
 keynotes	2.20
@@ -42864,7 +42351,6 @@ menses	2.19
 mimetic	2.19
 misjudge	2.19
 mnemonics	2.19
-monseigneur	2.19
 mooning	2.19
 moraines	2.19
 munched	2.19
@@ -42918,14 +42404,12 @@ salesmanship	2.19
 scampering	2.19
 scooting	2.19
 scrounging	2.19
-senora	2.19
 servos	2.19
 shallowness	2.19
 sharecroppers	2.19
 shinier	2.19
 shittier	2.19
 showgrounds	2.19
-signore	2.19
 sisal	2.19
 slavish	2.19
 sloshed	2.19
@@ -43132,7 +42616,6 @@ neutrally	2.18
 newsagent	2.18
 nonbelievers	2.18
 noncommittal	2.18
-oho	2.18
 oilman	2.18
 oleander	2.18
 oligarchic	2.18
@@ -43384,7 +42867,6 @@ lazing	2.17
 leached	2.17
 leftmost	2.17
 leis	2.17
-lix	2.17
 locators	2.17
 loggerhead	2.17
 lookalikes	2.17
@@ -43393,7 +42875,6 @@ lurker	2.17
 magistracy	2.17
 marbling	2.17
 materializes	2.17
-meas	2.17
 melanomas	2.17
 messiness	2.17
 metastasized	2.17
@@ -43515,7 +42996,6 @@ whiner	2.17
 withal	2.17
 woofer	2.17
 worrier	2.17
-xxxvi	2.17
 yearnings	2.17
 zinfandel	2.17
 adjudicating	2.16
@@ -43797,7 +43277,6 @@ bopping	2.15
 brazing	2.15
 breadwinners	2.15
 breathlessness	2.15
-brr	2.15
 bulldozing	2.15
 bullhead	2.15
 cabinetry	2.15
@@ -44235,7 +43714,6 @@ sidewalls	2.14
 similes	2.14
 slimmest	2.14
 sluggishness	2.14
-spic	2.14
 spooned	2.14
 steeds	2.14
 steno	2.14
@@ -44270,8 +43748,6 @@ wheezy	2.14
 wolfs	2.14
 wristwatches	2.14
 wrongness	2.14
-xxxii	2.14
-xxxv	2.14
 yelping	2.14
 yttrium	2.14
 abattoirs	2.13
@@ -44373,7 +43849,6 @@ ingenue	2.13
 instantiated	2.13
 intellects	2.13
 internees	2.13
-ital	2.13
 juiciest	2.13
 kaput	2.13
 knitter	2.13
@@ -44470,7 +43945,6 @@ saddling	2.13
 salubrious	2.13
 samosa	2.13
 schizo	2.13
-secy	2.13
 sharpies	2.13
 sicknesses	2.13
 sidelights	2.13
@@ -44523,8 +43997,6 @@ vocalizing	2.13
 vouching	2.13
 weeny	2.13
 wormed	2.13
-wpm	2.13
-xxxiii	2.13
 yogurts	2.13
 zippered	2.13
 absolves	2.12
@@ -44673,7 +44145,6 @@ moonshot	2.12
 mountaintops	2.12
 mouthfuls	2.12
 multilingualism	2.12
-mys	2.12
 nabbing	2.12
 naughtiness	2.12
 newsgroups	2.12
@@ -44710,7 +44181,6 @@ preeminence	2.12
 prodigiously	2.12
 pulps	2.12
 pulverize	2.12
-pwn	2.12
 quibbles	2.12
 radian	2.12
 readouts	2.12
@@ -44787,7 +44257,6 @@ wintered	2.12
 woodcutter	2.12
 wreathed	2.12
 wriggled	2.12
-xxxiv	2.12
 yahoos	2.12
 yeahs	2.12
 ablution	2.11
@@ -44984,7 +44453,6 @@ preservationists	2.11
 promenades	2.11
 pussycats	2.11
 pustules	2.11
-qts	2.11
 realigning	2.11
 reanalysis	2.11
 receptivity	2.11
@@ -45205,7 +44673,6 @@ marriageable	2.10
 megabits	2.10
 meiotic	2.10
 mends	2.10
-messieurs	2.10
 microbrewery	2.10
 micromanaging	2.10
 minders	2.10
@@ -45377,7 +44844,6 @@ charmers	2.09
 cheesecakes	2.09
 chenille	2.09
 chides	2.09
-chm	2.09
 chokers	2.09
 climatologists	2.09
 coif	2.09
@@ -45861,7 +45327,6 @@ chaperon	2.07
 cleanings	2.07
 cleavers	2.07
 coadjutor	2.07
-cocksuckers	2.07
 colorfully	2.07
 composted	2.07
 consigning	2.07
@@ -45890,7 +45355,6 @@ drams	2.07
 dyspepsia	2.07
 earwig	2.07
 emulsified	2.07
-enc	2.07
 escargot	2.07
 ethology	2.07
 evolutionists	2.07
@@ -45954,7 +45418,6 @@ miscalculations	2.07
 miscast	2.07
 misdirect	2.07
 misinterpretations	2.07
-mkay	2.07
 nacelles	2.07
 naphthalene	2.07
 nimby	2.07
@@ -46335,7 +45798,6 @@ wildfowl	2.06
 wisecracks	2.06
 wowing	2.06
 wrasse	2.06
-xxxvii	2.06
 abdicating	2.05
 abductees	2.05
 abducts	2.05
@@ -46451,13 +45913,11 @@ interdenominational	2.05
 ivories	2.05
 jades	2.05
 lanthanum	2.05
-liq	2.05
 livability	2.05
 loftier	2.05
 loofah	2.05
 lunched	2.05
 lurkers	2.05
-lxi	2.05
 macaroon	2.05
 madding	2.05
 magnums	2.05
@@ -46814,7 +46274,6 @@ worldliness	2.04
 yammer	2.04
 yawl	2.04
 yelped	2.04
-abbr	2.03
 abodes	2.03
 abolitionism	2.03
 acacias	2.03
@@ -46904,7 +46363,6 @@ globalizing	2.03
 gnash	2.03
 grottoes	2.03
 guillotined	2.03
-gyp	2.03
 handhelds	2.03
 hansom	2.03
 hardscrabble	2.03
@@ -47324,8 +46782,6 @@ wagtail	2.02
 windfalls	2.02
 windscreens	2.02
 winnowing	2.02
-xxxix	2.02
-xxxviii	2.02
 xylene	2.02
 zinnia	2.02
 abseiling	2.01
@@ -47659,7 +47115,6 @@ ejaculating	2.00
 emetic	2.00
 enlightens	2.00
 entertainingly	2.00
-equiv	2.00
 erotically	2.00
 evasions	2.00
 feedlot	2.00
