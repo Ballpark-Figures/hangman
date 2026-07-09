@@ -1,0 +1,29 @@
+# Python/cache files
+**/__pycache__/
+*.pyc
+
+# Virtual environments
+.venv/
+venv/
+
+# Manim / generated media (never commit renders)
+media/
+**/media/
+*.mp4
+*.mov
+*.wav
+*.mp3
+
+# Manim snapshot cache (build artifact, 50+ MB pickles). Scoped to the
+# animations tree so it does NOT touch tracked solver .pkl files in math/data/.
+animations/**/cache/
+
+# OS / editor junk
+.DS_Store
+
+# Claude config symlinks (machine-local; recreated from dotclaude by /sync-videos)
+.claude/commands
+.claude/settings.local.json
+
+# Ignore notebook checkpoints
+**/.ipynb_checkpoints/
