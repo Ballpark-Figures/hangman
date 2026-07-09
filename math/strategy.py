@@ -38,6 +38,63 @@ from wordlist import DEFAULT_ZIPF
 
 ALPHABET = "abcdefghijklmnopqrstuvwxyz"
 
+try:
+    from numba import njit
+    _HAVE_NUMBA = True
+except Exception:            # numba absent (e.g. the trimmed render venv)
+    _HAVE_NUMBA = False
+
+
+if _HAVE_NUMBA:
+
+    @njit(cache=True)
+    def _solve_numba(masks, f, misses, S, guessed_bits):
+        """Native version of GreedyGame._solve: accumulate per-word misses.
+
+        Identical results to the numpy path when f is integer-valued (our case),
+        since letter_freq is then an exact integer sum.
+        """
+        n = S.shape[0]
+        if n <= 1:
+            return
+        letter_freq = np.zeros(26)
+        for j in range(n):
+            i = S[j]
+            fi = f[i]
+            for c in range(26):
+                if masks[i, c] != 0:
+                    letter_freq[c] += fi
+        for c in range(26):                          # exclude already-guessed letters
+            if (guessed_bits >> c) & 1:
+                letter_freq[c] = -1.0
+        best_c = 0
+        best_v = letter_freq[0]
+        for c in range(1, 26):                       # argmax, ties -> lowest index
+            if letter_freq[c] > best_v:
+                best_v = letter_freq[c]
+                best_c = c
+        c = best_c
+        pats = np.empty(n, dtype=np.uint32)
+        for j in range(n):
+            pats[j] = masks[S[j], c]
+        order = np.argsort(pats)                     # group by pattern (contiguous runs)
+        nxt = guessed_bits | (np.int64(1) << np.int64(c))
+        start = 0
+        while start < n:
+            pv = pats[order[start]]
+            end = start + 1
+            while end < n and pats[order[end]] == pv:
+                end += 1
+            m = end - start
+            group = np.empty(m, dtype=S.dtype)
+            for t in range(m):
+                group[t] = S[order[start + t]]
+            if pv == 0:                              # letter absent -> one wrong guess
+                for t in range(m):
+                    misses[group[t]] += 1.0
+            _solve_numba(masks, f, misses, group, nxt)
+            start = end
+
 
 class GreedyGame:
     """Greedy-strategy evaluator for all words of one length.
@@ -104,11 +161,19 @@ class GreedyGame:
                 misses[group] += 1
             self._solve(group, nxt, f, misses)
 
+    def _run(self, S: np.ndarray, guessed_bits: int, f: np.ndarray,
+             misses: np.ndarray) -> None:
+        """Dispatch to the numba kernel if available, else the numpy recursion."""
+        if _HAVE_NUMBA:
+            _solve_numba(self.masks, f, misses, np.ascontiguousarray(S), guessed_bits)
+        else:
+            self._solve(S, guessed_bits, f, misses)
+
     def per_word_misses(self, freq=None) -> np.ndarray:
         """Wrong guesses the greedy strategy makes for each word (aligned to words)."""
         f = self._coerce_freq(freq)
         misses = np.zeros(self.N, dtype=np.float64)
-        self._solve(np.arange(self.N), 0, f, misses)
+        self._run(np.arange(self.N), 0, f, misses)
         return misses
 
     # ---- Mode A ------------------------------------------------------------
@@ -116,7 +181,7 @@ class GreedyGame:
         """Frequency-weighted average wrong guesses over all words (Mode A)."""
         f = self._coerce_freq(freq)
         misses = np.zeros(self.N, dtype=np.float64)
-        self._solve(np.arange(self.N), 0, f, misses)
+        self._run(np.arange(self.N), 0, f, misses)
         return float((f * misses).sum() / f.sum())
 
     def greedy_first_letter(self, freq=None) -> str:
@@ -142,7 +207,7 @@ class GreedyGame:
                 group = all_idx[pats == pat]
                 if pat == 0:                          # absent -> a wrong opening guess
                     misses[group] += 1
-                self._solve(group, nxt, f, misses)
+                self._run(group, nxt, f, misses)
             out[ALPHABET[c]] = float((f * misses).sum() / total)
         return dict(sorted(out.items(), key=lambda kv: kv[1]))
 
