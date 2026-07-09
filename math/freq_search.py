@@ -1,23 +1,25 @@
 """Adversarial frequency hill-climb over per-(letter, pattern) multipliers.
 
 Frequency model. For a fixed word length, every distinct (letter, nonempty
-position-pattern) that occurs has an integer MULTIPLIER (start 1). A word's
+position-pattern) that occurs has a real-valued MULTIPLIER (start 1). A word's
 frequency is the PRODUCT of the multipliers for the patterns it exhibits (one per
 distinct letter it contains). All-ones multipliers -> all frequencies 1.
 
-Search. Coordinate-ascent hill-climb that MAXIMIZES the greedy strategy's average
-misses (an adversarial word-setter vs. the greedy guesser). Each loop walks every
-multiplier in a fixed order, tries +1, and keeps it iff the average misses
-STRICTLY increases (sequential / Gauss-Seidel: a kept change counts for the rest
-of the loop). Only +1 per multiplier per loop. Each accepted change prints
-`<pattern>  x<multiplier>  avg=<new>` and is appended to a CSV log; each loop
-prints its change count; the run stops when a loop makes no changes.
+Search. Coordinate pattern-search that MAXIMIZES the greedy strategy's average
+misses (an adversarial word-setter vs. the greedy guesser), coarse-to-fine over a
+schedule of step sizes (DEFAULT_STEPS = 100, 50, 20, 10, 5, 2, 1, 0.5, 0.2, 0.1).
+For a given step size s, each loop walks every multiplier in a fixed order and
+tries both m+s and m-s (never below 0), keeping whichever STRICTLY increases the
+average misses the most (sequential / Gauss-Seidel). It loops that step size until
+a full pass makes no changes, then drops to the next smaller step. Each accepted
+change prints `<pattern> ->x<multiplier> (+/-<s>) avg=<new>` and is appended to a
+CSV log; each loop prints its change count.
 
 Every accepted change is logged (data/freq_search/len<LL>.csv) so the frequency
 state can be reconstructed later -- see ``reconstruct``.
 
-Builds on ``strategy.GreedyGame`` (numba-accelerated solve). Frequencies are exact
-integer products, recomputed vectorized via ``np.multiply.reduceat``.
+Builds on ``strategy.GreedyGame`` (numba-accelerated solve). Frequencies are
+products of the multipliers, recomputed vectorized via ``np.multiply.reduceat``.
 """
 
 from __future__ import annotations
@@ -32,6 +34,7 @@ from wordlist import DEFAULT_ZIPF
 
 DATA_DIR = Path(__file__).resolve().parent / "data" / "freq_search"
 EPS = 1e-9
+DEFAULT_STEPS = [100, 50, 20, 10, 5, 2, 1, 0.5, 0.2, 0.1]
 
 
 def _pattern_string(length: int, letter_idx: int, mask: int) -> str:
@@ -77,7 +80,7 @@ class FrequencySearch:
         self.word_ptr[1:] = np.cumsum(counts)[:-1]
         self.flat_keys = np.array([k for ks in word_keys for k in ks], dtype=np.int64)
 
-        self.mult = np.ones(self.M, dtype=np.int64)
+        self.mult = np.ones(self.M, dtype=np.float64)
         self.freq = np.ones(g.N, dtype=np.float64)
         # Deterministic order: by letter, then mask.
         self.order = sorted(range(self.M),
@@ -93,57 +96,66 @@ class FrequencySearch:
         return np.multiply.reduceat(mult[self.flat_keys].astype(np.float64), self.word_ptr)
 
     # ---- the hill-climb ----------------------------------------------------
-    def run(self, *, max_loops: int | None = None, log_path=None,
+    def run(self, *, steps=None, max_loops: int | None = None, log_path=None,
             verbose: bool = True) -> list[dict]:
+        steps = list(DEFAULT_STEPS if steps is None else steps)
         g = self.game
-        self.mult[:] = 1
+        self.mult[:] = 1.0
         self._recompute_freq()
         avg = g.average_misses(self.freq)   # also warms the JIT
         self.records = []
 
         fh = writer = None
+        cols = ("step_size", "loop", "seq", "letter", "pattern", "mask",
+                "multiplier", "avg_misses")
         if log_path is not None:
             log_path = Path(log_path)
             log_path.parent.mkdir(parents=True, exist_ok=True)
             fh = log_path.open("w", newline="")
             writer = csv.writer(fh)
-            writer.writerow(["loop", "step", "letter", "pattern", "mask",
-                             "multiplier", "avg_misses"])
+            writer.writerow(cols)
 
         if verbose:
             print(f"length {self.length}: {g.N} words, {self.M} patterns; "
                   f"start avg = {avg:.4f}")
 
-        loop = 0
-        while max_loops is None or loop < max_loops:
-            changes = 0
-            for k in self.order:
-                old = int(self.mult[k])
-                self.mult[k] = old + 1
-                self._recompute_freq()
-                new = g.average_misses(self.freq)
-                if new > avg + EPS:
-                    avg = new
-                    rec = {"loop": loop, "step": len(self.records),
-                           "letter": ALPHABET[int(self.key_letter[k])],
-                           "pattern": self.pattern[k], "mask": int(self.key_mask[k]),
-                           "multiplier": old + 1, "avg_misses": new}
-                    self.records.append(rec)
-                    changes += 1
-                    if verbose:
-                        print(f"  {self.pattern[k]}  x{old + 1}  avg={new:.4f}")
-                    if writer:
-                        writer.writerow([rec[c] for c in ("loop", "step", "letter",
-                                         "pattern", "mask", "multiplier", "avg_misses")])
-                        fh.flush()
-                else:
-                    self.mult[k] = old       # revert (freq recomputed on next try)
-            self._recompute_freq()
+        for s in steps:
             if verbose:
-                print(f"loop {loop}: {changes} changes")
-            if changes == 0:
-                break
-            loop += 1
+                print(f"--- step +/-{s} ---")
+            loop = 0
+            while max_loops is None or loop < max_loops:
+                changes = 0
+                for k in self.order:
+                    base = float(self.mult[k])
+                    best_val, best_avg = base, avg
+                    for cand in (base + s, base - s):
+                        if cand < 0.0:                 # never go below 0
+                            continue
+                        self.mult[k] = cand
+                        self._recompute_freq()
+                        a = g.average_misses(self.freq)
+                        if a > best_avg + EPS:         # keep the better direction
+                            best_avg, best_val = a, cand
+                    self.mult[k] = best_val
+                    self._recompute_freq()
+                    if best_val != base:
+                        avg = best_avg
+                        rec = {"step_size": s, "loop": loop, "seq": len(self.records),
+                               "letter": ALPHABET[int(self.key_letter[k])],
+                               "pattern": self.pattern[k], "mask": int(self.key_mask[k]),
+                               "multiplier": best_val, "avg_misses": avg}
+                        self.records.append(rec)
+                        changes += 1
+                        if verbose:
+                            print(f"  {self.pattern[k]}  ->x{best_val:g}  (+/-{s})  avg={avg:.4f}")
+                        if writer:
+                            writer.writerow([rec[c] for c in cols])
+                            fh.flush()
+                if verbose:
+                    print(f"  loop {loop}: {changes} changes")
+                if changes == 0:
+                    break
+                loop += 1
 
         if fh:
             fh.close()
@@ -154,12 +166,12 @@ class FrequencySearch:
     # ---- reconstruction ----------------------------------------------------
     def multipliers_from_records(self, records, upto: int | None = None) -> np.ndarray:
         """Replay accepted changes into a multiplier vector (upto = # rows to apply)."""
-        mult = np.ones(self.M, dtype=np.int64)
+        mult = np.ones(self.M, dtype=np.float64)
         rows = records if upto is None else records[:upto]
         for r in rows:
             letter = r["letter"] if isinstance(r, dict) else r.letter
             mask = int(r["mask"] if isinstance(r, dict) else r.mask)
-            multiplier = int(r["multiplier"] if isinstance(r, dict) else r.multiplier)
+            multiplier = float(r["multiplier"] if isinstance(r, dict) else r.multiplier)
             mult[self._keyidx[(ord(letter) - 97, mask)]] = multiplier
         return mult
 
