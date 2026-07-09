@@ -6,14 +6,17 @@ frequency is the PRODUCT of the multipliers for the patterns it exhibits (one pe
 distinct letter it contains). All-ones multipliers -> all frequencies 1.
 
 Search. Coordinate pattern-search that MAXIMIZES the greedy strategy's average
-misses (an adversarial word-setter vs. the greedy guesser), coarse-to-fine over a
-schedule of step sizes (DEFAULT_STEPS = 100, 50, 20, 10, 5, 2, 1, 0.5, 0.2, 0.1).
-For a given step size s, each loop walks every multiplier in a fixed order and
-tries both m+s and m-s (never below 0), keeping whichever STRICTLY increases the
-average misses the most (sequential / Gauss-Seidel). It loops that step size until
-a full pass makes no changes, then drops to the next smaller step. Each accepted
-change prints `<pattern> ->x<multiplier> (+/-<s>) avg=<new>` and is appended to a
-CSV log; each loop prints its change count.
+misses (an adversarial word-setter vs. the greedy guesser), in phases:
+  1. DOUBLING -- repeatedly try m*2 for every multiplier, keep it if the average
+     strictly increases; loop until no multiplier benefits. Reaches large scales
+     in log-many steps (so a runaway multiplier doesn't crawl up additively).
+  2. +/- POWERS OF 2 -- additive steps of powers of two from the largest scale
+     reached (>= max multiplier) down to 1; try both m+s and m-s (never below 0).
+  3. +/- FINE -- additive steps FINE_STEPS = 0.5, 0.2, 0.1.
+Each phase loops in a fixed order (sequential / Gauss-Seidel), keeping whichever
+move most increases the average, until a full pass makes no change; then the next
+phase/step begins. Each accepted change prints `<pattern> ->x<mult> (<phase>)
+avg=<new>` and is appended to a CSV log; each loop prints its change count.
 
 Every accepted change is logged (data/freq_search/len<LL>.csv) so the frequency
 state can be reconstructed later -- see ``reconstruct``.
@@ -25,6 +28,7 @@ products of the multipliers, recomputed vectorized via ``np.multiply.reduceat``.
 from __future__ import annotations
 
 import csv
+import math
 from pathlib import Path
 
 import numpy as np
@@ -34,7 +38,7 @@ from wordlist import DEFAULT_ZIPF
 
 DATA_DIR = Path(__file__).resolve().parent / "data" / "freq_search"
 EPS = 1e-9
-DEFAULT_STEPS = [100, 50, 20, 10, 5, 2, 1, 0.5, 0.2, 0.1]
+FINE_STEPS = [0.5, 0.2, 0.1]
 
 
 def _pattern_string(length: int, letter_idx: int, mask: int) -> str:
@@ -95,10 +99,51 @@ class FrequencySearch:
     def freq_from_multipliers(self, mult: np.ndarray) -> np.ndarray:
         return np.multiply.reduceat(mult[self.flat_keys].astype(np.float64), self.word_ptr)
 
-    # ---- the hill-climb ----------------------------------------------------
-    def run(self, *, steps=None, max_loops: int | None = None, log_path=None,
+    # ---- the search --------------------------------------------------------
+    def _phase(self, cand_fn, label, avg, *, max_loops, verbose, writer, fh, cols):
+        """Loop one phase (candidate values from cand_fn) until a pass makes no change."""
+        g = self.game
+        if verbose:
+            print(f"--- {label} ---")
+        loop = 0
+        while max_loops is None or loop < max_loops:
+            changes = 0
+            for k in self.order:
+                base = float(self.mult[k])
+                best_val, best_avg = base, avg
+                for cand in cand_fn(base):
+                    if cand < 0.0:                     # never go below 0
+                        continue
+                    self.mult[k] = cand
+                    self._recompute_freq()
+                    a = g.average_misses(self.freq)
+                    if math.isfinite(a) and a > best_avg + EPS:
+                        best_avg, best_val = a, cand
+                self.mult[k] = best_val
+                self._recompute_freq()
+                if best_val != base:
+                    avg = best_avg
+                    rec = {"phase": label, "loop": loop, "seq": len(self.records),
+                           "letter": ALPHABET[int(self.key_letter[k])],
+                           "pattern": self.pattern[k], "mask": int(self.key_mask[k]),
+                           "multiplier": best_val, "avg_misses": avg}
+                    self.records.append(rec)
+                    changes += 1
+                    if verbose:
+                        print(f"  {self.pattern[k]}  ->x{best_val:g}  ({label})  avg={avg:.4f}")
+                    if writer:
+                        writer.writerow([rec[c] for c in cols])
+                        fh.flush()
+            if verbose:
+                print(f"  loop {loop}: {changes} changes")
+            if changes == 0:
+                break
+            loop += 1
+        return avg
+
+    def run(self, *, fine_steps=None, max_loops: int | None = None, log_path=None,
             verbose: bool = True) -> list[dict]:
-        steps = list(DEFAULT_STEPS if steps is None else steps)
+        fine_steps = list(FINE_STEPS if fine_steps is None else fine_steps)
         g = self.game
         self.mult[:] = 1.0
         self._recompute_freq()
@@ -106,7 +151,7 @@ class FrequencySearch:
         self.records = []
 
         fh = writer = None
-        cols = ("step_size", "loop", "seq", "letter", "pattern", "mask",
+        cols = ("phase", "loop", "seq", "letter", "pattern", "mask",
                 "multiplier", "avg_misses")
         if log_path is not None:
             log_path = Path(log_path)
@@ -119,43 +164,24 @@ class FrequencySearch:
             print(f"length {self.length}: {g.N} words, {self.M} patterns; "
                   f"start avg = {avg:.4f}")
 
-        for s in steps:
-            if verbose:
-                print(f"--- step +/-{s} ---")
-            loop = 0
-            while max_loops is None or loop < max_loops:
-                changes = 0
-                for k in self.order:
-                    base = float(self.mult[k])
-                    best_val, best_avg = base, avg
-                    for cand in (base + s, base - s):
-                        if cand < 0.0:                 # never go below 0
-                            continue
-                        self.mult[k] = cand
-                        self._recompute_freq()
-                        a = g.average_misses(self.freq)
-                        if a > best_avg + EPS:         # keep the better direction
-                            best_avg, best_val = a, cand
-                    self.mult[k] = best_val
-                    self._recompute_freq()
-                    if best_val != base:
-                        avg = best_avg
-                        rec = {"step_size": s, "loop": loop, "seq": len(self.records),
-                               "letter": ALPHABET[int(self.key_letter[k])],
-                               "pattern": self.pattern[k], "mask": int(self.key_mask[k]),
-                               "multiplier": best_val, "avg_misses": avg}
-                        self.records.append(rec)
-                        changes += 1
-                        if verbose:
-                            print(f"  {self.pattern[k]}  ->x{best_val:g}  (+/-{s})  avg={avg:.4f}")
-                        if writer:
-                            writer.writerow([rec[c] for c in cols])
-                            fh.flush()
-                if verbose:
-                    print(f"  loop {loop}: {changes} changes")
-                if changes == 0:
-                    break
-                loop += 1
+        kw = dict(max_loops=max_loops, verbose=verbose, writer=writer, fh=fh, cols=cols)
+
+        # Phase 1: doubling -- reach the right scale in log-many steps.
+        avg = self._phase(lambda b: (b * 2.0,), "x2", avg, **kw)
+
+        # Phase 2: +/- powers of 2, from the largest scale reached down to 1.
+        p = 1
+        top = int(self.mult.max())
+        while p * 2 <= top:
+            p *= 2
+        while p >= 1:
+            s = float(p)
+            avg = self._phase(lambda b, s=s: (b + s, b - s), f"+/-{s:g}", avg, **kw)
+            p //= 2
+
+        # Phase 3: fine additive steps.
+        for s in fine_steps:
+            avg = self._phase(lambda b, s=s: (b + s, b - s), f"+/-{s:g}", avg, **kw)
 
         if fh:
             fh.close()
