@@ -213,7 +213,14 @@ class GreedyGame:
 
     # ---- illustration / debugging -----------------------------------------
     def trace(self, word: str, freq=None) -> list[tuple[str, bool]]:
-        """The greedy guess sequence for one word: [(letter, hit?), ...]."""
+        """The greedy guess sequence for one word, played until the word is fully
+        revealed: [(letter, hit?), ...].
+
+        The main loop counts misses until the word is uniquely *determined* (the
+        candidate set narrows to one). At that point the remaining un-guessed
+        letters of the word are guaranteed hits, so we append them (never misses)
+        to finish the word for display -- the miss count is unchanged.
+        """
         f = self._coerce_freq(freq)
         i = self._index[word]
         S = np.arange(self.N)
@@ -231,6 +238,11 @@ class GreedyGame:
             seq.append((ALPHABET[c], hit))
             S = S[self.masks[S, c] == self.masks[i, c]]
             guessed_bits |= 1 << c
+        # word determined -- fill in its remaining letters (all hits) to finish it
+        for c in range(26):
+            if self.masks[i, c] and not (guessed_bits >> c) & 1:
+                seq.append((ALPHABET[c], True))
+                guessed_bits |= 1 << c
         return seq
 
 
