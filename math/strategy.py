@@ -169,9 +169,14 @@ class GreedyGame:
         else:
             self._solve(S, guessed_bits, f, misses)
 
-    def per_word_misses(self, freq=None) -> np.ndarray:
-        """Wrong guesses the greedy strategy makes for each word (aligned to words)."""
+    def per_word_misses(self, freq=None, *, opener=None) -> np.ndarray:
+        """Wrong guesses per word (aligned to words). With ``opener`` (a letter or
+        0..25 index) the guesser is forced to open with it and plays greedy after;
+        otherwise it plays pure greedy from the start."""
         f = self._coerce_freq(freq)
+        if opener is not None:
+            c = opener if isinstance(opener, (int, np.integer)) else ord(opener) - 97
+            return self._opener_per_word(int(c), f)
         misses = np.zeros(self.N, dtype=np.float64)
         self._run(np.arange(self.N), 0, f, misses)
         return misses
@@ -190,9 +195,9 @@ class GreedyGame:
         return ALPHABET[int((f @ self.present).argmax())]
 
     # ---- Mode B ------------------------------------------------------------
-    def _opener_misses(self, c: int, f: np.ndarray, total: float) -> float:
-        """Weighted-average misses if letter ``c`` is forced first and greedy is
-        played after (``f`` already coerced, ``total = f.sum()``)."""
+    def _opener_per_word(self, c: int, f: np.ndarray) -> np.ndarray:
+        """Per-word misses if letter ``c`` is forced first and greedy is played
+        after (``f`` already coerced)."""
         misses = np.zeros(self.N, dtype=np.float64)
         pats = self.masks[:, c]
         nxt = 1 << c
@@ -201,7 +206,11 @@ class GreedyGame:
             if pat == 0:                              # absent -> a wrong opening guess
                 misses[group] += 1
             self._run(group, nxt, f, misses)
-        return float((f * misses).sum() / total)
+        return misses
+
+    def _opener_misses(self, c: int, f: np.ndarray, total: float) -> float:
+        """Weighted-average misses for forced opener ``c`` (``total = f.sum()``)."""
+        return float((f * self._opener_per_word(c, f)).sum() / total)
 
     def misses_by_starting_letter(self, freq=None) -> dict[str, float]:
         """For each first letter, weighted-average misses if forced first (Mode B).
@@ -242,9 +251,11 @@ class GreedyGame:
         return ALPHABET[best_c], best_v
 
     # ---- illustration / debugging -----------------------------------------
-    def trace(self, word: str, freq=None) -> list[tuple[str, bool]]:
+    def trace(self, word: str, freq=None, *, opener=None) -> list[tuple[str, bool]]:
         """The greedy guess sequence for one word, played until the word is fully
-        revealed: [(letter, hit?), ...].
+        revealed: [(letter, hit?), ...]. With ``opener`` (a letter or 0..25 index)
+        the first guess is forced to that letter, then greedy; otherwise greedy
+        from the start.
 
         The main loop counts misses until the word is uniquely *determined* (the
         candidate set narrows to one). At that point the remaining un-guessed
@@ -256,6 +267,12 @@ class GreedyGame:
         S = np.arange(self.N)
         guessed_bits = 0
         seq: list[tuple[str, bool]] = []
+        if opener is not None:                       # force the first guess
+            c = opener if isinstance(opener, (int, np.integer)) else ord(opener) - 97
+            c = int(c)
+            seq.append((ALPHABET[c], bool(self.masks[i, c])))
+            S = S[self.masks[S, c] == self.masks[i, c]]
+            guessed_bits |= 1 << c
         while S.shape[0] > 1:
             letter_freq = f[S] @ self.present[S]
             g = guessed_bits
