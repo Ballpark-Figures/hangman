@@ -190,6 +190,19 @@ class GreedyGame:
         return ALPHABET[int((f @ self.present).argmax())]
 
     # ---- Mode B ------------------------------------------------------------
+    def _opener_misses(self, c: int, f: np.ndarray, total: float) -> float:
+        """Weighted-average misses if letter ``c`` is forced first and greedy is
+        played after (``f`` already coerced, ``total = f.sum()``)."""
+        misses = np.zeros(self.N, dtype=np.float64)
+        pats = self.masks[:, c]
+        nxt = 1 << c
+        for pat in np.unique(pats):
+            group = np.flatnonzero(pats == pat)
+            if pat == 0:                              # absent -> a wrong opening guess
+                misses[group] += 1
+            self._run(group, nxt, f, misses)
+        return float((f * misses).sum() / total)
+
     def misses_by_starting_letter(self, freq=None) -> dict[str, float]:
         """For each first letter, weighted-average misses if forced first (Mode B).
 
@@ -197,19 +210,36 @@ class GreedyGame:
         """
         f = self._coerce_freq(freq)
         total = f.sum()
-        all_idx = np.arange(self.N)
-        out: dict[str, float] = {}
-        for c in range(26):
-            misses = np.zeros(self.N, dtype=np.float64)
-            pats = self.masks[:, c]
-            nxt = 1 << c
-            for pat in np.unique(pats):
-                group = all_idx[pats == pat]
-                if pat == 0:                          # absent -> a wrong opening guess
-                    misses[group] += 1
-                self._run(group, nxt, f, misses)
-            out[ALPHABET[c]] = float((f * misses).sum() / total)
+        out = {ALPHABET[c]: self._opener_misses(c, f, total) for c in range(26)}
         return dict(sorted(out.items(), key=lambda kv: kv[1]))
+
+    def best_opener_misses(self, freq=None, *, prune_below: float | None = None
+                           ) -> tuple[str, float]:
+        """Fewest weighted-average misses over all forced openers -- the guesser
+        who picks the best first letter, then plays greedy. Returns
+        ``(letter, avg_misses)``; always <= ``average_misses`` (greedy's own opener
+        is one of the options).
+
+        Openers are tried in descending current root letter frequency
+        (``f @ present`` -- the order greedy itself prefers), which surfaces
+        low-miss openers early. If ``prune_below`` is given, the scan stops as soon
+        as the running best is ``<= prune_below`` and returns that partial best:
+        a running minimum only decreases, so once it is <= the threshold the true
+        minimum is too -- the caller can reject without the remaining solves. With
+        ``prune_below=None`` it is a full 26-opener scan (the honest objective).
+        """
+        f = self._coerce_freq(freq)
+        total = f.sum()
+        order = np.argsort(f @ self.present)[::-1]    # descending root frequency
+        best_c, best_v = -1, np.inf
+        for c in order:
+            c = int(c)
+            v = self._opener_misses(c, f, total)
+            if v < best_v:
+                best_c, best_v = c, v
+            if prune_below is not None and best_v <= prune_below:
+                break
+        return ALPHABET[best_c], best_v
 
     # ---- illustration / debugging -----------------------------------------
     def trace(self, word: str, freq=None) -> list[tuple[str, bool]]:

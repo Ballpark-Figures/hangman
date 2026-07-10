@@ -5,8 +5,17 @@ position-pattern) that occurs has a real-valued MULTIPLIER (start 1). A word's
 frequency is the PRODUCT of the multipliers for the patterns it exhibits (one per
 distinct letter it contains). All-ones multipliers -> all frequencies 1.
 
-Search. Coordinate pattern-search that MAXIMIZES the greedy strategy's average
-misses (an adversarial word-setter vs. the greedy guesser), in phases:
+Objective. Two guesser models are supported (``objective=``):
+  - ``"greedy"``      -- pure greedy; score = ``average_misses`` (the default).
+  - ``"best_opener"`` -- the guesser picks the BEST first letter, then plays
+    greedy; score = ``best_opener_misses`` (min over forced openers). This hardens
+    the adversary against a smarter guesser (pure greedy often opens with a
+    far-from-optimal letter). Scoring the min is pruned: openers are tried in
+    descending root frequency and the scan aborts once one lands at/under the
+    value being beaten (the change is then rejected) -- an exact speedup.
+
+Search. Coordinate pattern-search that MAXIMIZES the chosen objective (an
+adversarial word-setter vs. the guesser), in phases:
   1. DOUBLE/HALVE -- for every multiplier try x2 or /2 (down to a floor of 0.125;
      0.125 can drop to 0, and 0 can come back to 0.125), keeping whichever raises
      the average (loop until none benefit).
@@ -38,6 +47,14 @@ from wordlist import DEFAULT_ZIPF
 
 DATA_DIR = Path(__file__).resolve().parent / "data" / "freq_search"
 FINE_STEPS = [0.5, 0.25, 0.125]
+OBJECTIVES = ("greedy", "best_opener")
+
+
+def _default_log_path(objective: str, length: int) -> Path:
+    """Per-length CSV log path; best_opener runs go in their own subdir so the
+    greedy runs' files are untouched."""
+    base = DATA_DIR if objective == "greedy" else DATA_DIR / objective
+    return base / f"len{length:02d}.csv"
 
 
 def _double_candidates(b):
@@ -58,8 +75,11 @@ def _pattern_string(length: int, letter_idx: int, mask: int) -> str:
 class FrequencySearch:
     """Hill-climb per-(letter, pattern) multipliers to maximize greedy misses."""
 
-    def __init__(self, length: int, *, min_zipf: float = DEFAULT_ZIPF,
-                 game: GreedyGame | None = None):
+    def __init__(self, length: int, *, objective: str = "greedy",
+                 min_zipf: float = DEFAULT_ZIPF, game: GreedyGame | None = None):
+        if objective not in OBJECTIVES:
+            raise ValueError(f"objective must be one of {OBJECTIVES}, got {objective!r}")
+        self.objective = objective
         self.game = game if game is not None else GreedyGame(length, min_zipf=min_zipf)
         g = self.game
         self.length = g.length
@@ -108,6 +128,15 @@ class FrequencySearch:
     def freq_from_multipliers(self, mult: np.ndarray) -> np.ndarray:
         return np.multiply.reduceat(mult[self.flat_keys].astype(np.float64), self.word_ptr)
 
+    # ---- objective ---------------------------------------------------------
+    def _score(self, threshold) -> float:
+        """The scalar to maximize for the current ``self.freq``. For best_opener,
+        ``threshold`` (the current best-so-far) prunes the opener scan: a return
+        value <= threshold means "does not beat" and is rejected by the caller."""
+        if self.objective == "best_opener":
+            return self.game.best_opener_misses(self.freq, prune_below=threshold)[1]
+        return self.game.average_misses(self.freq)
+
     # ---- results as DataFrames ---------------------------------------------
     def multipliers_df(self):
         """Every (letter, pattern) multiplier for this length, highest first."""
@@ -149,7 +178,7 @@ class FrequencySearch:
                         continue
                     self.mult[k] = cand
                     self._recompute_freq()
-                    a = g.average_misses(self.freq)
+                    a = self._score(best_avg)
                     if math.isfinite(a) and a > best_avg:
                         best_avg, best_val = a, cand
                 self.mult[k] = best_val
@@ -181,7 +210,7 @@ class FrequencySearch:
         g = self.game
         self.mult[:] = 1.0
         self._recompute_freq()
-        avg = g.average_misses(self.freq)   # also warms the JIT
+        avg = self._score(None)             # full scan; also warms the JIT
         start_avg = avg
         self.records = []
 
@@ -196,8 +225,8 @@ class FrequencySearch:
             writer.writerow(cols)
 
         if verbose:
-            print(f"length {self.length}: {g.N} words, {self.M} patterns; "
-                  f"start avg = {avg:.4f}")
+            print(f"length {self.length} [{self.objective}]: {g.N} words, "
+                  f"{self.M} patterns; start avg = {avg:.4f}")
 
         kw = dict(max_loops=max_loops, verbose=verbose,
                   writer=writer, fh=fh, cols=cols)
@@ -244,30 +273,38 @@ class FrequencySearch:
         return mult
 
     @classmethod
-    def reconstruct(cls, length: int, csv_path, *, min_zipf: float = DEFAULT_ZIPF,
+    def reconstruct(cls, length: int, csv_path, *, objective: str = "greedy",
+                    min_zipf: float = DEFAULT_ZIPF,
                     upto: int | None = None) -> "FrequencySearch":
-        """Rebuild a search with mult/freq set from a saved CSV log."""
+        """Rebuild a search with mult/freq set from a saved CSV log. The replay is
+        objective-independent; ``objective`` only tags the returned object so its
+        ``_score`` matches the run that produced the log."""
         import pandas as pd
         df = pd.read_csv(csv_path)
-        self = cls(length, min_zipf=min_zipf)
+        self = cls(length, objective=objective, min_zipf=min_zipf)
         self.mult = self.multipliers_from_records(list(df.itertuples(index=False)), upto=upto)
         self._recompute_freq()
         return self
 
 
-def sweep(lengths, *, min_zipf: float = DEFAULT_ZIPF, max_loops: int | None = None,
+def sweep(lengths, *, objective: str = "greedy", min_zipf: float = DEFAULT_ZIPF,
+          max_loops: int | None = None,
           verbose: bool = True) -> dict[int, FrequencySearch]:
-    """Run the hill-climb for each length, logging to data/freq_search/lenLL.csv."""
+    """Run the hill-climb for each length, logging to the objective's CSV dir
+    (greedy: data/freq_search/lenLL.csv; best_opener: .../best_opener/lenLL.csv)."""
     out: dict[int, FrequencySearch] = {}
     for L in lengths:
-        print(f"\n===== length {L} =====")
-        s = FrequencySearch(L, min_zipf=min_zipf)
-        s.run(max_loops=max_loops, log_path=DATA_DIR / f"len{L:02d}.csv", verbose=verbose)
+        print(f"\n===== length {L} ({objective}) =====")
+        s = FrequencySearch(L, objective=objective, min_zipf=min_zipf)
+        s.run(max_loops=max_loops, log_path=_default_log_path(objective, L),
+              verbose=verbose)
         out[L] = s
     return out
 
 
 if __name__ == "__main__":
     import sys
-    lengths = [int(a) for a in sys.argv[1:]] or [5]
-    sweep(lengths)
+    argv = sys.argv[1:]
+    objective = "best_opener" if "--best-opener" in argv else "greedy"
+    lengths = [int(a) for a in argv if not a.startswith("-")] or [5]
+    sweep(lengths, objective=objective)
