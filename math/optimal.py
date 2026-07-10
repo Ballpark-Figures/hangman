@@ -322,7 +322,7 @@ class OptimalSolver:
 
     # ---- public API --------------------------------------------------------
     def solve(self, freq=None, *, max_misses=None, verbose: bool = True,
-              heartbeat: float = 1.0, ub_depth: int = 8, opener_ub_depth: int = 2) -> float:
+              heartbeat: float = 60.0, ub_depth: int = 8, opener_ub_depth: int = 2) -> float:
         """Optimal (capped) average misses for a single cap (``max_misses=None`` =
         uncapped). Resets the memo and fills it with the optimal tree."""
         self.freq = self.game._coerce_freq(freq)
@@ -351,7 +351,7 @@ class OptimalSolver:
                   f"{len(self.memo):,} states in {el:.1f}s", flush=True)
         return avg
 
-    def deepen(self, freq=None, *, verbose: bool = True, heartbeat: float = 1.0,
+    def deepen(self, freq=None, *, verbose: bool = True, heartbeat: float = 60.0,
                ub_depth: int = 8, opener_ub_depth: int = 2, max_cap: int = 64,
                log_path=None, save_trees: bool = False) -> tuple:
         """Iterative deepening on the miss cap: solve cap = 1, 2, 3, ... reusing the
