@@ -13,15 +13,15 @@ words split by the letter's position-pattern (masks[i, c]), and the "letter
 absent" branch (pattern 0) costs a miss (r -> r-1).  A word is WON at budget n
 iff its path uses <= n misses before the set narrows to one candidate.
 
-Two passes over (surviving set S, misses remaining r) so the win-probability
-pass keeps its branch-and-bound:
-  won(S, r)  = max frequency mass of S winnable with <= r misses.  A letter that
-               wins ALL of S is optimal, so we stop at the first; and >= |S|-1
-               misses always resolves |S| words, so those states short-circuit.
-  mmin(S, r) = min miss-sum, taken ONLY over letters achieving won(S, r).  A miss
-               happens only on the letter-absent branch, so it adds +1 per won
-               word THERE (present branches add nothing):
-                   mmin(S,r) = won(absent branch) + sum over win-optimal children of mmin(child)
+SINGLE pass over (surviving set S, misses remaining r), computing both objectives
+at once as a lexicographic pair via `_solve`:
+  lost = min mass that CANNOT be won within r misses (= max win probability), and
+  miss = min total misses over the WON words among that min-lost play.
+We minimize the DUAL `lost` (a min-of-sum, small when P(win) is high) so
+lexicographic alpha-beta can prune whole letters -- maximizing `won` directly is
+flat near the top and won't prune.  A miss is charged only on the letter-absent
+branch (+1 per won word there).  `won(S,r)` and `mmin(S,r)` are thin readers of
+`_solve`.
 
 Exact.  usage:  python math/winprob.py LENGTH N
 """
@@ -35,7 +35,7 @@ from pathlib import Path
 import numpy as np
 from optimal import OptimalSolver, ALPHABET, INF
 
-MEMO_FORMAT = 2                        # bump if the solver's stored values change meaning
+MEMO_FORMAT = 3                        # bump if the solver's stored values change meaning
 
 
 class WinProbSolver:
@@ -53,10 +53,9 @@ class WinProbSolver:
         self._idt = s._idt
         self.total = float(self.f.sum())
         self.eps = 1e-9 * max(self.total, 1.0)
-        self.lmemo = {}                # exact lost(S, r)
-        self.llb = {}                  # lower bounds on lost(S, r) from alpha-beta pruning
-        self.mmemo = {}                # exact mmin(S, r)
-        self.mlb = {}                  # lower bounds on mmin(S, r)
+        self.memo = {}                 # exact (lost, miss) pair per (S, r)
+        self.lb = {}                   # lexicographic lower bounds from alpha-beta pruning
+        self.move = {}                 # chosen letter index per exact (S, r)
         # progress / heartbeat state (optimal.py-style)
         self._verbose = True
         self._heartbeat = 60.0
@@ -81,10 +80,10 @@ class WinProbSolver:
         return h.hexdigest()
 
     def save_memo(self, path):
-        """Persist the exact-value memos (lmemo, mmemo) so a later, deeper run can
-        resume.  Only exact values are stored -- lower bounds (llb/mlb) are cheap
-        to re-derive and would bloat the file.  Atomic (tmp + replace)."""
-        data = {"sig": self._signature(), "lmemo": self.lmemo, "mmemo": self.mmemo}
+        """Persist the exact (lost, miss) memo + chosen moves so a later, deeper run
+        can resume.  Only exact values are stored -- lower bounds are cheap to
+        re-derive and would bloat the file.  Atomic (tmp + replace)."""
+        data = {"sig": self._signature(), "memo": self.memo, "move": self.move}
         tmp = str(path) + ".tmp"
         with open(tmp, "wb") as fh:
             pickle.dump(data, fh, protocol=pickle.HIGHEST_PROTOCOL)
@@ -92,8 +91,8 @@ class WinProbSolver:
         self._last_ckpt = time.perf_counter()
 
     def load_memo(self, path):
-        """Restore exact memos from a previous run if present and compatible.
-        Returns the number of states loaded, or 0."""
+        """Restore the exact memo + moves from a previous run if present and
+        compatible.  Returns the number of states loaded, or 0."""
         if not os.path.exists(path):
             return 0
         try:
@@ -101,11 +100,11 @@ class WinProbSolver:
                 data = pickle.load(fh)
         except Exception:
             return 0
-        if data.get("sig") != self._signature():
+        if data.get("sig") != self._signature() or "memo" not in data:
             return 0
-        self.lmemo = data["lmemo"]
-        self.mmemo = data["mmemo"]
-        return len(self.lmemo) + len(self.mmemo)
+        self.memo = data["memo"]
+        self.move = data.get("move", {})
+        return len(self.memo)
 
     def _beat(self, force=False):
         """Periodic status line, in line with optimal.py's heartbeat."""
@@ -120,7 +119,7 @@ class WinProbSolver:
         self._last_beat = now
         op, oi, ot = self._op
         frac = f"opener '{op}' {oi}/{ot} | " if ot else ""
-        nst = len(self.lmemo) + len(self.llb) + len(self.mmemo) + len(self.mlb)
+        nst = len(self.memo) + len(self.lb)
         print(f"    [n={self._n} {self._phase}] {frac}{nst:,} states | "
               f"P<={self._n} so far {self._best_p:.4f} | {now - self._t0:.0f}s",
               flush=True)
@@ -128,47 +127,52 @@ class WinProbSolver:
             self.save_memo(self._ckpt_path)          # periodic mid-n checkpoint
             print(f"    checkpointed memo -> {self._ckpt_path}", flush=True)
 
-    def won(self, S, r):
-        """Max frequency mass of S winnable with <= r misses = mass(S) - lost(S, r)."""
-        n = S.shape[0]
-        if n <= 1:
-            return float(self.f[S].sum()) if n == 1 else 0.0
-        mass = float(self.f[S].sum())
-        return mass - self.lost(S, r, mass + 1.0)
+    @staticmethod
+    def _lex_less(a, b, eps):
+        """(a_lost, a_miss) < (b_lost, b_miss) lexicographically, within tolerance."""
+        if a[0] < b[0] - eps:
+            return True
+        if a[0] > b[0] + eps:
+            return False
+        return a[1] < b[1] - eps
 
-    def lost(self, S, r, bound):
-        """Min frequency mass of S that CANNOT be won within r misses (the dual of
-        won).  This is a min-of-sum, so it prunes like optimal.py:
-            lost(S,r) = min over letters of [ sum_present lost(p, r) + lost(absent, r-1) ]
-        `bound` is an upper bound we care about -- alpha-beta.  We thread the
-        remaining allowance into children, so a subtree whose lost already exceeds
-        what's useful aborts early.  Returns the exact lost if it's < bound, else a
-        valid LOWER bound (>= bound).  Exact results go in lmemo; lower bounds in llb.
-        Why this beats maximizing `won` directly: near the top won ~= mass for every
-        letter (flat, nothing prunes), but lost ~= 0 there, and a tiny incumbent lets
-        alpha-beta cut whole letters."""
+    def _solve(self, S, r, bl, bm):
+        """Single pass computing BOTH objectives at once as a lexicographic pair
+        (lost, miss):
+            primary   lost = min mass that CANNOT be won within r misses (= max win)
+            secondary miss = min total misses over the WON words, among min-lost play
+        Recurrence (a miss is charged only on the letter-absent branch):
+            lost = min_c [ sum_present lost(p, r) + lost(absent, r-1) ]
+            miss = matching sum_present miss(p, r) + miss(absent, r-1) + won(absent, r-1)
+        `(bl, bm)` is a lexicographic upper bound -- alpha-beta.  We thread the
+        remaining allowance into children, so a branch whose (lost, miss) already
+        can't beat the incumbent aborts.  Returns the exact pair if it is < (bl, bm)
+        lexicographically, else a valid LOWER bound >= (bl, bm).  Exact -> self.memo,
+        lower bounds -> self.lb, the chosen move -> self.move.  Minimizing the dual
+        `lost` (small when P(win) is high) is what lets alpha-beta cut whole letters
+        where maximizing `won` directly would be flat and unprunable."""
         n = S.shape[0]
         fS = self.f[S]
-        if r < 0:                          # budget exceeded (absent branch at r=0)
-            return float(fS.sum())         # -> everything here is lost, even a lone word
-        if n <= 1:
-            return 0.0
-        if r >= n - 1:                     # >=|S|-1 misses always resolves S -> lost 0
-            return 0.0
+        if r < 0:                          # budget blown -> everything lost, nothing won
+            return float(fS.sum()), 0.0
+        if n <= 1:                          # lone/empty word: won, no misses
+            return 0.0, 0.0
+        if r > n - 1:                       # extra misses never bind: collapse state
+            r = n - 1
+        eps = self.eps
         key = (S.tobytes(), r)
-        ex = self.lmemo.get(key)
+        ex = self.memo.get(key)
         if ex is not None:
             return ex
-        lbv = self.llb.get(key, 0.0)
-        if lbv >= bound - self.eps:        # already known lost >= bound
-            return lbv
+        lbv = self.lb.get(key)
+        if lbv is not None and not self._lex_less(lbv, (bl, bm), eps):
+            return lbv                      # already known >= (bl, bm) -> prune
         self._beat()
-        eps = self.eps
         MS = self.masks[S]
         splits = MS.min(0) != MS.max(0)
         order = np.argsort(fS @ (MS > 0).astype(np.float64))[::-1]
         is_root = n == self.N
-        best = bound
+        best_l, best_m, best_c = bl, bm, -1
         for oi in range(order.shape[0]):
             c = int(order[oi])
             if not splits[c]:
@@ -176,157 +180,77 @@ class WinProbSolver:
             if is_root:
                 self._op = (ALPHABET[c], oi + 1, order.shape[0])
             pats = MS[:, c]
-            cost = 0.0
+            acc_l = acc_m = 0.0
             pruned = False
-            for pv in np.unique(pats):     # 0 (absent) sorts first -> prune fast
+            for pv in np.unique(pats):      # 0 (absent) sorts first
                 grp = S[pats == pv]
-                if pv == 0:
-                    child = self.lost(grp, r - 1, best - cost)   # r-1<0 handled -> mass(grp)
-                else:
-                    child = self.lost(grp, r, best - cost)
-                cost += child
-                if cost >= best - eps:     # this letter can't beat the incumbent
-                    pruned = True
+                if pv == 0:                 # absent branch: its won words each take a miss
+                    cl, cm = self._solve(grp, r - 1, best_l - acc_l, INF)
+                    acc_l += cl
+                    acc_m += cm + (float(self.f[grp].sum()) - cl)   # + won(absent) misses
+                else:                       # present branch: no miss
+                    cl, cm = self._solve(grp, r, best_l - acc_l, best_m - acc_m)
+                    acc_l += cl
+                    acc_m += cm
+                if not self._lex_less((acc_l, acc_m), (best_l, best_m), eps):
+                    pruned = True           # this letter can't beat the incumbent
                     break
-            if not pruned and cost < best - eps:
-                best = cost
+            if not pruned and self._lex_less((acc_l, acc_m), (best_l, best_m), eps):
+                best_l, best_m, best_c = acc_l, acc_m, c
                 if is_root:
-                    self._best_p = (self.total - best) / self.total
-                if best <= eps:
+                    self._best_p = (self.total - best_l) / self.total
+                if best_l <= eps and best_m <= eps:
                     break
-        if best < bound - eps:
-            self.lmemo[key] = best         # exact (fully-evaluated winning letter)
-        elif bound > lbv:
-            self.llb[key] = bound          # lost >= bound
-        return best
+        if self._lex_less((best_l, best_m), (bl, bm), eps):
+            self.memo[key] = (best_l, best_m)       # exact
+            self.move[key] = best_c
+        elif lbv is None or self._lex_less(lbv, (bl, bm), eps):
+            self.lb[key] = (bl, bm)                 # true value >= (bl, bm)
+        return best_l, best_m
 
-    def mmin(self, S, r, mbound=INF):
-        """Min miss-sum over won words, among strategies achieving won(S, r).
-        A miss is charged only on the letter-absent branch (+1 per won word there).
-        Alpha-beta on the miss-sum (same trick as `lost`, but on misses): thread the
-        remaining allowance `mbound` into children so the min-miss resolution of the
-        fully-winnable regions prunes instead of exploring every won-tied letter --
-        which is what blew up before."""
+    def won(self, S, r):
+        """Max frequency mass of S winnable with <= r misses."""
+        n = S.shape[0]
+        if n == 0:
+            return 0.0
+        mass = float(self.f[S].sum())
+        if n == 1:
+            return mass
+        lost, _ = self._solve(S, r, mass + 1.0, INF)
+        return mass - lost
+
+    def mmin(self, S, r):
+        """Min misses over the won words among max-win strategies (the tie-break)."""
         n = S.shape[0]
         if n <= 1:
             return 0.0
-        if r > n - 1:                      # extra misses never bind: collapse state
-            r = n - 1
-        key = (S.tobytes(), r)
-        ex = self.mmemo.get(key)
-        if ex is not None:
-            return ex
-        mlbv = self.mlb.get(key, 0.0)
-        if mlbv >= mbound - self.eps:      # already known miss >= mbound
-            return mlbv
-        self._beat()
-        eps = self.eps
-        W = self.won(S, r)
-        if W <= eps:                       # nothing winnable -> no won words, 0 misses
-            self.mmemo[key] = 0.0
-            return 0.0
-        MS = self.masks[S]
-        fS = self.f[S]
-        splits = MS.min(0) != MS.max(0)
-        order = np.argsort(fS @ (MS > 0).astype(np.float64))[::-1]
-        is_root = n == self.N
-        best = mbound
-        for oi in range(order.shape[0]):
-            c = int(order[oi])
-            if not splits[c]:
-                continue
-            if is_root:                    # show opener progress during the tie-break too
-                self._op = (ALPHABET[c], oi + 1, order.shape[0])
-            pats = MS[:, c]
-            branch_w = 0.0
-            absent_won = 0.0
-            live = []
-            for pv in np.unique(pats):
-                grp = S[pats == pv]
-                if pv == 0:
-                    if r == 0:
-                        continue           # absent words lost (0 won)
-                    rr = r - 1
-                    wa = self.won(grp, rr)
-                    absent_won += wa       # each won word here takes a miss
-                    branch_w += wa
-                else:
-                    rr = r
-                    branch_w += self.won(grp, rr)
-                live.append((grp, rr))
-            if abs(branch_w - W) > eps:
-                continue                   # not win-optimal -> skip
-            miss = absent_won              # +1 miss per won word on the absent branch
-            pruned = False
-            for grp, rr in live:
-                if miss >= best - eps:
-                    pruned = True
-                    break
-                miss += self.mmin(grp, rr, best - miss)
-            if not pruned and miss < best - eps:
-                best = miss
-                if best <= eps:
-                    break
-        if best < mbound - eps:
-            self.mmemo[key] = best         # exact
-        elif mbound > mlbv:
-            self.mlb[key] = mbound         # miss >= mbound
-        return best
+        mass = float(self.f[S].sum())
+        _, miss = self._solve(S, r, mass + 1.0, INF)
+        return miss
 
     def _choose(self, S, r):
-        """Chosen guess for the optimal strategy at (S, r): the letter achieving
-        the max win-mass won(S, r), breaking ties by min expected misses over the
-        won words, and remaining ties by lowest letter index (deterministic).
-        Returns (letter_index, won_mass, miss_sum); letter_index = -1 if trivial."""
+        """The letter the optimal strategy plays at (S, r) -- recorded by _solve
+        (max win, then min misses, ties by promise order).  Returns index or -1."""
         n = S.shape[0]
         if n <= 1:
-            return -1, (float(self.f[S].sum()) if n == 1 else 0.0), 0.0
-        W = self.won(S, r)
-        MS = self.masks[S]
-        fS = self.f[S]
-        splits = MS.min(0) != MS.max(0)
-        eps = self.eps
-        best_c, best_m = -1, INF
-        for c in range(MS.shape[1]):        # lowest index first -> deterministic ties
-            if not splits[c]:
-                continue
-            pats = MS[:, c]
-            branch_w = 0.0
-            absent_won = 0.0
-            live = []
-            for pv in np.unique(pats):
-                grp = S[pats == pv]
-                if pv == 0:
-                    if r == 0:
-                        continue            # absent words lost, 0 won
-                    rr = r - 1
-                    wa = self.won(grp, rr)
-                    absent_won += wa
-                    branch_w += wa
-                else:
-                    rr = r
-                    branch_w += self.won(grp, rr)
-                live.append((grp, rr))
-            if abs(branch_w - W) > eps:
-                continue                    # not win-optimal
-            m = absent_won + sum(self.mmin(grp, rr) for grp, rr in live)
-            if m < best_m - eps:
-                best_m, best_c = m, c
-        return best_c, W, (best_m if best_c >= 0 else 0.0)
+            return -1
+        mass = float(self.f[S].sum())
+        rk = r if r <= n - 1 else n - 1
+        self._solve(S, r, mass + 1.0, INF)          # ensure exact + move recorded
+        return self.move.get((S.tobytes(), rk), -1)
 
     def best_opener(self, r):
-        """Best first guess at budget r: (letter, won_mass, guess_sum)."""
+        """Best first guess at budget r: (letter, won_mass, miss_sum). One pass."""
         root = np.arange(self.N, dtype=self._idt)
         self._n = r
         self._op = ("", 0, 0)
         self._best_p = 0.0
-        self._phase = "won"
-        W = self.won(root, r)
-        self._best_p = W / self.total if self.total else 0.0
-        self._phase = "gmin"
-        self._op = ("", 0, 0)
-        c, W, g = self._choose(root, r)
-        return (ALPHABET[c] if c >= 0 else "-"), W, g
+        self._phase = "solve"
+        total = self.total
+        lost, miss = self._solve(root, r, total + 1.0, INF)
+        self._best_p = (total - lost) / total if total else 0.0
+        c = self.move.get((root.tobytes(), r), -1)
+        return (ALPHABET[c] if c >= 0 else "-"), total - lost, miss
 
     def _pattern_str(self, c, mask):
         """Letter c, its position bitmask -> revealed template, e.g. 'e_e_';
@@ -348,7 +272,7 @@ class WinProbSolver:
         W = self.won(S, r)
         if W <= self.eps:                   # nothing here is winnable -> all lost
             return {"lost": [self.words[int(i)] for i in S]}
-        c, _, _ = self._choose(S, r)
+        c = self._choose(S, r)
         pats = self.masks[S, c]
         branches = {}
         for pv in np.unique(pats):
@@ -416,7 +340,7 @@ def _main():
         em = m / w if w > wp.eps else 0.0
         rows.append((n, p, em, letter))
         print(f"{n:>3}  {p:>10.4f}  {em:>13.3f}  {letter:>6}   "
-              f"[{len(wp.lmemo) + len(wp.llb):,} states, +{time.perf_counter() - tn:.1f}s]", flush=True)
+              f"[{len(wp.memo) + len(wp.lb):,} states, +{time.perf_counter() - tn:.1f}s]", flush=True)
         # save the optimal tree AND the memo for this n, so a deeper rerun resumes here
         wp.save_tree(n, shared_dir / f"len{L:02d}_{wp.weighting}_n{n:02d}.json",
                      p_win=p, e_misses=em, opener=letter)
@@ -428,7 +352,7 @@ def _main():
 
     # consolidated report (same table, clean, at the end)
     print(f"\n===== len{L}: win-probability report "
-          f"({len(wp.lmemo) + len(wp.llb):,} positions, {time.perf_counter() - wp._t0:.1f}s) =====")
+          f"({len(wp.memo) + len(wp.lb):,} positions, {time.perf_counter() - wp._t0:.1f}s) =====")
     print(header)
     for n, p, em, letter in rows:
         print(f"{n:>3}  {p:>10.4f}  {em:>13.3f}  {letter:>6}")

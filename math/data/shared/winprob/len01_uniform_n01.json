@@ -1,1 +1,0 @@
-{"length": 1, "n": 1, "words": 2, "weighting": "uniform", "p_win": 1.0, "e_misses": 0.5, "opener": "a", "tree": {"guess": "a", "n": 2, "branches": {"_": {"word": "i", "misses": 1}, "a": {"word": "a", "misses": 0}}}}

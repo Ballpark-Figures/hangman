@@ -71,78 +71,49 @@ That's why we can memoize on `(S, r)`.
 
 ---
 
-## 3. The computation: two passes
+## 3. The computation: one pass over a lexicographic pair
 
-Everything is a recursion over `(S, r)`. We do it in two passes so the
-win-probability pass keeps strong pruning.
+Everything is a single recursion over `(S, r)` — `_solve` — that computes **both**
+objectives at once as a lexicographic pair `(lost, miss)`:
 
-### Pass 1 — `won(S, r)`, computed as the dual `lost(S, r)`
+- **`lost`** = minimum word-mass that *cannot* be won within `r` misses. This is
+  the dual of win-probability (`won = mass(S) − lost`), and it's what we minimize:
+  it's a *min-of-sum* and is *small* when P(win) is high, so alpha-beta bites hard
+  (see §6). Maximizing `won` directly would be flat near the top — every letter
+  wins ≈ everything — and wouldn't prune.
+- **`miss`** = minimum total misses over the *won* words, among the min-`lost`
+  play. A miss is charged **only** on the letter-absent branch (+1 per won word
+  there) — that's "misses, not guesses."
 
-> `won(S, r)` = the largest word-mass of `S` finishable within `r` misses.
-> We compute it as `won = mass(S) − lost(S, r)`, where **`lost(S, r)` is the
-> minimum mass that CANNOT be won** — the dual.
-
-Why the dual? Maximizing `won` directly is unprunable near the top (every letter
-wins ≈ everything — flat). `lost` is a *min-of-sum* and is *small* when P(win) is
-high, so alpha-beta bites hard (see §6). The recurrence:
-
-```
-lost(S, r) = min over letters of [ Σ_present lost(p, r) + lost(absent, r − 1) ]
-```
-
-with `lost = 0` for a single word or once `r ≥ |S| − 1` (always resolvable), and
-`lost = mass` once the budget goes negative (a lone word isolated by a fatal miss
-is *lost*, not won — the order of these base cases matters). We prune with
-threaded alpha-beta: each child is given the remaining allowance, and a subtree
-whose lost already exceeds what's useful returns a lower bound and is abandoned.
-Exact results are memoized; lower bounds are cached separately so a later tight
-query can reuse them.
-
-### Pass 2 — `mmin(S, r)`: fewest misses among the winners
-
-> `mmin(S, r)` = the minimum total misses over the *won* words, taken **only**
-> over letters that achieve the maximum `won(S, r)`.
-
-This is where "misses, not guesses" lives. A miss happens **only** on the
-letter-absent branch, so at each node the only miss cost is *one per won word
-that goes down the absent branch*:
+The recurrence, choosing the letter that minimizes the pair lexicographically
+(first `lost`, then `miss`):
 
 ```
-mmin(S, r) = won(absent branch)                       # +1 miss per won word there
-           + Σ over the chosen letter's branches: mmin(branch)
+lost = min over letters of [ Σ_present lost(p, r) + lost(absent, r−1) ]
+miss = (for that letter)    Σ_present miss(p, r) + miss(absent, r−1) + won(absent, r−1)
 ```
 
-`mmin` uses the *same* threaded alpha-beta, on the miss-sum, so the min-miss
-resolution of the fully-winnable regions prunes instead of exploring every letter
-that ties on `won`.
+with base cases `(0, 0)` for a lone/empty word, and `(mass, 0)` once the budget
+goes negative (a lone word isolated by a fatal miss is *lost*, not won — the order
+of these base cases matters).
 
-### Pass 2 — `mmin(S, r)`: fewest misses among the winners
+**Pruning.** `_solve` takes a lexicographic upper bound `(bl, bm)` and threads the
+remaining allowance into each child. A branch whose `(lost, miss)` can't beat the
+incumbent returns a lower bound and is abandoned. Exact pairs are memoized; lex
+lower bounds are cached separately so a later tighter query can reuse them.
 
-> `mmin(S, r)` = the minimum total misses over the *won* words, taken **only**
-> over letters that achieve the maximum `won(S, r)`.
-
-This is where "misses, not guesses" lives. A miss happens **only** on the
-letter-absent branch, so at each node the only miss cost is *one per won word
-that goes down the absent branch*:
-
-```
-mmin(S, r) = won(absent branch)                       # +1 miss per won word there
-           + Σ over the chosen letter's branches: mmin(branch)
-```
-
-(Contrast: if we were counting *guesses*, every branch would add +1 per word.
-Misses only charge the absent branch — that's the whole difference from the
-version we first built and threw away.)
-
-`E[miss | won]` reported in the table is just `mmin(root, n) / won(root, n)`.
+**Why one pass, not two.** The primary and secondary objectives are lexicographic,
+so carrying them as a pair lets a single alpha-beta prune on both at once. (An
+earlier version split this into a `won` pass and a separate `mmin` tie-break pass;
+merging them removed the redundant second traversal and roughly halved the memo
+entries.)
 
 ### The chosen move, and the tree
 
-`_choose(S, r)` reproduces the decision: among letters achieving `won(S, r)`,
-take the one with the least `mmin`, ties broken by lowest letter index (fully
-deterministic). Walking `_choose` from the root down — following the chosen
-letter and branching on its outcomes — *is* the optimal strategy tree, which is
-what we save (see §5).
+`_solve` records the winning letter for each exact state in `self.move`. Walking
+those moves from the root down — following the chosen letter and branching on its
+outcomes — *is* the optimal strategy tree, which is what we save (see §5).
+`E[miss | won]` reported in the table is just `miss(root, n) / won(root, n)`.
 
 ---
 
