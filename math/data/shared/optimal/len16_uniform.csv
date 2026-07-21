@@ -1,0 +1,3 @@
+cap,capped_avg,delta,states,seconds,greedy_avg,converged
+1,0.021277,0.000000,1,0.01,0.021277,0
+2,0.021277,0.000000,5,0.00,0.021277,1

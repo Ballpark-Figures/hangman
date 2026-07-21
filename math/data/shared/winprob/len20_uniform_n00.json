@@ -1,0 +1,1 @@
+{"length": 20, "n": 0, "words": 2, "weighting": "uniform", "p_win": 1.0, "e_misses": 0.0, "opener": "a", "tree": {"guess": "a", "n": 2, "branches": {"______a____a___a____": {"word": "internationalization", "misses": 0}, "____a_a_________a___": {"word": "uncharacteristically", "misses": 0}}}}
