@@ -39,7 +39,7 @@ MEMO_FORMAT = 3                        # bump if the solver's stored values chan
 
 
 class WinProbSolver:
-    def __init__(self, length, freq=None):
+    def __init__(self, length, freq=None, weighting=None):
         s = OptimalSolver(length=length)
         s.freq = s.game._coerce_freq(freq)
         self.s = s
@@ -48,11 +48,14 @@ class WinProbSolver:
         self.masks = s.masks
         self.words = s.game.words
         self.length = length
-        self.weighting = "uniform" if freq is None else "custom"
+        self.weighting = weighting or ("uniform" if freq is None else "custom")
         self.N = s.N
         self._idt = s._idt
         self.total = float(self.f.sum())
-        self.eps = 1e-9 * max(self.total, 1.0)
+        # tolerance for "equal" masses/miss-sums.  Integer-valued weights (uniform,
+        # or zipf via round(10**zipf)) give exact sums, so cap eps below 1 so large
+        # weighted totals don't wash out genuine (>= 1) differences.
+        self.eps = min(1e-9 * max(self.total, 1.0), 0.1)
         self.memo = {}                 # exact (lost, miss) pair per (S, r)
         self.lb = {}                   # lexicographic lower bounds from alpha-beta pruning
         self.move = {}                 # chosen letter index per exact (S, r)
@@ -302,13 +305,23 @@ class WinProbSolver:
 
 def _main():
     import sys
-    pos = [a for a in sys.argv[1:] if not a.startswith("--")]
-    flags = {a for a in sys.argv[1:] if a.startswith("--")}
+    weighting, fresh, pos = "uniform", False, []
+    it = iter(sys.argv[1:])
+    for a in it:
+        if a == "--fresh":                           # ignore any saved memo, start cold
+            fresh = True
+        elif a == "--weighted":                      # "zipf" = real word frequency
+            weighting = next(it, "zipf")
+        elif a.startswith("--weighted="):
+            weighting = a.split("=", 1)[1]
+        elif not a.startswith("--"):
+            pos.append(a)
     L = int(pos[0])
     N = int(pos[1]) if len(pos) > 1 else 8
     hb = float(pos[2]) if len(pos) > 2 else 60.0     # heartbeat seconds
-    fresh = "--fresh" in flags                       # ignore any saved memo, start cold
-    wp = WinProbSolver(L)
+    import wordlist
+    wp = WinProbSolver(L, freq=wordlist.resolve_weighting(weighting, L),
+                       weighting=weighting)   # raises on unknown/not-yet-run weightings
     wp._heartbeat = hb
     wp._t0 = wp._last_beat = wp._last_ckpt = time.perf_counter()
 
@@ -341,9 +354,13 @@ def _main():
         rows.append((n, p, em, letter))
         print(f"{n:>3}  {p:>10.4f}  {em:>13.3f}  {letter:>6}   "
               f"[{len(wp.memo) + len(wp.lb):,} states, +{time.perf_counter() - tn:.1f}s]", flush=True)
-        # save the optimal tree AND the memo for this n, so a deeper rerun resumes here
+        # Save the tree FIRST (the deliverable) so it survives even if the
+        # checkpoint below is killed.  Then free the (unsaved) lower-bound cache so
+        # the memo pickle can reuse that memory instead of allocating more -- a huge
+        # memo can otherwise OOM at the RAM ceiling right when writing the result.
         wp.save_tree(n, shared_dir / f"len{L:02d}_{wp.weighting}_n{n:02d}.json",
                      p_win=p, e_misses=em, opener=letter)
+        wp.lb.clear()
         wp.save_memo(memo_path)
         print(f"     saved tree + checkpoint (n={n})", flush=True)
         if p >= 1.0 - 1e-9:

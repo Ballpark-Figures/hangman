@@ -1,0 +1,1 @@
+{"length": 18, "n": 0, "words": 3, "weighting": "greedy", "p_win": 1.0, "e_misses": 0.0, "opener": "t", "tree": {"guess": "t", "n": 3, "branches": {"______t____t______": {"word": "characteristically", "misses": 0}, "t____________t____": {"word": "telecommunications", "misses": 0}, "_________t____t___": {"word": "disproportionately", "misses": 0}}}}

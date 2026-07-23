@@ -1,0 +1,1 @@
+{"length": 1, "n": 0, "words": 2, "weighting": "greedy", "p_win": 0.5, "e_misses": 0.0, "opener": "a", "tree": {"guess": "a", "n": 2, "branches": {"_": {"lost": ["i"]}, "a": {"word": "a", "misses": 0}}}}

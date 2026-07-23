@@ -99,6 +99,56 @@ def load(
     return out
 
 
+def freq_weights(
+    *,
+    min_len: int = 1,
+    max_len: int | None = None,
+    min_zipf: float = DEFAULT_ZIPF,
+) -> dict[str, float]:
+    """``{word: weight}`` for frequency-weighted play (vs. uniform).
+
+    ``weight = round(10**zipf)`` = the word's per-billion occurrence rate as an
+    integer, so it is proportional to how likely the word is to be the secret
+    word AND keeps solver arithmetic exact (integer-valued sums stay below
+    float64's exact range). Feed to a solver as its ``freq`` (both
+    ``OptimalSolver``/``GreedyGame`` and ``WinProbSolver`` accept a
+    ``{word: weight}`` dict).
+    """
+    return {w.text: float(round(10.0 ** w.zipf))
+            for w in load(min_len=min_len, max_len=max_len, min_zipf=min_zipf)}
+
+
+def resolve_weighting(name: str, length: int, *, min_zipf: float = DEFAULT_ZIPF):
+    """Map a ``--weighted`` NAME to a solver ``freq`` (shared by optimal.py,
+    winprob.py, winprob_check.py). Single source of truth for which weightings
+    exist. RAISES on anything unrecognized -- never silently falls back:
+
+      "uniform"          -> None (every word equally likely)
+      "zipf"             -> real word frequency (:func:`freq_weights`)
+      a freq_search obj  -> the adversarial frequencies reconstructed from that
+                            objective's prior run (hardest-to-guess word-setter)
+
+    Raises ``ValueError`` for an unknown name, ``FileNotFoundError`` if a
+    freq_search objective has no run yet for this length.
+    """
+    if name == "uniform":
+        return None
+    if name == "zipf":
+        return freq_weights(min_len=length, max_len=length, min_zipf=min_zipf)
+    import freq_search
+    if name in freq_search.OBJECTIVES:
+        csv = freq_search._default_log_path(name, length)
+        if not csv.exists():
+            hint = " --best-opener" if name == "best_opener" else ""
+            raise FileNotFoundError(
+                f"weighting {name!r}: no freq_search run for length {length} at "
+                f"{csv} -- run `python math/freq_search.py {length}{hint}` first")
+        return freq_search.FrequencySearch.reconstruct(
+            length, csv, objective=name, min_zipf=min_zipf).freq
+    valid = ", ".join(("uniform", "zipf") + tuple(freq_search.OBJECTIVES))
+    raise ValueError(f"unknown weighting {name!r}; choose one of: {valid}")
+
+
 # Difficulty presets: (zipf band, length range). "easy" = short + very common,
 # "hard" = longer + down to the known-word cutoff. Starting points -- playtest
 # and adjust.

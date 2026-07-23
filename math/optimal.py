@@ -61,7 +61,7 @@ from pathlib import Path
 import numpy as np
 
 from strategy import GreedyGame, ALPHABET
-from wordlist import DEFAULT_ZIPF
+from wordlist import DEFAULT_ZIPF, resolve_weighting
 
 try:
     from tqdm import tqdm
@@ -904,7 +904,6 @@ def _main(argv) -> None:
     SHARED_DIR.mkdir(parents=True, exist_ok=True)
     LOCAL_DIR.mkdir(parents=True, exist_ok=True)
 
-    import freq_search
     for L in lengths:
         print(f"\n===== length {L} =====")
         game = GreedyGame(L)
@@ -913,31 +912,23 @@ def _main(argv) -> None:
         print(f"greedy: avg {game.average_misses():.4f}, max misses {int(pm.max())}, "
               f"max guesses {max(len(game.trace(w)) for w in game.words)}")
 
-        print("-- uniform --")
+        # weighting chosen by --weighted: "uniform" (default), "zipf" (real word
+        # frequency), or a freq_search objective (adversarial hardest-to-guess).
+        weighting = weighted or "uniform"
+        try:
+            wfreq = resolve_weighting(weighting, L)
+        except FileNotFoundError as e:                # freq_search obj not run yet
+            print(f"-- {weighting}: {e}\n   skipping length {L} --")
+            continue
+        print(f"-- {weighting} --")
         if uncapped:
-            solver.solve(None)
+            solver.solve(wfreq)
         else:
-            log = SHARED_DIR / f"len{L:02d}_uniform.csv"
-            solver.deepen(None, log_path=log, save_trees=trees,
+            log = SHARED_DIR / f"len{L:02d}_{weighting}.csv"
+            solver.deepen(wfreq, log_path=log, save_trees=trees,
                           checkpoint=LOCAL_DIR / f"{log.stem}.ckpt", resume=not fresh,
                           lb_cap=lb_cap, memo_bytes=memo_bytes,
                           checkpoint_interval=save_every)
-
-        if weighted:
-            csv = freq_search._default_log_path(weighted, L)
-            if not csv.exists():
-                print(f"-- {weighted}: no run at {csv.parent.name}/{csv.name}, skipping --")
-                continue
-            s = freq_search.FrequencySearch.reconstruct(L, csv, objective=weighted)
-            print(f"-- weighted ({weighted}) --")
-            if uncapped:
-                solver.solve(s.freq)
-            else:
-                wlog = SHARED_DIR / f"len{L:02d}_{weighted}.csv"
-                solver.deepen(s.freq, log_path=wlog, save_trees=trees,
-                              checkpoint=LOCAL_DIR / f"{wlog.stem}.ckpt", resume=not fresh,
-                              lb_cap=lb_cap, memo_bytes=memo_bytes,
-                              checkpoint_interval=save_every)
 
 
 if __name__ == "__main__":

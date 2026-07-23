@@ -49,8 +49,16 @@ def verify(path):
     words = GreedyGame(length=L).words
     tree = data["tree"]
 
-    won = 0
-    miss_sum = 0
+    # weight words the same way the run did (uniform, or zipf frequency)
+    if data.get("weighting", "uniform") == "uniform":
+        wt = {w: 1.0 for w in words}
+    else:
+        import wordlist
+        wt = wordlist.freq_weights(min_len=L, max_len=L)
+    total_w = sum(wt.get(w, 1.0) for w in words)
+
+    won_w = 0.0
+    miss_w = 0.0
     over_budget = []                             # won words that somehow exceeded n
     unreached = []                               # words with no path in the tree (bug)
     for w in words:
@@ -60,13 +68,14 @@ def verify(path):
             unreached.append(w)
             continue
         if w_won:
-            won += 1
-            miss_sum += m
+            g = wt.get(w, 1.0)
+            won_w += g
+            miss_w += g * m
             if m > n:
                 over_budget.append((w, m))
 
-    p_win = won / len(words)
-    e_miss = miss_sum / won if won else 0.0
+    p_win = won_w / total_w if total_w else 0.0
+    e_miss = miss_w / won_w if won_w else 0.0
     dp = abs(p_win - (data["p_win"] or 0.0))
     de = abs(e_miss - (data["e_misses"] or 0.0))
     ok = (dp < 1e-9 and de < 1e-9 and not over_budget and not unreached)

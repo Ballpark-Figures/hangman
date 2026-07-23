@@ -29,8 +29,19 @@ So there are two numbers per `(length, n)`:
 
 By default every word is equally likely to be the secret word (**uniform
 weighting**, same convention as `optimal.py`'s `_uniform` files), so "probability"
-= "fraction of words". Switching to frequency weighting is a one-line change
-(pass a `freq` vector to `WinProbSolver`) and a re-run; the machinery is identical.
+= "fraction of words". The **`--weighted <name>`** flag (shared with `optimal.py`,
+resolved by `wordlist.resolve_weighting`) selects the weighting:
+- `uniform` (default) — every word equally likely.
+- `zipf` — real corpus frequency (`round(10**zipf)`), so P(secret word) ∝ how
+  common it is.
+- a **freq_search objective** (`greedy`, `best_opener`) — the *adversarial*
+  hardest-to-guess frequencies from a prior `freq_search.py` run (validated exact
+  even though those weights are floats).
+
+Outputs are named by the weighting (`_uniform`/`_zipf`/`_greedy`/`_best_opener`)
+and validated the same way (`winprob_check.py --weighted <name>`). An unknown name
+or a freq_search objective with no run yet **raises** — it never silently falls
+back to a default.
 
 ### How this differs from optimal.py
 

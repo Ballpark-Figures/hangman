@@ -53,8 +53,10 @@ def brute(words, freq, r):
     return rec(tuple(words), r)
 
 
-def check_length(L, trials=200, seed=0):
-    wp = WinProbSolver(L)
+def check_length(L, trials=200, seed=0, weighting="uniform"):
+    import wordlist
+    wp = WinProbSolver(L, freq=wordlist.resolve_weighting(weighting, L),
+                       weighting=weighting)
     wp._verbose = False                    # no heartbeats during validation
     words = wp.game.words
     fr = {w: float(wp.f[i]) for i, w in enumerate(words)}
@@ -84,7 +86,16 @@ def check_length(L, trials=200, seed=0):
 
 
 if __name__ == "__main__":
-    lengths = [int(a) for a in sys.argv[1:]] or [4, 5, 6, 7]
-    ok = all(check_length(L) for L in lengths)
-    print("\nALL PASS" if ok else "\nFAILURES PRESENT")
+    weighting, lengths = "uniform", []
+    it = iter(sys.argv[1:])
+    for a in it:
+        if a == "--weighted":
+            weighting = next(it, "zipf")
+        elif a.startswith("--weighted="):
+            weighting = a.split("=", 1)[1]
+        elif not a.startswith("--"):
+            lengths.append(int(a))
+    lengths = lengths or [4, 5, 6, 7]
+    ok = all(check_length(L, weighting=weighting) for L in lengths)
+    print(f"\n({weighting})  " + ("ALL PASS" if ok else "FAILURES PRESENT"))
     sys.exit(0 if ok else 1)
