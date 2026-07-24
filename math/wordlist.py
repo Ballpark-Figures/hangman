@@ -126,26 +126,42 @@ def resolve_weighting(name: str, length: int, *, min_zipf: float = DEFAULT_ZIPF)
       "uniform"          -> None (every word equally likely)
       "zipf"             -> real word frequency (:func:`freq_weights`)
       a freq_search obj  -> the adversarial frequencies reconstructed from that
-                            objective's prior run (hardest-to-guess word-setter)
+                            objective's prior run (hardest-to-guess word-setter).
+                            "<obj>"      = per-(letter,pattern) multiplier search;
+                            "<obj>_word" = per-word frequency search (the newer
+                            mode, reconstructed from the objective's ``word/``
+                            subdir).
 
     Raises ``ValueError`` for an unknown name, ``FileNotFoundError`` if a
-    freq_search objective has no run yet for this length.
+    freq_search objective has no run yet for this length (and mode).
     """
     if name == "uniform":
         return None
     if name == "zipf":
         return freq_weights(min_len=length, max_len=length, min_zipf=min_zipf)
     import freq_search
-    if name in freq_search.OBJECTIVES:
-        csv = freq_search._default_log_path(name, length)
+    # Adversarial word-setters, two reconstruction modes distinguished by a
+    # "_word" suffix: bare "<obj>" is the per-(letter,pattern) multiplier search;
+    # "<obj>_word" is the per-word frequency search (its own `word/` CSV subdir).
+    mode, objective = "mult", name
+    if name.endswith("_word"):
+        mode, objective = "word", name[: -len("_word")]
+    if objective in freq_search.OBJECTIVES:
+        csv = freq_search._default_log_path(objective, length, mode)
         if not csv.exists():
-            hint = " --best-opener" if name == "best_opener" else ""
+            hint = " --best-opener" if objective == "best_opener" else ""
+            wflag = " --word" if mode == "word" else ""
             raise FileNotFoundError(
-                f"weighting {name!r}: no freq_search run for length {length} at "
-                f"{csv} -- run `python math/freq_search.py {length}{hint}` first")
-        return freq_search.FrequencySearch.reconstruct(
-            length, csv, objective=name, min_zipf=min_zipf).freq
-    valid = ", ".join(("uniform", "zipf") + tuple(freq_search.OBJECTIVES))
+                f"weighting {name!r}: no freq_search {mode}-mode run for length "
+                f"{length} at {csv} -- run "
+                f"`python math/freq_search.py {length}{hint}{wflag}` first")
+        cls = (freq_search.WordFrequencySearch if mode == "word"
+               else freq_search.FrequencySearch)
+        return cls.reconstruct(
+            length, csv, objective=objective, min_zipf=min_zipf).freq
+    objs = tuple(freq_search.OBJECTIVES) + tuple(
+        f"{o}_word" for o in freq_search.OBJECTIVES)
+    valid = ", ".join(("uniform", "zipf") + objs)
     raise ValueError(f"unknown weighting {name!r}; choose one of: {valid}")
 
 
