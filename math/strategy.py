@@ -292,6 +292,196 @@ class GreedyGame:
                 guessed_bits |= 1 << c
         return seq
 
+    # ---- tree inspection (interactive) -------------------------------------
+    # A greedy-tree NODE is a state (candidate set S, already-guessed letters).
+    # These helpers let you locate a node from a partially-revealed board and
+    # enumerate the nodes at a given depth -- for exploring/animating the tree.
+    def _pick(self, S: np.ndarray, guessed_bits: int, f: np.ndarray) -> int:
+        """The letter index greedy guesses at node ``(S, guessed_bits)`` (the same
+        rule as ``_solve``: highest combined candidate frequency, ties -> a..z)."""
+        letter_freq = f[S] @ self.present[S]
+        g = guessed_bits
+        while g:
+            c = (g & -g).bit_length() - 1
+            letter_freq[c] = -1.0
+            g &= g - 1
+        return int(letter_freq.argmax())
+
+    def _node_board(self, S: np.ndarray, guessed_bits: int
+                    ) -> tuple[str, list[str]]:
+        """Render node ``(S, guessed_bits)``: the revealed pattern (guessed-and-
+        present letters in place, ``_`` for blanks) plus the sorted missed
+        letters. Every word in ``S`` shares each guessed letter's mask, so any
+        candidate (``S[0]``) is representative."""
+        board = ["_"] * self.length
+        missed: list[str] = []
+        rep = int(S[0])
+        g = guessed_bits
+        while g:
+            c = (g & -g).bit_length() - 1
+            g &= g - 1
+            m = int(self.masks[rep, c])
+            if m == 0:
+                missed.append(ALPHABET[c])
+            else:
+                for p in range(self.length):
+                    if (m >> p) & 1:
+                        board[p] = ALPHABET[c]
+        return "".join(board), sorted(missed)
+
+    def _parse_state(self, board: str, missed) -> dict[int, int]:
+        """Parse a board string + missed letters into ``{letter: position_mask}``
+        (mask 0 for a missed letter). ``board`` is length ``self.length`` with
+        ``_``, ``.`` or space for blanks; ``missed`` is a string or letter list.
+        A hit reveals ALL of a letter's positions, so every occurrence of a
+        revealed letter must appear on the board."""
+        board = board.strip().lower().replace(".", "_").replace(" ", "_")
+        if len(board) != self.length:
+            raise ValueError(
+                f"board {board!r} has length {len(board)}, expected {self.length}")
+        required: dict[int, int] = {}
+        for p, ch in enumerate(board):
+            if ch == "_":
+                continue
+            if ch not in ALPHABET:
+                raise ValueError(f"board has non-letter {ch!r}")
+            c = ord(ch) - 97
+            required[c] = required.get(c, 0) | (1 << p)
+        if isinstance(missed, str):
+            missed = list(missed)
+        for ch in (m.lower() for m in (missed or [])):
+            if ch not in ALPHABET:
+                raise ValueError(f"missed has non-letter {ch!r}")
+            c = ord(ch) - 97
+            if c in required:
+                raise ValueError(f"{ch!r} is both revealed and missed")
+            required[c] = 0
+        return required
+
+    def _render_required(self, required: dict[int, int]) -> tuple[str, list[str]]:
+        """Board + missed letters from a parsed ``{letter: mask}`` (for display of
+        states even when no word matches them)."""
+        board = ["_"] * self.length
+        missed: list[str] = []
+        for c, m in required.items():
+            if m == 0:
+                missed.append(ALPHABET[c])
+            else:
+                for p in range(self.length):
+                    if (m >> p) & 1:
+                        board[p] = ALPHABET[c]
+        return "".join(board), sorted(missed)
+
+    def state(self, board: str, missed="", freq=None) -> dict:
+        """Locate a greedy-tree node from a partially-revealed board.
+
+        ``board`` -- length-``self.length`` string of revealed letters and blanks
+        (``_``, ``.`` or space), e.g. ``"b_ll_"``. ``missed`` -- letters guessed
+        and absent (``"ae"`` or ``["a", "e"]``). A hit reveals every position of a
+        letter, so show them all.
+
+        Replays greedy from the root, consuming the guessed letters in the order
+        greedy would pick them -- this reconstructs the state AND checks that
+        greedy actually reaches it. Returns a dict:
+
+          board, missed -- the normalized state
+          reachable     -- True iff greedy visits it (under ``freq``)
+          reason        -- why not, when unreachable
+          candidates    -- remaining words (frequency order)
+          n             -- len(candidates)
+          determined    -- True once <=1 candidate remains (word pinned down)
+          guess         -- greedy's next letter here (None if determined)
+          outcomes      -- one per result of that guess (miss first):
+                           dict(letter, hit, board, missed, n, sample)
+        """
+        f = self._coerce_freq(freq)
+        required = self._parse_state(board, missed)
+        norm_board, norm_missed = self._render_required(required)
+        base = {"board": norm_board, "missed": norm_missed}
+
+        S = np.arange(self.N)
+        gb = 0
+        remaining = dict(required)
+        while remaining:
+            if S.shape[0] <= 1:
+                return {**base, "reachable": False, "candidates": [],
+                        "n": int(S.shape[0]), "determined": True,
+                        "guess": None, "outcomes": [],
+                        "reason": "the word is already determined here; greedy "
+                                  "stops before those letters would be guessed"}
+            c = self._pick(S, gb, f)
+            if c not in remaining:
+                return {**base, "reachable": False,
+                        "candidates": [self.words[i] for i in S],
+                        "n": int(S.shape[0]), "determined": False,
+                        "guess": ALPHABET[c], "outcomes": [],
+                        "reason": f"greedy's next guess would be {ALPHABET[c]!r}, "
+                                  f"which this state has not guessed"}
+            req = remaining.pop(c)
+            S = S[self.masks[S, c] == req]
+            gb |= 1 << c
+            if S.shape[0] == 0:
+                return {**base, "reachable": False, "candidates": [], "n": 0,
+                        "determined": False, "guess": None, "outcomes": [],
+                        "reason": "no word matches this board"}
+
+        candidates = [self.words[i] for i in S]
+        determined = S.shape[0] <= 1
+        out = {**base, "reachable": True, "candidates": candidates,
+               "n": len(candidates), "determined": determined,
+               "guess": None, "outcomes": []}
+        if determined:
+            return out
+        c = self._pick(S, gb, f)
+        out["guess"] = ALPHABET[c]
+        pats = self.masks[S, c]
+        cgb = gb | (1 << c)
+        for pat in np.unique(pats):                   # 0 (miss) sorts first
+            group = S[pats == pat]
+            cb, cm = self._node_board(group, cgb)
+            out["outcomes"].append({
+                "letter": ALPHABET[c], "hit": bool(pat),
+                "board": cb, "missed": cm, "n": int(group.shape[0]),
+                "sample": [self.words[i] for i in group[:8]]})
+        return out
+
+    def states_at_depth(self, k: int, freq=None, *, include_determined=True
+                        ) -> list[dict]:
+        """Every greedy-tree node reached after exactly ``k`` guesses, each with
+        the choice greedy makes there.
+
+        Depth 0 is the root (no guesses; its ``guess`` is the opener). At depth
+        ``k``, ``k`` guesses have been made and ``guess`` is the (k+1)th. Branches
+        whose word is determined (<=1 candidate) at depth ``k`` are listed with
+        ``guess=None`` unless ``include_determined=False``; branches that finished
+        earlier are simply not at depth ``k``. Each node:
+        dict(board, missed, n, determined, guess, sample)."""
+        f = self._coerce_freq(freq)
+        frontier = [(np.arange(self.N), 0)]           # (S, guessed_bits)
+        for _ in range(k):
+            nxt = []
+            for S, gb in frontier:
+                if S.shape[0] <= 1:                   # terminal: shallower than k
+                    continue
+                c = self._pick(S, gb, f)
+                pats = self.masks[S, c]
+                cgb = gb | (1 << c)
+                for pat in np.unique(pats):
+                    nxt.append((S[pats == pat], cgb))
+            frontier = nxt
+        rows = []
+        for S, gb in frontier:
+            determined = S.shape[0] <= 1
+            if determined and not include_determined:
+                continue
+            board, missed = self._node_board(S, gb)
+            rows.append({
+                "board": board, "missed": missed, "n": int(S.shape[0]),
+                "determined": determined,
+                "guess": None if determined else ALPHABET[self._pick(S, gb, f)],
+                "sample": [self.words[i] for i in S[:6]]})
+        return rows
+
 
 def _demo(length: int = 5) -> None:
     import time
