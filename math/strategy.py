@@ -307,6 +307,21 @@ class GreedyGame:
             g &= g - 1
         return int(letter_freq.argmax())
 
+    def _opener_index(self, opener) -> int | None:
+        """Normalize ``opener`` (letter char, 0..25 index, or ``None``) to an index."""
+        if opener is None:
+            return None
+        return int(opener if isinstance(opener, (int, np.integer))
+                   else ord(opener) - 97)
+
+    def _pick_o(self, S: np.ndarray, guessed_bits: int, f: np.ndarray,
+                opener_c: int | None) -> int:
+        """Greedy's pick, except a forced ``opener_c`` overrides the root guess
+        (``guessed_bits == 0``); once the opener is played greedy resumes."""
+        if opener_c is not None and guessed_bits == 0:
+            return opener_c
+        return self._pick(S, guessed_bits, f)
+
     def _node_board(self, S: np.ndarray, guessed_bits: int
                     ) -> tuple[str, list[str]]:
         """Render node ``(S, guessed_bits)``: the revealed pattern (guessed-and-
@@ -372,13 +387,15 @@ class GreedyGame:
                         board[p] = ALPHABET[c]
         return "".join(board), sorted(missed)
 
-    def state(self, board: str, missed="", freq=None) -> dict:
+    def state(self, board: str, missed="", freq=None, *, opener=None) -> dict:
         """Locate a greedy-tree node from a partially-revealed board.
 
         ``board`` -- length-``self.length`` string of revealed letters and blanks
         (``_``, ``.`` or space), e.g. ``"b_ll_"``. ``missed`` -- letters guessed
         and absent (``"ae"`` or ``["a", "e"]``). A hit reveals every position of a
-        letter, so show them all.
+        letter, so show them all. With ``opener`` (a letter or 0..25 index) the
+        root guess is forced to it and greedy resumes after -- the tree of the
+        "best first letter" variant; otherwise pure greedy.
 
         Replays greedy from the root, consuming the guessed letters in the order
         greedy would pick them -- this reconstructs the state AND checks that
@@ -395,6 +412,7 @@ class GreedyGame:
                            dict(letter, hit, board, missed, n, sample)
         """
         f = self._coerce_freq(freq)
+        oc = self._opener_index(opener)
         required = self._parse_state(board, missed)
         norm_board, norm_missed = self._render_required(required)
         base = {"board": norm_board, "missed": norm_missed}
@@ -409,7 +427,7 @@ class GreedyGame:
                         "guess": None, "outcomes": [],
                         "reason": "the word is already determined here; greedy "
                                   "stops before those letters would be guessed"}
-            c = self._pick(S, gb, f)
+            c = self._pick_o(S, gb, f, oc)
             if c not in remaining:
                 return {**base, "reachable": False,
                         "candidates": [self.words[i] for i in S],
@@ -432,7 +450,7 @@ class GreedyGame:
                "guess": None, "outcomes": []}
         if determined:
             return out
-        c = self._pick(S, gb, f)
+        c = self._pick_o(S, gb, f, oc)
         out["guess"] = ALPHABET[c]
         pats = self.masks[S, c]
         cgb = gb | (1 << c)
@@ -445,8 +463,8 @@ class GreedyGame:
                 "sample": [self.words[i] for i in group[:8]]})
         return out
 
-    def states_at_depth(self, k: int, freq=None, *, include_determined=True
-                        ) -> list[dict]:
+    def states_at_depth(self, k: int, freq=None, *, include_determined=True,
+                        opener=None) -> list[dict]:
         """Every greedy-tree node reached after exactly ``k`` guesses, each with
         the choice greedy makes there.
 
@@ -454,16 +472,19 @@ class GreedyGame:
         ``k``, ``k`` guesses have been made and ``guess`` is the (k+1)th. Branches
         whose word is determined (<=1 candidate) at depth ``k`` are listed with
         ``guess=None`` unless ``include_determined=False``; branches that finished
-        earlier are simply not at depth ``k``. Each node:
+        earlier are simply not at depth ``k``. With ``opener`` (a letter or 0..25
+        index) the root guess is forced to it and greedy resumes after (the "best
+        first letter" variant's tree). Each node:
         dict(board, missed, n, determined, guess, sample)."""
         f = self._coerce_freq(freq)
+        oc = self._opener_index(opener)
         frontier = [(np.arange(self.N), 0)]           # (S, guessed_bits)
         for _ in range(k):
             nxt = []
             for S, gb in frontier:
                 if S.shape[0] <= 1:                   # terminal: shallower than k
                     continue
-                c = self._pick(S, gb, f)
+                c = self._pick_o(S, gb, f, oc)
                 pats = self.masks[S, c]
                 cgb = gb | (1 << c)
                 for pat in np.unique(pats):
@@ -478,7 +499,7 @@ class GreedyGame:
             rows.append({
                 "board": board, "missed": missed, "n": int(S.shape[0]),
                 "determined": determined,
-                "guess": None if determined else ALPHABET[self._pick(S, gb, f)],
+                "guess": None if determined else ALPHABET[self._pick_o(S, gb, f, oc)],
                 "sample": [self.words[i] for i in S[:6]]})
         return rows
 
