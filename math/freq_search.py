@@ -1,9 +1,18 @@
-"""Adversarial frequency hill-climb over per-(letter, pattern) multipliers.
+"""Adversarial frequency hill-climb.
 
-Frequency model. For a fixed word length, every distinct (letter, nonempty
-position-pattern) that occurs has a real-valued MULTIPLIER (start 1). A word's
-frequency is the PRODUCT of the multipliers for the patterns it exhibits (one per
-distinct letter it contains). All-ones multipliers -> all frequencies 1.
+Two knob parameterizations (same search, `--word` selects the second):
+  - MULTIPLIER (default, `FrequencySearch`): every distinct (letter, nonempty
+    position-pattern) has a real-valued MULTIPLIER (start 1); a word's frequency
+    is the PRODUCT of the multipliers for the patterns it exhibits.
+  - PER-WORD (`WordFrequencySearch`): every WORD has its own un-normalized
+    frequency knob (start 1), adjusted directly -- no multipliers/product.
+Both run the identical phased coordinate search (`_phase`/`run`); only the knob
+vector, the log columns, and the iteration order differ.
+
+Frequency model (multiplier mode). For a fixed word length, every distinct
+(letter, nonempty position-pattern) that occurs has a real-valued MULTIPLIER
+(start 1). A word's frequency is the PRODUCT of the multipliers for the patterns
+it exhibits (one per distinct letter it contains). All-ones -> all frequencies 1.
 
 Objective. Two guesser models are supported (``objective=``):
   - ``"greedy"``      -- pure greedy; score = ``average_misses`` (the default).
@@ -50,10 +59,13 @@ FINE_STEPS = [0.5, 0.25, 0.125]
 OBJECTIVES = ("greedy", "best_opener")
 
 
-def _default_log_path(objective: str, length: int) -> Path:
+def _default_log_path(objective: str, length: int, mode: str = "mult") -> Path:
     """Per-length CSV log path; best_opener runs go in their own subdir so the
-    greedy runs' files are untouched."""
+    greedy runs' files are untouched, and the per-word ("word") search gets its
+    own subdir so it doesn't clobber the multiplier runs."""
     base = DATA_DIR if objective == "greedy" else DATA_DIR / objective
+    if mode == "word":
+        base = base / "word"
     return base / f"len{length:02d}.csv"
 
 
@@ -115,6 +127,7 @@ class FrequencySearch:
 
         self.mult = np.ones(self.M, dtype=np.float64)
         self.freq = np.ones(g.N, dtype=np.float64)
+        self._var = self.mult          # the knob vector the search adjusts
         # Deterministic order: by letter, then mask.
         self.order = sorted(range(self.M),
                             key=lambda k: (int(self.key_letter[k]), int(self.key_mask[k])))
@@ -127,6 +140,20 @@ class FrequencySearch:
 
     def freq_from_multipliers(self, mult: np.ndarray) -> np.ndarray:
         return np.multiply.reduceat(mult[self.flat_keys].astype(np.float64), self.word_ptr)
+
+    # ---- per-mode hooks (this class = multiplier mode; WordFrequencySearch
+    #      overrides them to adjust per-word frequencies instead) -------------
+    _cols = ("move", "loop", "seq", "letter", "pattern", "mask",
+             "multiplier", "avg_misses")
+
+    def _make_record(self, k, val, move, loop, avg) -> dict:
+        return {"move": move, "loop": loop, "seq": len(self.records),
+                "letter": ALPHABET[int(self.key_letter[k])],
+                "pattern": self.pattern[k], "mask": int(self.key_mask[k]),
+                "multiplier": val, "avg_misses": avg}
+
+    def _change_str(self, k, val) -> str:
+        return f"{self.pattern[k]}  ->x{val:g}"
 
     # ---- objective ---------------------------------------------------------
     def _score(self, threshold) -> float:
@@ -163,37 +190,35 @@ class FrequencySearch:
         """Loop one phase (candidate values from cand_fn) until a pass makes no change.
 
         move_label(base, new) -> the per-change label (e.g. 'x2', '/2', '+8', '-8').
+        Adjusts self._var (multipliers here; per-word freqs in WordFrequencySearch)
+        one knob at a time in self.order -- the sequence is identical either way.
         """
-        g = self.game
         if verbose:
             print(f"--- {header} ---")
         loop = 0
         while max_loops is None or loop < max_loops:
             changes = 0
             for k in self.order:
-                base = float(self.mult[k])
+                base = float(self._var[k])
                 best_val, best_avg = base, avg
                 for cand in cand_fn(base):
                     if cand < 0.0:                     # never go below 0
                         continue
-                    self.mult[k] = cand
+                    self._var[k] = cand
                     self._recompute_freq()
                     a = self._score(best_avg)
                     if math.isfinite(a) and a > best_avg:
                         best_avg, best_val = a, cand
-                self.mult[k] = best_val
+                self._var[k] = best_val
                 self._recompute_freq()
                 if best_val != base:
                     avg = best_avg
                     move = move_label(base, best_val)
-                    rec = {"move": move, "loop": loop, "seq": len(self.records),
-                           "letter": ALPHABET[int(self.key_letter[k])],
-                           "pattern": self.pattern[k], "mask": int(self.key_mask[k]),
-                           "multiplier": best_val, "avg_misses": avg}
+                    rec = self._make_record(k, best_val, move, loop, avg)
                     self.records.append(rec)
                     changes += 1
                     if verbose:
-                        print(f"  {self.pattern[k]}  ->x{best_val:g}  ({move})  avg={avg:.4f}")
+                        print(f"  {self._change_str(k, best_val)}  ({move})  avg={avg:.4f}")
                     if writer:
                         writer.writerow([rec[c] for c in cols])
                         fh.flush()
@@ -208,15 +233,14 @@ class FrequencySearch:
             verbose: bool = True) -> list[dict]:
         fine_steps = list(FINE_STEPS if fine_steps is None else fine_steps)
         g = self.game
-        self.mult[:] = 1.0
+        self._var[:] = 1.0
         self._recompute_freq()
         avg = self._score(None)             # full scan; also warms the JIT
         start_avg = avg
         self.records = []
 
         fh = writer = None
-        cols = ("move", "loop", "seq", "letter", "pattern", "mask",
-                "multiplier", "avg_misses")
+        cols = self._cols
         if log_path is not None:
             log_path = Path(log_path)
             log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -226,7 +250,7 @@ class FrequencySearch:
 
         if verbose:
             print(f"length {self.length} [{self.objective}]: {g.N} words, "
-                  f"{self.M} patterns; start avg = {avg:.4f}")
+                  f"{len(self.order)} knobs; start avg = {avg:.4f}")
 
         kw = dict(max_loops=max_loops, verbose=verbose,
                   writer=writer, fh=fh, cols=cols)
@@ -237,7 +261,7 @@ class FrequencySearch:
 
         # Phase 2: +/- powers of 2, from the largest scale reached down to 1.
         p = 1
-        top = int(self.mult.max())
+        top = int(self._var.max())
         while p * 2 <= top:
             p *= 2
         while p >= 1:
@@ -283,20 +307,78 @@ class FrequencySearch:
         df = pd.read_csv(csv_path)
         self = cls(length, objective=objective, min_zipf=min_zipf)
         self.mult = self.multipliers_from_records(list(df.itertuples(index=False)), upto=upto)
+        self._var = self.mult
         self._recompute_freq()
         return self
 
 
-def sweep(lengths, *, objective: str = "greedy", min_zipf: float = DEFAULT_ZIPF,
-          max_loops: int | None = None,
+class WordFrequencySearch(FrequencySearch):
+    """Same adversarial hill-climb, but the knobs are per-WORD (un-normalized)
+    frequencies directly -- NOT per-(letter, pattern) multipliers. Each word's
+    frequency is its own variable (start 1); the double/halve, +/- powers-of-2,
+    and fine phases run in the exact same sequence (shared `_phase`/`run`),
+    iterating words in alphabetical order. Log columns are word, frequency."""
+
+    _cols = ("move", "loop", "seq", "word", "frequency", "avg_misses")
+
+    def __init__(self, length: int, *, objective: str = "greedy",
+                 min_zipf: float = DEFAULT_ZIPF, game: GreedyGame | None = None):
+        if objective not in OBJECTIVES:
+            raise ValueError(f"objective must be one of {OBJECTIVES}, got {objective!r}")
+        self.objective = objective
+        self.game = game if game is not None else GreedyGame(length, min_zipf=min_zipf)
+        g = self.game
+        self.length = g.length
+        self.freq = np.ones(g.N, dtype=np.float64)
+        self._var = self.freq          # the knob IS each word's frequency
+        self.order = sorted(range(g.N), key=lambda i: g.words[i])   # alphabetical, deterministic
+        self.records: list[dict] = []
+
+    def _recompute_freq(self) -> None:
+        pass                            # self.freq is self._var already
+
+    def _make_record(self, k, val, move, loop, avg) -> dict:
+        return {"move": move, "loop": loop, "seq": len(self.records),
+                "word": self.game.words[k], "frequency": val, "avg_misses": avg}
+
+    def _change_str(self, k, val) -> str:
+        return f"{self.game.words[k]}  ->{val:g}"
+
+    def freq_from_records(self, records, upto: int | None = None) -> np.ndarray:
+        """Replay accepted per-word changes into a freq vector."""
+        freq = np.ones(self.game.N, dtype=np.float64)
+        idx = {w: i for i, w in enumerate(self.game.words)}
+        rows = records if upto is None else records[:upto]
+        for r in rows:
+            word = r["word"] if isinstance(r, dict) else r.word
+            frequency = float(r["frequency"] if isinstance(r, dict) else r.frequency)
+            freq[idx[word]] = frequency
+        return freq
+
+    @classmethod
+    def reconstruct(cls, length: int, csv_path, *, objective: str = "greedy",
+                    min_zipf: float = DEFAULT_ZIPF,
+                    upto: int | None = None) -> "WordFrequencySearch":
+        import pandas as pd
+        df = pd.read_csv(csv_path)
+        self = cls(length, objective=objective, min_zipf=min_zipf)
+        self.freq = self.freq_from_records(list(df.itertuples(index=False)), upto=upto)
+        self._var = self.freq
+        return self
+
+
+def sweep(lengths, *, objective: str = "greedy", mode: str = "mult",
+          min_zipf: float = DEFAULT_ZIPF, max_loops: int | None = None,
           verbose: bool = True) -> dict[int, FrequencySearch]:
-    """Run the hill-climb for each length, logging to the objective's CSV dir
-    (greedy: data/freq_search/lenLL.csv; best_opener: .../best_opener/lenLL.csv)."""
+    """Run the hill-climb for each length, logging to the objective's CSV dir.
+    mode "mult" = per-(letter,pattern) multipliers; "word" = per-word frequencies
+    (its own `word/` subdir so it doesn't clobber the multiplier runs)."""
+    cls = WordFrequencySearch if mode == "word" else FrequencySearch
     out: dict[int, FrequencySearch] = {}
     for L in lengths:
-        print(f"\n===== length {L} ({objective}) =====")
-        s = FrequencySearch(L, objective=objective, min_zipf=min_zipf)
-        s.run(max_loops=max_loops, log_path=_default_log_path(objective, L),
+        print(f"\n===== length {L} ({objective}, {mode}) =====")
+        s = cls(L, objective=objective, min_zipf=min_zipf)
+        s.run(max_loops=max_loops, log_path=_default_log_path(objective, L, mode),
               verbose=verbose)
         out[L] = s
     return out
@@ -306,5 +388,6 @@ if __name__ == "__main__":
     import sys
     argv = sys.argv[1:]
     objective = "best_opener" if "--best-opener" in argv else "greedy"
+    mode = "word" if "--word" in argv else "mult"
     lengths = [int(a) for a in argv if not a.startswith("-")] or [5]
-    sweep(lengths, objective=objective)
+    sweep(lengths, objective=objective, mode=mode)
