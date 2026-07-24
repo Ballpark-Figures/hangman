@@ -360,7 +360,9 @@ class WordFrequencySearch(FrequencySearch):
                     min_zipf: float = DEFAULT_ZIPF,
                     upto: int | None = None) -> "WordFrequencySearch":
         import pandas as pd
-        df = pd.read_csv(csv_path)
+        # keep_default_na=False: real words like "null"/"nan"/"na" must stay
+        # strings, not be coerced to NaN (they'd miss the word index otherwise).
+        df = pd.read_csv(csv_path, keep_default_na=False, na_values=[])
         self = cls(length, objective=objective, min_zipf=min_zipf)
         self.freq = self.freq_from_records(list(df.itertuples(index=False)), upto=upto)
         self._var = self.freq
