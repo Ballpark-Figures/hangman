@@ -43,9 +43,12 @@ entries are dropped and recomputed on demand, so results stay EXACT (the deep
 caps just run slower rather than getting OOM-killed). Each completed cap is
 checkpointed to ``lenNN_*.ckpt``, and a re-run resumes from it automatically.
 
-Run ``python math/optimal.py <length> [--weighted greedy|best_opener] [--uncapped]
-[--memo-bytes 14G] [--lb-cap N] [--fresh] [--no-trees]``  (--memo-bytes 0 and
---lb-cap 0 opt out of the caps; --fresh ignores an existing checkpoint).
+Run ``python math/optimal.py <length> [max_cap] [--weighted greedy|best_opener]
+[--uncapped] [--memo-bytes 14G] [--lb-cap N] [--fresh] [--no-trees]``  (--memo-bytes 0
+and --lb-cap 0 opt out of the caps; --fresh ignores an existing checkpoint).
+The optional 2nd positional (like winprob's) is the stop cap: deepen through that
+cap then stop, leaving a checkpoint so a later run without --fresh resumes at the
+next cap.  ``--max-cap N`` does the same and overrides the positional if both given.
 """
 
 from __future__ import annotations
@@ -711,11 +714,17 @@ class OptimalSolver:
                 # fire before zero-capped does.
                 root = np.arange(self.N, dtype=self._idt)
                 capped, max_miss = self._tree_stats(root, cap, cap)
+                # Upper bound on the true optimum: finish the capped groups greedily
+                # (capped-optimal tree above the cap, greedy below). Equals ``avg``
+                # when nothing is capped, so the two brackets the optimum and meet
+                # at convergence.
+                upper = avg + self._capped_greedy_cost(root, cap) / self._total
                 plateau = prev_avg is not None and delta < 1e-9
                 converged = capped == 0 or plateau
                 conv_misses = max_miss if capped == 0 else cap - 1
-                print(f"cap {cap:2d}: capped optimal avg = {avg:.4f}  |  +{delta:.4f} vs prev cap"
-                      f"  |  {capped:,} capped, {len(self.memo):,} states, {el:.1f}s", flush=True)
+                print(f"cap {cap:2d}: capped optimal avg = {avg:.4f}  |  greedy-completed upper "
+                      f"= {upper:.4f}  |  +{delta:.4f} vs prev cap  |  {capped:,} capped, "
+                      f"{len(self.memo):,} states, {el:.1f}s", flush=True)
                 results.append((cap, avg))
                 if fh:
                     fh.write(f"{cap},{avg:.6f},{delta:.6f},{len(self.memo)},{el:.2f},"
@@ -823,6 +832,27 @@ class OptimalSolver:
             depth = max(depth, dd)
         return capped, depth
 
+    def _capped_greedy_cost(self, S: np.ndarray, r) -> float:
+        """Frequency-weighted misses to FINISH every capped group of the cap-``r``
+        optimal tree with greedy. Added to the capped optimal value it gives a
+        valid UPPER bound on the true (uncapped) optimum: "capped-optimal tree
+        above the cap, greedy below it" is a real strategy, so its average can only
+        exceed the optimum. Reaching a capped node spends exactly ``cap`` misses on
+        the path (already in the capped value), so each capped group contributes
+        just its greedy completion, ``_greedy_ub(group)``. Same cheap
+        one-path-per-word walk as _tree_stats; zero capped -> 0.0."""
+        n = S.shape[0]
+        if n <= 1:
+            return 0.0
+        if r == 0:                                        # capped group -> finish greedily
+            return self._greedy_ub(S, None)
+        c = self._move(S, r)
+        pats = self.masks[S, c]
+        cost = 0.0
+        for pv in np.unique(pats):
+            cost += self._capped_greedy_cost(S[pats == pv], r - 1 if pv == 0 else r)
+        return cost
+
     def optimal_tree(self) -> dict:
         """The optimal decision tree for the last solved cap: nested
         {guess, branches:{pattern: subtree}}; leaves are {word} or {capped:[...]}."""
@@ -871,9 +901,10 @@ def _main(argv) -> None:
         return int(s)
 
     # lb_cap / memo_bytes default to "auto" (sized off system RAM); pass 0 to opt out.
-    lengths, weighted, uncapped, trees, fresh = [], None, False, True, False
+    pos, weighted, uncapped, trees, fresh = [], None, False, True, False
     lb_cap = memo_bytes = "auto"
     save_every = 3600.0                                  # seconds between mid-cap saves (1 hour)
+    max_cap = None                                       # None -> from 2nd positional, else default 64
     it = iter(argv)
     for a in it:
         if a == "--weighted":
@@ -898,9 +929,18 @@ def _main(argv) -> None:
             save_every = float(next(it, 60)) * 60.0
         elif a.startswith("--save-every="):
             save_every = float(a.split("=", 1)[1]) * 60.0
+        elif a == "--max-cap":                           # deepen up to this cap, then stop (resumable)
+            max_cap = int(next(it, 64))
+        elif a.startswith("--max-cap="):
+            max_cap = int(a.split("=", 1)[1])
         elif not a.startswith("-"):
-            lengths.append(int(a))
-    lengths = lengths or [3]
+            pos.append(int(a))
+    # Positionals mirror winprob: <length> [max_cap].  The optional 2nd number
+    # sets the stop cap (an explicit --max-cap flag overrides it); default 64.
+    length = pos[0] if pos else 3
+    if max_cap is None:
+        max_cap = pos[1] if len(pos) > 1 else 64
+    lengths = [length]
     SHARED_DIR.mkdir(parents=True, exist_ok=True)
     LOCAL_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -925,7 +965,7 @@ def _main(argv) -> None:
             solver.solve(wfreq)
         else:
             log = SHARED_DIR / f"len{L:02d}_{weighting}.csv"
-            solver.deepen(wfreq, log_path=log, save_trees=trees,
+            solver.deepen(wfreq, log_path=log, save_trees=trees, max_cap=max_cap,
                           checkpoint=LOCAL_DIR / f"{log.stem}.ckpt", resume=not fresh,
                           lb_cap=lb_cap, memo_bytes=memo_bytes,
                           checkpoint_interval=save_every)
