@@ -26,7 +26,10 @@ math/data/local/
 # OS / editor junk
 .DS_Store
 
-# Claude config symlinks (machine-local; recreated from dotclaude by /sync-videos)
+# Claude config (machine-local; recreated from dotclaude by /sync-videos —
+# commands is a symlink, settings.local.json a real copy since symlinked settings
+# files aren't loaded). CLAUDE.shared.md / CLAUDE.private.md are COMMITTED in-tree
+# symlinks (→ bpkfigures/ + dotclaude/), imported by CLAUDE.md — NOT gitignored.
 .claude/commands
 .claude/settings.local.json
 
