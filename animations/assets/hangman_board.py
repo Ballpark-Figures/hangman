@@ -54,3 +54,51 @@ def miss_tag(letters, *, font_size=15):
     """A small red 'miss: …' caption listing letters ruled out on this edge."""
     return crisp_text("miss: " + ", ".join(l.upper() for l in letters),
                       font_size=font_size, color=MISS_COLOR)
+
+
+# ── the (optional) hangman gallows drawing ────────────────────────────────────
+DRAW_COLOR = ACCENT_FILL
+
+# body parts, in the order they are drawn (one per miss, after the gallows)
+HANGMAN_PARTS = ("head", "torso", "arm1", "arm2", "leg1", "leg2")
+
+
+def hangman_drawing(misses=0, *, color=DRAW_COLOR, stroke_width=5.0):
+    """The gallows, plus one body part per miss, capped at 6.
+
+    Drawing order (the gallows is always present, at 0 misses):
+        head → torso → arm1 → arm2 → leg1 → leg2
+    so `misses` parts hang on the gallows (min(misses, 6)).
+
+    Returns a VGroup carrying two handles for incremental animation:
+        .gallows          the gallows VGroup (base/post/beam/rope)
+        .parts            the 6 body-part mobjects, IN ORDER, all pre-built and
+                          positioned (whether or not this call shows them)
+    Only the gallows + the first `misses` parts are added to the returned group.
+    To reveal the next miss in a scene:  p = draw.parts[k]; draw.add(p);
+    self.play(Create(p)).
+    """
+    def line(a, b):
+        return Line(a, b, color=color, stroke_width=stroke_width)
+
+    # gallows (rope end at x=0.6, where the figure hangs)
+    base = line([-1.3, -2.2, 0], [1.3, -2.2, 0])
+    post = line([-1.0, -2.2, 0], [-1.0, 2.0, 0])
+    beam = line([-1.0, 2.0, 0], [0.6, 2.0, 0])
+    rope = line([0.6, 2.0, 0], [0.6, 1.55, 0])
+    gallows = VGroup(base, post, beam, rope)
+
+    # the hanging figure (head top meets the rope end at y=1.55)
+    head = Circle(radius=0.33, color=color, stroke_width=stroke_width,
+                  fill_opacity=0).move_to([0.6, 1.22, 0])
+    torso = line([0.6, 0.89, 0], [0.6, -0.35, 0])
+    arm1 = line([0.6, 0.62, 0], [0.12, 0.18, 0])
+    arm2 = line([0.6, 0.62, 0], [1.08, 0.18, 0])
+    leg1 = line([0.6, -0.35, 0], [0.18, -1.05, 0])
+    leg2 = line([0.6, -0.35, 0], [1.02, -1.05, 0])
+
+    grp = VGroup(gallows)
+    grp.gallows = gallows
+    grp.parts = [head, torso, arm1, arm2, leg1, leg2]
+    grp.add(*grp.parts[:min(misses, 6)])
+    return grp
