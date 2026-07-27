@@ -137,6 +137,38 @@ def _coerce_lb(lb_cap, existing=None):
     return lru
 
 
+def _converged_csv_results(path: Path):
+    """If a deepen CSV already proves convergence (any row with ``converged==1``),
+    return its ``[(cap, capped_avg), ...]``; else ``None``. A converged result is
+    the true uncapped optimum, so it's a completion marker just like a finished
+    checkpoint -- a rerun can treat it as done and skip recomputation. Parsed by
+    hand (no csv import) and defensively: a malformed/short file returns None."""
+    try:
+        lines = path.read_text().splitlines()
+    except OSError:
+        return None
+    if len(lines) < 2:
+        return None
+    header = lines[0].split(",")
+    try:
+        capi, avgi, convi = (header.index("cap"), header.index("capped_avg"),
+                             header.index("converged"))
+    except ValueError:
+        return None
+    rows, converged = [], False
+    for ln in lines[1:]:
+        parts = ln.split(",")
+        if len(parts) <= convi:
+            continue
+        try:
+            rows.append((int(parts[capi]), float(parts[avgi])))
+        except ValueError:
+            continue
+        if parts[convi].strip() == "1":
+            converged = True
+    return rows if (converged and rows) else None
+
+
 # Calibrated real RSS cost of one memo entry: this fixed overhead (Python bytes
 # key object + value tuple + dict slot + correlated lb growth) PLUS the key's
 # length. Measured ~520 B/entry marginal on len3 (key averages ~160 B), i.e.
@@ -629,6 +661,21 @@ class OptimalSolver:
         g = self.game
         greedy_avg = g.average_misses(self.freq)
         greedy_max = int(g.per_word_misses(self.freq).max())
+
+        # A converged CSV is itself a completion marker: a prior run already proved
+        # the true uncapped optimum for this (length, weighting), so no cap -- however
+        # large -- can change it. Treat it like a finished checkpoint and skip, unless
+        # resume is off (--fresh). Checked before the log file is (re)opened below so
+        # a converged result is never truncated by a rerun.
+        if resume and log_path is not None:
+            done = _converged_csv_results(Path(log_path))
+            if done is not None:
+                cap, avg = done[-1]
+                if verbose:
+                    print(f"length {g.length}: {Path(log_path).name} already converged "
+                          f"(cap {cap}, optimal avg {avg:.4f}) -- nothing to do "
+                          f"(pass --fresh to recompute)", flush=True)
+                return avg, None, done
 
         # Resume from a matching checkpoint if one exists, else start clean. The
         # memo's exact V(S, r) values stay valid across caps, so we pick up at the
