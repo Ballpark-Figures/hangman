@@ -85,6 +85,13 @@ class StrategyView:
 
     # -- evaluation (parity surface) ----------------------------------------
     def per_word_misses(self) -> np.ndarray: ...       # nan == unresolved
+
+    def per_word_status(self) -> np.ndarray:
+        """Per-word status aligned to words: 0 resolved, 1 capped (optimal),
+        2 lost (winprob), 3 greedy-finished (capped branch completed greedily).
+        The base view has no unresolved/greedy states, so all zeros."""
+        return np.zeros(self.g.N, dtype=np.int8)
+
     def trace(self, word: str) -> list[tuple[str, bool]]: ...
     def state(self, board: str, missed="") -> dict: ...
     def states_at_depth(self, k: int) -> list[dict]: ...
@@ -175,11 +182,18 @@ class TreeStrategyView(StrategyView):
     """
 
     def __init__(self, game, freq, weighting, kind, label, tree: dict,
-                 meta: dict | None = None):
+                 meta: dict | None = None, *, greedy_finish: bool = False):
         super().__init__(game, freq, weighting, kind, label)
         self.tree = tree
         self.meta = meta or {}
         self._pw = None            # cached (misses, status)
+        self._f = game._coerce_freq(freq)             # greedy-below uses this weighting
+        #: words whose (optimal) branch was truncated and completed with greedy
+        self._greedy_mask = np.zeros(game.N, dtype=bool)
+        if greedy_finish and kind == "optimal":
+            # Optimal above the cap, greedy below: rewrite every capped leaf into a
+            # real greedy subtree so every replay surface treats it like any branch.
+            self.tree = self._fill_capped(self.tree, 0, np.arange(game.N))
 
     # -- tree helpers -------------------------------------------------------
     @staticmethod
@@ -202,6 +216,42 @@ class TreeStrategyView(StrategyView):
 
     def _child(self, node: dict, gi: int, pat: int) -> dict:
         return node["branches"][self._branch_key(gi, int(pat))]
+
+    # -- greedy completion of capped branches -------------------------------
+    def _greedy_subtree(self, S: np.ndarray, guessed_bits: int) -> dict:
+        """A greedy decision subtree (SAME node schema as the solver tree) that
+        resolves candidate set ``S`` from state ``guessed_bits``, so every replay
+        walk treats it exactly like an optimal branch. Grows from the TRUE guessed
+        letters (not a fresh restart), which yields the same miss count as the
+        solver's ``_greedy_ub`` while never re-guessing an already-revealed letter.
+        """
+        n = int(S.shape[0])
+        if n <= 1:
+            return {"word": self.g.words[int(S[0])]} if n == 1 else {}
+        c = self.g._pick(S, guessed_bits, self._f)        # same rule as greedy _solve
+        pats = self.g.masks[S, c]
+        nxt = guessed_bits | (1 << c)
+        branches = {self._branch_key(c, int(pat)): self._greedy_subtree(S[pats == pat], nxt)
+                    for pat in np.unique(pats)}
+        return {"guess": ALPHABET[c], "n": n, "branches": branches}
+
+    def _fill_capped(self, node: dict, guessed_bits: int, S: np.ndarray) -> dict:
+        """Replace every capped leaf under ``node`` with a greedy subtree grown
+        from that node's candidate set + already-guessed letters. Records the
+        completed words in ``self._greedy_mask``. Mutates and returns ``node``."""
+        if "capped" in node:
+            self._greedy_mask[S] = True
+            return self._greedy_subtree(S, guessed_bits)
+        if self._is_leaf(node):                           # {"word"} or {} -- nothing to do
+            return node
+        gi = ord(node["guess"]) - 97
+        pats = self.g.masks[S, gi]
+        for pat in np.unique(pats):
+            grp = S[pats == pat]
+            key = self._branch_key(gi, int(pat))
+            node["branches"][key] = self._fill_capped(node["branches"][key],
+                                                      guessed_bits | (1 << gi), grp)
+        return node
 
     # -- per-word misses (single DFS, assigns every word to its leaf) --------
     def _compute_per_word(self):
@@ -226,6 +276,7 @@ class TreeStrategyView(StrategyView):
                 rec(self._child(node, gi, pat), grp, ngb, m + int(pat == 0))
 
         rec(self.tree, np.arange(N), 0, 0)
+        status[self._greedy_mask] = 3          # capped branch, completed greedily
         self._pw = (misses, status)
         return self._pw
 
@@ -248,7 +299,7 @@ class TreeStrategyView(StrategyView):
             return self.meta.get("p_win")
         misses, status = self._per_word()
         f = self.g._coerce_freq(self.freq)
-        ok = status == 0
+        ok = (status == 0) | (status == 3)     # optimal + greedy-completed (upper bound)
         if not ok.any():
             return None
         return float((f[ok] * misses[ok]).sum() / f[ok].sum())
@@ -268,7 +319,8 @@ class TreeStrategyView(StrategyView):
                        lost=int((status == 2).sum()))
         else:
             out.update(avg_misses=self.headline_value(),
-                       capped=int((status == 1).sum()))
+                       capped=int((status == 1).sum()),
+                       greedy_finished=int((status == 3).sum()))
         return out
 
     # -- trace one word -----------------------------------------------------
@@ -410,7 +462,7 @@ def _optimal_cap_file(weighting: str, length: int):
     return caps[cap], cap, False
 
 
-def _load_optimal(game, freq, weighting, length, min_zipf):
+def _load_optimal(game, freq, weighting, length, min_zipf, *, greedy_finish=True):
     found = _optimal_cap_file(weighting, length)
     if found is None:
         note = (f"no committed optimal solve for length {length}, weighting "
@@ -420,13 +472,28 @@ def _load_optimal(game, freq, weighting, length, min_zipf):
                                f"optimal ({weighting})", note)
     path, cap, converged = found
     tree = json.loads(path.read_text())
-    label = f"optimal ({weighting})" if converged else f"optimal ({weighting}, cap {cap}*)"
+    fill = greedy_finish and not converged            # converged trees have no capped leaves
+    if converged:
+        label = f"optimal ({weighting})"
+    elif fill:
+        label = f"optimal ({weighting}, cap {cap}*+greedy)"
+    else:
+        label = f"optimal ({weighting}, cap {cap}*)"
     view = TreeStrategyView(game, freq, weighting, "optimal", label, tree,
-                            meta={"cap": cap, "converged": converged})
-    if not converged:
+                            meta={"cap": cap, "converged": converged, "greedy_finish": fill},
+                            greedy_finish=fill)
+    if not converged and fill:
+        view.note = (f"capped approximation, greedy-completed: deepest committed cap is "
+                     f"{cap}; branches truncated at the cap are finished with greedy (optimal "
+                     f"above the cap, greedy below), so every word resolves. The headline avg "
+                     f"is the greedy-completed UPPER bound on the true optimum (optimal.py's "
+                     f"`upper` column); the true optimum is <= it. Set FILL_CAPPED=False for "
+                     f"the raw capped view.")
+    elif not converged:
         view.note = (f"capped approximation: deepest committed cap is {cap} and the "
                      f"solve has not converged, so some words stay unresolved "
-                     f"(shown as 'capped'). The true optimum is <= these misses.")
+                     f"(shown as 'capped'). The true optimum is <= these misses. "
+                     f"Set FILL_CAPPED=True to greedy-complete them instead.")
     return view
 
 
@@ -475,14 +542,17 @@ STRATEGIES = ("greedy", "greedy_best", "optimal", "winprob")
 
 
 def make_strategy(name: str, length: int, *, weighting: str = "uniform",
-                  budget: int | None = None,
+                  budget: int | None = None, fill_capped: bool = True,
                   min_zipf: float = wordlist.DEFAULT_ZIPF,
                   game: strategy.GreedyGame | None = None) -> StrategyView:
     """Build the notebook's uniform view for ``name`` at ``length``/``weighting``.
 
     ``name`` in :data:`STRATEGIES`. ``budget`` picks the winprob miss budget k
-    (default: the most permissive committed one). Returns an ``available == False``
-    view (never raises) when there is no committed solve for the combination.
+    (default: the most permissive committed one). ``fill_capped`` (optimal only,
+    unconverged solves): when True, branches truncated at the miss cap are finished
+    with greedy so every word resolves and the headline is the greedy-completed
+    upper bound; when False, capped words stay unresolved. Returns an
+    ``available == False`` view (never raises) when there is no committed solve.
     """
     if name not in STRATEGIES:
         raise ValueError(f"unknown strategy {name!r}; choose one of {STRATEGIES}")
@@ -495,5 +565,6 @@ def make_strategy(name: str, length: int, *, weighting: str = "uniform",
             return UnavailableView(g, None, weighting, name, name, ferr)
         return GreedyStrategyView(g, freq, weighting, name)
     if name == "optimal":
-        return _load_optimal(g, freq, weighting, length, min_zipf)
+        return _load_optimal(g, freq, weighting, length, min_zipf,
+                             greedy_finish=fill_capped)
     return _load_winprob(g, freq, weighting, length, budget, min_zipf)
