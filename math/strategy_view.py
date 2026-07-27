@@ -83,6 +83,13 @@ class StrategyView:
     def headline_label(self) -> str: ...
     def summary(self) -> dict: ...
 
+    # -- weighting ----------------------------------------------------------
+    def word_freq(self) -> np.ndarray:
+        """Per-word frequency weight under this view's weighting (aligned to
+        ``g.words``; all-ones for uniform). This is the SAME array the strategy /
+        headline use, so a node's ``fmass`` sums a subset of it."""
+        return self.g._coerce_freq(self.freq)
+
     # -- evaluation (parity surface) ----------------------------------------
     def per_word_misses(self) -> np.ndarray: ...       # nan == unresolved
 
@@ -422,6 +429,7 @@ class TreeStrategyView(StrategyView):
             board, missed = g._node_board(S, gb)
             rows.append({
                 "board": board, "missed": missed, "n": int(S.shape[0]),
+                "fmass": float(self._f[S].sum()),
                 "determined": determined,
                 "guess": None if determined else node["guess"],
                 "sample": [g.words[i] for i in S[:6]]})

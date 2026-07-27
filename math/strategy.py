@@ -475,7 +475,8 @@ class GreedyGame:
         earlier are simply not at depth ``k``. With ``opener`` (a letter or 0..25
         index) the root guess is forced to it and greedy resumes after (the "best
         first letter" variant's tree). Each node:
-        dict(board, missed, n, determined, guess, sample)."""
+        dict(board, missed, n, fmass, determined, guess, sample), where ``fmass``
+        is the summed ``freq`` weight of the node's words (== ``n`` under uniform)."""
         f = self._coerce_freq(freq)
         oc = self._opener_index(opener)
         frontier = [(np.arange(self.N), 0)]           # (S, guessed_bits)
@@ -498,6 +499,7 @@ class GreedyGame:
             board, missed = self._node_board(S, gb)
             rows.append({
                 "board": board, "missed": missed, "n": int(S.shape[0]),
+                "fmass": float(f[S].sum()),
                 "determined": determined,
                 "guess": None if determined else ALPHABET[self._pick_o(S, gb, f, oc)],
                 "sample": [self.words[i] for i in S[:6]]})
