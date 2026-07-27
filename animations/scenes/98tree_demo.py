@@ -1,7 +1,10 @@
 """PROTOTYPE — a way to visualize the optimal strategy tree (not a content scene).
 
-Concept: a left-to-right decision tree.
+Concept: a top-to-bottom decision tree (depth grows downward).
   • NODE  = the guess at that point (a letter in a circle; words-remaining below).
+            The circle + count appear when the node is created, but the LETTER
+            only fades in when the node draws its FIRST outgoing edge — the letter
+            marks the moment the node "acts" (commits to a guess and branches).
   • EDGE  = a RESULT of that guess = the partially-blanked word it produces,
             plus any newly-missed letter (the all-blank branch is a miss).
 Missed letters accumulate down a path, and the blanked word carries revealed
@@ -11,13 +14,12 @@ Everything shown is SOURCED from the solver tree JSON (guess letters, word count
 revealed patterns, leaf words). Nothing is computed here.
 
 BEAT MAP
-  fan_out — root guesses 'a' (n=640); its 5 result-branches fan in one at a time,
-            each edge drawing its blanked word (+ the miss pile).
-  descend — dim the other branches, drop INTO the "_a_" branch (guess 't'), and
-            fan out ITS results, showing the board accumulate (_a_ -> ta_/_at/tat).
-
-Reusable pieces to promote to assets once the look is settled: the blanked-word
-board (`_board`) and the miss tag (`_miss_tag`) — every gameplay scene wants them.
+  fan_out — root guesses 'a' (n=640); its 5 result-branches fan DOWN one at a
+            time. Root's letter appears with the first edge; each edge draws its
+            blanked word (+ the miss pile). Children arrive as blank circles.
+  descend — dim the other branches, drop INTO the "_a_" branch (its letter 't'
+            appears as it branches), and fan out ITS results below, showing the
+            board accumulate (_a_ -> ta_/_at/tat).
 
 Render:  render 98a --fast   /   render 98b --fast
 """
@@ -36,29 +38,29 @@ from assets.hangman_board import (blanked_board, solved_word, miss_tag,
 TREE_PATH = (Path(__file__).resolve().parents[2]
              / "math/data/shared/optimal/len03_uniform_cap11.json")
 
-# ── layout (frame is 16×9 → x-radius 8.0, y-radius 4.5) ───────────────────────
-ROOT_X   = -6.4
-BOARD1_X = -3.4          # blanked-word column for level 1
-NODE1_X  = -1.4          # guess-node column for level 1
-BOARD2_X =  2.0          # …and for level 2 (after descending)
-NODE2_X  =  4.3
-L1_Y = [3.3, 1.65, 0.0, -1.65, -3.3]   # 5 root branches, top→bottom
-L2_Y = [2.4, 0.8, -0.8, -2.4]          # 4 branches of the "_a_" node
+# ── layout (frame is 16×9 → x-radius 8.0, y-radius 4.5); depth = y (downward) ──
+ROOT_Y = 3.4
+L1_Y   = 0.6                          # row of the 5 root branches
+L2_Y   = -2.5                         # row of the "_a_" node's branches
+L1_X   = [-6.0, -3.0, 0.0, 3.0, 6.0]  # 5 root branches, left→right
+L2_X   = [-4.5, -1.5, 1.5, 4.5]       # 4 branches of the "_a_" node
+BOARD_UP = 1.05                       # board offset from a node, up its own edge
 
 NODE_R = 0.42
 DESCEND_KEY = "_a_"      # which root branch subscene b drops into
 
 
-# ── mobject builders (candidates for assets/) ─────────────────────────────────
-def _guess_node(letter, n):
-    """A decision node: the guessed letter in a filled circle, count below."""
+# ── mobject builders ──────────────────────────────────────────────────────────
+def _guess_node(letter, n, center):
+    """A decision node. Returns (body, letter): `body` = circle + count (shown on
+    creation); `letter` = the guess text (revealed later, on the first edge)."""
     circ = Circle(radius=NODE_R, color=ACCENT_FILL,
-                  fill_opacity=1.0, stroke_width=2.5)
-    lab = crisp_text(letter.upper(), font_size=30, color=WHITE, weight=BOLD)
-    lab.move_to(circ)
+                  fill_opacity=1.0, stroke_width=2.5).move_to(center)
     cnt = crisp_text(str(n), font_size=15, color=GREY_D)   # words still possible
     cnt.next_to(circ, DOWN, buff=0.08)
-    return VGroup(circ, lab, cnt)
+    lab = crisp_text(letter.upper(), font_size=30, color=WHITE,
+                     weight=BOLD).move_to(circ)
+    return VGroup(circ, cnt), lab
 
 
 def _connect(a, b, r_a, r_b):
@@ -73,54 +75,61 @@ class TreeDemo(HangmanScene):
     def setup_scene(self):
         self.tree = json.loads(TREE_PATH.read_text())
 
-    # ── build helpers ─────────────────────────────────────────────────────────
-    def _child_mob(self, node):
-        """A guess node, or a leaf word board, from a tree child dict."""
-        if "word" in node:
-            return solved_word(node["word"])
-        return _guess_node(node["guess"], node["n"])
-
-    def _fan(self, parent_node, parent_center, carried_board,
-             ys, board_x, node_x):
-        """Build (edge, board, miss_tag, node) for each branch of `parent_node`,
-        laid out at the given column x's and row y's. Returns a list of dicts."""
+    # ── build a fan of branches below a parent ────────────────────────────────
+    def _fan(self, parent_node, parent_center, carried_board, xs, node_y):
+        """Build each branch of `parent_node` laid out along row `node_y` at the
+        given x's. Each row: edge, board (on the edge), body (circle+count),
+        letter (revealed on this child's own first edge — None for a leaf), tag.
+        """
         rows = []
-        for key, (ys_i,) in zip(parent_node["branches"], [(y,) for y in ys]):
+        for key, x in zip(parent_node["branches"], xs):
             child = parent_node["branches"][key]
             shown = merge_pattern(carried_board, key)   # blanked word on this edge
             is_miss = key == "_" * len(carried_board)
+            center = np.array([x, node_y, 0.0])
 
-            board = blanked_board(shown).move_to([board_x, ys_i, 0])
-            node = self._child_mob(child).move_to([node_x, ys_i, 0])
-            r_child = NODE_R if "word" not in child else 0.55
-            edge = _connect(np.array(parent_center),
-                            node[0].get_center(), NODE_R, r_child)
-            tag = None
-            if is_miss:
-                tag = miss_tag([parent_node["guess"]]).next_to(
-                    board, DOWN, buff=0.07)
-            rows.append({"key": key, "edge": edge, "board": board,
-                         "node": node, "tag": tag, "board_after": shown})
+            if "word" in child:                          # a solved leaf word
+                body, letter, r_child = solved_word(child["word"]).move_to(
+                    center), None, 0.55
+                circ_center = center
+            else:
+                body, letter = _guess_node(child["guess"], child["n"], center)
+                circ_center, r_child = body[0].get_center(), NODE_R
+
+            edge = _connect(np.array(parent_center), circ_center, NODE_R, r_child)
+            up = normalize(np.array(parent_center) - circ_center)
+            board = blanked_board(shown).move_to(circ_center + up * BOARD_UP)
+            tag = (miss_tag([parent_node["guess"]]).next_to(board, UP, buff=0.06)
+                   if is_miss else None)
+            rows.append({"key": key, "edge": edge, "board": board, "body": body,
+                         "letter": letter, "tag": tag, "board_after": shown})
         return rows
 
-    # a : root guesses 'a'; its result-branches fan in one at a time
+    def _grow(self, br, parent_letter, run_time):
+        """Draw one branch: its edge + board (and, on the parent's FIRST edge,
+        the parent's letter), then the child body and any miss tag."""
+        anims = [Create(br["edge"]), FadeIn(br["board"], shift=DOWN * 0.15)]
+        if parent_letter is not None:
+            anims.append(FadeIn(parent_letter))     # letter appears with 1st edge
+        self.play(*anims, run_time=run_time)
+        extra = [FadeIn(br["body"], scale=0.6)]
+        if br["tag"]:
+            extra.append(FadeIn(br["tag"]))
+        self.play(*extra, run_time=run_time)
+
+    # a : root guesses 'a'; its result-branches fan DOWN one at a time
     @subscene
     def fan_out(self):
-        self.root_g = _guess_node(self.tree["guess"], self.tree["n"])
-        self.root_g.move_to([ROOT_X, 0, 0])
         wlen = len(next(iter(self.tree["branches"])))   # word length (=3)
-        self.l1 = self._fan(self.tree, self.root_g[0].get_center(),
-                             "_" * wlen, L1_Y, BOARD1_X, NODE1_X)
+        self.root_body, self.root_letter = _guess_node(
+            self.tree["guess"], self.tree["n"], [0, ROOT_Y, 0])
+        self.l1 = self._fan(self.tree, self.root_body[0].get_center(),
+                             "_" * wlen, L1_X, L1_Y)
 
-        self.play(FadeIn(self.root_g, scale=0.6), run_time=0.7)
-        step = 0.5   # lockstep per-branch reveal (a montage, not distinct beats)
-        for br in self.l1:
-            self.play(Create(br["edge"]),
-                      FadeIn(br["board"], shift=RIGHT * 0.2), run_time=step)
-            extra = [FadeIn(br["node"], scale=0.6)]
-            if br["tag"]:
-                extra.append(FadeIn(br["tag"]))
-            self.play(*extra, run_time=step)
+        self.play(FadeIn(self.root_body, scale=0.6), run_time=0.7)
+        for i, br in enumerate(self.l1):
+            # reveal the root's letter as its FIRST outgoing edge is drawn
+            self._grow(br, self.root_letter if i == 0 else None, run_time=0.5)
 
     # b : dim the other branches, descend into "_a_", fan out its results
     @subscene
@@ -128,21 +137,18 @@ class TreeDemo(HangmanScene):
         idx = list(self.tree["branches"]).index(DESCEND_KEY)
         chosen = self.l1[idx]
         node2_parent = self.tree["branches"][DESCEND_KEY]
-        self.l2 = self._fan(node2_parent, chosen["node"][0].get_center(),
-                            chosen["board_after"], L2_Y, BOARD2_X, NODE2_X)
+        self.l2 = self._fan(node2_parent, chosen["body"][0].get_center(),
+                            chosen["board_after"], L2_X, L2_Y)
 
-        # fade everything except the chosen root→_a_ branch back
-        keep = {id(m) for br in (chosen,) for m in
-                (br["edge"], br["board"], *br["node"])}
-        keep |= {id(m) for m in self.root_g}
+        # dim everything except the chosen root→_a_ branch (+ the root)
+        keep = set()
+        for m in (self.root_body, self.root_letter,
+                  chosen["edge"], chosen["board"], chosen["body"]):
+            keep |= {id(x) for x in m.get_family()}
         dim = VGroup(*[m for om in self.mobjects for m in om.get_family()
                        if id(m) not in keep and isinstance(m, VMobject)])
         self.play(dim.animate.set_opacity(0.12), run_time=0.6)
 
-        for br in self.l2:
-            self.play(Create(br["edge"]),
-                      FadeIn(br["board"], shift=RIGHT * 0.2), run_time=0.45)
-            extra = [FadeIn(br["node"], scale=0.6)]
-            if br["tag"]:
-                extra.append(FadeIn(br["tag"]))
-            self.play(*extra, run_time=0.4)
+        for j, br in enumerate(self.l2):
+            # reveal the "_a_" node's letter 't' as it draws its first edge
+            self._grow(br, chosen["letter"] if j == 0 else None, run_time=0.45)
