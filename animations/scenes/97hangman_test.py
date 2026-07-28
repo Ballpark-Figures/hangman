@@ -33,6 +33,8 @@ class HangmanTest(HangmanScene):
     # b : the gallows filling up, misses 0 → 6 side by side (static check)
     @subscene
     def grid(self):
+        for m in list(self.mobjects):    # drop the figure carried from subscene a
+            self.remove(m)
         xs = [-6.6, -4.4, -2.2, 0.0, 2.2, 4.4, 6.6]
         for k, x in enumerate(xs):
             fig = hangman_drawing(k).scale(0.5).move_to([x, 0.5, 0])
