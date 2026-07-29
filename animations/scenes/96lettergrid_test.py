@@ -24,17 +24,18 @@ from assets.letter_ngrams import letter_ngrams
 LETTERS = string.ascii_uppercase
 
 HEAT_CENTER  = np.array([0.2, -0.4, 0.0])      # heatmap stack center (middle)
-LOC_TITLE    = np.array([0.2, 3.15, 0.0])      # "Location Frequencies" (2 lines)
-NG_TITLE     = np.array([5.3, 3.2, 0.0])       # "Top ngrams" (two lines)
+LOC_TITLE    = np.array([0.2, 3.2, 0.0])       # "Location Frequencies" (2 lines)
+NG_TITLE     = np.array([5.3, 3.2, 0.0])       # "Top N-grams" (2 lines, same y)
 NG_TOP       = np.array([5.3, 1.9, 0.0])       # anchored-letter column, top row
 
 
 class LetterGridTest(HangmanScene):
 
     def _two_line(self, l1, l2, center):
-        a = crisp_text(l1, font_size=30, color=BLACK)
-        b = crisp_text(l2, font_size=30, color=BLACK).next_to(a, DOWN, buff=0.1)
-        return VGroup(a, b).move_to(center)
+        # crisp_paragraph spaces lines by font metrics (descender-independent), so
+        # both titles get identical leading regardless of which letters descend.
+        return crisp_paragraph(l1, l2, font_size=30, color=BLACK,
+                               alignment="center").move_to(center)
 
     def _show(self, idx):
         lc = LETTERS[idx].lower()
