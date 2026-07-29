@@ -57,7 +57,8 @@ BOARD_UP   = 1.15     # blanked board offset up the chosen edge from its child
 TRAIL_Y    = 3.95     # breadcrumb row of shrunk guess-chips
 TRAIL_X0   = -3.4     # first chip x (row grows rightward; 8 chips clear the board)
 TRAIL_DX   = 0.72
-RUN_BOARD_POS = np.array([4.6, 3.95, 0])   # running revealed board, top-right
+RUN_BOARD_X = 4.6     # running revealed board x (top-right); its y is set at
+                      # runtime to the gallows centre so the two line up vertically
 HANG_POS   = np.array([-6.2, 2.6, 0])      # hangman figure, top-left
 HANG_SCALE = 0.34
 
@@ -157,7 +158,8 @@ class TreeWalk(HangmanScene):
         if tag is not None:
             desc.append(FadeOut(tag))
         if s["board_after"] != s["board_before"]:    # a hit revealed new letters
-            new_run = blanked_board(s["board_after"]).move_to(RUN_BOARD_POS)
+            new_run = blanked_board(s["board_after"]).move_to(
+                [RUN_BOARD_X, self.run_y, 0])
             desc.append(ReplacementTransform(self.run_board, new_run))
         self.play(*desc, run_time=rt_descend)
 
@@ -173,7 +175,6 @@ class TreeWalk(HangmanScene):
             self.path[0]["guess"], self.path[0]["n"], [0.0, CUR_Y, 0.0])
         self.trail = VGroup()
         self.chip_i = 0
-        self.run_board = blanked_board("_" * len(WORD)).move_to(RUN_BOARD_POS)
         # hangman: build full, scale/position, then detach parts to reveal 1/miss
         full = hangman_drawing(6).scale(HANG_SCALE).move_to(HANG_POS)
         self.hang_parts = list(full.parts)
@@ -181,6 +182,10 @@ class TreeWalk(HangmanScene):
             full.remove(p)
         self.hang = full                   # gallows only, on screen from the start
         self.miss_n = 0
+        # running board sits at the gallows' vertical centre (top-right)
+        self.run_y = self.hang.get_center()[1]
+        self.run_board = blanked_board("_" * len(WORD)).move_to(
+            [RUN_BOARD_X, self.run_y, 0])
         self.missed = []                   # wrong-guess letters, red, below gallows
         self.missed_row = VGroup()         # grown in _expand as misses land
 
@@ -248,8 +253,10 @@ class TreeWalk(HangmanScene):
         # the last letter fills in → the word is COMPLETE; it turns gold
         crumb = chip(s["guess"], s["hit"]).move_to(
             [TRAIL_X0 + self.chip_i * TRAIL_DX, TRAIL_Y, 0])
-        final = solved_word(s["leaf_word"], font_size=44).move_to([0.0, -0.2, 0.0])
-        new_run = blanked_board(s["board_after"]).move_to(RUN_BOARD_POS)  # +the 'r'
+        final = solved_word(s["leaf_word"], font_size=44,
+                            color=ACCENT_FILL).move_to([0.0, -0.2, 0.0])  # blue
+        new_run = blanked_board(s["board_after"]).move_to(
+            [RUN_BOARD_X, self.run_y, 0])  # +the 'r'
         self.play(
             ReplacementTransform(VGroup(self.cur_body[0], letter), crumb),
             FadeOut(self.cur_body[1]),

@@ -37,14 +37,14 @@ def connect(a, b, r_a, r_b, **kw):
     ``a``, ``r_b`` at ``b``). Override ``stroke_width`` to emphasise an edge."""
     d = normalize(b - a)
     kw.setdefault("stroke_width", 3.0)
-    kw.setdefault("color", GREY_BROWN)
+    kw.setdefault("color", BLACK)
     return Line(a + d * r_a, b - d * r_b, **kw)
 
 
 def chip(letter, hit, *, r=CHIP_R):
     """A shrunk breadcrumb node: small circle + letter, blue on a hit / red on a
     miss — the trail of guesses already made."""
-    col = ACCENT_FILL if hit else SCORE_RED
+    col = ACCENT_FILL if hit else CRIMSON
     circ = Circle(radius=r, color=col, fill_opacity=1.0, stroke_width=1.5)
     lab = crisp_text(letter.upper(), font_size=16, color=WHITE, weight=BOLD)
     lab.move_to(circ)
@@ -64,5 +64,5 @@ def faint_fan(center, nbranches, *, end_y, half_w, r=NODE_R,
         end = np.array([x, end_y, 0.0])
         d = normalize(end - center)
         fan.add(Line(center + d * r, end, stroke_width=stroke_width,
-                     color=GREY_BROWN, stroke_opacity=opacity))
+                     color=BLACK, stroke_opacity=opacity))
     return fan

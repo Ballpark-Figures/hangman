@@ -4,8 +4,9 @@ strategy-tree viz. Promoted from scenes/98tree_demo.py.
 A "pattern" is a fixed-length string of revealed letters and underscores:
   "_a_"  middle letter known      "tat"  fully solved
 Underscores render as rules; a revealed letter sits above its rule. Colours:
-revealed = ACCENT_FILL, a solved word = ACCENT_GOLD, a miss = SCORE_RED (the
-semantic loss red from config.py — a true red, not the orange-leaning ACCENT_RED).
+revealed = ACCENT_FILL, a solved word = ACCENT_GOLD, a miss = CRIMSON (the shared
+scorebox crimson from style.py — a true red tuned for the cyan BG, not the
+orange-leaning ACCENT_RED).
 
 `merge_pattern` overlays a newly-revealed guess onto the pattern known so far
 (a guess only fills its own positions, never overwriting an ancestor's letter),
@@ -19,7 +20,7 @@ from config import *
 
 REVEAL_COLOR = ACCENT_FILL
 SOLVED_COLOR = ACCENT_GOLD
-MISS_COLOR   = SCORE_RED
+MISS_COLOR   = CRIMSON
 RULE_COLOR   = GREY_D
 
 
