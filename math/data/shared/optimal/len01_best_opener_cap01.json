@@ -1,1 +1,1 @@
-{"guess": "a", "n": 2, "branches": {"_": {"word": "i"}, "a": {"word": "a"}}}
+{"guess": "a", "n": 2, "branches": {"_": {"guess": "i", "n": 1, "branches": {"i": {"word": "i"}}}, "a": {"word": "a"}}}
