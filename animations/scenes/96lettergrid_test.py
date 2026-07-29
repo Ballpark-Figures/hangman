@@ -25,33 +25,42 @@ LETTERS = string.ascii_uppercase
 
 HEAT_CENTER  = np.array([0.2, -0.4, 0.0])      # heatmap stack center (middle)
 LOC_TITLE    = np.array([0.2, 3.15, 0.0])      # "Location Frequencies" (2 lines)
-NG_TITLE     = np.array([5.3, 3.5, 0.0])       # "Top ngrams"
-NG_TOP       = np.array([5.3, 2.55, 0.0])      # anchored-letter column, top row
+NG_TITLE     = np.array([5.3, 3.2, 0.0])       # "Top ngrams" (two lines)
+NG_TOP       = np.array([5.3, 1.9, 0.0])       # anchored-letter column, top row
 
 
 class LetterGridTest(HangmanScene):
 
-    def _add_titles(self):
-        a = crisp_text("Location", font_size=30, color=BLACK)
-        b = crisp_text("Frequencies", font_size=30, color=BLACK).next_to(a, DOWN, buff=0.1)
-        self.loc_title = VGroup(a, b).move_to(LOC_TITLE)
-        self.ng_title = crisp_text("Top ngrams", font_size=30, color=BLACK).move_to(NG_TITLE)
-        self.play(FadeIn(self.loc_title), FadeIn(self.ng_title), run_time=0.5)
+    def _two_line(self, l1, l2, center):
+        a = crisp_text(l1, font_size=30, color=BLACK)
+        b = crisp_text(l2, font_size=30, color=BLACK).next_to(a, DOWN, buff=0.1)
+        return VGroup(a, b).move_to(center)
 
     def _show(self, idx):
-        letter = LETTERS[idx]
+        lc = LETTERS[idx].lower()
+        heat = letter_heatmaps(lc, center=HEAT_CENTER)
+        ngrams = letter_ngrams(lc, top_center=NG_TOP)
         if idx == 0:
+            # enter + ENLARGE first; the titles + first panels appear only after,
+            # each title alongside its own content.
             self.grid = letter_grid()
             self.grid.to_edge(LEFT, buff=0.8).set_y(0)
             self.grid.slide_in(self, run_time=1.0)
-            self._add_titles()
-            self.grid.choose(self, letter, run_time=1.1)
+            self.grid.choose(self, LETTERS[idx], run_time=1.1)
+            self.loc_title = self._two_line("Location", "Frequencies", LOC_TITLE)
+            self.ng_title = self._two_line("Top", "ngrams", NG_TITLE)
+            self.play(FadeIn(self.loc_title), FadeIn(heat), run_time=0.6)
+            self.play(FadeIn(self.ng_title), FadeIn(ngrams), run_time=0.5)
         else:
-            self.play(FadeOut(self.heat), FadeOut(self.ngrams), run_time=0.3)
-            self.grid.swap(self, letter, run_time=1.0)
-        self.heat = letter_heatmaps(letter.lower(), center=HEAT_CENTER)
-        self.ngrams = letter_ngrams(letter.lower(), top_center=NG_TOP)
-        self.play(FadeIn(self.heat), FadeIn(self.ngrams), run_time=0.5)
+            # switch letters: the grid swaps while the heatmaps TRANSITION in place
+            # to the new letter (same grid of cells, recoloured); ngrams cross-fade
+            # (their structure differs letter to letter). Titles persist.
+            ret, pick, _ = self.grid.swap(self, LETTERS[idx], play=False)
+            self.play(ret, pick, ReplacementTransform(self.heat, heat),
+                      FadeOut(self.ngrams), run_time=1.0)
+            self.play(FadeIn(ngrams), run_time=0.4)
+        self.heat = heat
+        self.ngrams = ngrams
 
     # one @subscene per letter, in order → render 96a..96z map to A..Z. (Explicit
     # methods, not a setattr loop, so the render tooling's AST scan finds them.)

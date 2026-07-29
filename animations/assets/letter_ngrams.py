@@ -1,5 +1,6 @@
-"""Letter-view top n-grams — the top-5 bigrams then top-5 trigrams containing a
-letter, each row laid out so the letter sits on a shared CENTER column.
+"""Letter-view top n-grams — the top-5 n-grams (bigrams + trigrams, ranked
+together) containing a letter, each row laid out so the letter sits on a shared
+CENTER column.
 
 For a row, the (first) occurrence of the letter is placed at the center x and the
 other characters step out left/right by a fixed `char_w` (monospace-style), so the
@@ -11,21 +12,16 @@ from config import *
 from assets import letter_ngram_data as lnd
 
 
-def letter_ngrams(letter, *, char_w=0.46, row_pitch=0.52, group_gap=0.34,
-                  font_size=32, top_center=ORIGIN,
-                  letter_color=ACCENT_FILL, other_color=BLACK):
-    """Build the bigram+trigram stack for `letter`. `top_center` is where the
-    anchored-letter column meets the TOP row (so a title can sit centered above
-    it). Returns a VGroup with `.rows` (one VGroup per n-gram, top→bottom)."""
-    data = lnd.get(letter)
+def letter_ngrams(letter, *, char_w=0.46, row_pitch=0.6, font_size=32,
+                  top_center=ORIGIN, letter_color=ACCENT_FILL, other_color=BLACK):
+    """Build the top-5 combined n-gram stack for `letter`. `top_center` is where
+    the anchored-letter column meets the TOP row (so a title can sit centered
+    above it). Returns a VGroup with `.rows` (one VGroup per n-gram, top→bottom)."""
     lc = letter.lower()
-
     content = VGroup()
     rows = VGroup()
     y = 0.0
-
-    def add_gram(gram):
-        nonlocal y
+    for gram, _n in lnd.get(letter):
         p = gram.index(lc)                       # anchor on the first occurrence
         row = VGroup()
         for i, ch in enumerate(gram):
@@ -36,12 +32,6 @@ def letter_ngrams(letter, *, char_w=0.46, row_pitch=0.52, group_gap=0.34,
         content.add(row)
         rows.add(row)
         y -= row_pitch
-
-    for gram, _n in data[2]:                     # top-5 bigrams
-        add_gram(gram)
-    y -= group_gap
-    for gram, _n in data[3]:                     # top-5 trigrams
-        add_gram(gram)
 
     content.shift(np.array(top_center, dtype=float))   # local (0,0) → top_center
     content.rows = rows

@@ -27,8 +27,8 @@ def build():
 
     letters = {}
     for ch in ALPHABET:
-        ng = letter_patterns.top_ngrams(ch, sizes=SIZES, top=TOP)
-        letters[ch] = {str(k): [[g, n] for g, n in ng[k]] for k in SIZES}
+        ng = letter_patterns.top_ngrams(ch, sizes=SIZES, top=TOP)   # [(gram, n), …]
+        letters[ch] = [[g, n] for g, n in ng]
     data = {"sizes": list(SIZES), "top": TOP, "min_zipf": wordlist.DEFAULT_ZIPF,
             "letters": letters}
     CACHE.write_text(json.dumps(data, indent=1))
@@ -40,17 +40,15 @@ def _load():
 
 
 def get(letter):
-    """{size: [(gram, n_words), …]} for `letter` — read from the committed cache."""
-    ent = _load()["letters"][letter.lower()]
-    return {k: [(g, n) for g, n in ent[str(k)]] for k in SIZES}
+    """[(gram, n_words), …] — the top-`TOP` combined n-grams for `letter`, read
+    from the committed cache (already ranked: count desc, shorter-first tiebreak)."""
+    return [(g, n) for g, n in _load()["letters"][letter.lower()]]
 
 
 if __name__ == "__main__":
     data = build()
     print(f"wrote {CACHE.name}: {len(data['letters'])} letters, sizes {data['sizes']}, "
-          f"top {data['top']}, min_zipf {data['min_zipf']}")
-    for ch in ("e", "r", "k"):
+          f"top {data['top']} combined, min_zipf {data['min_zipf']}")
+    for ch in ("e", "r", "k", "q"):
         ent = data["letters"][ch]
-        print(f"\n'{ch}':")
-        for k in SIZES:
-            print(f"  {k}-grams: " + ", ".join(f"{g}({n})" for g, n in ent[str(k)]))
+        print(f"  '{ch}': " + ", ".join(f"{g}({n})" for g, n in ent))
