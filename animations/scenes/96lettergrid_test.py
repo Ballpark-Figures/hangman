@@ -1,6 +1,11 @@
-"""SCRATCH — sample entrance for assets.letter_grid: slide in from the left.
+"""SCRATCH — sample animations for assets.letter_grid.
 
-Render:  render 96a --fast
+BEAT MAP
+  slide_in — the grid enters from off the left edge (asset .slide_in).
+  choose   — pick a letter: grid → top-left, chosen letter grows → bottom-left
+             (asset .choose).
+
+Render:  render 96a --fast   /   render 96b --fast
 """
 from pathlib import Path
 import sys
@@ -14,10 +19,14 @@ from assets.letter_grid import letter_grid
 
 class LetterGridTest(HangmanScene):
 
-    # a : the letter grid slides in from off the left edge to its resting spot
+    # a : the grid slides in from off the left edge (asset method)
     @subscene
     def slide_in(self):
         self.grid = letter_grid()
-        self.grid.to_edge(LEFT, buff=0.8).set_y(0)   # resting position (left side)
-        self.grid.shift(LEFT * 6)                     # start fully off the left edge
-        self.play(self.grid.animate.shift(RIGHT * 6), run_time=1.2)
+        self.grid.to_edge(LEFT, buff=0.8).set_y(0)   # home (left side, centered)
+        self.grid.slide_in(self, run_time=1.2)
+
+    # b : choose 'K' — grid to top-left, chosen letter grows to bottom-left
+    @subscene
+    def choose(self):
+        self.chosen = self.grid.choose(self, "K", run_time=1.3)
