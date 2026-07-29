@@ -44,7 +44,7 @@ def connect(a, b, r_a, r_b, **kw):
 def chip(letter, hit, *, r=CHIP_R):
     """A shrunk breadcrumb node: small circle + letter, blue on a hit / red on a
     miss — the trail of guesses already made."""
-    col = ACCENT_FILL if hit else ACCENT_RED
+    col = ACCENT_FILL if hit else SCORE_RED
     circ = Circle(radius=r, color=col, fill_opacity=1.0, stroke_width=1.5)
     lab = crisp_text(letter.upper(), font_size=16, color=WHITE, weight=BOLD)
     lab.move_to(circ)
