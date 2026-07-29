@@ -26,7 +26,7 @@ LETTERS = string.ascii_uppercase
 HEAT_CENTER  = np.array([0.2, -0.4, 0.0])      # heatmap stack center (middle)
 LOC_TITLE    = np.array([0.2, 3.2, 0.0])       # "Location Frequencies" (2 lines)
 NG_TITLE     = np.array([5.3, 3.2, 0.0])       # "Top N-grams" (2 lines, same y)
-NG_TOP       = np.array([5.3, 2.4, 0.0])       # anchored-letter column, top row
+NG_X         = 5.3                             # anchored-letter column x (right side)
 
 
 class LetterGridTest(HangmanScene):
@@ -54,7 +54,10 @@ class LetterGridTest(HangmanScene):
     def _show(self, idx):
         lc = LETTERS[idx].lower()
         heat = letter_heatmaps(lc, center=HEAT_CENTER)
-        ngrams = letter_ngrams(lc, top_center=NG_TOP)
+        # span the n-grams from the top of the "2" box to the bottom of the "10" box
+        top_y = heat.heatmaps[0].get_top()[1]
+        bottom_y = heat.heatmaps[-1].get_bottom()[1]
+        ngrams = letter_ngrams(lc, center_x=NG_X, top_y=top_y, bottom_y=bottom_y)
         if idx == 0:
             # enter + ENLARGE first; the titles + first panels appear only after,
             # each title alongside its own content.
