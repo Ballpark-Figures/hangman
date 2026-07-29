@@ -1,12 +1,13 @@
-"""SCRATCH — sample animations for assets.letter_grid.
+"""SCRATCH — letter-view animations: the letter grid + per-letter position heatmaps.
 
 BEAT MAP
   slide_in — the grid enters from off the left edge (asset .slide_in).
   choose   — pick 'K': grid → top-left, chosen letter grows → bottom (asset .choose).
-  swap     — send 'K' back, 'R' takes its place at the bottom (asset .swap).
-  restore  — send 'R' back and the grid returns to its home (asset .restore).
+  heat     — fade in 'K's length-2..10 position heatmaps in the middle.
+  swap     — send 'K' back, 'R' takes its place; the heatmaps update K → R.
+  restore  — fade the heatmaps out and send 'R' back, grid returns home.
 
-Render:  render 96a --fast   …   render 96d --fast
+Render:  render 96a --fast   …   render 96e --fast
 """
 from pathlib import Path
 import sys
@@ -16,6 +17,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from config import *
 from assets.letter_grid import letter_grid
+from assets.letter_heatmaps import letter_heatmaps
 
 
 class LetterGridTest(HangmanScene):
@@ -32,12 +34,23 @@ class LetterGridTest(HangmanScene):
     def choose(self):
         self.chosen = self.grid.choose(self, "K", run_time=1.3)
 
-    # c : swap — 'K' returns to the grid while 'R' takes over at the bottom
+    # c : fade in 'K's per-length position heatmaps in the horizontal middle
+    @subscene
+    def heat(self):
+        self.heat = letter_heatmaps("k")
+        self.play(FadeIn(self.heat), run_time=0.8)
+
+    # d : swap — 'K' returns to the grid while 'R' takes over; heatmaps track it
     @subscene
     def swap(self):
+        self.play(FadeOut(self.heat), run_time=0.4)
         self.chosen = self.grid.swap(self, "R", run_time=1.3)
+        self.heat = letter_heatmaps("r")
+        self.play(FadeIn(self.heat), run_time=0.5)
 
-    # d : restore — 'R' returns and the grid slides back to its home position
+    # e : restore — heatmaps fade out, 'R' returns, the grid slides back home
     @subscene
     def restore(self):
+        self.play(FadeOut(self.heat), run_time=0.4)
+        self.heat = None
         self.grid.restore(self, run_time=1.3)
