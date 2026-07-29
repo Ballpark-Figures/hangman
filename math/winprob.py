@@ -34,6 +34,7 @@ from pathlib import Path
 
 import numpy as np
 from optimal import OptimalSolver, ALPHABET, INF
+from tree_complete import complete_tree
 
 MEMO_FORMAT = 3                        # bump if the solver's stored values change meaning
 
@@ -298,7 +299,9 @@ class WinProbSolver:
             "p_win": p_win,
             "e_misses": e_misses,
             "opener": opener,
-            "tree": self.build_tree(root, n, n),
+            # determined leaves are extended to word completion (single-branch
+            # tails of guaranteed hits); p_win / e_misses are unchanged.
+            "tree": complete_tree(self.build_tree(root, n, n)),
         }
         Path(path).write_text(json.dumps(payload))
 

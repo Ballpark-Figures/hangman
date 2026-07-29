@@ -64,6 +64,7 @@ from pathlib import Path
 import numpy as np
 
 from strategy import GreedyGame, ALPHABET
+from tree_complete import complete_tree
 from wordlist import DEFAULT_ZIPF, resolve_weighting
 
 try:
@@ -902,10 +903,16 @@ class OptimalSolver:
 
     def optimal_tree(self) -> dict:
         """The optimal decision tree for the last solved cap: nested
-        {guess, branches:{pattern: subtree}}; leaves are {word} or {capped:[...]}."""
+        {guess, branches:{pattern: subtree}}; leaves are {word} or {capped:[...]}.
+
+        Determined leaves are extended to word COMPLETION (single-branch tails of
+        guaranteed hits) via ``complete_tree`` -- the game continues guessing until
+        the word is fully revealed, not just until it is uniquely determined. Those
+        tail guesses are all hits, so the optimal value is unchanged."""
         if self.freq is None:
             raise RuntimeError("call solve()/deepen() first")
-        return self._build_tree(np.arange(self.N, dtype=self._idt), self._solve_cap)
+        return complete_tree(
+            self._build_tree(np.arange(self.N, dtype=self._idt), self._solve_cap))
 
     def save_tree(self, path) -> None:
         Path(path).write_text(json.dumps(self.optimal_tree()))

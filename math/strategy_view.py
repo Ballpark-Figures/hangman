@@ -35,6 +35,7 @@ import numpy as np
 
 import strategy
 import wordlist
+from tree_complete import complete_tree
 
 ALPHABET = strategy.ALPHABET
 _SHARED = Path(__file__).resolve().parent / "data" / "shared"
@@ -201,6 +202,10 @@ class TreeStrategyView(StrategyView):
             # Optimal above the cap, greedy below: rewrite every capped leaf into a
             # real greedy subtree so every replay surface treats it like any branch.
             self.tree = self._fill_capped(self.tree, 0, np.arange(game.N))
+        # Play to word COMPLETION, not just determination: extend every determined
+        # leaf with its single-branch completion tail (guaranteed hits, no misses).
+        # Idempotent -- a no-op on trees already completed at emission.
+        self.tree = complete_tree(self.tree)
 
     # -- tree helpers -------------------------------------------------------
     @staticmethod
