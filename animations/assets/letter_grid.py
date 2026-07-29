@@ -71,16 +71,17 @@ class LetterGrid(VGroup):
         return self
 
     # ── select a letter ───────────────────────────────────────────────────────
-    def choose(self, scene, letter, *, grow=4.0, corner_buff=1.0, run_time=1.2,
-               play=True):
-        """Pick `letter`: the grid moves up to the top-left corner while the
-        chosen letter detaches, grows ×`grow`, and travels to the bottom-left
-        corner. Returns the (now standalone, enlarged) chosen letter mobject.
-        `play=False` returns (grid_move, pick_move, chosen) to compose."""
+    def choose(self, scene, letter, *, grow=5.5, shrink=0.7, corner_buff=1.0,
+               run_time=1.2, play=True):
+        """Pick `letter`: the grid shrinks ×`shrink` as it moves up to the
+        top-left corner, while the chosen letter detaches, grows ×`grow`, and
+        travels to the bottom-left corner. Returns the (now standalone, enlarged)
+        chosen letter mobject. `play=False` returns (grid_move, pick_move,
+        chosen) to compose."""
         chosen = self.letters[letter]
         self.remove(chosen)              # detach from the grid group…
         scene.add(chosen)                # …and keep it in the scene on its own
-        grid_move = self.animate.to_corner(UL, buff=0.5)
+        grid_move = self.animate.scale(shrink).to_corner(UL, buff=0.5)
         pick_move = chosen.animate.scale(grow).to_corner(DL, buff=corner_buff)
         if not play:
             return grid_move, pick_move, chosen
