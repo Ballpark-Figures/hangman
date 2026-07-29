@@ -39,7 +39,8 @@ sys.path.append(str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from config import *
 from assets.hangman_board import (blanked_board, solved_word, miss_tag,
-                                  merge_pattern, hangman_drawing)
+                                  merge_pattern, hangman_drawing, missed_letters)
+from assets.tree_view import guess_node, connect, chip, faint_fan, NODE_R, CHIP_R
 
 # ── sourced data: the converged optimal tree, len-8 uniform ───────────────────
 TREE_PATH = (Path(__file__).resolve().parents[2]
@@ -60,46 +61,15 @@ RUN_BOARD_POS = np.array([4.6, 3.95, 0])   # running revealed board, top-right
 HANG_POS   = np.array([-6.2, 2.6, 0])      # hangman figure, top-left
 HANG_SCALE = 0.34
 
-NODE_R  = 0.42
-CHIP_R  = 0.24
-
-
-# ── mobject builders ──────────────────────────────────────────────────────────
-def _node(letter, n, center):
-    """A decision node: (body = circle + words-remaining count, letter). The
-    letter is returned separately — it's revealed only when the node 'acts'."""
-    circ = Circle(radius=NODE_R, color=ACCENT_FILL,
-                  fill_opacity=1.0, stroke_width=2.5).move_to(center)
-    cnt = crisp_text(str(n), font_size=15, color=GREY_D)
-    cnt.next_to(circ, DOWN, buff=0.08)
-    lab = crisp_text(letter.upper(), font_size=30, color=WHITE, weight=BOLD)
-    lab.move_to(circ)
-    return VGroup(circ, cnt), lab
-
-
-def _chip(letter, hit):
-    """A shrunk breadcrumb node: small circle + letter, blue on a hit / red miss."""
-    col = ACCENT_FILL if hit else ACCENT_RED
-    circ = Circle(radius=CHIP_R, color=col, fill_opacity=1.0, stroke_width=1.5)
-    lab = crisp_text(letter.upper(), font_size=16, color=WHITE, weight=BOLD)
-    lab.move_to(circ)
-    return VGroup(circ, lab)
-
-
-def _connect(a, b, r_a, r_b, **kw):
-    """A straight edge trimmed to sit between two node faces."""
-    d = normalize(b - a)
-    kw.setdefault("stroke_width", 3.5)
-    kw.setdefault("color", GREY_BROWN)
-    return Line(a + d * r_a, b - d * r_b, **kw)
-
-
 class TreeWalk(HangmanScene):
     """Descend the optimal tree along BALLPARK, one guess per subscene.
 
-    a–e  _expand(i)  — reveal guess, fan siblings, highlight taken branch, drop
+    Node / edge / fan / chip come from assets.tree_view (shared with 98tree_demo);
+    board / word / gallows / missed-letters from assets.hangman_board.
+
+    a–g  _expand(i)  — reveal guess, fan siblings, highlight taken branch, drop
                        into the child, then raise child + shrink self to a chip.
-    f    _finale     — the last branch resolves to the single word: gold BALLPARK.
+    h    solve       — the last branch resolves to the single word: gold BALLPARK.
     """
 
     # nothing on screen at frame 0 — the root + gallows enter in subscene a
@@ -126,19 +96,7 @@ class TreeWalk(HangmanScene):
             acc, node = after, child
         return steps
 
-    # ── faint fan of the (unchosen) sibling branches ──────────────────────────
-    def _faint_fan(self, center, nbranches):
-        fan = VGroup()
-        if nbranches <= 1:
-            return fan
-        for x in np.linspace(-FAN_HALF_W, FAN_HALF_W, nbranches - 1):
-            end = np.array([x, FAN_END_Y, 0])
-            d = normalize(end - center)
-            fan.add(Line(center + d * NODE_R, end, stroke_width=1.2,
-                         color=GREY_BROWN, stroke_opacity=0.22))
-        return fan
-
-    # ── the recurring "expand one node" beat (subscenes a–e) ──────────────────
+    # ── the recurring "expand one node" beat (subscenes a–g) ──────────────────
     def _expand(self, i, *, rt_letter, rt_fan, rt_board, rt_child, rt_descend,
                 hold):
         s = self.path[i]
@@ -153,17 +111,19 @@ class TreeWalk(HangmanScene):
         #    word is determined the node has a SINGLE branch (a completion guess),
         #    so there are no faint siblings — just the one edge, drawn in step 3.
         child_center = np.array([0.0, CHILD_Y, 0.0])
-        fan = self._faint_fan(cur_center, s["nbranches"])
-        chosen = _connect(cur_center, child_center, NODE_R, NODE_R,
-                          stroke_width=3.5, color=GREY_BROWN)
+        fan = faint_fan(cur_center, s["nbranches"], end_y=FAN_END_Y,
+                        half_w=FAN_HALF_W)
+        chosen = connect(cur_center, child_center, NODE_R, NODE_R,
+                         stroke_width=3.5)
         if len(fan):
             self.play(LaggedStartMap(Create, fan, lag_ratio=0.02), run_time=rt_fan)
 
-        # 3. the taken branch: its edge + blanked board (+ miss tag & hangman part)
+        # 3. the taken branch: its edge + blanked board (+ miss tag, hangman part,
+        #    and the running missed-letters tally below the gallows)
         board = blanked_board(s["board_after"]).move_to(
             child_center + UP * BOARD_UP)
         anims = [Create(chosen), FadeIn(board, shift=DOWN * 0.15)]
-        tag = None
+        tag = new_missed = None
         if not s["hit"]:
             tag = miss_tag([s["guess"]]).next_to(board, UP, buff=0.06)
             anims.append(FadeIn(tag))
@@ -171,19 +131,26 @@ class TreeWalk(HangmanScene):
             self.hang.add(part)
             anims.append(Create(part))
             self.miss_n += 1
+            self.missed.append(s["guess"])              # red tally below the gallows
+            new_missed = missed_letters(self.missed).next_to(self.hang, DOWN,
+                                                             buff=0.3)
+            anims.append(ReplacementTransform(self.missed_row, new_missed)
+                         if len(self.missed_row) else FadeIn(new_missed))
         self.play(*anims, run_time=rt_board)
+        if new_missed is not None:
+            self.missed_row = new_missed
 
         # 4. the chosen child arrives (its letter stays hidden until it acts)
         nxt = self.path[i + 1]
-        child_body, _ = _node(nxt["guess"], nxt["n"], child_center)
+        child_body, _ = guess_node(nxt["guess"], nxt["n"], child_center)
         self.play(FadeIn(child_body, scale=0.6), run_time=rt_child)
 
         self.wait(hold)   # "pause for a bit" before we descend
 
         # 5. descend: child rises to top-centre; we shrink into a breadcrumb chip
-        chip = _chip(s["guess"], s["hit"]).move_to(
+        crumb = chip(s["guess"], s["hit"]).move_to(
             [TRAIL_X0 + self.chip_i * TRAIL_DX, TRAIL_Y, 0])
-        desc = [ReplacementTransform(VGroup(self.cur_body[0], letter), chip),
+        desc = [ReplacementTransform(VGroup(self.cur_body[0], letter), crumb),
                 FadeOut(self.cur_body[1]),          # the count text
                 FadeOut(fan), FadeOut(chosen), FadeOut(board),
                 child_body.animate.move_to([0.0, CUR_Y, 0.0])]
@@ -194,7 +161,7 @@ class TreeWalk(HangmanScene):
             desc.append(ReplacementTransform(self.run_board, new_run))
         self.play(*desc, run_time=rt_descend)
 
-        self.trail.add(chip)
+        self.trail.add(crumb)
         self.chip_i += 1
         if s["board_after"] != s["board_before"]:
             self.run_board = new_run
@@ -202,7 +169,7 @@ class TreeWalk(HangmanScene):
 
     # ── shared setup for subscene a (root + persistent top furniture) ─────────
     def _setup_root(self):
-        self.cur_body, _ = _node(          # letter is (re)built inside _expand
+        self.cur_body, _ = guess_node(     # letter is (re)built inside _expand
             self.path[0]["guess"], self.path[0]["n"], [0.0, CUR_Y, 0.0])
         self.trail = VGroup()
         self.chip_i = 0
@@ -214,6 +181,8 @@ class TreeWalk(HangmanScene):
             full.remove(p)
         self.hang = full                   # gallows only, on screen from the start
         self.miss_n = 0
+        self.missed = []                   # wrong-guess letters, red, below gallows
+        self.missed_row = VGroup()         # grown in _expand as misses land
 
     # a : root guesses 'e' (miss #1); fan 75; descend into the all-blank branch
     @subscene
@@ -271,18 +240,18 @@ class TreeWalk(HangmanScene):
         self.play(FadeIn(letter), run_time=0.4)
 
         child_center = np.array([0.0, CHILD_Y, 0.0])
-        chosen = _connect(cur_center, child_center, NODE_R, NODE_R)   # single branch
+        chosen = connect(cur_center, child_center, NODE_R, NODE_R)   # single branch
         board = blanked_board(s["board_after"]).move_to(child_center + UP * BOARD_UP)
         self.play(Create(chosen), FadeIn(board, shift=DOWN * 0.15), run_time=0.8)
         self.wait(0.7)
 
         # the last letter fills in → the word is COMPLETE; it turns gold
-        chip = _chip(s["guess"], s["hit"]).move_to(
+        crumb = chip(s["guess"], s["hit"]).move_to(
             [TRAIL_X0 + self.chip_i * TRAIL_DX, TRAIL_Y, 0])
         final = solved_word(s["leaf_word"], font_size=44).move_to([0.0, -0.2, 0.0])
         new_run = blanked_board(s["board_after"]).move_to(RUN_BOARD_POS)  # +the 'r'
         self.play(
-            ReplacementTransform(VGroup(self.cur_body[0], letter), chip),
+            ReplacementTransform(VGroup(self.cur_body[0], letter), crumb),
             FadeOut(self.cur_body[1]),
             FadeOut(chosen),
             ReplacementTransform(self.run_board, new_run),

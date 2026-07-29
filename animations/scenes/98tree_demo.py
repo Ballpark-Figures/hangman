@@ -33,6 +33,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent.parent.parent))
 from config import *
 from assets.hangman_board import (blanked_board, solved_word, miss_tag,
                                   merge_pattern)
+from assets.tree_view import guess_node, connect, NODE_R
 
 # ── sourced data: the converged-as-possible optimal tree, len-3 uniform ───────
 TREE_PATH = (Path(__file__).resolve().parents[2]
@@ -46,27 +47,9 @@ L1_X   = [-6.0, -3.0, 0.0, 3.0, 6.0]  # 5 root branches, left→right
 L2_X   = [-4.5, -1.5, 1.5, 4.5]       # 4 branches of the "_a_" node
 BOARD_UP = 1.05                       # board offset from a node, up its own edge
 
-NODE_R = 0.42
 DESCEND_KEY = "_a_"      # which root branch subscene b drops into
-
-
-# ── mobject builders ──────────────────────────────────────────────────────────
-def _guess_node(letter, n, center):
-    """A decision node. Returns (body, letter): `body` = circle + count (shown on
-    creation); `letter` = the guess text (revealed later, on the first edge)."""
-    circ = Circle(radius=NODE_R, color=ACCENT_FILL,
-                  fill_opacity=1.0, stroke_width=2.5).move_to(center)
-    cnt = crisp_text(str(n), font_size=15, color=GREY_D)   # words still possible
-    cnt.next_to(circ, DOWN, buff=0.08)
-    lab = crisp_text(letter.upper(), font_size=30, color=WHITE,
-                     weight=BOLD).move_to(circ)
-    return VGroup(circ, cnt), lab
-
-
-def _connect(a, b, r_a, r_b):
-    """A straight edge trimmed to sit between two node faces."""
-    d = normalize(b - a)
-    return Line(a + d * r_a, b - d * r_b, stroke_width=3, color=GREY_BROWN)
+# node / edge builders (guess_node, connect, NODE_R) come from assets.tree_view,
+# shared with 95treewalk so the two tree scenes render nodes/edges identically.
 
 
 class TreeDemo(HangmanScene):
@@ -93,10 +76,10 @@ class TreeDemo(HangmanScene):
                     center), None, 0.55
                 circ_center = center
             else:
-                body, letter = _guess_node(child["guess"], child["n"], center)
+                body, letter = guess_node(child["guess"], child["n"], center)
                 circ_center, r_child = body[0].get_center(), NODE_R
 
-            edge = _connect(np.array(parent_center), circ_center, NODE_R, r_child)
+            edge = connect(np.array(parent_center), circ_center, NODE_R, r_child)
             up = normalize(np.array(parent_center) - circ_center)
             board = blanked_board(shown).move_to(circ_center + up * BOARD_UP)
             tag = (miss_tag([parent_node["guess"]]).next_to(board, UP, buff=0.06)
@@ -121,7 +104,7 @@ class TreeDemo(HangmanScene):
     @subscene
     def fan_out(self):
         wlen = len(next(iter(self.tree["branches"])))   # word length (=3)
-        self.root_body, self.root_letter = _guess_node(
+        self.root_body, self.root_letter = guess_node(
             self.tree["guess"], self.tree["n"], [0, ROOT_Y, 0])
         self.l1 = self._fan(self.tree, self.root_body[0].get_center(),
                              "_" * wlen, L1_X, L1_Y)
