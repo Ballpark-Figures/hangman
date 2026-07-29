@@ -37,6 +37,20 @@ class LetterGridTest(HangmanScene):
         return crisp_paragraph(l1, l2, font_size=30, color=BLACK,
                                alignment="center").move_to(center)
 
+    def _rise(self, parent, rows, *, lag_ratio=0.14, shift=0.28):
+        """Reveal `parent`'s `rows` one at a time with OVERLAPPING upward fades:
+        add the whole group (so a later ReplacementTransform stays clean), preset
+        each row a touch low + transparent, then lag each up into place. Returns
+        the LaggedStart — self.play sets the total run_time."""
+        for row in rows:
+            row.shift(DOWN * shift).set_opacity(0)
+        self.add(parent)
+        return LaggedStart(*[row.animate.shift(UP * shift).set_opacity(1)
+                             for row in rows], lag_ratio=lag_ratio)
+
+    def _heat_rows(self, heat):
+        return [VGroup(lab, hm) for lab, hm in zip(heat.labels, heat.heatmaps)]
+
     def _show(self, idx):
         lc = LETTERS[idx].lower()
         heat = letter_heatmaps(lc, center=HEAT_CENTER)
@@ -50,8 +64,11 @@ class LetterGridTest(HangmanScene):
             self.grid.choose(self, LETTERS[idx], run_time=1.1)
             self.loc_title = self._two_line("Location", "Frequencies", LOC_TITLE)
             self.ng_title = self._two_line("Top", "N-grams", NG_TITLE)
-            self.play(FadeIn(self.loc_title), FadeIn(heat), run_time=0.6)
-            self.play(FadeIn(self.ng_title), FadeIn(ngrams), run_time=0.5)
+            # location frequencies + top N-grams each rise in row-by-row
+            self.play(FadeIn(self.loc_title),
+                      self._rise(heat, self._heat_rows(heat)), run_time=1.3)
+            self.play(FadeIn(self.ng_title),
+                      self._rise(ngrams, ngrams.rows), run_time=0.9)
         else:
             # switch letters: the grid swaps while the heatmaps TRANSITION in place
             # to the new letter (same grid of cells, recoloured); ngrams cross-fade
@@ -59,7 +76,7 @@ class LetterGridTest(HangmanScene):
             ret, pick, _ = self.grid.swap(self, LETTERS[idx], play=False)
             self.play(ret, pick, ReplacementTransform(self.heat, heat),
                       FadeOut(self.ngrams), run_time=1.0)
-            self.play(FadeIn(ngrams), run_time=0.4)
+            self.play(self._rise(ngrams, ngrams.rows), run_time=0.8)   # rise in
         self.heat = heat
         self.ngrams = ngrams
 
