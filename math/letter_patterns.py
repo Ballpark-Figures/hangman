@@ -55,6 +55,28 @@ def position_share(length: int, *, min_zipf: float | None = None):
     return shares, n
 
 
+def top_ngrams(letter, *, sizes=(2, 3), top=5, min_zipf: float | None = None):
+    """Most common adjacent n-grams (each size in `sizes`) that CONTAIN `letter`,
+    ranked by the number of words (ANY length) that contain the n-gram — a word
+    holding it more than once counts ONCE. This is the word-count ranking behind
+    the notebook's `letter_ngram_table` `pct_words` column. Returns
+    ``{size: [(gram, n_words), …]}`` with the `top` most common per size.
+    Stdlib-only; sourced from ``wordlist.load`` (default cutoff DEFAULT_ZIPF)."""
+    if min_zipf is None:
+        min_zipf = wordlist.DEFAULT_ZIPF
+    letter = letter.lower()
+    words = wordlist.load(min_zipf=min_zipf)          # all lengths
+    counts = {k: Counter() for k in sizes}
+    for w in words:
+        t = w.text
+        for k in sizes:
+            grams = {t[j:j + k] for j in range(len(t) - k + 1)
+                     if letter in t[j:j + k]}
+            for gram in grams:
+                counts[k][gram] += 1
+    return {k: counts[k].most_common(top) for k in sizes}
+
+
 def _pattern(length: int, letter: str, positions) -> str:
     chars = ["_"] * length
     for i in positions:
