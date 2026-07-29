@@ -10,7 +10,13 @@ first column (A E I O U Y) is blue; every other letter is black.
   .first_col   VGroup          the blue first-column letters
 Animations (asset methods, each a single run_time-scaled play):
   .slide_in(scene)             standard entrance from off the left edge
-  .choose(scene, letter)       grid → top-left, chosen letter grows → bottom-left
+  .choose(scene, letter)       grid shrinks → top-left, chosen letter grows → bottom
+  .swap(scene, new_letter)     send the chosen letter back, `new_letter` takes over
+  .restore(scene)              send the chosen letter back AND grid → its home
+
+`choose` detaches the chosen letter and leaves an invisible placeholder copy in
+its slot; the placeholder rides every later grid transform, so `swap`/`restore`
+just animate the letter back onto its placeholder — exactly where the slot is now.
 """
 from config import *
 
@@ -44,6 +50,13 @@ class LetterGrid(VGroup):
                     self.first_col.add(t)
             self.rows.append(row_group)
 
+        self._base_letter_h = self.letters["A"].height   # unscaled letter height
+        self._home_center = None      # grid center before choose (set in choose)
+        self._applied_scale = 1.0     # grid scale relative to home
+        self._chosen = None           # the standalone grown letter (or None)
+        self._chosen_char = None
+        self._placeholder = None      # invisible slot-holder riding the grid
+
     # ── entrance ──────────────────────────────────────────────────────────────
     def slide_in(self, scene, *, from_dir=LEFT, dist=None, run_time=1.0, play=True):
         """Standard entrance: shift the grid fully off-screen in `from_dir`
@@ -70,6 +83,31 @@ class LetterGrid(VGroup):
         scene.play(move, run_time=run_time)
         return self
 
+    # ── internals ──────────────────────────────────────────────────────────────
+    def _detach(self, scene, char, grow, corner_buff, final_bottom_y):
+        """Pull `char` out of the grid: leave an invisible placeholder in its slot,
+        add the letter to the scene on its own, and build the grow-to-bottom
+        animation. Returns (grow_anim, letter, placeholder)."""
+        letter = self.letters[char]
+        ph = letter.copy().set_opacity(0)      # rides the grid in the letter's slot
+        self.remove(letter)
+        self.add(ph)
+        scene.add(letter)
+        grown_h = self._base_letter_h * grow                  # absolute target size
+        target_w = letter.width * grown_h / letter.height
+        x_left = -config.frame_x_radius + corner_buff
+        cy = (final_bottom_y + -config.frame_y_radius) / 2    # equal gaps above/below
+        anim = letter.animate.scale_to_fit_height(grown_h).move_to(
+            [x_left + target_w / 2, cy, 0])
+        return anim, letter, ph
+
+    def _return_anim(self, letter, ph, *, scale=1.0, tp=None):
+        """Animate `letter` back onto placeholder `ph`. `tp` maps ph's current
+        world center to its post-move center (for when the grid moves this beat);
+        `scale` is the grid's scale change this beat (ph's height scales with it)."""
+        center = ph.get_center() if tp is None else tp(ph.get_center())
+        return letter.animate.scale_to_fit_height(ph.height * scale).move_to(center)
+
     # ── select a letter ───────────────────────────────────────────────────────
     def choose(self, scene, letter, *, grow=5.5, shrink=0.8, corner_buff=1.0,
                run_time=1.2, play=True):
@@ -79,22 +117,60 @@ class LetterGrid(VGroup):
         the gap above it (to the grid) equals the gap below it (to the frame
         bottom). Returns the (standalone, enlarged) chosen letter mobject.
         `play=False` returns (grid_move, pick_move, chosen) to compose."""
-        chosen = self.letters[letter]
-        self.remove(chosen)              # detach from the grid group…
-        scene.add(chosen)                # …and keep it in the scene on its own
-        grid_move = self.animate.scale(shrink).to_corner(UL, buff=0.5)
+        self._home_center = self.get_center().copy()
+        self._applied_scale = shrink
 
-        # centre the grown letter between the grid's final bottom and the frame
-        # bottom → equal gaps above/below (independent of the letter's height)
-        grid_bottom = self.copy().scale(shrink).to_corner(UL, buff=0.5).get_bottom()[1]
-        cy = (grid_bottom + -config.frame_y_radius) / 2
-        x_left = -config.frame_x_radius + corner_buff
-        pick_move = chosen.animate.scale(grow).move_to(
-            [x_left + chosen.width * grow / 2, cy, 0])
+        top_buff = 0.5
+        # grid's final bottom: top edge (fy - buff) minus the shrunk height
+        final_bottom_y = (config.frame_y_radius - top_buff) - self.height * shrink
+        # detach FIRST (swap the letter for its placeholder), THEN build the grid
+        # animation, so the animate target matches self's post-detach structure
+        pick_move, chosen, ph = self._detach(scene, letter, grow, corner_buff,
+                                             final_bottom_y)
+        grid_move = self.animate.scale(shrink).to_corner(UL, buff=top_buff)
         if not play:
             return grid_move, pick_move, chosen
         scene.play(grid_move, pick_move, run_time=run_time)
+        self._chosen, self._chosen_char, self._placeholder = chosen, letter, ph
         return chosen
+
+    def swap(self, scene, new_letter, *, grow=5.5, corner_buff=1.0, run_time=1.2,
+             play=True):
+        """Send the current chosen letter back to its slot in the (top-left) grid
+        while `new_letter` detaches and takes its place at the bottom. The grid
+        itself stays put. Returns the new standalone letter."""
+        assert self._chosen is not None, "swap() needs a prior choose()"
+        old_letter, old_ph = self._chosen, self._placeholder
+        return_anim = self._return_anim(old_letter, old_ph)   # grid static → in place
+        pick_anim, new_mob, new_ph = self._detach(
+            scene, new_letter, grow, corner_buff, self.get_bottom()[1])
+        if not play:
+            return return_anim, pick_anim, new_mob
+        scene.play(return_anim, pick_anim, run_time=run_time)
+        self.remove(old_ph)              # old letter rejoins the grid…
+        self.add(old_letter)
+        self._chosen, self._chosen_char, self._placeholder = new_mob, new_letter, new_ph
+        return new_mob
+
+    def restore(self, scene, *, run_time=1.2, play=True):
+        """Send the current chosen letter back to its slot AND return the grid to
+        its original (pre-choose) home position and full size, together."""
+        assert self._chosen is not None, "restore() needs a prior choose()"
+        s = 1.0 / self._applied_scale
+        C0 = self.get_center().copy()
+        home = self._home_center
+        tp = lambda p: home + s * (np.array(p, dtype=float) - C0)   # grid's move
+        grid_move = self.animate.scale(s).move_to(home)
+        return_anim = self._return_anim(self._chosen, self._placeholder,
+                                        scale=s, tp=tp)
+        if not play:
+            return grid_move, return_anim, self._chosen
+        scene.play(grid_move, return_anim, run_time=run_time)
+        self.remove(self._placeholder)
+        self.add(self._chosen)
+        self._applied_scale = 1.0
+        self._chosen = self._chosen_char = self._placeholder = None
+        return self
 
 
 def letter_grid(**kwargs):

@@ -2,10 +2,11 @@
 
 BEAT MAP
   slide_in — the grid enters from off the left edge (asset .slide_in).
-  choose   — pick a letter: grid → top-left, chosen letter grows → bottom-left
-             (asset .choose).
+  choose   — pick 'K': grid → top-left, chosen letter grows → bottom (asset .choose).
+  swap     — send 'K' back, 'R' takes its place at the bottom (asset .swap).
+  restore  — send 'R' back and the grid returns to its home (asset .restore).
 
-Render:  render 96a --fast   /   render 96b --fast
+Render:  render 96a --fast   …   render 96d --fast
 """
 from pathlib import Path
 import sys
@@ -30,3 +31,13 @@ class LetterGridTest(HangmanScene):
     @subscene
     def choose(self):
         self.chosen = self.grid.choose(self, "K", run_time=1.3)
+
+    # c : swap — 'K' returns to the grid while 'R' takes over at the bottom
+    @subscene
+    def swap(self):
+        self.chosen = self.grid.swap(self, "R", run_time=1.3)
+
+    # d : restore — 'R' returns and the grid slides back to its home position
+    @subscene
+    def restore(self):
+        self.grid.restore(self, run_time=1.3)
