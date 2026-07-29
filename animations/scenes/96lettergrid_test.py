@@ -48,7 +48,7 @@ class LetterGridTest(HangmanScene):
             self.grid.slide_in(self, run_time=1.0)
             self.grid.choose(self, LETTERS[idx], run_time=1.1)
             self.loc_title = self._two_line("Location", "Frequencies", LOC_TITLE)
-            self.ng_title = self._two_line("Top", "ngrams", NG_TITLE)
+            self.ng_title = self._two_line("Top", "N-grams", NG_TITLE)
             self.play(FadeIn(self.loc_title), FadeIn(heat), run_time=0.6)
             self.play(FadeIn(self.ng_title), FadeIn(ngrams), run_time=0.5)
         else:
@@ -116,3 +116,10 @@ class LetterGridTest(HangmanScene):
     def y(self): self._show(24)
     @subscene
     def z(self): self._show(25)
+
+    # za : close — put Z back and clear the heatmap + N-gram views (grid → home)
+    @subscene
+    def close(self):
+        self.play(FadeOut(self.heat), FadeOut(self.ngrams),
+                  FadeOut(self.loc_title), FadeOut(self.ng_title), run_time=0.5)
+        self.grid.restore(self, run_time=1.0)

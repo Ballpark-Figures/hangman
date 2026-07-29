@@ -144,12 +144,15 @@ class LetterGrid(VGroup):
         return_anim = self._return_anim(old_letter, old_ph)   # grid static → in place
         pick_anim, new_mob, new_ph = self._detach(
             scene, new_letter, grow, corner_buff, self.get_bottom()[1])
-        if not play:
-            return return_anim, pick_anim, new_mob
-        scene.play(return_anim, pick_anim, run_time=run_time)
+        # state bookkeeping — the anims have already captured their positions, so do
+        # it BEFORE the play; this way it holds whether WE play or the caller does
+        # (play=False), not just on the play=True path.
         self.remove(old_ph)              # old letter rejoins the grid…
         self.add(old_letter)
         self._chosen, self._chosen_char, self._placeholder = new_mob, new_letter, new_ph
+        if not play:
+            return return_anim, pick_anim, new_mob
+        scene.play(return_anim, pick_anim, run_time=run_time)
         return new_mob
 
     def restore(self, scene, *, run_time=1.2, play=True):
