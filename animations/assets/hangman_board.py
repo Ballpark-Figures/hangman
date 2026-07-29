@@ -56,6 +56,17 @@ def miss_tag(letters, *, font_size=15):
                       font_size=font_size, color=MISS_COLOR)
 
 
+def missed_letters(letters, *, font_size=24, color=MISS_COLOR, buff=0.22):
+    """A row of the wrong-guess letters in red, for display below the gallows —
+    the classic hangman running tally. Empty ``letters`` -> an empty VGroup (so a
+    scene can start it blank and grow it as misses accumulate)."""
+    row = VGroup(*[crisp_text(l.upper(), font_size=font_size, color=color)
+                   for l in letters])
+    if len(row):
+        row.arrange(RIGHT, buff=buff)
+    return row
+
+
 # ── the (optional) hangman gallows drawing ────────────────────────────────────
 DRAW_COLOR = ACCENT_FILL
 
