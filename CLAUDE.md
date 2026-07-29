@@ -28,6 +28,21 @@ loading" for the full cross-machine debugging history.
     pickles (regenerable, can be GBs; `.ckpt` for optimal, `.memo.pkl` for
     winprob). The whole `math/data/local/` tree is in `.gitignore`.
 
+### Game / guess-order convention
+- **A game runs until the word is FULLY revealed** — you keep guessing until every
+  letter is up. So a word's **guess order** is: the strategy's *real* guesses (its
+  own order, hits AND misses) up to the point the word is UNIQUELY DETERMINED, then
+  the word's remaining (not-yet-guessed) letters appended in order of **first
+  appearance** in the word. Letters that are absent from the word and were not
+  guessed before determination are NOT part of the order (you never needed them).
+  Any analysis over "which letter is guessed before which" uses THIS order.
+- **KNOWN DISCREPANCY:** `strategy.py`'s `GreedyGame.trace` (and the tree replay in
+  `strategy_view.py`) appends its post-determination tail **alphabetically**, not by
+  first-appearance. That only affects the *display* order of the trailing revealed
+  letters (miss counts are unaffected — the tail is all hits), so it's left as-is;
+  code that needs the convention builds the order itself (see `letter_analysis.ipynb`
+  `_guess_order`). Align `trace` to first-appearance only if asked.
+
 ### Solvers
 Two EXACT solvers over a grid of lengths 1–20 × 6 weightings (uniform, zipf,
 greedy, greedy_word, best_opener, best_opener_word):
