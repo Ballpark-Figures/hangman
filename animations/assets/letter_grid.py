@@ -71,18 +71,26 @@ class LetterGrid(VGroup):
         return self
 
     # ── select a letter ───────────────────────────────────────────────────────
-    def choose(self, scene, letter, *, grow=5.5, shrink=0.7, corner_buff=1.0,
+    def choose(self, scene, letter, *, grow=5.5, shrink=0.8, corner_buff=1.0,
                run_time=1.2, play=True):
         """Pick `letter`: the grid shrinks ×`shrink` as it moves up to the
         top-left corner, while the chosen letter detaches, grows ×`grow`, and
-        travels to the bottom-left corner. Returns the (now standalone, enlarged)
-        chosen letter mobject. `play=False` returns (grid_move, pick_move,
-        chosen) to compose."""
+        settles at the left — vertically centered in the space below the grid so
+        the gap above it (to the grid) equals the gap below it (to the frame
+        bottom). Returns the (standalone, enlarged) chosen letter mobject.
+        `play=False` returns (grid_move, pick_move, chosen) to compose."""
         chosen = self.letters[letter]
         self.remove(chosen)              # detach from the grid group…
         scene.add(chosen)                # …and keep it in the scene on its own
         grid_move = self.animate.scale(shrink).to_corner(UL, buff=0.5)
-        pick_move = chosen.animate.scale(grow).to_corner(DL, buff=corner_buff)
+
+        # centre the grown letter between the grid's final bottom and the frame
+        # bottom → equal gaps above/below (independent of the letter's height)
+        grid_bottom = self.copy().scale(shrink).to_corner(UL, buff=0.5).get_bottom()[1]
+        cy = (grid_bottom + -config.frame_y_radius) / 2
+        x_left = -config.frame_x_radius + corner_buff
+        pick_move = chosen.animate.scale(grow).move_to(
+            [x_left + chosen.width * grow / 2, cy, 0])
         if not play:
             return grid_move, pick_move, chosen
         scene.play(grid_move, pick_move, run_time=run_time)
