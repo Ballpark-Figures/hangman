@@ -26,7 +26,7 @@ LETTERS = string.ascii_uppercase
 HEAT_CENTER  = np.array([0.2, -0.4, 0.0])      # heatmap stack center (middle)
 LOC_TITLE    = np.array([0.2, 3.2, 0.0])       # "Location Frequencies" (2 lines)
 NG_TITLE     = np.array([5.3, 3.2, 0.0])       # "Top N-grams" (2 lines, same y)
-NG_TOP       = np.array([5.3, 1.9, 0.0])       # anchored-letter column, top row
+NG_TOP       = np.array([5.3, 2.4, 0.0])       # anchored-letter column, top row
 
 
 class LetterGridTest(HangmanScene):

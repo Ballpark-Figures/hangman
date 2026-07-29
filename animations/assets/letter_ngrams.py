@@ -17,7 +17,7 @@ from assets import letter_ngram_data as lnd
 
 
 def letter_ngrams(letter, *, top_center=ORIGIN, top_font=46.0, min_font=12.0,
-                  char_ratio=0.0145, row_gap=0.16,
+                  char_ratio=0.0145, row_gap=0.5,
                   letter_color=ACCENT_FILL, other_color=BLACK):
     """Top-5 combined n-grams for `letter`, per-letter normalized: the most common
     is drawn at `top_font`, the rest at `top_font · sqrt(count / top_count)` (≥

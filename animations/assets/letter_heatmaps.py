@@ -25,7 +25,7 @@ def letter_heatmaps(letter, *, cell_size=0.42, row_gap=0.14, label_buff=0.3,
     pitch = cell_size + row_gap
     for i, L in enumerate(data["lengths"]):
         hm = get_heatmap(data["rows"][L], cell_size=cell_size,
-                         vmin=0.0, vmax=vmax, stroke_width=1.0)
+                         vmin=0.0, vmax=vmax, stroke_width=1.0, high_color=CRIMSON)
         hm.move_to([hm.width / 2, -i * pitch, 0])          # left edge at x = 0
         lab = crisp_text(str(L), font_size=label_font_size, color=BLACK)
         lab.next_to(hm, LEFT, buff=label_buff)
