@@ -27,11 +27,32 @@ from __future__ import annotations
 import string
 from collections import Counter
 
-import pandas as pd
-
 import wordlist
 
 ALPHABET = string.ascii_lowercase
+
+
+def position_share(length: int, *, min_zipf: float | None = None):
+    """Per-position letter share at `length`, UNWEIGHTED (each word counts once).
+
+    Returns ``(shares, n_words)`` where ``shares[letter]`` is a list of `length`
+    floats and ``shares[letter][i]`` = fraction of length-`length` words whose
+    character at position ``i`` is ``letter``. One pass over the length-`length`
+    pool from ``wordlist.load`` (default cutoff ``DEFAULT_ZIPF``). This is the
+    per-position marginal of `pattern_frequencies`' ``share`` column, computed
+    directly. Stdlib-only (no pandas) so it's cheap to call from a render cache.
+    """
+    if min_zipf is None:
+        min_zipf = wordlist.DEFAULT_ZIPF
+    words = wordlist.load(min_len=length, max_len=length, min_zipf=min_zipf)
+    n = len(words)
+    counts = {ch: [0] * length for ch in ALPHABET}
+    for w in words:
+        for i, ch in enumerate(w.text):
+            if ch in counts:
+                counts[ch][i] += 1
+    shares = {ch: [(c / n if n else 0.0) for c in counts[ch]] for ch in ALPHABET}
+    return shares, n
 
 
 def _pattern(length: int, letter: str, positions) -> str:
@@ -58,6 +79,7 @@ def pattern_frequencies(length: int, *, min_zipf: float | None = None,
         sorted by letter then descending count. `df.attrs['n_words']` and
         `df.attrs['total_freq']` hold the per-letter totals.
     """
+    import pandas as pd   # lazy: keeps the module stdlib-only for position_share
     if min_zipf is None:
         min_zipf = wordlist.DEFAULT_ZIPF
     words = wordlist.load(min_len=length, max_len=length, min_zipf=min_zipf)
