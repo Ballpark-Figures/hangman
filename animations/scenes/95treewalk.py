@@ -123,7 +123,10 @@ class TreeWalk(HangmanScene):
         child_center = np.array([STACK_X, cur[1] - CHILD_DROP, 0.0])
         fan = faint_fan(cur, s["nbranches"], end_y=cur[1] - FAN_DROP,
                         half_w=FAN_HALF_W)
-        chosen = connect(cur, child_center, NODE_R, NODE_R, stroke_width=3.5)
+        # chosen edge runs CENTRE-to-CENTRE into both nodes; since edges sit behind
+        # the nodes (z -1) the fills cap each end, so it never shows a gap (whatever
+        # the node size).
+        chosen = connect(cur, child_center, 0.0, 0.0, stroke_width=3.5)
         VGroup(fan, chosen).set_z_index(-1)          # edges render BEHIND the nodes
         if len(fan):
             self.play(LaggedStartMap(Create, fan, lag_ratio=0.02), run_time=rt_fan)
@@ -161,11 +164,17 @@ class TreeWalk(HangmanScene):
         #    MORE; count + board stay readable; the child pulls up to its slot.
         crumb = chip(s["guess"], s["hit"]).move_to(cur)
         shift = UP * (CHILD_DROP - STACK_DY)         # child rises to the next slot
-        self.play(ReplacementTransform(VGroup(self.cur_body, letter), crumb),
-                  VGroup(fan, chosen).animate.scale(EDGE_SHRINK, about_point=cur),
-                  child_body.animate.shift(shift),
-                  child_count.animate.shift(shift),
-                  run_time=rt_stack)
+        # the FAN shrinks to a stub; the chosen edge stays a full connector, now
+        # spanning this (chip) node centre → the child's slot centre (gapless).
+        new_chosen = connect(cur, cur + DOWN * STACK_DY, 0.0, 0.0, stroke_width=3.5)
+        new_chosen.set_z_index(-1)
+        stack = [ReplacementTransform(VGroup(self.cur_body, letter), crumb),
+                 ReplacementTransform(chosen, new_chosen),
+                 child_body.animate.shift(shift),
+                 child_count.animate.shift(shift)]
+        if len(fan):
+            stack.append(fan.animate.scale(EDGE_SHRINK, about_point=cur))
+        self.play(*stack, run_time=rt_stack)
         self.cur_body, self.cur_count = child_body, child_count
 
     # ── setup for subscene a (root node at the top + gallows + running board) ──
