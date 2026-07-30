@@ -1,17 +1,16 @@
 """PROTOTYPE — walk the optimal-strategy tree down a single real game (BALLPARK).
 
 Concept (a top-anchored VERTICAL STACK, one guess per subscene):
-  • The active node sits at the bottom of the growing stack, full size and CENTRED.
-    We fill in its guess letter and fan ALL of its result-branches out BELOW it as
-    faint lines (only the taken branch is full-opacity, and edges render BEHIND the
-    nodes). Its "N words" count sits to the RIGHT (black); the blanked board (as it
-    appeared) sits to the LEFT.
+  • Each node is a STATE: its blanked board (as it appeared on ARRIVAL — the result
+    of the parent's guess) sits to the LEFT, and its "N words" count to the RIGHT.
+    We then fill the node with the guess made at that state and fan ALL of its
+    result-branches out BELOW as faint lines (edges render BEHIND the nodes).
   • When the chosen child appears below, the finished node SHRINKS to a chip
-    (blue = hit, crimson = miss — like the old breadcrumb chips) and its fan/edges
-    shrink MORE, while the child pulls UP to the next slot to become active. Repeat.
-  • End state: a centred vertical stack of chips down the top, each still showing
-    its (shrunk) outgoing fan — except the last node, which resolves the word.
-  • Misses show on the gallows (TOP-RIGHT): a body part + the crimson tally below.
+    (blue = hit, crimson = miss) and its fan shrinks MORE, while the child pulls UP
+    to the next slot — then the child's board (left) and count (right) appear, and
+    the next beat fills its guess letter. Repeat.
+  • End state: a centred vertical stack down the top, plus a BOTTOM node holding the
+    final completed word (BALLPARK). Misses show on the gallows (TOP-RIGHT).
 
 Everything shown is SOURCED from the solver tree JSON (guess letters, word counts,
 revealed boards, the leaf word) — nothing is computed here. BALLPARK through the
@@ -22,12 +21,13 @@ stop at unique determination after 'b' — it continues until the word is filled
     branches:  75       31          30      10      2      3      1      1
     → solves in 2 misses; p, r are single-branch completion guesses (all hits).
 
-BEAT MAP (one guess each; a–g via _expand, h is the completion finale)
-  a — root guesses 'e' (miss #1); fan 75; stack it, drop into the all-blank branch
-  b — 'i' (miss #2); fan 31; stack        e — 'k' HIT (______k); fan 2; stack
-  c — 'a' HIT (_a___a_); fan 30; stack     f — 'b' HIT (b______); fan 3; stack
-  d — 'l' HIT (__ll___); fan 10; stack     g — 'p' HIT (____p___); SINGLE branch
-  h — 'r' HIT (______r_); SINGLE branch RESOLVES the word → blue BALLPARK
+The board at a node is its board_BEFORE (state on arrival); the last board (the
+complete word) lives on the extra bottom node.
+
+BEAT MAP (one guess each; a–h via _expand; h's child is the final-word node)
+  a — 'e' (miss #1); fan 75    d — 'l' HIT      g — 'p' HIT (single branch)
+  b — 'i' (miss #2); fan 31    e — 'k' HIT      h — 'r' HIT (single) → bottom node
+  c — 'a' HIT; fan 30          f — 'b' HIT           holds the finished BALLPARK
 
 Render:  render 95a --fast   (…95h)   /   render 95 sub  for the whole walk
 """
@@ -51,11 +51,11 @@ WORD = "ballpark"
 # ── layout (frame 16×9 → x-radius 8.0, y-radius 4.5) ──────────────────────────
 STACK_X      = 0.0     # nodes are CENTRED; board to the LEFT, word-count to the RIGHT
 STACK_TOP_Y  = 3.9     # slot y of the first node; the stack grows DOWNWARD
-STACK_DY     = 0.85    # slot gap — roomy enough a full active node clears the chip above
-EDGE_SHRINK  = 0.25    # the fan/edges shrink MORE than the node (node → chip size)
+STACK_DY     = 0.80    # slot gap — roomy enough a full active node clears the chip above
+EDGE_SHRINK  = 0.25    # the fan shrinks MORE than the node (node → chip size)
 FAN_HALF_W   = 4.2     # active fan half-width
-FAN_DROP     = 1.4     # active fan reaches this far below the active node
-CHILD_DROP   = 1.9     # the child first appears this far below the active node
+FAN_DROP     = 1.3     # active fan reaches this far below the active node
+CHILD_DROP   = 1.7     # the child first appears this far below the active node
 INFO_BUFF    = 0.32    # node → count and node → board gaps
 COUNT_FS     = 16      # words-remaining count (to the right of the node)
 ROW_BOARD_FS = 15      # compact per-row board (to the left of the node)
@@ -70,13 +70,13 @@ class TreeWalk(HangmanScene):
     Node / edge / fan / chip come from assets.tree_view (shared with 98tree_demo);
     board / gallows / missed-letters from assets.hangman_board.
 
-    a–g  _expand(i)  — reveal guess, fan siblings, count+board to the right, drop
-                       into the child, then shrink this node to a chip (blue/crimson)
-                       + shrink its edges more, while the child pulls up.
-    h    solve       — the last (single) branch resolves the word: blue BALLPARK.
+    a–h  _expand(i)  — the active node already shows its board (left) + count
+                       (right); reveal its guess letter, fan, drop into the child,
+                       shrink this node to a chip, then reveal the child's board +
+                       count. h's child is the terminal bottom node (BALLPARK).
     """
 
-    # nothing on screen at frame 0 — the root + gallows enter in subscene a
+    # nothing on screen at frame 0 — the root state + gallows enter in subscene a
     def setup_scene(self):
         self.tree = json.loads(TREE_PATH.read_text())
         self.path = self._build_path()
@@ -100,42 +100,36 @@ class TreeWalk(HangmanScene):
             acc, node = after, child
         return steps
 
-    # ── build a (centred) active node + its persistent "N words" label ────────
-    def _node(self, guess, n, y):
-        body, _ = guess_node(guess, n, [STACK_X, y, 0.0], count=False)
-        count = crisp_text(f"{n} word" + ("" if n == 1 else "s"),
-                           font_size=COUNT_FS, color=BLACK)
-        count.next_to(body, RIGHT, buff=INFO_BUFF)
-        return body, count
+    # ── small builders (shared look; count/board are separate persistent labels) ─
+    def _count(self, n):
+        return crisp_text(f"{n} word" + ("" if n == 1 else "s"),
+                          font_size=COUNT_FS, color=BLACK)
 
-    # ── the recurring "expand one node" beat (subscenes a–g) ──────────────────
-    def _expand(self, i, *, rt_letter, rt_fan, rt_board, rt_child, rt_stack, hold):
+    def _board(self, pattern):
+        return blanked_board(pattern, font_size=ROW_BOARD_FS)
+
+    # ── the recurring "expand one node" beat (subscenes a–h) ──────────────────
+    def _expand(self, i, *, rt_letter, rt_fan, rt_child, rt_stack, rt_board,
+                rt_count):
         s = self.path[i]
         cur = self.cur_body[0].get_center()          # active node circle centre
 
-        # 1. fill in this node's guess letter (the node "acts")
+        # 1. fill in THIS node's guess letter (its board + count are already shown)
         letter = crisp_text(s["guess"].upper(), font_size=30, color=WHITE,
                             weight=BOLD).move_to(cur)
         self.play(FadeIn(letter), run_time=rt_letter)
 
-        # 2. fan ALL branches out BELOW (faint) + the chosen edge to the child. A
-        #    determined node has one branch (completion guess) -> no faint fan.
+        # 2. fan ALL branches out below (faint) + the chosen edge (centre-to-centre,
+        #    behind the nodes so it never gaps). A miss draws the next hangman part
+        #    + the crimson tally below the gallows.
         child_center = np.array([STACK_X, cur[1] - CHILD_DROP, 0.0])
         fan = faint_fan(cur, s["nbranches"], end_y=cur[1] - FAN_DROP,
                         half_w=FAN_HALF_W)
-        # chosen edge runs CENTRE-to-CENTRE into both nodes; since edges sit behind
-        # the nodes (z -1) the fills cap each end, so it never shows a gap (whatever
-        # the node size).
         chosen = connect(cur, child_center, 0.0, 0.0, stroke_width=3.5)
-        VGroup(fan, chosen).set_z_index(-1)          # edges render BEHIND the nodes
+        VGroup(fan, chosen).set_z_index(-1)
+        anims = [Create(chosen)]
         if len(fan):
-            self.play(LaggedStartMap(Create, fan, lag_ratio=0.02), run_time=rt_fan)
-
-        # 3. the blanked board (as it appeared) to the LEFT of the node; a miss
-        #    draws the next hangman part & the crimson tally below the gallows
-        board = blanked_board(s["board_after"], font_size=ROW_BOARD_FS).next_to(
-            self.cur_body, LEFT, buff=INFO_BUFF)
-        anims = [Create(chosen), FadeIn(board, shift=RIGHT * 0.1)]
+            anims.append(LaggedStartMap(Create, fan, lag_ratio=0.02))
         new_missed = None
         if not s["hit"]:
             part = self.hang_parts[self.miss_n]
@@ -147,40 +141,49 @@ class TreeWalk(HangmanScene):
                                                              buff=0.3)
             anims.append(ReplacementTransform(self.missed_row, new_missed)
                          if len(self.missed_row) else FadeIn(new_missed))
-        self.play(*anims, run_time=rt_board)
+        self.play(*anims, run_time=rt_fan)
         if new_missed is not None:
             self.missed_row = new_missed
 
-        # 4. the chosen child appears below (full size), letter hidden until it acts
-        nxt = self.path[i + 1]
-        child_body, child_count = self._node(nxt["guess"], nxt["n"],
-                                             child_center[1])
-        self.play(FadeIn(child_body, scale=0.6), FadeIn(child_count),
-                  run_time=rt_child)
+        # 3. the child appears as a BLANK node below (its letter, if any, is filled
+        #    in the NEXT beat; the terminal bottom node never gets one)
+        is_last = i + 1 >= len(self.path)
+        child_guess = WORD[0] if is_last else self.path[i + 1]["guess"]
+        child_n = 1 if is_last else self.path[i + 1]["n"]
+        child_body, _ = guess_node(child_guess, child_n, child_center, count=False)
+        self.play(FadeIn(child_body, scale=0.6), run_time=rt_child)
 
-        self.wait(hold)   # pause before we stack
-
-        # 5. this node shrinks to a chip (blue hit / crimson miss); its edges shrink
-        #    MORE; count + board stay readable; the child pulls up to its slot.
+        # 4. this node shrinks to a chip; its fan shrinks MORE; the child pulls UP
+        #    to its slot (the chosen edge retargets to span chip → child, gapless)
         crumb = chip(s["guess"], s["hit"]).move_to(cur)
-        shift = UP * (CHILD_DROP - STACK_DY)         # child rises to the next slot
-        # the FAN shrinks to a stub; the chosen edge stays a full connector, now
-        # spanning this (chip) node centre → the child's slot centre (gapless).
+        shift = UP * (CHILD_DROP - STACK_DY)
         new_chosen = connect(cur, cur + DOWN * STACK_DY, 0.0, 0.0, stroke_width=3.5)
         new_chosen.set_z_index(-1)
         stack = [ReplacementTransform(VGroup(self.cur_body, letter), crumb),
                  ReplacementTransform(chosen, new_chosen),
-                 child_body.animate.shift(shift),
-                 child_count.animate.shift(shift)]
+                 child_body.animate.shift(shift)]
         if len(fan):
             stack.append(fan.animate.scale(EDGE_SHRINK, about_point=cur))
         self.play(*stack, run_time=rt_stack)
-        self.cur_body, self.cur_count = child_body, child_count
+        self.cur_body = child_body
 
-    # ── setup for subscene a (root node at the top + gallows + running board) ──
+        # 5. the child's blanked board (the state it ARRIVED in = this guess's
+        #    result) to the LEFT, then 6. its "N words" count to the RIGHT
+        board = self._board(s["board_after"]).next_to(self.cur_body, LEFT,
+                                                       buff=INFO_BUFF)
+        self.play(FadeIn(board, shift=LEFT * 0.1), run_time=rt_board)
+        count = self._count(child_n).next_to(self.cur_body, RIGHT, buff=INFO_BUFF)
+        self.play(FadeIn(count), run_time=rt_count)
+
+    # ── setup for subscene a (root STATE at the top + gallows) ────────────────
     def _setup_root(self):
-        self.cur_body, self.cur_count = self._node(
-            self.path[0]["guess"], self.path[0]["n"], STACK_TOP_Y)
+        self.cur_body, _ = guess_node(     # letter is filled in _expand
+            self.path[0]["guess"], self.path[0]["n"], [STACK_X, STACK_TOP_Y, 0.0],
+            count=False)
+        self.root_board = self._board(self.path[0]["board_before"]).next_to(
+            self.cur_body, LEFT, buff=INFO_BUFF)
+        self.root_count = self._count(self.path[0]["n"]).next_to(
+            self.cur_body, RIGHT, buff=INFO_BUFF)
         # hangman: build full, scale/position, then detach parts to reveal 1/miss
         full = hangman_drawing(6).scale(HANG_SCALE).move_to(HANG_POS)
         self.hang_parts = list(full.parts)
@@ -191,68 +194,54 @@ class TreeWalk(HangmanScene):
         self.missed = []                   # wrong-guess letters, crimson, below gallows
         self.missed_row = VGroup()
 
-    # a : root guesses 'e' (miss #1); fan 75; stack; drop into the all-blank branch
+    # a : root STATE (blank node, 5267 words, blank word) → guess 'e' (miss); fan 75
     @subscene
     def guess_e(self):
         self._setup_root()
-        self.play(FadeIn(self.cur_body), FadeIn(self.cur_count), FadeIn(self.hang),
-                  run_time=0.7)
-        self._expand(0, rt_letter=0.4, rt_fan=1.1, rt_board=0.8, rt_child=0.5,
-                     rt_stack=1.0, hold=0.7)
+        self.play(FadeIn(self.cur_body), FadeIn(self.hang), run_time=0.6)
+        self.play(FadeIn(self.root_board, shift=LEFT * 0.1), run_time=0.5)
+        self.play(FadeIn(self.root_count), run_time=0.4)
+        self._expand(0, rt_letter=0.4, rt_fan=1.1, rt_child=0.5, rt_stack=1.0,
+                     rt_board=0.5, rt_count=0.4)
 
-    # b : 'i' (miss #2); fan 31; stack
+    # b : 'i' (miss #2); fan 31
     @subscene
     def guess_i(self):
-        self._expand(1, rt_letter=0.4, rt_fan=1.0, rt_board=0.8, rt_child=0.5,
-                     rt_stack=1.0, hold=0.7)
+        self._expand(1, rt_letter=0.4, rt_fan=1.0, rt_child=0.5, rt_stack=1.0,
+                     rt_board=0.5, rt_count=0.4)
 
-    # c : 'a' HIT (_a___a_); fan 30; board fills; stack
+    # c : 'a' HIT; fan 30
     @subscene
     def guess_a(self):
-        self._expand(2, rt_letter=0.4, rt_fan=1.0, rt_board=0.8, rt_child=0.5,
-                     rt_stack=1.0, hold=0.7)
+        self._expand(2, rt_letter=0.4, rt_fan=1.0, rt_child=0.5, rt_stack=1.0,
+                     rt_board=0.5, rt_count=0.4)
 
-    # d : 'l' HIT (__ll___); fan 10; stack
+    # d : 'l' HIT; fan 10
     @subscene
     def guess_l(self):
-        self._expand(3, rt_letter=0.4, rt_fan=0.9, rt_board=0.8, rt_child=0.5,
-                     rt_stack=1.0, hold=0.7)
+        self._expand(3, rt_letter=0.4, rt_fan=0.9, rt_child=0.5, rt_stack=1.0,
+                     rt_board=0.5, rt_count=0.4)
 
-    # e : 'k' HIT (______k); fan 2; stack
+    # e : 'k' HIT; fan 2
     @subscene
     def guess_k(self):
-        self._expand(4, rt_letter=0.4, rt_fan=0.7, rt_board=0.8, rt_child=0.5,
-                     rt_stack=1.0, hold=0.7)
+        self._expand(4, rt_letter=0.4, rt_fan=0.7, rt_child=0.5, rt_stack=1.0,
+                     rt_board=0.5, rt_count=0.4)
 
-    # f : 'b' HIT (b______); word now DETERMINED but not complete; stack
+    # f : 'b' HIT; fan 3 (word now DETERMINED but not complete)
     @subscene
     def guess_b(self):
-        self._expand(5, rt_letter=0.4, rt_fan=0.6, rt_board=0.8, rt_child=0.5,
-                     rt_stack=1.0, hold=0.7)
+        self._expand(5, rt_letter=0.4, rt_fan=0.6, rt_child=0.5, rt_stack=1.0,
+                     rt_board=0.5, rt_count=0.4)
 
-    # g : 'p' HIT (____p___); SINGLE branch (a completion guess); stack
+    # g : 'p' HIT; SINGLE branch (a completion guess)
     @subscene
     def guess_p(self):
-        self._expand(6, rt_letter=0.4, rt_fan=0.5, rt_board=0.8, rt_child=0.5,
-                     rt_stack=1.0, hold=0.7)
+        self._expand(6, rt_letter=0.4, rt_fan=0.5, rt_child=0.5, rt_stack=1.0,
+                     rt_board=0.5, rt_count=0.4)
 
-    # h : 'r' HIT (______r_); the last (single) branch RESOLVES → blue BALLPARK
+    # h : 'r' HIT; SINGLE branch → the bottom node holds the finished BALLPARK
     @subscene
-    def solve(self):
-        s = self.path[7]
-        cur = self.cur_body[0].get_center()
-
-        letter = crisp_text(s["guess"].upper(), font_size=30, color=WHITE,
-                            weight=BOLD).move_to(cur)
-        self.play(FadeIn(letter), run_time=0.4)
-
-        # the last node has NO outgoing edge; the completed word (blue) fills in to
-        # its left.
-        board = blanked_board(s["board_after"], font_size=ROW_BOARD_FS).next_to(
-            self.cur_body, LEFT, buff=INFO_BUFF)
-        self.play(FadeIn(board, shift=LEFT * 0.1), run_time=0.8)
-
-        # settle the last node into the stack as a chip (a hit → blue), no edges
-        crumb = chip(s["guess"], s["hit"]).move_to(cur)
-        self.play(ReplacementTransform(VGroup(self.cur_body, letter), crumb),
-                  run_time=0.6)
+    def guess_r(self):
+        self._expand(7, rt_letter=0.4, rt_fan=0.5, rt_child=0.5, rt_stack=1.0,
+                     rt_board=0.6, rt_count=0.4)
