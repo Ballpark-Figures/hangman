@@ -30,7 +30,7 @@ def merge_pattern(known, key):
 
 
 def blanked_board(pattern, *, color=REVEAL_COLOR, slot=0.30, gap=0.14,
-                  font_size=22):
+                  font_size=22, weight="NORMAL"):
     """A row of rules (one per position); revealed letters sit above their rule."""
     slots = VGroup()
     for ch in pattern:
@@ -38,7 +38,8 @@ def blanked_board(pattern, *, color=REVEAL_COLOR, slot=0.30, gap=0.14,
                     stroke_width=3.5, color=RULE_COLOR)
         cell = VGroup(rule)
         if ch != "_":
-            t = crisp_text(ch.upper(), font_size=font_size, color=color)
+            t = crisp_text(ch.upper(), font_size=font_size, color=color,
+                           weight=weight)
             t.next_to(rule, UP, buff=0.05)
             cell.add(t)
         slots.add(cell)
@@ -58,11 +59,13 @@ def miss_tag(letters, *, font_size=15):
                       font_size=font_size, color=MISS_COLOR)
 
 
-def missed_letters(letters, *, font_size=24, color=MISS_COLOR, buff=0.22):
+def missed_letters(letters, *, font_size=24, color=MISS_COLOR, buff=0.22,
+                   weight="NORMAL"):
     """A row of the wrong-guess letters in red, for display below the gallows —
     the classic hangman running tally. Empty ``letters`` -> an empty VGroup (so a
     scene can start it blank and grow it as misses accumulate)."""
-    row = VGroup(*[crisp_text(l.upper(), font_size=font_size, color=color)
+    row = VGroup(*[crisp_text(l.upper(), font_size=font_size, color=color,
+                              weight=weight)
                    for l in letters])
     if len(row):
         row.arrange(RIGHT, buff=buff)

@@ -2,9 +2,10 @@
 
 Concept (a top-anchored VERTICAL STACK, one guess per subscene):
   • Each node is a STATE: its blanked board (as it appeared on ARRIVAL — the result
-    of the parent's guess) sits to the LEFT, and its "N words" count to the RIGHT.
-    We then fill the node with the guess made at that state and fan ALL of its
-    result-branches out BELOW as faint lines (edges render BEHIND the nodes).
+    of the parent's guess) sits to the LEFT (bold), the accumulated crimson misses
+    further LEFT of that, and its "N words" count (bold) to the RIGHT. These appear
+    BEFORE the node shrinks. We then fill the node with the guess made at that state
+    and fan ALL of its result-branches out BELOW as faint lines (behind the nodes).
   • When the chosen child appears below, the finished node SHRINKS to a chip
     (blue = hit, crimson = miss) and its fan shrinks MORE, while the child pulls UP
     to the next slot — then the child's board (left) and count (right) appear, and
@@ -55,10 +56,15 @@ STACK_DY     = 0.80    # slot gap — roomy enough a full active node clears the
 EDGE_SHRINK  = 0.25    # the fan shrinks MORE than the node (node → chip size)
 FAN_HALF_W   = 4.2     # active fan half-width
 FAN_DROP     = 1.3     # active fan reaches this far below the active node
+FAN_STROKE   = 1.8     # faint (unused) edge thickness
 CHILD_DROP   = 1.7     # the child first appears this far below the active node
 INFO_BUFF    = 0.32    # node → count and node → board gaps
-COUNT_FS     = 16      # words-remaining count (to the right of the node)
-ROW_BOARD_FS = 15      # compact per-row board (to the left of the node)
+MISS_BUFF    = 0.34    # board → accumulated-misses gap (misses sit further left)
+BOARD_FS     = 28      # per-row board letters (bold, ~node-letter size)
+BOARD_SLOT   = 0.36    # per-row board rule width (scaled up for the bigger font)
+BOARD_GAP    = 0.16
+COUNT_FS     = 28      # words-remaining count (bold, to the right of the node)
+MISS_FS      = 28      # accumulated crimson misses (bold, left of the board)
 
 HANG_POS    = np.array([6.2, 2.6, 0])      # hangman gallows, TOP-RIGHT
 HANG_SCALE  = 0.34
@@ -83,7 +89,7 @@ class TreeWalk(HangmanScene):
 
     # ── sourced path down the tree (data only) ────────────────────────────────
     def _build_path(self):
-        steps, node, acc = [], self.tree, "_" * len(WORD)
+        steps, node, acc, missed = [], self.tree, "_" * len(WORD), []
         while "branches" in node:
             g, n = node["guess"], node["n"]
             key = "".join(g if WORD[p] == g else "_" for p in range(len(WORD)))
@@ -91,22 +97,28 @@ class TreeWalk(HangmanScene):
             after = merge_pattern(acc, key)
             child = node["branches"][key]
             leaf = "branches" not in child
+            missed_after = missed if hit else missed + [g]
             steps.append(dict(
                 guess=g, n=n, nbranches=len(node["branches"]), hit=hit,
                 board_before=acc, board_after=after, child_leaf=leaf,
+                missed_before=list(missed), missed_after=list(missed_after),
                 child_guess=None if leaf else child["guess"],
                 child_n=None if leaf else child["n"],
                 leaf_word=child.get("word") if leaf else None))
-            acc, node = after, child
+            acc, node, missed = after, child, list(missed_after)
         return steps
 
-    # ── small builders (shared look; count/board are separate persistent labels) ─
+    # ── small builders (shared look; each label is separate + persistent) ─────
     def _count(self, n):
         return crisp_text(f"{n} word" + ("" if n == 1 else "s"),
-                          font_size=COUNT_FS, color=BLACK)
+                          font_size=COUNT_FS, color=BLACK, weight=BOLD)
 
     def _board(self, pattern):
-        return blanked_board(pattern, font_size=ROW_BOARD_FS)
+        return blanked_board(pattern, font_size=BOARD_FS, slot=BOARD_SLOT,
+                             gap=BOARD_GAP, weight=BOLD)
+
+    def _missed(self, letters):
+        return missed_letters(letters, font_size=MISS_FS, weight=BOLD)
 
     # ── the recurring "expand one node" beat (subscenes a–h) ──────────────────
     def _expand(self, i, *, rt_letter, rt_fan, rt_child, rt_stack, rt_board,
@@ -124,7 +136,7 @@ class TreeWalk(HangmanScene):
         #    + the crimson tally below the gallows.
         child_center = np.array([STACK_X, cur[1] - CHILD_DROP, 0.0])
         fan = faint_fan(cur, s["nbranches"], end_y=cur[1] - FAN_DROP,
-                        half_w=FAN_HALF_W)
+                        half_w=FAN_HALF_W, stroke_width=FAN_STROKE)
         chosen = connect(cur, child_center, 0.0, 0.0, stroke_width=3.5)
         VGroup(fan, chosen).set_z_index(-1)
         anims = [Create(chosen)]
@@ -153,27 +165,37 @@ class TreeWalk(HangmanScene):
         child_body, _ = guess_node(child_guess, child_n, child_center, count=False)
         self.play(FadeIn(child_body, scale=0.6), run_time=rt_child)
 
-        # 4. this node shrinks to a chip; its fan shrinks MORE; the child pulls UP
-        #    to its slot (the chosen edge retargets to span chip → child, gapless)
+        # 4. the child's blanked board (the state it ARRIVED in = this guess's
+        #    result) to the LEFT, with the accumulated crimson misses further left;
+        #    then 5. its "N words" count to the RIGHT — all BEFORE the shrink.
+        board = self._board(s["board_after"]).next_to(child_body, LEFT,
+                                                       buff=INFO_BUFF)
+        reveal = [FadeIn(board, shift=LEFT * 0.1)]
+        missed = self._missed(s["missed_after"])
+        if len(missed):
+            missed.next_to(board, LEFT, buff=MISS_BUFF)
+            reveal.append(FadeIn(missed))
+        self.play(*reveal, run_time=rt_board)
+        count = self._count(child_n).next_to(child_body, RIGHT, buff=INFO_BUFF)
+        self.play(FadeIn(count), run_time=rt_count)
+
+        # 6. this node shrinks to a chip; its fan shrinks MORE; the child (with its
+        #    misses / board / count) pulls UP to its slot (chosen edge retargets to
+        #    span chip → child, gapless)
         crumb = chip(s["guess"], s["hit"]).move_to(cur)
         shift = UP * (CHILD_DROP - STACK_DY)
         new_chosen = connect(cur, cur + DOWN * STACK_DY, 0.0, 0.0, stroke_width=3.5)
         new_chosen.set_z_index(-1)
+        movers = VGroup(child_body, board, count)
+        if len(missed):
+            movers.add(missed)
         stack = [ReplacementTransform(VGroup(self.cur_body, letter), crumb),
                  ReplacementTransform(chosen, new_chosen),
-                 child_body.animate.shift(shift)]
+                 movers.animate.shift(shift)]
         if len(fan):
             stack.append(fan.animate.scale(EDGE_SHRINK, about_point=cur))
         self.play(*stack, run_time=rt_stack)
         self.cur_body = child_body
-
-        # 5. the child's blanked board (the state it ARRIVED in = this guess's
-        #    result) to the LEFT, then 6. its "N words" count to the RIGHT
-        board = self._board(s["board_after"]).next_to(self.cur_body, LEFT,
-                                                       buff=INFO_BUFF)
-        self.play(FadeIn(board, shift=LEFT * 0.1), run_time=rt_board)
-        count = self._count(child_n).next_to(self.cur_body, RIGHT, buff=INFO_BUFF)
-        self.play(FadeIn(count), run_time=rt_count)
 
     # ── setup for subscene a (root STATE at the top + gallows) ────────────────
     def _setup_root(self):
