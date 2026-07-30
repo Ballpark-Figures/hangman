@@ -19,17 +19,21 @@ NODE_R = 0.42          # decision-node radius
 CHIP_R = 0.24          # breadcrumb-chip radius
 
 
-def guess_node(letter, n, center, *, r=NODE_R, count_dir=DOWN, count_buff=0.08):
-    """A decision node: ``(body, letter)`` where ``body`` = circle + count (shown
-    on creation) and ``letter`` = the guess text (revealed later, on the node's
-    first outgoing edge). ``count_dir`` places the words-remaining count relative
-    to the circle (DOWN for the classic layout, RIGHT for the stacked view)."""
+def guess_node(letter, n, center, *, r=NODE_R, count_dir=DOWN, count_buff=0.08,
+               count=True):
+    """A decision node: ``(body, letter)`` where ``body`` = circle (+ count when
+    ``count``) and ``letter`` = the guess text (revealed later, on the node's first
+    outgoing edge). ``count_dir`` places the words-remaining count relative to the
+    circle. Pass ``count=False`` to omit it (e.g. when the caller keeps the count
+    as a separate, persistent label — the stacked view)."""
     circ = Circle(radius=r, color=ACCENT_FILL, fill_opacity=1.0,
                   stroke_width=2.5).move_to(center)
-    cnt = crisp_text(str(n), font_size=15, color=GREY_D)      # words still possible
-    cnt.next_to(circ, count_dir, buff=count_buff)
     lab = crisp_text(letter.upper(), font_size=30, color=WHITE, weight=BOLD)
     lab.move_to(circ)
+    if not count:
+        return VGroup(circ), lab
+    cnt = crisp_text(str(n), font_size=15, color=GREY_D)      # words still possible
+    cnt.next_to(circ, count_dir, buff=count_buff)
     return VGroup(circ, cnt), lab
 
 
