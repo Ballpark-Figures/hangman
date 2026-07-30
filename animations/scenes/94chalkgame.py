@@ -120,9 +120,12 @@ class ChalkGame(HangmanScene):
 
         # 2. the letter is chalked onto the board
         if hit:
-            letters = [self._reveal_letter(g, self.rules[p]) for p in positions]
-            self.play(*[LaggedStartMap(Create, L, lag_ratio=0.5) for L in letters],
-                      run_time=rt_write)
+            # multiple occurrences: write them one at a time, LEFT → RIGHT
+            # (positions is ascending), each stroke-by-stroke
+            for p in positions:
+                L = self._reveal_letter(g, self.rules[p])
+                self.play(LaggedStartMap(Create, L, lag_ratio=0.5),
+                          run_time=rt_write)
         else:
             # a miss: the letter goes below the gallows, THEN the next body part
             miss = self._miss_letter(g)
