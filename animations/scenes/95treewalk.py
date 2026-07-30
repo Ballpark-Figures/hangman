@@ -3,16 +3,15 @@
 Concept (a top-anchored VERTICAL STACK, one guess per subscene):
   • The active node sits at the bottom of the growing stack, full size and CENTRED.
     We fill in its guess letter and fan ALL of its result-branches out BELOW it as
-    faint lines (only the taken branch is full-opacity). Its words-remaining count
-    sits to the RIGHT, and the blanked board (as it appeared) to the right of that.
+    faint lines (only the taken branch is full-opacity, and edges render BEHIND the
+    nodes). Its "N words" count sits to the RIGHT (black); the blanked board (as it
+    appeared) sits to the LEFT.
   • When the chosen child appears below, the finished node SHRINKS to a chip
     (blue = hit, crimson = miss — like the old breadcrumb chips) and its fan/edges
     shrink MORE, while the child pulls UP to the next slot to become active. Repeat.
   • End state: a centred vertical stack of chips down the top, each still showing
     its (shrunk) outgoing fan — except the last node, which resolves the word.
-  • Two board displays: the per-row board (right of each node) AND a top-right
-    running board aligned to the gallows' vertical centre. Misses show on the
-    gallows (a body part + the crimson tally below).
+  • Misses show on the gallows (TOP-RIGHT): a body part + the crimson tally below.
 
 Everything shown is SOURCED from the solver tree JSON (guess letters, word counts,
 revealed boards, the leaf word) — nothing is computed here. BALLPARK through the
@@ -50,19 +49,18 @@ TREE_PATH = (Path(__file__).resolve().parents[2]
 WORD = "ballpark"
 
 # ── layout (frame 16×9 → x-radius 8.0, y-radius 4.5) ──────────────────────────
-STACK_X      = 0.0     # nodes are CENTRED horizontally; count + board to the right
+STACK_X      = 0.0     # nodes are CENTRED; board to the LEFT, word-count to the RIGHT
 STACK_TOP_Y  = 3.9     # slot y of the first node; the stack grows DOWNWARD
-STACK_DY     = 0.62    # vertical gap between stack slots
+STACK_DY     = 0.85    # slot gap — roomy enough a full active node clears the chip above
 EDGE_SHRINK  = 0.25    # the fan/edges shrink MORE than the node (node → chip size)
-FAN_HALF_W   = 4.2     # active fan half-width (clears the gallows on the left)
+FAN_HALF_W   = 4.2     # active fan half-width
 FAN_DROP     = 1.4     # active fan reaches this far below the active node
 CHILD_DROP   = 1.9     # the child first appears this far below the active node
-INFO_BUFF    = 0.32    # node → count and count → board gaps
+INFO_BUFF    = 0.32    # node → count and node → board gaps
 COUNT_FS     = 16      # words-remaining count (to the right of the node)
-ROW_BOARD_FS = 15      # compact per-row board (leaves room for the top-right one)
+ROW_BOARD_FS = 15      # compact per-row board (to the left of the node)
 
-RUN_BOARD_X = 5.7     # top-right running board x; its y = the gallows centre
-HANG_POS    = np.array([-6.2, 2.6, 0])     # hangman gallows, top-left
+HANG_POS    = np.array([6.2, 2.6, 0])      # hangman gallows, TOP-RIGHT
 HANG_SCALE  = 0.34
 
 
@@ -102,15 +100,13 @@ class TreeWalk(HangmanScene):
             acc, node = after, child
         return steps
 
-    # ── build a (centred) active node + its persistent count label ────────────
+    # ── build a (centred) active node + its persistent "N words" label ────────
     def _node(self, guess, n, y):
         body, _ = guess_node(guess, n, [STACK_X, y, 0.0], count=False)
-        count = crisp_text(str(n), font_size=COUNT_FS, color=GREY_D)
+        count = crisp_text(f"{n} word" + ("" if n == 1 else "s"),
+                           font_size=COUNT_FS, color=BLACK)
         count.next_to(body, RIGHT, buff=INFO_BUFF)
         return body, count
-
-    def _run_board(self, pattern):
-        return blanked_board(pattern).move_to([RUN_BOARD_X, self.run_y, 0])
 
     # ── the recurring "expand one node" beat (subscenes a–g) ──────────────────
     def _expand(self, i, *, rt_letter, rt_fan, rt_board, rt_child, rt_stack, hold):
@@ -128,13 +124,14 @@ class TreeWalk(HangmanScene):
         fan = faint_fan(cur, s["nbranches"], end_y=cur[1] - FAN_DROP,
                         half_w=FAN_HALF_W)
         chosen = connect(cur, child_center, NODE_R, NODE_R, stroke_width=3.5)
+        VGroup(fan, chosen).set_z_index(-1)          # edges render BEHIND the nodes
         if len(fan):
             self.play(LaggedStartMap(Create, fan, lag_ratio=0.02), run_time=rt_fan)
 
-        # 3. the blanked board (as it appeared) to the RIGHT of the count; a miss
+        # 3. the blanked board (as it appeared) to the LEFT of the node; a miss
         #    draws the next hangman part & the crimson tally below the gallows
         board = blanked_board(s["board_after"], font_size=ROW_BOARD_FS).next_to(
-            self.cur_count, RIGHT, buff=INFO_BUFF)
+            self.cur_body, LEFT, buff=INFO_BUFF)
         anims = [Create(chosen), FadeIn(board, shift=RIGHT * 0.1)]
         new_missed = None
         if not s["hit"]:
@@ -164,16 +161,11 @@ class TreeWalk(HangmanScene):
         #    MORE; count + board stay readable; the child pulls up to its slot.
         crumb = chip(s["guess"], s["hit"]).move_to(cur)
         shift = UP * (CHILD_DROP - STACK_DY)         # child rises to the next slot
-        stack = [ReplacementTransform(VGroup(self.cur_body, letter), crumb),
-                 VGroup(fan, chosen).animate.scale(EDGE_SHRINK, about_point=cur),
-                 child_body.animate.shift(shift),
-                 child_count.animate.shift(shift)]
-        if s["board_after"] != s["board_before"]:    # a hit revealed new letters
-            new_run = self._run_board(s["board_after"])
-            stack.append(ReplacementTransform(self.run_board, new_run))
-        self.play(*stack, run_time=rt_stack)
-        if s["board_after"] != s["board_before"]:
-            self.run_board = new_run
+        self.play(ReplacementTransform(VGroup(self.cur_body, letter), crumb),
+                  VGroup(fan, chosen).animate.scale(EDGE_SHRINK, about_point=cur),
+                  child_body.animate.shift(shift),
+                  child_count.animate.shift(shift),
+                  run_time=rt_stack)
         self.cur_body, self.cur_count = child_body, child_count
 
     # ── setup for subscene a (root node at the top + gallows + running board) ──
@@ -189,16 +181,13 @@ class TreeWalk(HangmanScene):
         self.miss_n = 0
         self.missed = []                   # wrong-guess letters, crimson, below gallows
         self.missed_row = VGroup()
-        # top-right running board, aligned to the gallows' vertical centre
-        self.run_y = self.hang.get_center()[1]
-        self.run_board = self._run_board("_" * len(WORD))
 
     # a : root guesses 'e' (miss #1); fan 75; stack; drop into the all-blank branch
     @subscene
     def guess_e(self):
         self._setup_root()
         self.play(FadeIn(self.cur_body), FadeIn(self.cur_count), FadeIn(self.hang),
-                  FadeIn(self.run_board), run_time=0.7)
+                  run_time=0.7)
         self._expand(0, rt_letter=0.4, rt_fan=1.1, rt_board=0.8, rt_child=0.5,
                      rt_stack=1.0, hold=0.7)
 
@@ -248,14 +237,11 @@ class TreeWalk(HangmanScene):
                             weight=BOLD).move_to(cur)
         self.play(FadeIn(letter), run_time=0.4)
 
-        # the last node has NO outgoing edge; the completed word fills in to its
-        # right (blue) and the top-right running board completes too.
+        # the last node has NO outgoing edge; the completed word (blue) fills in to
+        # its left.
         board = blanked_board(s["board_after"], font_size=ROW_BOARD_FS).next_to(
-            self.cur_count, RIGHT, buff=INFO_BUFF)
-        new_run = self._run_board(s["board_after"])
-        self.play(FadeIn(board, shift=RIGHT * 0.1),
-                  ReplacementTransform(self.run_board, new_run), run_time=0.8)
-        self.run_board = new_run
+            self.cur_body, LEFT, buff=INFO_BUFF)
+        self.play(FadeIn(board, shift=LEFT * 0.1), run_time=0.8)
 
         # settle the last node into the stack as a chip (a hit → blue), no edges
         crumb = chip(s["guess"], s["hit"]).move_to(cur)
