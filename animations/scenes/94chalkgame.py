@@ -32,7 +32,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from config import *
 from bpkfigures.speech_bubble import speech_bubble
-from assets.chalkboard import chalkboard, CHALK
+from assets.chalkboard import chalkboard, chalk_letter, CHALK
 from assets.hangman_board import hangman_drawing
 
 # ── the game (guess order from scene 95; hits derived from the word) ───────────
@@ -47,24 +47,25 @@ BLANK_GAP    = 0.22     # gap between blanks
 BLANK_CX     = -3.0     # blank-row centre x (left side of the board)
 BLANK_Y      = -0.2     # blank-row baseline y
 BLANK_SW     = 6.0      # chalk stroke width for the rules
-LETTER_FS    = 44       # a revealed letter, sitting above its rule
-LETTER_SW    = 3.0      # chalk-outline stroke: letters are DRAWN, not filled
-LETTER_BUFF  = 0.12
+LETTER_H     = 0.62     # cap height of a revealed letter (drawn as strokes)
+LETTER_SW    = 4.5      # chalk stroke width for a revealed letter
+LETTER_BUFF  = 0.14
 
 HANG_SCALE   = 1.2                      # gallows on the RIGHT
 HANG_POS     = np.array([4.3, 0.5, 0])
 HANG_SW      = 6.0
-MISS_FS      = 40                       # wrong letters, chalked below the gallows
-MISS_SW      = 2.6
+MISS_H       = 0.50                     # wrong letters, chalked below the gallows
+MISS_SW      = 4.0
 MISS_X       = 3.3                      # left edge of the miss row
 MISS_Y       = -2.75
-MISS_GAP     = 0.30
+MISS_GAP     = 0.34
 
-# the guesser is off the LEFT edge: the bubble sits upper-left, its left-pointing
-# tail reaching toward the screen edge (BALLPARK's blanks sit lower, clear of it).
-BUBBLE_POS   = np.array([-5.2, 2.7, 0])
+# the guesser is off the LEFT edge: the tail TIP sits at the screen edge and the
+# bubble grows from there (the blanks sit lower, clear of it). Anchored by the
+# tip — NOT move_to, whose group-bbox centring pulls the long tail inward.
+BUBBLE_TIP   = np.array([-7.9, 2.4, 0])  # x-radius is 8.0 → -7.9 ≈ the left edge
 BUBBLE_FS    = 56
-BUBBLE_TAIL  = 1.5      # tail length — reaches the board's left edge
+BUBBLE_TAIL  = 1.5      # tail length
 
 
 class ChalkGame(HangmanScene):
@@ -86,32 +87,26 @@ class ChalkGame(HangmanScene):
         self.add(self.cb)
 
     # ── small chalk builders ──────────────────────────────────────────────────
-    def _chalk(self, ch, font_size, stroke_width):
-        """A chalk-OUTLINE letter (no fill, chalk stroke) so Create draws it on
-        like the gallows/blanks, rather than a filled glyph fading in."""
-        t = crisp_text(ch.upper(), font_size=font_size, color=CHALK)
-        t.set_fill(opacity=0.0).set_stroke(CHALK, width=stroke_width)
-        return t
-
     def _reveal_letter(self, ch, rule):
-        t = self._chalk(ch, LETTER_FS, LETTER_SW)
-        t.next_to(rule, UP, buff=LETTER_BUFF)
-        t.set_x(rule.get_center()[0])
-        return t
+        L = chalk_letter(ch, height=LETTER_H, stroke_width=LETTER_SW, color=CHALK)
+        L.next_to(rule, UP, buff=LETTER_BUFF)
+        L.set_x(rule.get_center()[0])
+        return L
 
     def _miss_letter(self, ch):
-        t = self._chalk(ch, MISS_FS, MISS_SW)
+        L = chalk_letter(ch, height=MISS_H, stroke_width=MISS_SW, color=CHALK)
         if len(self.miss_row):
-            t.next_to(self.miss_row[-1], RIGHT, buff=MISS_GAP)
+            L.next_to(self.miss_row[-1], RIGHT, buff=MISS_GAP)
         else:
-            t.move_to([MISS_X, MISS_Y, 0]).align_to([MISS_X, 0, 0], LEFT)
-        self.miss_row.add(t)
-        return t
+            L.move_to([MISS_X, MISS_Y, 0]).align_to([MISS_X, 0, 0], LEFT)
+        self.miss_row.add(L)
+        return L
 
     def _bubble(self, ch):
         b = speech_bubble(ch.upper(), font_size=BUBBLE_FS, tail="left",
                           tail_len=BUBBLE_TAIL)
-        return b.move_to(BUBBLE_POS)
+        b.shift(BUBBLE_TIP - b.tip_dot.get_center())   # anchor the tail tip
+        return b
 
     # ── the recurring "play one guess" beat (subscenes c–j) ───────────────────
     def _guess(self, i, *, rt_bubble, rt_write, rt_part, rt_out):
@@ -126,11 +121,12 @@ class ChalkGame(HangmanScene):
         # 2. the letter is chalked onto the board
         if hit:
             letters = [self._reveal_letter(g, self.rules[p]) for p in positions]
-            self.play(*[Create(t) for t in letters], run_time=rt_write)
+            self.play(*[LaggedStartMap(Create, L, lag_ratio=0.5) for L in letters],
+                      run_time=rt_write)
         else:
             # a miss: the letter goes below the gallows, THEN the next body part
             miss = self._miss_letter(g)
-            self.play(Create(miss), run_time=rt_write)
+            self.play(LaggedStartMap(Create, miss, lag_ratio=0.5), run_time=rt_write)
             part = self.hang_parts[self.miss_n]
             self.hang.add(part)
             self.miss_n += 1
