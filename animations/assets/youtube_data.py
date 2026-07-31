@@ -64,6 +64,7 @@ def build():
     config.load_dotenv()
     conn = db.connect(os.environ["DATABASE_URL"])
     cur = conn.cursor()
+    media = Path(__file__).resolve().parent / "youtube_media"
     out = {}
     for key, vid in VIDEOS.items():
         cur.execute(
@@ -98,15 +99,25 @@ def build():
                 "sampled_at": observed.isoformat() if observed else None,
             },
         }
+        # pre-masked images committed under youtube_media/ (rounded thumbnail,
+        # circle-cropped avatar), produced by youtube_media/fetch.py.
+        for field, suffix in (("thumbnail", "thumb"), ("avatar", "avatar")):
+            rel = f"youtube_media/{key}_{suffix}.png"
+            out[key][field] = rel if (media / f"{key}_{suffix}.png").exists() else None
     conn.close()
     CACHE.write_text(json.dumps(out, indent=1))
     return out
 
 
 def get(key):
-    """Card kwargs (title, channel, meta, duration) for `key`, read from the cache."""
+    """Card kwargs (title, channel, meta, duration, thumbnail, avatar) for `key`,
+    read from the cache. Image paths are resolved to absolute (per machine)."""
     d = json.loads(CACHE.read_text())[key]
-    return {k: d[k] for k in ("title", "channel", "meta", "duration")}
+    out = {k: d[k] for k in ("title", "channel", "meta", "duration")}
+    for field in ("thumbnail", "avatar"):
+        rel = d.get(field)
+        out[field] = str(CACHE.parent / rel) if rel else None
+    return out
 
 
 if __name__ == "__main__":
