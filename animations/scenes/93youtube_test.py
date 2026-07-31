@@ -6,8 +6,9 @@ Tried with a single real video, Jan Misali's "hangman is a weird game".
   b watch — full-screen watch page
   c home  — full-screen homepage grid (3 cols); Misali present, rest greyed out
 
-NOTE: the view count / upload date / duration are PLACEHOLDERS — not in the repo.
-Swap in the tracked analytics numbers (and a real thumbnail) when available.
+These are just a SERIES OF IMAGES with no animation between them, so each frame is
+a `@still` subscene: the framework renders it from a CLEAN, EMPTY frame (no
+carry-over, no snapshot) — no manual clear-out needed between beats.
 
 Render:  render 93a --fast   /   render 93b --fast   /   render 93c --fast
 """
@@ -29,12 +30,8 @@ MISALI = yt_get("hangman")
 
 class YouTubeTest(HangmanScene):
 
-    def _clear(self):
-        if self.mobjects:
-            self.play(*[FadeOut(m) for m in self.mobjects], run_time=0.3)
-
     # a : the grid card, light and dark
-    @subscene
+    @still
     def card(self):
         light = youtube_card(**MISALI, width=6.4).to_edge(LEFT, buff=0.6)
         dark = youtube_card(**MISALI, width=6.4, dark=True).to_edge(RIGHT, buff=0.6)
@@ -42,16 +39,14 @@ class YouTubeTest(HangmanScene):
                   run_time=0.7)
 
     # b : full-screen watch page
-    @subscene
+    @still
     def watch(self):
-        self._clear()
         page = youtube_watch(**MISALI, dark=True)
         self.play(FadeIn(page), run_time=0.6)
 
     # c : full-screen homepage grid — Misali present, the rest greyed out
-    @subscene
+    @still
     def home(self):
-        self._clear()
         cells = [MISALI, None, None, None, None, None]     # 3 cols × 2 rows
         page = youtube_home(cells, cols=3, dark=False)
         self.play(FadeIn(page), run_time=0.6)
