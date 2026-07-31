@@ -65,7 +65,7 @@ import numpy as np
 
 from strategy import GreedyGame, ALPHABET
 from tree_complete import complete_tree
-from wordlist import DEFAULT_ZIPF, resolve_weighting
+from wordlist import DEFAULT_ZIPF, resolve_weighting, load as wl_load
 
 try:
     from tqdm import tqdm
@@ -959,12 +959,17 @@ def _main(argv) -> None:
     lb_cap = memo_bytes = "auto"
     save_every = 3600.0                                  # seconds between mid-cap saves (1 hour)
     max_cap = None                                       # None -> from 2nd positional, else default 64
+    variant = "us"                                       # dictionary variant (us default; e.g. gb)
     it = iter(argv)
     for a in it:
         if a == "--weighted":
             weighted = next(it, "greedy")
         elif a.startswith("--weighted="):
             weighted = a.split("=", 1)[1]
+        elif a == "--variant":
+            variant = next(it, "us")
+        elif a.startswith("--variant="):
+            variant = a.split("=", 1)[1]
         elif a == "--uncapped":
             uncapped = True
         elif a == "--no-trees":
@@ -995,12 +1000,20 @@ def _main(argv) -> None:
     if max_cap is None:
         max_cap = pos[1] if len(pos) > 1 else 64
     lengths = [length]
-    SHARED_DIR.mkdir(parents=True, exist_ok=True)
-    LOCAL_DIR.mkdir(parents=True, exist_ok=True)
+    # Per-variant output dirs: "us" keeps the original data/shared/optimal/ and
+    # data/local/optimal/; other variants go under data/{shared,local}/<variant>/optimal/.
+    shared_dir = SHARED_DIR if variant == "us" else SHARED_DIR.parent / variant / "optimal"
+    local_dir = LOCAL_DIR if variant == "us" else LOCAL_DIR.parent / variant / "optimal"
+    shared_dir.mkdir(parents=True, exist_ok=True)
+    local_dir.mkdir(parents=True, exist_ok=True)
+    if variant != "us":
+        print(f"[variant {variant!r}] output -> {shared_dir}")
 
     for L in lengths:
         print(f"\n===== length {L} =====")
-        game = GreedyGame(L)
+        words = None if variant == "us" else [
+            w.text for w in wl_load(min_len=L, max_len=L, variant=variant)]
+        game = GreedyGame(L, words=words)
         solver = OptimalSolver(game)
         pm = game.per_word_misses(None)
         print(f"greedy: avg {game.average_misses():.4f}, max misses {int(pm.max())}, "
@@ -1010,7 +1023,7 @@ def _main(argv) -> None:
         # frequency), or a freq_search objective (adversarial hardest-to-guess).
         weighting = weighted or "uniform"
         try:
-            wfreq = resolve_weighting(weighting, L)
+            wfreq = resolve_weighting(weighting, L, variant=variant)
         except FileNotFoundError as e:                # freq_search obj not run yet
             print(f"-- {weighting}: {e}\n   skipping length {L} --")
             continue
@@ -1018,9 +1031,9 @@ def _main(argv) -> None:
         if uncapped:
             solver.solve(wfreq)
         else:
-            log = SHARED_DIR / f"len{L:02d}_{weighting}.csv"
+            log = shared_dir / f"len{L:02d}_{weighting}.csv"
             solver.deepen(wfreq, log_path=log, save_trees=trees, max_cap=max_cap,
-                          checkpoint=LOCAL_DIR / f"{log.stem}.ckpt", resume=not fresh,
+                          checkpoint=local_dir / f"{log.stem}.ckpt", resume=not fresh,
                           lb_cap=lb_cap, memo_bytes=memo_bytes,
                           checkpoint_interval=save_every)
 

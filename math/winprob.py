@@ -40,8 +40,8 @@ MEMO_FORMAT = 3                        # bump if the solver's stored values chan
 
 
 class WinProbSolver:
-    def __init__(self, length, freq=None, weighting=None):
-        s = OptimalSolver(length=length)
+    def __init__(self, length, freq=None, weighting=None, game=None):
+        s = OptimalSolver(game=game, length=length)
         s.freq = s.game._coerce_freq(freq)
         self.s = s
         self.game = s.game
@@ -308,7 +308,7 @@ class WinProbSolver:
 
 def _main():
     import sys
-    weighting, fresh, pos = "uniform", False, []
+    weighting, fresh, pos, variant = "uniform", False, [], "us"
     it = iter(sys.argv[1:])
     for a in it:
         if a == "--fresh":                           # ignore any saved memo, start cold
@@ -317,20 +317,30 @@ def _main():
             weighting = next(it, "zipf")
         elif a.startswith("--weighted="):
             weighting = a.split("=", 1)[1]
+        elif a == "--variant":                       # dictionary variant (us default; e.g. gb)
+            variant = next(it, "us")
+        elif a.startswith("--variant="):
+            variant = a.split("=", 1)[1]
         elif not a.startswith("--"):
             pos.append(a)
     L = int(pos[0])
     N = int(pos[1]) if len(pos) > 1 else 8
     hb = float(pos[2]) if len(pos) > 2 else 60.0     # heartbeat seconds
     import wordlist
-    wp = WinProbSolver(L, freq=wordlist.resolve_weighting(weighting, L),
-                       weighting=weighting)   # raises on unknown/not-yet-run weightings
+    from strategy import GreedyGame
+    game = None if variant == "us" else GreedyGame(L, words=[
+        w.text for w in wordlist.load(min_len=L, max_len=L, variant=variant)])
+    wp = WinProbSolver(L, freq=wordlist.resolve_weighting(weighting, L, variant=variant),
+                       weighting=weighting, game=game)   # raises on unknown/not-yet-run weightings
     wp._heartbeat = hb
     wp._t0 = wp._last_beat = wp._last_ckpt = time.perf_counter()
 
+    # Per-variant output dirs: "us" keeps data/{shared,local}/winprob/; others go
+    # under data/{shared,local}/<variant>/winprob/.
     base = Path(__file__).resolve().parent / "data"
-    shared_dir = base / "shared" / "winprob"         # committed: final trees
-    local_dir = base / "local" / "winprob"           # gitignored: resume checkpoints
+    vsub = "winprob" if variant == "us" else f"{variant}/winprob"
+    shared_dir = base / "shared" / vsub              # committed: final trees
+    local_dir = base / "local" / vsub                # gitignored: resume checkpoints
     shared_dir.mkdir(parents=True, exist_ok=True)
     local_dir.mkdir(parents=True, exist_ok=True)
     memo_path = local_dir / f"len{L:02d}_{wp.weighting}.memo.pkl"
