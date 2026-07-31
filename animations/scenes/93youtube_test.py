@@ -19,12 +19,12 @@ sys.path.append(str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from config import *
 from bpkfigures.youtube_card import youtube_card, youtube_watch, youtube_home
+from assets.youtube_data import get as yt_get
 
-# Jan Misali's "hangman is a weird game" — SOURCED from the analytics DB (pinned
-# video le5uGqHKll8, latest sample 2026-07-31): 7,325,604 views, published
-# 2020-04-24, 1170s runtime. Shown YouTube-style (7.3M / 6 years / 19:30).
-MISALI = dict(title="hangman is a weird game", channel="jan Misali",
-              meta="7.3M views · 6 years ago", duration="19:30")
+# Jan Misali's "hangman is a weird game" — SOURCED from the analytics DB via the
+# committed youtube_cache.json (title/channel/views/duration). To refresh the
+# numbers: run assets/youtube_data.py with the analytics venv, then re-render.
+MISALI = yt_get("hangman")
 
 
 class YouTubeTest(HangmanScene):
