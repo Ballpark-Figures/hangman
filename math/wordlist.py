@@ -41,6 +41,12 @@ DATA_FILE = Path(__file__).resolve().parent / "data" / "wordlist_master.txt"
 # The chosen game cutoff -- words familiar to about half of players.
 DEFAULT_ZIPF = 2.5
 
+# Dictionary VARIANTS -> master wordlist file. "us" is the original file; others
+# (e.g. British "gb") live under data/<variant>/, built by
+# `build_wordlist.py --variant <v>`. Every loader takes a `variant="us"` kwarg so
+# the US path is byte-for-byte unchanged when it is omitted.
+_MASTERS = {"us": DATA_FILE, "gb": DATA_FILE.parent / "gb" / "wordlist_master.txt"}
+
 
 @dataclass(frozen=True)
 class Word:
@@ -51,11 +57,12 @@ class Word:
     rank: int    # 0-based frequency rank in the full file (0 == most common)
 
 
-@lru_cache(maxsize=1)
-def _raw() -> tuple[Word, ...]:
-    """Parse the master file once (cached). Preserves frequency order."""
+@lru_cache(maxsize=None)
+def _raw(variant: str = "us") -> tuple[Word, ...]:
+    """Parse a variant's master file once (cached per variant). Preserves frequency
+    order. ``_raw()`` (no arg) is the original US list."""
     words: list[Word] = []
-    with DATA_FILE.open(encoding="utf-8") as fh:
+    with _MASTERS[variant].open(encoding="utf-8") as fh:
         for rank, line in enumerate(fh):
             text, _, zipf = line.partition("\t")
             words.append(Word(text, float(zipf), rank))
@@ -68,6 +75,7 @@ def load(
     max_len: int | None = None,
     min_zipf: float = DEFAULT_ZIPF,
     max_zipf: float | None = None,
+    variant: str = "us",
 ) -> list[Word]:
     """Return master-list words in frequency order, filtered.
 
@@ -86,7 +94,7 @@ def load(
         A list of :class:`Word`, most-common first.
     """
     out = []
-    for w in _raw():
+    for w in _raw(variant):
         if w.zipf < min_zipf:
             continue
         if max_zipf is not None and w.zipf > max_zipf:
@@ -104,6 +112,7 @@ def freq_weights(
     min_len: int = 1,
     max_len: int | None = None,
     min_zipf: float = DEFAULT_ZIPF,
+    variant: str = "us",
 ) -> dict[str, float]:
     """``{word: weight}`` for frequency-weighted play (vs. uniform).
 
@@ -115,10 +124,12 @@ def freq_weights(
     ``{word: weight}`` dict).
     """
     return {w.text: float(round(10.0 ** w.zipf))
-            for w in load(min_len=min_len, max_len=max_len, min_zipf=min_zipf)}
+            for w in load(min_len=min_len, max_len=max_len, min_zipf=min_zipf,
+                          variant=variant)}
 
 
-def resolve_weighting(name: str, length: int, *, min_zipf: float = DEFAULT_ZIPF):
+def resolve_weighting(name: str, length: int, *, min_zipf: float = DEFAULT_ZIPF,
+                      variant: str = "us"):
     """Map a ``--weighted`` NAME to a solver ``freq`` (shared by optimal.py,
     winprob.py, winprob_check.py). Single source of truth for which weightings
     exist. RAISES on anything unrecognized -- never silently falls back:
@@ -138,7 +149,13 @@ def resolve_weighting(name: str, length: int, *, min_zipf: float = DEFAULT_ZIPF)
     if name == "uniform":
         return None
     if name == "zipf":
-        return freq_weights(min_len=length, max_len=length, min_zipf=min_zipf)
+        return freq_weights(min_len=length, max_len=length, min_zipf=min_zipf,
+                            variant=variant)
+    if variant != "us":
+        raise FileNotFoundError(
+            f"weighting {name!r}: adversarial weightings are not set up for the "
+            f"{variant!r} dictionary yet (they need a per-variant freq_search run); "
+            f"use 'uniform' or 'zipf' for {variant!r}")
     import freq_search
     # Adversarial word-setters, two reconstruction modes distinguished by a
     # "_word" suffix: bare "<obj>" is the per-(letter,pattern) multiplier search;
