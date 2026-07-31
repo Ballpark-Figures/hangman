@@ -41,14 +41,21 @@ ALPHABET = strategy.ALPHABET
 _SHARED = Path(__file__).resolve().parent / "data" / "shared"
 
 
+def _shared_base(variant: str = "us") -> Path:
+    """Committed solver-output root for a dictionary variant. "us" is the original
+    ``data/shared/`` (unchanged); other variants live under ``data/shared/<variant>/``."""
+    return _SHARED if variant == "us" else _SHARED / variant
+
+
 # --------------------------------------------------------------------------- #
 # freq resolution (never lets a missing distribution crash the notebook)
 # --------------------------------------------------------------------------- #
-def _resolve_freq(weighting: str, length: int, min_zipf: float):
+def _resolve_freq(weighting: str, length: int, min_zipf: float, variant: str = "us"):
     """``(freq, note)`` for ``weighting`` -- ``note`` is set only on failure
     (e.g. a word-mode CSV that has not been generated yet)."""
     try:
-        return wordlist.resolve_weighting(weighting, length, min_zipf=min_zipf), None
+        return wordlist.resolve_weighting(weighting, length, min_zipf=min_zipf,
+                                          variant=variant), None
     except (FileNotFoundError, ValueError) as e:
         return None, str(e)
 
@@ -447,13 +454,13 @@ class TreeStrategyView(StrategyView):
 # --------------------------------------------------------------------------- #
 # loaders
 # --------------------------------------------------------------------------- #
-def _optimal_cap_file(weighting: str, length: int):
+def _optimal_cap_file(weighting: str, length: int, variant: str = "us"):
     """``(path, cap, converged)`` for the best committed optimal tree, or None.
 
     Prefers the cap the convergence log marks ``converged == 1`` (the proven
     uncapped optimum); otherwise the deepest cap on disk (a capped approximation,
     flagged by ``converged == False``)."""
-    d = _SHARED / "optimal"
+    d = _shared_base(variant) / "optimal"
     caps = {}
     for p in glob.glob(str(d / f"len{length:02d}_{weighting}_cap*.json")):
         m = re.search(r"_cap(\d+)\.json$", p)
@@ -475,8 +482,9 @@ def _optimal_cap_file(weighting: str, length: int):
     return caps[cap], cap, False
 
 
-def _load_optimal(game, freq, weighting, length, min_zipf, *, greedy_finish=True):
-    found = _optimal_cap_file(weighting, length)
+def _load_optimal(game, freq, weighting, length, min_zipf, *, greedy_finish=True,
+                  variant="us"):
+    found = _optimal_cap_file(weighting, length, variant)
     if found is None:
         note = (f"no committed optimal solve for length {length}, weighting "
                 f"{weighting!r} (only some weightings are solved) -- run "
@@ -510,8 +518,8 @@ def _load_optimal(game, freq, weighting, length, min_zipf, *, greedy_finish=True
     return view
 
 
-def _winprob_budgets(weighting: str, length: int) -> list[int]:
-    d = _SHARED / "winprob"
+def _winprob_budgets(weighting: str, length: int, variant: str = "us") -> list[int]:
+    d = _shared_base(variant) / "winprob"
     out = []
     for p in glob.glob(str(d / f"len{length:02d}_{weighting}_n*.json")):
         m = re.search(r"_n(\d+)\.json$", p)
@@ -520,8 +528,8 @@ def _winprob_budgets(weighting: str, length: int) -> list[int]:
     return sorted(out)
 
 
-def _load_winprob(game, freq, weighting, length, budget, min_zipf):
-    budgets = _winprob_budgets(weighting, length)
+def _load_winprob(game, freq, weighting, length, budget, min_zipf, variant="us"):
+    budgets = _winprob_budgets(weighting, length, variant)
     if not budgets:
         note = (f"no committed winprob solve for length {length}, weighting "
                 f"{weighting!r} -- run "
@@ -535,7 +543,7 @@ def _load_winprob(game, freq, weighting, length, budget, min_zipf):
                 f"weighting {weighting!r}; available: {budgets}")
         return UnavailableView(game, freq, weighting, "winprob",
                                f"winprob ({weighting}, k={budget})", note)
-    path = _SHARED / "winprob" / f"len{length:02d}_{weighting}_n{budget:02d}.json"
+    path = _shared_base(variant) / "winprob" / f"len{length:02d}_{weighting}_n{budget:02d}.json"
     payload = json.loads(path.read_text())
     label = f"winprob ({weighting}, k={budget})"
     view = TreeStrategyView(game, freq, weighting, "winprob", label,
@@ -557,7 +565,8 @@ STRATEGIES = ("greedy", "greedy_best", "optimal", "winprob")
 def make_strategy(name: str, length: int, *, weighting: str = "uniform",
                   budget: int | None = None, fill_capped: bool = True,
                   min_zipf: float = wordlist.DEFAULT_ZIPF,
-                  game: strategy.GreedyGame | None = None) -> StrategyView:
+                  game: strategy.GreedyGame | None = None,
+                  variant: str = "us") -> StrategyView:
     """Build the notebook's uniform view for ``name`` at ``length``/``weighting``.
 
     ``name`` in :data:`STRATEGIES`. ``budget`` picks the winprob miss budget k
@@ -569,9 +578,16 @@ def make_strategy(name: str, length: int, *, weighting: str = "uniform",
     """
     if name not in STRATEGIES:
         raise ValueError(f"unknown strategy {name!r}; choose one of {STRATEGIES}")
-    g = game if game is not None and game.length == length else \
-        strategy.GreedyGame(length, min_zipf=min_zipf)
-    freq, ferr = _resolve_freq(weighting, length, min_zipf)
+    # Reuse a passed-in game only for the default "us" variant (a passed game is
+    # built from the US wordlist); for another variant always build from its words.
+    if game is not None and game.length == length and variant == "us":
+        g = game
+    else:
+        words = None if variant == "us" else [
+            w.text for w in wordlist.load(min_len=length, max_len=length,
+                                          min_zipf=min_zipf, variant=variant)]
+        g = strategy.GreedyGame(length, min_zipf=min_zipf, words=words)
+    freq, ferr = _resolve_freq(weighting, length, min_zipf, variant)
 
     if name in ("greedy", "greedy_best"):
         if ferr is not None:
@@ -579,5 +595,5 @@ def make_strategy(name: str, length: int, *, weighting: str = "uniform",
         return GreedyStrategyView(g, freq, weighting, name)
     if name == "optimal":
         return _load_optimal(g, freq, weighting, length, min_zipf,
-                             greedy_finish=fill_capped)
-    return _load_winprob(g, freq, weighting, length, budget, min_zipf)
+                             greedy_finish=fill_capped, variant=variant)
+    return _load_winprob(g, freq, weighting, length, budget, min_zipf, variant=variant)
