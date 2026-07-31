@@ -20,10 +20,11 @@ sys.path.append(str(Path(__file__).resolve().parent.parent.parent.parent))
 from config import *
 from bpkfigures.youtube_card import youtube_card, youtube_watch, youtube_home
 
-# real title + channel; PLACEHOLDER stats until the real numbers are in: dashes for
-# the meta line, and duration=None (no badge) rather than an invented time.
+# Jan Misali's "hangman is a weird game" — SOURCED from the analytics DB (pinned
+# video le5uGqHKll8, latest sample 2026-07-31): 7,325,604 views, published
+# 2020-04-24, 1170s runtime. Shown YouTube-style (7.3M / 6 years / 19:30).
 MISALI = dict(title="hangman is a weird game", channel="jan Misali",
-              meta="— views · —", duration=None)
+              meta="7.3M views · 6 years ago", duration="19:30")
 
 
 class YouTubeTest(HangmanScene):
