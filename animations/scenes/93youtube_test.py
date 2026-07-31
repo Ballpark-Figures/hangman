@@ -8,9 +8,10 @@ Tried with a single real video, Jan Misali's "hangman is a weird game".
 
 These are just a SERIES OF IMAGES with no animation between them, so each frame is
 a `@still` subscene: the framework renders it from a CLEAN, EMPTY frame (no
-carry-over, no snapshot) — no manual clear-out needed between beats.
+carry-over, no snapshot) and emits a still PNG (manim `-s`) under
+`media/images/93youtube_test/<res>/` — not a video. Build each with `self.add`.
 
-Render:  render 93a --fast   /   render 93b --fast   /   render 93c --fast
+Render:  render 93 all   (one PNG per subscene)   /   render 93a --fast
 """
 from pathlib import Path
 import sys
@@ -35,18 +36,15 @@ class YouTubeTest(HangmanScene):
     def card(self):
         light = youtube_card(**MISALI, width=6.4).to_edge(LEFT, buff=0.6)
         dark = youtube_card(**MISALI, width=6.4, dark=True).to_edge(RIGHT, buff=0.6)
-        self.play(FadeIn(light, shift=UP * 0.2), FadeIn(dark, shift=UP * 0.2),
-                  run_time=0.7)
+        self.add(light, dark)
 
     # b : full-screen watch page
     @still
     def watch(self):
-        page = youtube_watch(**MISALI, dark=True)
-        self.play(FadeIn(page), run_time=0.6)
+        self.add(youtube_watch(**MISALI, dark=True))
 
     # c : full-screen homepage grid — Misali present, the rest greyed out
     @still
     def home(self):
         cells = [MISALI, None, None, None, None, None]     # 3 cols × 2 rows
-        page = youtube_home(cells, cols=3, dark=False)
-        self.play(FadeIn(page), run_time=0.6)
+        self.add(youtube_home(cells, cols=3, dark=False))
