@@ -2,9 +2,11 @@
 
 Tried with a single real video, Jan Misali's "hangman is a weird game".
 
-  a card  — the grid card (light + dark)
-  b watch — full-screen watch page
-  c home  — full-screen homepage grid (3 cols); Misali present, rest greyed out
+  a card     — the grid card (light + dark, side by side)
+  b watch_lt — full-screen watch page (light)
+  c watch_dk — full-screen watch page (dark)
+  d home_lt  — full-screen homepage grid (3 cols, light); Misali present, rest greyed
+  e home_dk  — full-screen homepage grid (dark)
 
 These are just a SERIES OF IMAGES with no animation between them, so each frame is
 a `@still` subscene: the framework renders it from a CLEAN, EMPTY frame (no
@@ -38,13 +40,24 @@ class YouTubeTest(HangmanScene):
         dark = youtube_card(**MISALI, width=6.4, dark=True).to_edge(RIGHT, buff=0.6)
         self.add(light, dark)
 
-    # b : full-screen watch page
+    # b : full-screen watch page (light)
     @still
-    def watch(self):
+    def watch_lt(self):
+        self.add(youtube_watch(**MISALI, dark=False))
+
+    # c : full-screen watch page (dark)
+    @still
+    def watch_dk(self):
         self.add(youtube_watch(**MISALI, dark=True))
 
-    # c : full-screen homepage grid — Misali present, the rest greyed out
+    # d : full-screen homepage grid (light) — Misali present, the rest greyed out
     @still
-    def home(self):
+    def home_lt(self):
         cells = [MISALI, None, None, None, None, None]     # 3 cols × 2 rows
         self.add(youtube_home(cells, cols=3, dark=False))
+
+    # e : full-screen homepage grid (dark)
+    @still
+    def home_dk(self):
+        cells = [MISALI, None, None, None, None, None]     # 3 cols × 2 rows
+        self.add(youtube_home(cells, cols=3, dark=True))
