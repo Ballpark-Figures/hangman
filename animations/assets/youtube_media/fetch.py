@@ -7,21 +7,40 @@ RENDER venv (it ships Pillow):
 
     <video>/.venv/bin/python animations/assets/youtube_media/fetch.py
 
-Sources: the thumbnail is the public CDN still (i.ytimg.com — no API); the avatar is
-the channel page's og:image (the local analytics `.env` has no usable Data-API key).
-Refresh rarely — a thumbnail/avatar changes seldom. Keep the id/handle list in step
-with youtube_data.VIDEOS.
+Both URLs come from the YouTube Data API (`videos.list` → the video's thumbnail +
+channelId, `channels.list` → the channel avatar), authenticated with the
+`YOUTUBE_API_KEY` in `analytics/.env`. Refresh rarely — a thumbnail/avatar changes
+seldom. Keep the id list in step with youtube_data.VIDEOS.
 """
 import io
-import re
+import json
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageOps
 
 OUT = Path(__file__).resolve().parent
-# scene key -> (YouTube video id, channel @handle)
-VIDEOS = {"hangman": ("le5uGqHKll8", "@hbmmaster")}
+_ENV = Path(__file__).resolve().parents[4] / "analytics" / ".env"
+VIDEOS = {"hangman": "le5uGqHKll8"}   # scene key -> YouTube video id
+
+
+def _api_key():
+    for line in _ENV.read_text().splitlines():
+        k, _, v = line.partition("=")
+        if k.strip() == "YOUTUBE_API_KEY":
+            return v.strip().strip('"').strip("'")
+    raise RuntimeError(f"YOUTUBE_API_KEY not found in {_ENV}")
+
+
+_KEY = _api_key()
+
+
+def _api(endpoint, **params):
+    params["key"] = _KEY
+    url = f"https://www.googleapis.com/youtube/v3/{endpoint}?" + urllib.parse.urlencode(params)
+    with urllib.request.urlopen(url) as r:
+        return json.load(r)
 
 
 def _get(url):
@@ -30,12 +49,15 @@ def _get(url):
         return r.read()
 
 
-def _avatar_url(handle):
-    html = _get(f"https://www.youtube.com/{handle}").decode("utf-8", "ignore")
-    m = re.search(r'<meta property="og:image" content="([^"]+)"', html)
-    if not m:
-        raise RuntimeError(f"no og:image (avatar) found for {handle}")
-    return m.group(1)
+def _best(thumbnails):
+    for size in ("maxres", "standard", "high", "medium", "default"):
+        if size in thumbnails:
+            return thumbnails[size]["url"]
+    raise RuntimeError("no thumbnail sizes returned")
+
+
+def _open(data):
+    return Image.open(io.BytesIO(data)).convert("RGBA")
 
 
 def _rounded(img, frac=0.045):
@@ -56,14 +78,13 @@ def _circle(img):
     return img
 
 
-def _open(data):
-    return Image.open(io.BytesIO(data)).convert("RGBA")
-
-
 if __name__ == "__main__":
-    for key, (vid, handle) in VIDEOS.items():
-        thumb = _rounded(_open(_get(f"https://i.ytimg.com/vi/{vid}/maxresdefault.jpg")))
+    for key, vid in VIDEOS.items():
+        v = _api("videos", part="snippet", id=vid)["items"][0]["snippet"]
+        chan = _api("channels", part="snippet", id=v["channelId"])["items"][0]["snippet"]
+
+        thumb = _rounded(_open(_get(_best(v["thumbnails"]))))
         thumb.save(OUT / f"{key}_thumb.png")
-        avatar = _circle(_open(_get(_avatar_url(handle))))
+        avatar = _circle(_open(_get(_best(chan["thumbnails"]))))
         avatar.save(OUT / f"{key}_avatar.png")
         print(f"{key}: {key}_thumb.png {thumb.size}, {key}_avatar.png {avatar.size}")
