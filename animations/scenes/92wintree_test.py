@@ -45,6 +45,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent.parent.parent))
 from config import *
 from manim import MovingCameraScene
 from assets.chalkboard import CHALK, BOARD_NAVY
+from assets.hangman_board import merge_pattern, hangman_drawing
 
 # ── sourced data: winprob tree, len-3 uniform, budget n=5 ─────────────────────
 TREE_PATH = (Path(__file__).resolve().parents[2]
@@ -68,6 +69,14 @@ DOT_R_MIN   = 0.012
 DOT_APPEAR  = 0.9    # a node's dot stays hidden until this fraction of its row's draw
 NODE_LETTER_H = 1.3   # guess-letter height as a multiple of the node radius
 
+# ── board-state annotations (blanks + gallows) — sizes/offsets as fractions of the
+#    camera width at the relevant depth, so they stay a constant on-screen size ────
+BLK_H   = 0.07        # blank rule/letter height
+GAL_H   = 0.22        # gallows height
+ANN_DX  = 0.34        # horizontal offset: blanks to the LEFT, gallows to the RIGHT
+ANN_UP  = 0.12        # how far ABOVE the root the blanks/gallows sit
+ANN_SW  = 2.2         # stroke width for blanks rules / gallows (screen-ish, ~constant)
+
 
 def _appear_at_end(t):
     """Rate-func: hold at 0 until DOT_APPEAR (the edge has ~reached the node), then
@@ -76,8 +85,8 @@ def _appear_at_end(t):
 
 # ── camera dive ───────────────────────────────────────────────────────────────
 ROW_TIME    = 2.0     # every guess-row grows in the SAME time, at a linear rate
-CAM_W_START = 4.5     # camera frame width at the root (zoomed-in start)
-CAM_W_END   = 0.8     # camera frame width at the leaf (tight close-up)
+CAM_W_START = 3.0     # camera frame width at the root (zoomed-in start)
+CAM_W_END   = 0.5     # camera frame width at the leaf (tight close-up)
 CAM_FULL_W  = 16.0    # full-frame width for the zoom-out beat
 ZOOM_OUT_RT = 3.2
 
@@ -96,11 +105,22 @@ class WinTree(MovingCameraScene, HangmanScene):
         self.tree = json.loads(TREE_PATH.read_text())["tree"]
         self.camera.background_color = BOARD_NAVY
         self._setup_tree()                 # layout + edges/dots/camera keyframes
-        # the initial node at the ACTUAL root position, on screen from frame 0 so the
-        # leading 1s hold sits on it; the camera starts centred on it too
-        self.root_dot = self._node_marker(id(self.tree), self._node_pos(self.tree),
-                                          DOT_R_ROOT)
-        self.add(self.root_dot)
+        # On screen from frame 0 (the leading 1s hold sits on this): the root DOT (its
+        # guess letter is faded in as grow's first beat), the 3 empty blanks up-and-
+        # left, and the empty gallows up-and-right.
+        rpos = self._node_pos(self.tree)
+        w0 = self._cam_width[0]
+        self.root_dot = Dot(rpos, radius=DOT_R_ROOT, color=self._miss_color(0),
+                            z_index=2)
+        self.root_letter = crisp_text(self._guess[id(self.tree)].upper(),
+                                      color=BOARD_NAVY, weight=BOLD)
+        self.root_letter.scale_to_fit_height(NODE_LETTER_H * DOT_R_ROOT)
+        self.root_letter.move_to(rpos).set_z_index(3)          # added later (fade-in)
+        self.root_blanks = self._blanks("_" * len(WORD), BLK_H * w0)
+        self.root_blanks.move_to(rpos + LEFT * ANN_DX * w0 + UP * ANN_UP * w0)
+        self.root_gallows = self._gallows(0, GAL_H * w0)
+        self.root_gallows.move_to(rpos + RIGHT * ANN_DX * w0 + UP * ANN_UP * w0)
+        self.add(self.root_dot, self.root_blanks, self.root_gallows)
         self.camera.frame.move_to(self._cam_center[0]).set(width=self._cam_width[0])
 
     # ── word-count a child represents (sort key + horizontal ordering) ────────
@@ -134,6 +154,29 @@ class WinTree(MovingCameraScene, HangmanScene):
         lab = crisp_text(g.upper(), color=BOARD_NAVY, weight=BOLD)
         lab.scale_to_fit_height(NODE_LETTER_H * r).move_to(pos).set_z_index(3)
         return VGroup(dot, lab)
+
+    # ── board-state builders (CHALK; sized by cap-height h). No missed letters. ──
+    def _blanks(self, pattern, h):
+        """A row of underscore rules with any revealed HIT letters above them."""
+        slot, gap = h * 0.85, h * 0.55
+        row = VGroup()
+        for ch in pattern:
+            rule = Line(LEFT * slot / 2, RIGHT * slot / 2, color=CHALK,
+                        stroke_width=ANN_SW)
+            cell = VGroup(rule)
+            if ch != "_":
+                t = crisp_text(ch.upper(), color=CHALK, weight=BOLD)
+                t.scale_to_fit_height(h).next_to(rule, UP, buff=h * 0.22)
+                cell.add(t)
+            row.add(cell)
+        row.arrange(RIGHT, buff=gap, aligned_edge=DOWN)
+        return row
+
+    def _gallows(self, misses, h):
+        """The gallows with `misses` body parts, scaled to height h."""
+        g = hangman_drawing(misses, color=CHALK).scale_to_fit_height(h)
+        g.set_stroke(width=ANN_SW)
+        return g
 
     # ── assign a raw leaf-index x to every node (parent centred over children);
     #    also track the misses accumulated at each node (the all-blank branch is
@@ -217,16 +260,31 @@ class WinTree(MovingCameraScene, HangmanScene):
         # the ×SHRINK row bunching so each layer zooms in by the same factor.
         path = self._path_to(WORD)
         dmax = len(path) - 1
+        self._path, self._dmax = path, dmax
         self._cam_center, self._cam_width = [], []
         for k, node in enumerate(path):
             w = CAM_W_START * (CAM_W_END / CAM_W_START) ** (k / dmax)
             self._cam_center.append(self._node_pos(node))
             self._cam_width.append(w)
 
+        # board state (revealed pattern, misses) at each path node — for the blanks +
+        # gallows annotations. Only HIT letters fill the blanks; misses only add a
+        # gallows part (missed letters are never written).
+        acc, m = "_" * len(WORD), 0
+        self._path_state = [(acc, m)]
+        for k in range(dmax):
+            g = path[k]["guess"]
+            key = "".join(g if WORD[p] == g else "_" for p in range(len(WORD)))
+            acc = merge_pattern(acc, key)
+            m += 0 if any(c != "_" for c in key) else 1
+            self._path_state.append((acc, m))
+
     # a : draw the tree row by row (each row at once, linear, equal time) while the
     #     camera dives down WORD's path, zooming in a step per row to the leaf
     @subscene
     def grow(self):
+        # first beat: fade the opening guess letter into the root node
+        self.play(FadeIn(self.root_letter), run_time=0.8)
         last = len(self._cam_center) - 1
         for d in sorted(self._by_depth):
             k = min(d + 1, last)                     # camera holds at the leaf once reached
