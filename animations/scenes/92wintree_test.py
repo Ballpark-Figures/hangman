@@ -1,5 +1,5 @@
-"""TEST — the whole win-probability strategy tree for length 3, chalked onto the
-scene-94 chalkboard (intro visual), with a camera that dives down one path.
+"""TEST — the whole win-probability strategy tree for length 3, on a plain navy
+background (intro visual), with a camera that dives down one path.
 
 Sourced tree: winprob, uniform weighting, miss budget n=5 — every word is either
 WON within 5 misses or LOST on the 6th. So each root-to-tip path is drawn down to
@@ -40,7 +40,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from config import *
 from manim import MovingCameraScene
-from assets.chalkboard import chalkboard, CHALK
+from assets.chalkboard import CHALK, BOARD_NAVY
 
 # ── sourced data: winprob tree, len-3 uniform, budget n=5 ─────────────────────
 TREE_PATH = (Path(__file__).resolve().parents[2]
@@ -48,10 +48,9 @@ TREE_PATH = (Path(__file__).resolve().parents[2]
 WORD = "six"          # featured deepest-row (depth-8) word — the camera's target
                       # ("six" is a LOST word: its path ends on the fatal 6th miss)
 
-# ── board (matches scene 94) ──────────────────────────────────────────────────
-BOARD_W, BOARD_H = 15.2, 8.4
-NAVY_HX = BOARD_W / 2 - 0.34    # writable navy half-extents (frame inset 0.34) —
-NAVY_HY = BOARD_H / 2 - 0.34    # the camera frame is clamped inside these
+# ── camera framing bounds (roughly the tree's extent; navy fills the whole frame)
+NAVY_HX = 15.2 / 2 - 0.34      # the camera frame is clamped inside these so the dive
+NAVY_HY = 8.4 / 2 - 0.34       # never wanders off the tree into empty navy
 
 # ── layered layout (frame 16×9 → x-radius 8.0, y-radius 4.5) ──────────────────
 TOP_Y   = 3.5         # row 0 (the opening guess) sits here
@@ -66,7 +65,7 @@ EDGE_SW_MIN   = 0.9
 DOT_R_ROOT  = 0.09    # node-dot radius at the root; tapers with depth
 DOT_R_TAPER = 0.8
 DOT_R_MIN   = 0.012
-DOT_APPEAR  = 0.82    # a node's dot stays hidden until this fraction of its row's draw
+DOT_APPEAR  = 0.96    # a node's dot stays hidden until this fraction of its row's draw
 
 
 def _appear_at_end(t):
@@ -94,9 +93,7 @@ class WinTree(MovingCameraScene, HangmanScene):
     # the chalkboard is the backdrop; start the camera zoomed on the root (x=0)
     def setup_scene(self):
         self.tree = json.loads(TREE_PATH.read_text())["tree"]
-        self.cb = chalkboard(BOARD_W, BOARD_H)
-        self.cb.set_z_index(-10)
-        self.add(self.cb)
+        self.camera.background_color = BOARD_NAVY
         self._setup_tree()                 # layout + edges/dots/camera keyframes
         # the initial node at the ACTUAL root position, on screen from frame 0 so the
         # leading 1s hold sits on it; the camera starts centred on it too
@@ -223,7 +220,8 @@ class WinTree(MovingCameraScene, HangmanScene):
     # b : pull the camera back out to the whole tree
     @subscene
     def zoom_out(self):
-        # snapshot cache doesn't save camera state → re-establish the leaf pose first
+        # snapshot cache saves neither camera state nor the bg colour → re-set both
+        self.camera.background_color = BOARD_NAVY
         self.camera.frame.move_to(self._cam_center[-1]).set(width=self._cam_width[-1])
         self.play(self.camera.frame.animate.move_to(ORIGIN).set(width=CAM_FULL_W),
                   run_time=ZOOM_OUT_RT, rate_func=smooth)
