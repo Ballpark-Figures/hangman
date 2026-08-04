@@ -97,8 +97,7 @@ def _appear_from(trigger, window=1.0):
     return lambda t: 0.0 if t <= trigger else min(1.0, (t - trigger) / window)
 
 # ── camera dive ───────────────────────────────────────────────────────────────
-ROW_TIME    = 2.0     # base time for the first guess-row
-ROW_SLOW    = 1.15    # each row down takes this factor LONGER (slows as we descend)
+ROW_TIME    = 2.0     # every guess-row takes the SAME time (constant-rate growth)
 ROOT_PAUSE  = 1.0     # hold after the opening letter appears, before the dive starts
 CAM_W_START = 3.0     # camera frame width at the root; each level zooms by SHRINK
 CAM_FULL_W  = 16.0    # full-frame width for the zoom-out beat
@@ -345,7 +344,6 @@ class WinTree(MovingCameraScene, HangmanScene):
         for d in sorted(self._by_depth):
             k = min(d + 1, last)                     # camera holds at the leaf once reached
             rf = rush_into if d == 0 else linear     # ease INTO the very first step only
-            rt = ROW_TIME * ROW_SLOW ** d            # slow down as we descend
             anims = [
                 Create(self._by_depth[d], lag_ratio=0.0, rate_func=rf),
                 self.camera.frame.animate(rate_func=rf)
@@ -360,7 +358,7 @@ class WinTree(MovingCameraScene, HangmanScene):
             if (d + 1) in self._ann_leaf_by_depth:   # leaf labels: with the node
                 anims.append(FadeIn(self._ann_leaf_by_depth[d + 1],
                                     rate_func=_appear_at_end))
-            self.play(*anims, run_time=rt)
+            self.play(*anims, run_time=ROW_TIME)
 
     # b : pull the camera back out to the whole tree
     @subscene
