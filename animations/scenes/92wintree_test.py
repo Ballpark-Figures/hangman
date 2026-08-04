@@ -56,7 +56,7 @@ WORD = "yes"          # featured deepest-row (depth-8) word — the camera's tar
 # ── layered layout (frame 16×9 → x-radius 8.0, y-radius 4.5) ──────────────────
 TOP_Y   = 3.5         # row 0 (the opening guess) sits here
 ROWGAP0 = 2.6         # gap row-0→row-1; each next gap ×SHRINK (rows bunch downward)
-SHRINK  = 0.60        # row gap ×0.65 each level down
+SHRINK  = 0.65        # row gap ×0.65 each level down
 HALF_W  = 7.0         # leaves spread across ±HALF_W
 
 EDGE_SW_ROOT  = 4.0   # trunk stroke; taper toward the twigs
@@ -71,12 +71,12 @@ NODE_LETTER_H = 1.3   # guess-letter height as a multiple of the node radius
 
 # ── board-state annotations (blanks + gallows) — sizes/offsets as fractions of the
 #    camera width at the relevant depth, so they stay a constant on-screen size ────
-BLK_H   = 0.07        # blank rule/letter height
-GAL_H   = 0.22        # gallows height
+BLK_H   = 0.05        # blank rule/letter height
+GAL_H   = 0.10        # gallows height
 ANN_DX  = 0.34        # horizontal offset: blanks to the LEFT, gallows to the RIGHT
 ANN_UP  = 0.12        # how far ABOVE the root the blanks/gallows sit
 ANN_EDGE_UP = 0.05    # edge labels sit this far above their child ("toward edge bottom")
-LEAF_GAP = 0.10       # leaf: gap leaf→gallows and gallows→blanks (stacked below)
+LEAF_GAP = 0.04       # leaf: gap leaf→gallows and gallows→blanks (stacked below)
 ANN_SW_FRAC = 0.7     # blanks/gallows line thickness as a fraction of the camera width
                       # (∝ width → constant on-screen thickness as the diagrams shrink)
 
@@ -302,13 +302,9 @@ class WinTree(MovingCameraScene, HangmanScene):
                 blk.next_to(gal, DOWN, buff=LEAF_GAP * w)
             self._ann_by_depth[k] = VGroup(blk, gal)
 
-        # keep the LEAF NODE vertically centred (like every other frontier node) and
-        # WIDEN the final keyframe so the gallows + blanks stacked below still fit in
-        # the lower half of the frame — rather than shifting the node off-centre.
-        lpos = self._node_pos(path[dmax])
-        extent = lpos[1] - self._ann_by_depth[dmax].get_bottom()[1]   # drop below node
-        self._cam_center[dmax] = lpos                                 # node stays centred
-        self._cam_width[dmax] = max(self._cam_width[dmax], extent * 32 / 9 * 1.15)
+        # The leaf keyframe stays at the planned tight zoom with the leaf NODE centred
+        # (set in the loop above); the gallows + blanks are now sized small enough to
+        # fit the lower half of that frame, so no widening is needed.
 
     # a : draw the tree row by row (each row at once, linear, equal time) while the
     #     camera dives down WORD's path, zooming in a step per row to the leaf
