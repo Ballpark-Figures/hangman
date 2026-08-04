@@ -56,7 +56,7 @@ WORD = "yes"          # featured deepest-row (depth-8) word — the camera's tar
 # ── layered layout (frame 16×9 → x-radius 8.0, y-radius 4.5) ──────────────────
 TOP_Y   = 3.5         # row 0 (the opening guess) sits here
 ROWGAP0 = 2.6         # gap row-0→row-1; each next gap ×SHRINK (rows bunch downward)
-SHRINK  = 0.65        # row gap ×0.65 each level down
+SHRINK  = 0.60        # row gap ×0.65 each level down
 HALF_W  = 7.0         # leaves spread across ±HALF_W
 
 EDGE_SW_ROOT  = 4.0   # trunk stroke; taper toward the twigs
@@ -77,7 +77,8 @@ ANN_DX  = 0.34        # horizontal offset: blanks to the LEFT, gallows to the RI
 ANN_UP  = 0.12        # how far ABOVE the root the blanks/gallows sit
 ANN_EDGE_UP = 0.05    # edge labels sit this far above their child ("toward edge bottom")
 LEAF_GAP = 0.10       # leaf: gap leaf→gallows and gallows→blanks (stacked below)
-ANN_SW  = 2.2         # stroke width for blanks rules / gallows (screen-ish, ~constant)
+ANN_SW_FRAC = 0.7     # blanks/gallows line thickness as a fraction of the camera width
+                      # (∝ width → constant on-screen thickness as the diagrams shrink)
 
 
 def _appear_at_end(t):
@@ -118,9 +119,9 @@ class WinTree(MovingCameraScene, HangmanScene):
                                       color=BOARD_NAVY, weight=BOLD)
         self.root_letter.scale_to_fit_height(NODE_LETTER_H * DOT_R_ROOT)
         self.root_letter.move_to(rpos).set_z_index(3)          # added later (fade-in)
-        self.root_blanks = self._blanks("_" * len(WORD), BLK_H * w0)
+        self.root_blanks = self._blanks("_" * len(WORD), BLK_H * w0, ANN_SW_FRAC * w0)
         self.root_blanks.move_to(rpos + LEFT * ANN_DX * w0 + UP * ANN_UP * w0)
-        self.root_gallows = self._gallows(0, GAL_H * w0)
+        self.root_gallows = self._gallows(0, GAL_H * w0, ANN_SW_FRAC * w0)
         self.root_gallows.move_to(rpos + RIGHT * ANN_DX * w0 + UP * ANN_UP * w0)
         self.add(self.root_dot, self.root_blanks, self.root_gallows)
         self.camera.frame.move_to(self._cam_center[0]).set(width=self._cam_width[0])
@@ -157,14 +158,16 @@ class WinTree(MovingCameraScene, HangmanScene):
         lab.scale_to_fit_height(NODE_LETTER_H * r).move_to(pos).set_z_index(3)
         return VGroup(dot, lab)
 
-    # ── board-state builders (CHALK; sized by cap-height h). No missed letters. ──
-    def _blanks(self, pattern, h):
+    # ── board-state builders (CHALK; cap-height h, line thickness sw). No missed
+    #    letters. Callers pass sw ∝ the camera width so the on-screen line thickness
+    #    stays constant as the diagrams shrink and the camera zooms in. ────────────
+    def _blanks(self, pattern, h, sw):
         """A row of underscore rules with any revealed HIT letters above them."""
         slot, gap = h * 0.85, h * 0.55
         row = VGroup()
         for ch in pattern:
             rule = Line(LEFT * slot / 2, RIGHT * slot / 2, color=CHALK,
-                        stroke_width=ANN_SW)
+                        stroke_width=sw)
             cell = VGroup(rule)
             if ch != "_":
                 t = crisp_text(ch.upper(), color=CHALK, weight=BOLD)
@@ -174,10 +177,10 @@ class WinTree(MovingCameraScene, HangmanScene):
         row.arrange(RIGHT, buff=gap, aligned_edge=DOWN)
         return row
 
-    def _gallows(self, misses, h):
+    def _gallows(self, misses, h, sw):
         """The gallows with `misses` body parts, scaled to height h."""
         g = hangman_drawing(misses, color=CHALK).scale_to_fit_height(h)
-        g.set_stroke(width=ANN_SW)
+        g.set_stroke(width=sw)
         return g
 
     # ── assign a raw leaf-index x to every node (parent centred over children);
@@ -289,8 +292,8 @@ class WinTree(MovingCameraScene, HangmanScene):
             pat, miss = self._path_state[k]
             w = self._cam_width[k]
             cpos = self._node_pos(path[k])
-            blk = self._blanks(pat, BLK_H * w)
-            gal = self._gallows(miss, GAL_H * w)
+            blk = self._blanks(pat, BLK_H * w, ANN_SW_FRAC * w)
+            gal = self._gallows(miss, GAL_H * w, ANN_SW_FRAC * w)
             if k < dmax:
                 blk.move_to(cpos + LEFT * ANN_DX * w + UP * ANN_EDGE_UP * w)
                 gal.move_to(cpos + RIGHT * ANN_DX * w + UP * ANN_EDGE_UP * w)
@@ -299,13 +302,13 @@ class WinTree(MovingCameraScene, HangmanScene):
                 blk.next_to(gal, DOWN, buff=LEAF_GAP * w)
             self._ann_by_depth[k] = VGroup(blk, gal)
 
-        # reframe the final keyframe on the whole leaf display (leaf + gallows +
-        # blanks below) — the tight leaf zoom alone would cut off the stack.
+        # keep the LEAF NODE vertically centred (like every other frontier node) and
+        # WIDEN the final keyframe so the gallows + blanks stacked below still fit in
+        # the lower half of the frame — rather than shifting the node off-centre.
         lpos = self._node_pos(path[dmax])
-        bottom = self._ann_by_depth[dmax].get_bottom()[1]
-        need_w = (lpos[1] - bottom) * 1.3 * 16 / 9
-        self._cam_center[dmax] = np.array([lpos[0], (lpos[1] + bottom) / 2, 0.0])
-        self._cam_width[dmax] = max(self._cam_width[dmax], need_w)
+        extent = lpos[1] - self._ann_by_depth[dmax].get_bottom()[1]   # drop below node
+        self._cam_center[dmax] = lpos                                 # node stays centred
+        self._cam_width[dmax] = max(self._cam_width[dmax], extent * 32 / 9 * 1.15)
 
     # a : draw the tree row by row (each row at once, linear, equal time) while the
     #     camera dives down WORD's path, zooming in a step per row to the leaf
