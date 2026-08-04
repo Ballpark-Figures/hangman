@@ -80,12 +80,19 @@ EDGE_FRAC = 0.40      # edge labels sit this fraction UP the edge (toward the pa
 LEAF_GAP = 0.04       # leaf: gap leaf→gallows and gallows→blanks (stacked below)
 ANN_SW_FRAC = 0.32    # blanks/gallows line thickness as a fraction of the camera width
                       # (∝ width → constant on-screen thickness as the diagrams shrink)
+ANN_WINDOW = 0.12     # an edge label fades in over this fraction of the row, once the
+                      # growing edge tip passes its spot
 
 
 def _appear_at_end(t):
     """Rate-func: hold at 0 until DOT_APPEAR (the edge has ~reached the node), then
     ramp to 1 — so a node's dot only appears once its incoming edge arrives."""
     return 0.0 if t < DOT_APPEAR else (t - DOT_APPEAR) / (1 - DOT_APPEAR)
+
+
+def _appear_from(trigger, window=1.0):
+    """Rate-func factory: hold at 0 until `trigger`, then ramp to 1 over `window`."""
+    return lambda t: 0.0 if t <= trigger else min(1.0, (t - trigger) / window)
 
 # ── camera dive ───────────────────────────────────────────────────────────────
 ROW_TIME    = 2.0     # every guess-row grows in the SAME time, at a linear rate
@@ -327,8 +334,11 @@ class WinTree(MovingCameraScene, HangmanScene):
                 anims.append(FadeIn(self._dots_by_depth[d + 1],
                                     rate_func=_appear_at_end))
             if (d + 1) in self._ann_by_depth:        # blanks + gallows for this state
-                anims.append(FadeIn(self._ann_by_depth[d + 1],
-                                    rate_func=_appear_at_end))
+                # the leaf sits BELOW its node (appears on arrival); an edge label
+                # appears as the growing edge tip PASSES it (~1-EDGE_FRAC down)
+                rf = (_appear_at_end if d + 1 == self._dmax
+                      else _appear_from(1 - EDGE_FRAC, ANN_WINDOW))
+                anims.append(FadeIn(self._ann_by_depth[d + 1], rate_func=rf))
             self.play(*anims, run_time=ROW_TIME)
 
     # b : pull the camera back out to the whole tree
