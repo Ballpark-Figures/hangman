@@ -75,6 +75,8 @@ BLK_H   = 0.07        # blank rule/letter height
 GAL_H   = 0.22        # gallows height
 ANN_DX  = 0.34        # horizontal offset: blanks to the LEFT, gallows to the RIGHT
 ANN_UP  = 0.12        # how far ABOVE the root the blanks/gallows sit
+ANN_EDGE_UP = 0.05    # edge labels sit this far above their child ("toward edge bottom")
+LEAF_GAP = 0.10       # leaf: gap leaf→gallows and gallows→blanks (stacked below)
 ANN_SW  = 2.2         # stroke width for blanks rules / gallows (screen-ish, ~constant)
 
 
@@ -279,6 +281,32 @@ class WinTree(MovingCameraScene, HangmanScene):
             m += 0 if any(c != "_" for c in key) else 1
             self._path_state.append((acc, m))
 
+        # blanks + gallows annotation for each path node beyond the root (k = 1…dmax).
+        # Intermediate nodes: blanks LEFT / gallows RIGHT, just above the child (toward
+        # the edge bottom). The leaf: gallows below the leaf, blanks below the gallows.
+        self._ann_by_depth = {}
+        for k in range(1, dmax + 1):
+            pat, miss = self._path_state[k]
+            w = self._cam_width[k]
+            cpos = self._node_pos(path[k])
+            blk = self._blanks(pat, BLK_H * w)
+            gal = self._gallows(miss, GAL_H * w)
+            if k < dmax:
+                blk.move_to(cpos + LEFT * ANN_DX * w + UP * ANN_EDGE_UP * w)
+                gal.move_to(cpos + RIGHT * ANN_DX * w + UP * ANN_EDGE_UP * w)
+            else:                                    # leaf: stack below the node
+                gal.next_to(cpos, DOWN, buff=LEAF_GAP * w)
+                blk.next_to(gal, DOWN, buff=LEAF_GAP * w)
+            self._ann_by_depth[k] = VGroup(blk, gal)
+
+        # reframe the final keyframe on the whole leaf display (leaf + gallows +
+        # blanks below) — the tight leaf zoom alone would cut off the stack.
+        lpos = self._node_pos(path[dmax])
+        bottom = self._ann_by_depth[dmax].get_bottom()[1]
+        need_w = (lpos[1] - bottom) * 1.3 * 16 / 9
+        self._cam_center[dmax] = np.array([lpos[0], (lpos[1] + bottom) / 2, 0.0])
+        self._cam_width[dmax] = max(self._cam_width[dmax], need_w)
+
     # a : draw the tree row by row (each row at once, linear, equal time) while the
     #     camera dives down WORD's path, zooming in a step per row to the leaf
     @subscene
@@ -295,6 +323,9 @@ class WinTree(MovingCameraScene, HangmanScene):
             ]
             if (d + 1) in self._dots_by_depth:       # dots pop only as the edges reach them
                 anims.append(FadeIn(self._dots_by_depth[d + 1],
+                                    rate_func=_appear_at_end))
+            if (d + 1) in self._ann_by_depth:        # blanks + gallows for this state
+                anims.append(FadeIn(self._ann_by_depth[d + 1],
                                     rate_func=_appear_at_end))
             self.play(*anims, run_time=ROW_TIME)
 
