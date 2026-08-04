@@ -18,6 +18,10 @@ Layout — a LAYERED tree (one ROW per guess-count), rooted at the TOP, growing 
     branch right, odd rows left) so the dominant spine zig-zags and the canopy hangs
     balanced. (The root centres over its children, so it sits at a small x offset.)
 
+Colour — each edge and its BOTTOM node are coloured by the misses accumulated there:
+0 = white, then 1→light-purple, 2→blue, 3→green, 4→yellow, 5→orange, 6→light-red
+(bpkfigures LIGHT_PALETTE, reverse-indexed). The all-blank branch is the miss.
+
 Camera (this is a MovingCameraScene):
   a grow  — every guess-row draws SIMULTANEOUSLY at a constant (linear) rate, each
             row in the SAME time (ROW_TIME). The camera starts zoomed on the root and
@@ -112,21 +116,33 @@ class WinTree(MovingCameraScene, HangmanScene):
             self._rows.append(self._rows[-1] - ROWGAP0 * SHRINK ** (d - 1))
         return self._rows[depth]
 
-    # ── assign a raw leaf-index x to every node (parent centred over children) ─
-    def _assign(self, node, depth):
+    # ── miss-count colour: 0 stays white, then 1→purple … 6→red (reverse rainbow) ─
+    def _miss_color(self, misses):
+        if misses <= 0:
+            return CHALK
+        return LIGHT_PALETTE[len(LIGHT_PALETTE) - misses]   # 1→last(purple), 6→first(red)
+
+    # ── assign a raw leaf-index x to every node (parent centred over children);
+    #    also track the misses accumulated at each node (the all-blank branch is
+    #    the miss) so edges/dots can be coloured by their bottom node ────────────
+    def _assign(self, node, depth, misses):
         self._depth[id(node)] = depth
+        self._misses[id(node)] = misses
         if "branches" not in node:
             x = self._next_leaf
             self._next_leaf += 1
         else:
+            allblank = "_" * len(next(iter(node["branches"])))   # the miss branch key
             # order children by word-count, alternating the heavy side per row:
             # even depth → most words on the RIGHT, odd depth → on the LEFT
-            children = sorted(node["branches"].values(), key=self._words,
-                              reverse=(depth % 2 == 1))
-            xs = [self._assign(c, depth + 1) for c in children]
+            items = sorted(node["branches"].items(),
+                           key=lambda kv: self._words(kv[1]), reverse=(depth % 2 == 1))
+            xs = []
+            for key, child in items:
+                m = misses + (1 if key == allblank else 0)
+                xs.append(self._assign(child, depth + 1, m))
+                self._edges.append((id(node), id(child)))
             x = (xs[0] + xs[-1]) / 2                 # centre over child extent
-            for c in children:
-                self._edges.append((id(node), id(c)))
         self._x[id(node)] = x
         return x
 
@@ -148,9 +164,9 @@ class WinTree(MovingCameraScene, HangmanScene):
 
     # ── build the chalk edges (grouped by depth) + the camera keyframes ───────
     def _setup_tree(self):
-        self._x, self._depth, self._edges = {}, {}, []
+        self._x, self._depth, self._edges, self._misses = {}, {}, [], {}
         self._rows, self._next_leaf = [TOP_Y], 0
-        self._assign(self.tree, 0)
+        self._assign(self.tree, 0, 0)
 
         self._n = self._next_leaf
         self._scale = 2 * HALF_W / max(1, self._n - 1)   # leaf indices → board width
@@ -163,8 +179,8 @@ class WinTree(MovingCameraScene, HangmanScene):
             b = np.array([(self._x[cid] - (self._n - 1) / 2) * self._scale,
                           self._row_y(d + 1), 0.0])
             sw = max(EDGE_SW_MIN, EDGE_SW_ROOT * EDGE_SW_TAPER ** d)
-            self._by_depth.setdefault(d, VGroup()).add(
-                Line(a, b, color=CHALK, stroke_width=sw))
+            self._by_depth.setdefault(d, VGroup()).add(          # colour by bottom node
+                Line(a, b, color=self._miss_color(self._misses[cid]), stroke_width=sw))
 
         # a chalk dot at every node (radius tapers with depth); the root dot is
         # already on screen from setup_scene, so build depth ≥ 1 here.
@@ -176,7 +192,7 @@ class WinTree(MovingCameraScene, HangmanScene):
                             self._row_y(d), 0.0])
             r = max(DOT_R_MIN, DOT_R_ROOT * DOT_R_TAPER ** d)
             self._dots_by_depth.setdefault(d, VGroup()).add(
-                Dot(pos, radius=r, color=CHALK))
+                Dot(pos, radius=r, color=self._miss_color(self._misses[idn])))
 
         # camera pose per path node (depth 0…8): centre EXACTLY on the node so the
         # growing frontier stays at the vertical centre throughout (navy fills the
