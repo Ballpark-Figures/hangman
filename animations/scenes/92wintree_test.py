@@ -73,7 +73,7 @@ NODE_LETTER_H = 1.3   # guess-letter height as a multiple of the node radius
 #    camera width at the relevant depth, so they stay a constant on-screen size ────
 BLK_H   = 0.05        # blank rule/letter height
 GAL_H   = 0.10        # gallows height
-ANN_DX  = 0.34        # horizontal offset: blanks to the LEFT, gallows to the RIGHT
+ANN_DX  = 0.20        # horizontal offset: blanks to the LEFT, gallows to the RIGHT
 ANN_UP  = 0.12        # how far ABOVE the root the blanks/gallows sit
 ANN_EDGE_UP = 0.05    # edge labels sit this far above their child ("toward edge bottom")
 LEAF_GAP = 0.04       # leaf: gap leaf→gallows and gallows→blanks (stacked below)
