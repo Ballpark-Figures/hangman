@@ -77,7 +77,7 @@ ANN_DX  = 0.34        # horizontal offset: blanks to the LEFT, gallows to the RI
 ANN_UP  = 0.12        # how far ABOVE the root the blanks/gallows sit
 ANN_EDGE_UP = 0.05    # edge labels sit this far above their child ("toward edge bottom")
 LEAF_GAP = 0.04       # leaf: gap leaf→gallows and gallows→blanks (stacked below)
-ANN_SW_FRAC = 0.7     # blanks/gallows line thickness as a fraction of the camera width
+ANN_SW_FRAC = 0.32    # blanks/gallows line thickness as a fraction of the camera width
                       # (∝ width → constant on-screen thickness as the diagrams shrink)
 
 

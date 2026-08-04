@@ -97,12 +97,15 @@ def hangman_drawing(misses=0, *, color=DRAW_COLOR, stroke_width=5.0):
     def line(a, b):
         return Line(a, b, color=color, stroke_width=stroke_width)
 
-    # gallows (rope end at x=0.6, where the figure hangs)
+    # gallows: the ground (base) as one stroke, and post+beam+rope as a SINGLE
+    # continuous polyline so its corners join cleanly — four separate segments leave
+    # little gaps at the corners. Rope end at x=0.6, where the figure hangs.
     base = line([-1.3, -2.2, 0], [1.3, -2.2, 0])
-    post = line([-1.0, -2.2, 0], [-1.0, 2.0, 0])
-    beam = line([-1.0, 2.0, 0], [0.6, 2.0, 0])
-    rope = line([0.6, 2.0, 0], [0.6, 1.55, 0])
-    gallows = VGroup(base, post, beam, rope)
+    frame = VMobject(stroke_color=color, stroke_width=stroke_width,
+                     joint_type=LineJointType.ROUND)
+    frame.set_points_as_corners([[-1.0, -2.2, 0], [-1.0, 2.0, 0],
+                                 [0.6, 2.0, 0], [0.6, 1.55, 0]])
+    gallows = VGroup(base, frame)
 
     # the hanging figure (head top meets the rope end at y=1.55)
     head = Circle(radius=0.33, color=color, stroke_width=stroke_width,
