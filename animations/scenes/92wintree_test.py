@@ -45,7 +45,8 @@ from assets.chalkboard import chalkboard, CHALK
 # ── sourced data: winprob tree, len-3 uniform, budget n=5 ─────────────────────
 TREE_PATH = (Path(__file__).resolve().parents[2]
              / "math/data/shared/winprob/len03_uniform_n05.json")
-WORD = "job"          # featured deepest-row (depth-8) win word — the camera's target
+WORD = "six"          # featured deepest-row (depth-8) word — the camera's target
+                      # ("six" is a LOST word: its path ends on the fatal 6th miss)
 
 # ── board (matches scene 94) ──────────────────────────────────────────────────
 BOARD_W, BOARD_H = 15.2, 8.4
@@ -61,6 +62,10 @@ HALF_W  = 7.0         # leaves spread across ±HALF_W
 EDGE_SW_ROOT  = 4.0   # trunk stroke; taper toward the twigs
 EDGE_SW_TAPER = 0.72
 EDGE_SW_MIN   = 0.9
+
+DOT_R_ROOT  = 0.09    # node-dot radius at the root; tapers with depth
+DOT_R_TAPER = 0.8
+DOT_R_MIN   = 0.012
 
 # ── camera dive ───────────────────────────────────────────────────────────────
 ROW_TIME    = 1.3     # every guess-row grows in the SAME time, at a linear rate
@@ -85,6 +90,9 @@ class WinTree(MovingCameraScene, HangmanScene):
         self.cb = chalkboard(BOARD_W, BOARD_H)
         self.cb.set_z_index(-10)
         self.add(self.cb)
+        # the initial node, on screen from frame 0 so the leading 1s hold sits on it
+        self.root_dot = Dot([0.0, TOP_Y, 0.0], radius=DOT_R_ROOT, color=CHALK)
+        self.add(self.root_dot)
         c0 = self._clamp_center(np.array([0.0, TOP_Y, 0.0]), CAM_W_START)
         self.camera.frame.move_to(c0).set(width=CAM_W_START)
 
@@ -163,6 +171,18 @@ class WinTree(MovingCameraScene, HangmanScene):
             self._by_depth.setdefault(d, VGroup()).add(
                 Line(a, b, color=CHALK, stroke_width=sw))
 
+        # a chalk dot at every node (radius tapers with depth); the root dot is
+        # already on screen from setup_scene, so build depth ≥ 1 here.
+        self._dots_by_depth = {}
+        for idn, d in self._depth.items():
+            if d == 0:
+                continue
+            pos = np.array([(self._x[idn] - (self._n - 1) / 2) * self._scale,
+                            self._row_y(d), 0.0])
+            r = max(DOT_R_MIN, DOT_R_ROOT * DOT_R_TAPER ** d)
+            self._dots_by_depth.setdefault(d, VGroup()).add(
+                Dot(pos, radius=r, color=CHALK))
+
         # camera pose per path node (depth 0…8): centre on the node (clamped inside
         # the board), width shrinking GEOMETRICALLY (constant ratio per row) from
         # CAM_W_START to CAM_W_END — so it keeps pace with the ×SHRINK row bunching
@@ -180,12 +200,17 @@ class WinTree(MovingCameraScene, HangmanScene):
     @subscene
     def grow(self):
         self._setup_tree()
+        last = len(self._cam_center) - 1
         for d in sorted(self._by_depth):
-            self.play(
+            k = min(d + 1, last)                     # camera holds at the leaf once reached
+            anims = [
                 Create(self._by_depth[d], lag_ratio=0.0),
-                self.camera.frame.animate.move_to(self._cam_center[d + 1])
-                    .set(width=self._cam_width[d + 1]),
-                run_time=ROW_TIME, rate_func=linear)
+                self.camera.frame.animate.move_to(self._cam_center[k])
+                    .set(width=self._cam_width[k]),
+            ]
+            if (d + 1) in self._dots_by_depth:       # dots for the nodes this row reaches
+                anims.append(FadeIn(self._dots_by_depth[d + 1]))
+            self.play(*anims, run_time=ROW_TIME, rate_func=linear)
 
     # b : pull the camera back out to the whole tree
     @subscene
