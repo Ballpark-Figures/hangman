@@ -126,5 +126,7 @@ class WinTree(HangmanScene):
         self._setup_tree()
         row_rt = [0.7, 0.8, 0.9, 1.0, 1.0, 0.9, 0.8, 0.7]   # one per edge-row
         for d in sorted(self._by_depth):
-            self.play(Create(self._by_depth[d]),
+            # lag_ratio=0 → every edge in the row draws at once (Create defaults
+            # to 1.0, which would draw them one after another)
+            self.play(Create(self._by_depth[d], lag_ratio=0.0),
                       run_time=row_rt[d] if d < len(row_rt) else row_rt[-1])
