@@ -15,8 +15,9 @@ Layout — a LAYERED tree (one ROW per guess-count), rooted at the TOP, growing 
     as you go down — "shorter edges lower down."
   • horizontal x is the standard non-crossing assignment: leaves are spread evenly
     left→right and every parent is centred over its children, so edges never cross.
-  • children are ordered left→right by ASCENDING word-count — the branch with the
-    fewest remaining words is on the LEFT, the most on the RIGHT.
+  • children are ordered left→right by word-count, but the heavy side ALTERNATES by
+    row: even rows lean the most-words branch RIGHT, odd rows lean it LEFT — so the
+    dominant spine zig-zags down the tree instead of hugging one side.
 
 KNOBS: TOP_Y / ROWGAP0 / SHRINK set the vertical rows; HALF_W the horizontal spread.
 
@@ -86,8 +87,10 @@ class WinTree(HangmanScene):
             x = self._next_leaf
             self._next_leaf += 1
         else:
-            # left→right by ASCENDING word-count: most words on the right
-            children = sorted(node["branches"].values(), key=self._words)
+            # order children by word-count, alternating the heavy side per row:
+            # even depth → most words on the RIGHT, odd depth → on the LEFT
+            children = sorted(node["branches"].values(), key=self._words,
+                              reverse=(depth % 2 == 1))
             xs = [self._assign(c, depth + 1) for c in children]
             x = (xs[0] + xs[-1]) / 2                 # centre over child extent
             for c in children:
@@ -116,12 +119,12 @@ class WinTree(HangmanScene):
         self.edges = VGroup(*[e for d in sorted(self._by_depth)
                               for e in self._by_depth[d]])
 
-    # a : chalk the whole tree on, one guess-row at a time from the top down
-    #     (each row finishes before the next starts, so it grows top→bottom)
+    # a : chalk the tree on one guess-row at a time from the top down — every edge
+    #     in a row draws simultaneously, and each row finishes before the next
     @subscene
     def grow(self):
         self._setup_tree()
         row_rt = [0.7, 0.8, 0.9, 1.0, 1.0, 0.9, 0.8, 0.7]   # one per edge-row
         for d in sorted(self._by_depth):
-            self.play(LaggedStartMap(Create, self._by_depth[d], lag_ratio=0.06),
+            self.play(Create(self._by_depth[d]),
                       run_time=row_rt[d] if d < len(row_rt) else row_rt[-1])
