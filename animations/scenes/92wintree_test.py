@@ -49,8 +49,8 @@ from assets.chalkboard import CHALK, BOARD_NAVY
 # ── sourced data: winprob tree, len-3 uniform, budget n=5 ─────────────────────
 TREE_PATH = (Path(__file__).resolve().parents[2]
              / "math/data/shared/winprob/len03_uniform_n05.json")
-WORD = "six"          # featured deepest-row (depth-8) word — the camera's target
-                      # ("six" is a LOST word: its path ends on the fatal 6th miss)
+WORD = "yes"          # featured deepest-row (depth-8) word — the camera's target
+                      # ("yes" is WON at depth 8: the dive spells it out to a won leaf)
 
 # ── layered layout (frame 16×9 → x-radius 8.0, y-radius 4.5) ──────────────────
 TOP_Y   = 3.5         # row 0 (the opening guess) sits here
@@ -76,8 +76,8 @@ def _appear_at_end(t):
 
 # ── camera dive ───────────────────────────────────────────────────────────────
 ROW_TIME    = 2.0     # every guess-row grows in the SAME time, at a linear rate
-CAM_W_START = 6.0     # camera frame width at the root (zoomed-in start)
-CAM_W_END   = 1.0     # camera frame width at the leaf (tight close-up)
+CAM_W_START = 4.5     # camera frame width at the root (zoomed-in start)
+CAM_W_END   = 0.8     # camera frame width at the leaf (tight close-up)
 CAM_FULL_W  = 16.0    # full-frame width for the zoom-out beat
 ZOOM_OUT_RT = 3.2
 
