@@ -56,16 +56,18 @@ WORD = "yes"          # featured deepest-row (depth-8) word — the camera's tar
 # ── layered layout (frame 16×9 → x-radius 8.0, y-radius 4.5) ──────────────────
 TOP_Y   = 3.5         # row 0 (the opening guess) sits here
 ROWGAP0 = 2.6         # gap row-0→row-1; each next gap ×SHRINK (rows bunch downward)
-SHRINK  = 0.65        # row gap ×0.65 each level down
+SHRINK  = 0.65        # THE per-level scale factor: rows bunch, the camera ZOOMS, and
+                      # the nodes/gallows/blanks all shrink by this each level down, so
+                      # the dive is self-similar (everything holds its on-screen size)
 HALF_W  = 7.0         # leaves spread across ±HALF_W
 
-EDGE_SW_ROOT  = 4.0   # trunk stroke; taper toward the twigs
-EDGE_SW_TAPER = 0.72
-EDGE_SW_MIN   = 0.9
+EDGE_SW_ROOT  = 4.0   # trunk stroke; tapers by SHRINK too (constant on-screen)
+EDGE_SW_TAPER = SHRINK
+EDGE_SW_MIN   = 0.05  # low floor so the stroke keeps shrinking with the deep zoom
 
-DOT_R_ROOT  = 0.09    # node-dot radius at the root; tapers with depth
-DOT_R_TAPER = 0.8
-DOT_R_MIN   = 0.012
+DOT_R_ROOT  = 0.09    # node-dot radius at the root; tapers by SHRINK (constant on-screen)
+DOT_R_TAPER = SHRINK
+DOT_R_MIN   = 0.001   # low floor so deep nodes stay at the SHRINK scale (don't clamp big)
 DOT_APPEAR  = 0.9    # a node's dot stays hidden until this fraction of its row's draw
 NODE_LETTER_H = 1.3   # guess-letter height as a multiple of the node radius
 
@@ -96,8 +98,7 @@ def _appear_from(trigger, window=1.0):
 
 # ── camera dive ───────────────────────────────────────────────────────────────
 ROW_TIME    = 2.0     # every guess-row grows in the SAME time, at a linear rate
-CAM_W_START = 3.0     # camera frame width at the root (zoomed-in start)
-CAM_W_END   = 0.5     # camera frame width at the leaf (tight close-up)
+CAM_W_START = 3.0     # camera frame width at the root; each level zooms by SHRINK
 CAM_FULL_W  = 16.0    # full-frame width for the zoom-out beat
 ZOOM_OUT_RT = 3.2
 
@@ -286,15 +287,15 @@ class WinTree(MovingCameraScene, HangmanScene):
 
         # camera pose per path node (depth 0…8): centre EXACTLY on the node so the
         # growing frontier stays at the vertical centre throughout (navy fills the
-        # frame, so there's no board edge to avoid). Width shrinks GEOMETRICALLY
-        # (constant ratio per row) from CAM_W_START to CAM_W_END, keeping pace with
-        # the ×SHRINK row bunching so each layer zooms in by the same factor.
+        # frame, so there's no board edge to avoid). Width zooms by SHRINK per level —
+        # the SAME factor the rows bunch — so the local edge (and everything sized off
+        # the camera width) holds a constant on-screen size all the way down.
         path = self._path_to(WORD)
         dmax = len(path) - 1
         self._path, self._dmax = path, dmax
         self._cam_center, self._cam_width = [], []
         for k, node in enumerate(path):
-            w = CAM_W_START * (CAM_W_END / CAM_W_START) ** (k / dmax)
+            w = CAM_W_START * SHRINK ** k
             self._cam_center.append(self._node_pos(node))
             self._cam_width.append(w)
 
