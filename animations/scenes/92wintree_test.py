@@ -97,7 +97,8 @@ def _appear_from(trigger, window=1.0):
     return lambda t: 0.0 if t <= trigger else min(1.0, (t - trigger) / window)
 
 # ── camera dive ───────────────────────────────────────────────────────────────
-ROW_TIME    = 2.0     # every guess-row takes the SAME time (constant-rate growth)
+ROW_TIME    = 3.0     # every guess-row takes the SAME time (constant-rate growth);
+                      # this single knob sets the overall traversal speed
 ROOT_PAUSE  = 1.0     # hold after the opening letter appears, before the dive starts
 CAM_W_START = 3.0     # camera frame width at the root; each level zooms by SHRINK
 CAM_FULL_W  = 16.0    # full-frame width for the zoom-out beat
