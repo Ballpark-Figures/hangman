@@ -1,6 +1,5 @@
 """TEST — the whole win-probability strategy tree for length 3, chalked onto the
-scene-94 chalkboard (intro visual). JUST the tree structure for now (no letters,
-counts, or boards).
+scene-94 chalkboard (intro visual), with a camera that dives down one path.
 
 Sourced tree: winprob, uniform weighting, miss budget n=5 — every word is either
 WON within 5 misses or LOST on the 6th. So each root-to-tip path is drawn down to
@@ -13,15 +12,24 @@ Layout — a LAYERED tree (one ROW per guess-count), rooted at the TOP, growing 
     its depth's row (y only depends on depth).
   • ROW SPACING shrinks ×SHRINK (0.65) each level, so the rows bunch closer together
     as you go down — "shorter edges lower down."
-  • horizontal x is the standard non-crossing assignment: leaves are spread evenly
+  • horizontal x is the standard non-crossing assignment: leaves spread evenly
     left→right and every parent is centred over its children, so edges never cross.
-  • children are ordered left→right by word-count, but the heavy side ALTERNATES by
-    row: even rows lean the most-words branch RIGHT, odd rows lean it LEFT — so the
-    dominant spine zig-zags down the tree instead of hugging one side.
+  • children order alternates the heavy side per row (even rows lean the most-words
+    branch right, odd rows left) so the dominant spine zig-zags and the canopy hangs
+    balanced. (Root always lands at x=0.)
 
-KNOBS: TOP_Y / ROWGAP0 / SHRINK set the vertical rows; HALF_W the horizontal spread.
+Camera (this is a MovingCameraScene):
+  a grow  — every guess-row draws SIMULTANEOUSLY at a constant (linear) rate, each
+            row in the SAME time (ROW_TIME). The camera starts zoomed on the root and
+            dives down the featured word's path, zooming in one step per row, arriving
+            at the leaf exactly as the last row (and that leaf) draws.
+  b zoom_out — pull back out to the whole tree.
 
-Render:  render 92a --fast
+The snapshot cache doesn't pickle camera state, so `grow` stashes the per-row camera
+poses on `self` (they DO get pickled) and `zoom_out` re-establishes the leaf pose
+before pulling back — so rendering `92b` alone still starts from the zoomed-in leaf.
+
+Render:  render 92a --fast   /   render 92b --fast
 """
 from pathlib import Path
 import sys
@@ -31,17 +39,21 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from config import *
+from manim import MovingCameraScene
 from assets.chalkboard import chalkboard, CHALK
 
 # ── sourced data: winprob tree, len-3 uniform, budget n=5 ─────────────────────
 TREE_PATH = (Path(__file__).resolve().parents[2]
              / "math/data/shared/winprob/len03_uniform_n05.json")
+WORD = "job"          # featured deepest-row (depth-8) win word — the camera's target
 
 # ── board (matches scene 94) ──────────────────────────────────────────────────
 BOARD_W, BOARD_H = 15.2, 8.4
+NAVY_HX = BOARD_W / 2 - 0.34    # writable navy half-extents (frame inset 0.34) —
+NAVY_HY = BOARD_H / 2 - 0.34    # the camera frame is clamped inside these
 
 # ── layered layout (frame 16×9 → x-radius 8.0, y-radius 4.5) ──────────────────
-TOP_Y   = 3.9         # row 0 (the opening guess) sits here
+TOP_Y   = 3.5         # row 0 (the opening guess) sits here
 ROWGAP0 = 2.6         # gap row-0→row-1; each next gap ×SHRINK (rows bunch downward)
 SHRINK  = 0.65        # row gap ×0.65 each level down
 HALF_W  = 7.0         # leaves spread across ±HALF_W
@@ -50,20 +62,37 @@ EDGE_SW_ROOT  = 4.0   # trunk stroke; taper toward the twigs
 EDGE_SW_TAPER = 0.72
 EDGE_SW_MIN   = 0.9
 
+# ── camera dive ───────────────────────────────────────────────────────────────
+ROW_TIME    = 0.7     # every guess-row grows in the SAME time, at a linear rate
+CAM_W_START = 6.0     # camera frame width at the root (zoomed-in start)
+CAM_W_END   = 2.6     # camera frame width at the leaf (tight close-up)
+CAM_FULL_W  = 16.0    # full-frame width for the zoom-out beat
+ZOOM_OUT_RT = 2.2
 
-class WinTree(HangmanScene):
-    """Grow the len-3 winprob(n=5) tree on the chalkboard, one guess-row at a time.
 
-    Layered layout is built once in _setup_tree (pure geometry from the solver
-    JSON); subscene a chalks the edges on, row by row from the top.
+class WinTree(MovingCameraScene, HangmanScene):
+    """Grow the len-3 winprob(n=5) tree on the chalkboard while the camera dives
+    down WORD's path; then pull back out.
+
+    MovingCameraScene supplies self.camera.frame (BpkScene is a plain Scene). The
+    layered layout + camera keyframes are built once in _setup_tree (pure geometry
+    from the solver JSON).
     """
 
-    # the chalkboard is the backdrop — on screen from frame 0
+    # the chalkboard is the backdrop; start the camera zoomed on the root (x=0)
     def setup_scene(self):
         self.tree = json.loads(TREE_PATH.read_text())["tree"]
         self.cb = chalkboard(BOARD_W, BOARD_H)
         self.cb.set_z_index(-10)
         self.add(self.cb)
+        c0 = self._clamp_center(np.array([0.0, TOP_Y, 0.0]), CAM_W_START)
+        self.camera.frame.move_to(c0).set(width=CAM_W_START)
+
+    # ── keep a frame of the given width fully inside the navy board ────────────
+    def _clamp_center(self, c, w):
+        hw, hh = w / 2, w * 9 / 16 / 2
+        return np.array([min(max(c[0], -NAVY_HX + hw), NAVY_HX - hw),
+                         min(max(c[1], -NAVY_HY + hh), NAVY_HY - hh), 0.0])
 
     # ── word-count a child represents (sort key + horizontal ordering) ────────
     def _words(self, node):
@@ -98,35 +127,68 @@ class WinTree(HangmanScene):
         self._x[id(node)] = x
         return x
 
-    # ── build the chalk edges (grouped by depth for a row-by-row grow) ────────
+    # ── scene position of a node from its stored raw-x and depth ──────────────
+    def _node_pos(self, node):
+        idn = id(node)
+        return np.array([(self._x[idn] - (self._n - 1) / 2) * self._scale,
+                         self._row_y(self._depth[idn]), 0.0])
+
+    # ── the root→leaf node chain for `word` (follows the revealed patterns) ────
+    def _path_to(self, word):
+        node, nodes = self.tree, [self.tree]
+        while "branches" in node:
+            g = node["guess"]
+            key = "".join(g if word[p] == g else "_" for p in range(len(word)))
+            node = node["branches"][key]
+            nodes.append(node)
+        return nodes                                 # root … leaf(word)
+
+    # ── build the chalk edges (grouped by depth) + the camera keyframes ───────
     def _setup_tree(self):
         self._x, self._depth, self._edges = {}, {}, []
         self._rows, self._next_leaf = [TOP_Y], 0
         self._assign(self.tree, 0)
 
-        n = self._next_leaf
-        scale = 2 * HALF_W / max(1, n - 1)           # leaf indices → board width
-        def px(idn, depth):
-            return np.array([(self._x[idn] - (n - 1) / 2) * scale,
-                             self._row_y(depth), 0.0])
+        self._n = self._next_leaf
+        self._scale = 2 * HALF_W / max(1, self._n - 1)   # leaf indices → board width
 
         self._by_depth = {}
         for pid, cid in self._edges:
             d = self._depth[pid]
+            a = np.array([(self._x[pid] - (self._n - 1) / 2) * self._scale,
+                          self._row_y(d), 0.0])
+            b = np.array([(self._x[cid] - (self._n - 1) / 2) * self._scale,
+                          self._row_y(d + 1), 0.0])
             sw = max(EDGE_SW_MIN, EDGE_SW_ROOT * EDGE_SW_TAPER ** d)
-            edge = Line(px(pid, d), px(cid, d + 1), color=CHALK, stroke_width=sw)
-            self._by_depth.setdefault(d, VGroup()).add(edge)
-        self.edges = VGroup(*[e for d in sorted(self._by_depth)
-                              for e in self._by_depth[d]])
+            self._by_depth.setdefault(d, VGroup()).add(
+                Line(a, b, color=CHALK, stroke_width=sw))
 
-    # a : chalk the tree on one guess-row at a time from the top down — every edge
-    #     in a row draws simultaneously, and each row finishes before the next
+        # camera pose per path node (depth 0…8): centre on the node (clamped inside
+        # the board), width shrinking from CAM_W_START to CAM_W_END.
+        path = self._path_to(WORD)
+        dmax = len(path) - 1
+        self._cam_center, self._cam_width = [], []
+        for k, node in enumerate(path):
+            w = CAM_W_START + (CAM_W_END - CAM_W_START) * (k / dmax)
+            self._cam_center.append(self._clamp_center(self._node_pos(node), w))
+            self._cam_width.append(w)
+
+    # a : draw the tree row by row (each row at once, linear, equal time) while the
+    #     camera dives down WORD's path, zooming in a step per row to the leaf
     @subscene
     def grow(self):
         self._setup_tree()
-        row_rt = [0.7, 0.8, 0.9, 1.0, 1.0, 0.9, 0.8, 0.7]   # one per edge-row
         for d in sorted(self._by_depth):
-            # lag_ratio=0 → every edge in the row draws at once (Create defaults
-            # to 1.0, which would draw them one after another)
-            self.play(Create(self._by_depth[d], lag_ratio=0.0),
-                      run_time=row_rt[d] if d < len(row_rt) else row_rt[-1])
+            self.play(
+                Create(self._by_depth[d], lag_ratio=0.0),
+                self.camera.frame.animate.move_to(self._cam_center[d + 1])
+                    .set(width=self._cam_width[d + 1]),
+                run_time=ROW_TIME, rate_func=linear)
+
+    # b : pull the camera back out to the whole tree
+    @subscene
+    def zoom_out(self):
+        # snapshot cache doesn't save camera state → re-establish the leaf pose first
+        self.camera.frame.move_to(self._cam_center[-1]).set(width=self._cam_width[-1])
+        self.play(self.camera.frame.animate.move_to(ORIGIN).set(width=CAM_FULL_W),
+                  run_time=ZOOM_OUT_RT, rate_func=smooth)
