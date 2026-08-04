@@ -66,6 +66,7 @@ DOT_R_ROOT  = 0.09    # node-dot radius at the root; tapers with depth
 DOT_R_TAPER = 0.8
 DOT_R_MIN   = 0.012
 DOT_APPEAR  = 0.9    # a node's dot stays hidden until this fraction of its row's draw
+NODE_LETTER_H = 1.3   # guess-letter height as a multiple of the node radius
 
 
 def _appear_at_end(t):
@@ -97,8 +98,8 @@ class WinTree(MovingCameraScene, HangmanScene):
         self._setup_tree()                 # layout + edges/dots/camera keyframes
         # the initial node at the ACTUAL root position, on screen from frame 0 so the
         # leading 1s hold sits on it; the camera starts centred on it too
-        self.root_dot = Dot(self._node_pos(self.tree), radius=DOT_R_ROOT,
-                            color=CHALK, z_index=2)
+        self.root_dot = self._node_marker(id(self.tree), self._node_pos(self.tree),
+                                          DOT_R_ROOT)
         self.add(self.root_dot)
         self.camera.frame.move_to(self._cam_center[0]).set(width=self._cam_width[0])
 
@@ -123,12 +124,24 @@ class WinTree(MovingCameraScene, HangmanScene):
             return CHALK
         return LIGHT_PALETTE[len(LIGHT_PALETTE) - misses]   # 1→last(purple), 6→first(red)
 
+    # ── a node marker: dot (coloured by misses) with the guess letter inside for a
+    #    decision node (leaves get a bare dot) — VGroup(dot[, letter]) ───────────
+    def _node_marker(self, idn, pos, r):
+        dot = Dot(pos, radius=r, color=self._miss_color(self._misses[idn]), z_index=2)
+        g = self._guess[idn]
+        if g is None:                                   # a leaf: no guess to show
+            return VGroup(dot)
+        lab = crisp_text(g.upper(), color=BOARD_NAVY, weight=BOLD)
+        lab.scale_to_fit_height(NODE_LETTER_H * r).move_to(pos).set_z_index(3)
+        return VGroup(dot, lab)
+
     # ── assign a raw leaf-index x to every node (parent centred over children);
     #    also track the misses accumulated at each node (the all-blank branch is
     #    the miss) so edges/dots can be coloured by their bottom node ────────────
     def _assign(self, node, depth, misses):
         self._depth[id(node)] = depth
         self._misses[id(node)] = misses
+        self._guess[id(node)] = node.get("guess")   # None for a leaf
         if "branches" not in node:
             x = self._next_leaf
             self._next_leaf += 1
@@ -166,6 +179,7 @@ class WinTree(MovingCameraScene, HangmanScene):
     # ── build the chalk edges (grouped by depth) + the camera keyframes ───────
     def _setup_tree(self):
         self._x, self._depth, self._edges, self._misses = {}, {}, [], {}
+        self._guess = {}
         self._rows, self._next_leaf = [TOP_Y], 0
         self._assign(self.tree, 0, 0)
 
@@ -193,8 +207,8 @@ class WinTree(MovingCameraScene, HangmanScene):
             pos = np.array([(self._x[idn] - (self._n - 1) / 2) * self._scale,
                             self._row_y(d), 0.0])
             r = max(DOT_R_MIN, DOT_R_ROOT * DOT_R_TAPER ** d)
-            self._dots_by_depth.setdefault(d, VGroup()).add(     # nodes OVER edges
-                Dot(pos, radius=r, color=self._miss_color(self._misses[idn]), z_index=2))
+            self._dots_by_depth.setdefault(d, VGroup()).add(
+                self._node_marker(idn, pos, r))
 
         # camera pose per path node (depth 0…8): centre EXACTLY on the node so the
         # growing frontier stays at the vertical centre throughout (navy fills the
