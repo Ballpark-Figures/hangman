@@ -16,7 +16,7 @@ Layout — a LAYERED tree (one ROW per guess-count), rooted at the TOP, growing 
     left→right and every parent is centred over its children, so edges never cross.
   • children order alternates the heavy side per row (even rows lean the most-words
     branch right, odd rows left) so the dominant spine zig-zags and the canopy hangs
-    balanced. (Root always lands at x=0.)
+    balanced. (The root centres over its children, so it sits at a small x offset.)
 
 Camera (this is a MovingCameraScene):
   a grow  — every guess-row draws SIMULTANEOUSLY at a constant (linear) rate, each
@@ -66,6 +66,13 @@ EDGE_SW_MIN   = 0.9
 DOT_R_ROOT  = 0.09    # node-dot radius at the root; tapers with depth
 DOT_R_TAPER = 0.8
 DOT_R_MIN   = 0.012
+DOT_APPEAR  = 0.82    # a node's dot stays hidden until this fraction of its row's draw
+
+
+def _appear_at_end(t):
+    """Rate-func: hold at 0 until DOT_APPEAR (the edge has ~reached the node), then
+    ramp to 1 — so a node's dot only appears once its incoming edge arrives."""
+    return 0.0 if t < DOT_APPEAR else (t - DOT_APPEAR) / (1 - DOT_APPEAR)
 
 # ── camera dive ───────────────────────────────────────────────────────────────
 ROW_TIME    = 1.3     # every guess-row grows in the SAME time, at a linear rate
@@ -90,11 +97,12 @@ class WinTree(MovingCameraScene, HangmanScene):
         self.cb = chalkboard(BOARD_W, BOARD_H)
         self.cb.set_z_index(-10)
         self.add(self.cb)
-        # the initial node, on screen from frame 0 so the leading 1s hold sits on it
-        self.root_dot = Dot([0.0, TOP_Y, 0.0], radius=DOT_R_ROOT, color=CHALK)
+        self._setup_tree()                 # layout + edges/dots/camera keyframes
+        # the initial node at the ACTUAL root position, on screen from frame 0 so the
+        # leading 1s hold sits on it; the camera starts centred on it too
+        self.root_dot = Dot(self._node_pos(self.tree), radius=DOT_R_ROOT, color=CHALK)
         self.add(self.root_dot)
-        c0 = self._clamp_center(np.array([0.0, TOP_Y, 0.0]), CAM_W_START)
-        self.camera.frame.move_to(c0).set(width=CAM_W_START)
+        self.camera.frame.move_to(self._cam_center[0]).set(width=self._cam_width[0])
 
     # ── keep a frame of the given width fully inside the navy board ────────────
     def _clamp_center(self, c, w):
@@ -199,18 +207,18 @@ class WinTree(MovingCameraScene, HangmanScene):
     #     camera dives down WORD's path, zooming in a step per row to the leaf
     @subscene
     def grow(self):
-        self._setup_tree()
         last = len(self._cam_center) - 1
         for d in sorted(self._by_depth):
             k = min(d + 1, last)                     # camera holds at the leaf once reached
             anims = [
-                Create(self._by_depth[d], lag_ratio=0.0),
-                self.camera.frame.animate.move_to(self._cam_center[k])
-                    .set(width=self._cam_width[k]),
+                Create(self._by_depth[d], lag_ratio=0.0, rate_func=linear),
+                self.camera.frame.animate(rate_func=linear)
+                    .move_to(self._cam_center[k]).set(width=self._cam_width[k]),
             ]
-            if (d + 1) in self._dots_by_depth:       # dots for the nodes this row reaches
-                anims.append(FadeIn(self._dots_by_depth[d + 1]))
-            self.play(*anims, run_time=ROW_TIME, rate_func=linear)
+            if (d + 1) in self._dots_by_depth:       # dots pop only as the edges reach them
+                anims.append(FadeIn(self._dots_by_depth[d + 1],
+                                    rate_func=_appear_at_end))
+            self.play(*anims, run_time=ROW_TIME)
 
     # b : pull the camera back out to the whole tree
     @subscene
