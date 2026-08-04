@@ -219,12 +219,45 @@ class WinTree(MovingCameraScene, HangmanScene):
         blk.shift([0, (gal.get_bottom()[1] - reserve) - blk.get_bottom()[1], 0])
         return VGroup(gal, blk)
 
-    # ── edge geometry helper (for keeping the edge labels clear of the line) ──
+    # ── edge geometry helpers (place edge labels clear of, and off, the lines) ─
     def _edge_x_at(self, a, b, y):
         """x of the line a→b at height y (a.x if the edge is horizontal)."""
         if abs(a[1] - b[1]) < 1e-6:
             return a[0]
         return a[0] + (b[0] - a[0]) * (a[1] - y) / (a[1] - b[1])
+
+    def _seg_hits_box(self, p0, p1, lo, hi):
+        """True if segment p0→p1 intersects the axis-aligned box [lo, hi] (2-D)."""
+        d = p1 - p0
+        t0, t1 = 0.0, 1.0
+        for i in (0, 1):
+            if abs(d[i]) < 1e-9:
+                if p0[i] < lo[i] or p0[i] > hi[i]:
+                    return False
+            else:
+                a, b = (lo[i] - p0[i]) / d[i], (hi[i] - p0[i]) / d[i]
+                if a > b:
+                    a, b = b, a
+                t0, t1 = max(t0, a), min(t1, b)
+                if t0 > t1:
+                    return False
+        return True
+
+    def _ann_hits(self, lo, hi, depth, own):
+        """How many edges near `depth` (excluding the label's own edge `own`) cross
+        the box [lo, hi] — used to pick the less-colliding side for a label."""
+        n = 0
+        for pd in (depth - 2, depth - 1, depth):
+            for pid, cid in self._edges_by_pdepth.get(pd, ()):
+                if (pid, cid) == own:
+                    continue
+                p0, p1 = self._pos_of(pid)[:2], self._pos_of(cid)[:2]
+                if (max(p0[0], p1[0]) < lo[0] or min(p0[0], p1[0]) > hi[0] or
+                        max(p0[1], p1[1]) < lo[1] or min(p0[1], p1[1]) > hi[1]):
+                    continue                          # quick bbox reject
+                if self._seg_hits_box(p0, p1, lo, hi):
+                    n += 1
+        return n
 
     # ── assign a raw leaf-index x to every node (parent centred over children);
     #    also track the misses accumulated at each node (the all-blank branch is
@@ -281,6 +314,9 @@ class WinTree(MovingCameraScene, HangmanScene):
 
         self._n = self._next_leaf
         self._scale = 2 * HALF_W / max(1, self._n - 1)   # leaf indices → board width
+        self._edges_by_pdepth = {}                       # edges indexed by parent depth
+        for pid, cid in self._edges:
+            self._edges_by_pdepth.setdefault(self._depth[pid], []).append((pid, cid))
 
         self._by_depth = {}
         for pid, cid in self._edges:
@@ -342,10 +378,22 @@ class WinTree(MovingCameraScene, HangmanScene):
                 unit.set_y((cpos + (a - cpos) * EDGE_FRAC)[1])
                 blk = unit[1]                            # keep the NEAR blank clear of it
                 ex = self._edge_x_at(a, cpos, blk.get_bottom()[1])
-                if cpos[0] < a[0]:                       # down-left → unit LEFT of line
-                    unit.shift([(ex - ANN_CLR * s) - blk.get_right()[0], 0, 0])
-                else:                                    # down-right → unit RIGHT of line
-                    unit.shift([(ex + ANN_CLR * s) - blk.get_left()[0], 0, 0])
+                dx_l = (ex - ANN_CLR * s) - blk.get_right()[0]   # sit LEFT of the line
+                dx_r = (ex + ANN_CLR * s) - blk.get_left()[0]    # sit RIGHT of the line
+                # try both sides; keep whichever collides with fewer OTHER edge-lines
+                # (tie → the "above" side of the diagonal: left of a down-left edge)
+                bl, br = unit.get_left()[0], unit.get_right()[0]
+                bb, bt = unit.get_bottom()[1], unit.get_top()[1]
+                own = (self._parent[idn], idn)
+                hl = self._ann_hits(np.array([bl + dx_l, bb]),
+                                    np.array([br + dx_l, bt]), d, own)
+                hr = self._ann_hits(np.array([bl + dx_r, bb]),
+                                    np.array([br + dx_r, bt]), d, own)
+                if hl != hr:
+                    dx = dx_l if hl < hr else dx_r
+                else:
+                    dx = dx_l if cpos[0] < a[0] else dx_r
+                unit.shift([dx, 0, 0])
                 self._ann_edge_by_depth.setdefault(d, VGroup()).add(unit)
 
     # a : draw the tree row by row (each row at once, linear, equal time) while the
