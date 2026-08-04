@@ -127,11 +127,10 @@ class WinTree(MovingCameraScene, HangmanScene):
                                       color=BOARD_NAVY, weight=BOLD)
         self.root_letter.scale_to_fit_height(NODE_LETTER_H * DOT_R_ROOT)
         self.root_letter.move_to(rpos).set_z_index(3)          # added later (fade-in)
-        self.root_blanks = self._blanks("_" * len(WORD), BLK_H * w0, ANN_SW_FRAC * w0)
-        self.root_blanks.move_to(rpos + LEFT * ANN_DX * w0 + UP * ANN_UP * w0)
-        self.root_gallows = self._gallows(0, GAL_H * w0, ANN_SW_FRAC * w0)
-        self.root_gallows.move_to(rpos + RIGHT * ANN_DX * w0 + UP * ANN_UP * w0)
-        self.add(self.root_dot, self.root_blanks, self.root_gallows)
+        # the stacked gallows+word unit, placed ABOVE the root node
+        self.root_ann = self._annotation("_" * len(WORD), 0, w0)
+        self.root_ann.next_to(rpos, UP, buff=ANN_UP * w0)
+        self.add(self.root_dot, self.root_ann)
         self.camera.frame.move_to(self._cam_center[0]).set(width=self._cam_width[0])
 
     # ── word-count a child represents (sort key + horizontal ordering) ────────
@@ -190,6 +189,14 @@ class WinTree(MovingCameraScene, HangmanScene):
         g = hangman_drawing(misses, color=CHALK).scale_to_fit_height(h)
         g.set_stroke(width=sw)
         return g
+
+    def _annotation(self, pattern, misses, w):
+        """A stacked board-state label — the gallows with the WORD (blanks) BELOW it,
+        sized by the camera width w."""
+        gal = self._gallows(misses, GAL_H * w, ANN_SW_FRAC * w)
+        blk = self._blanks(pattern, BLK_H * w, ANN_SW_FRAC * w)
+        blk.next_to(gal, DOWN, buff=LEAF_GAP * w)
+        return VGroup(gal, blk)
 
     # ── assign a raw leaf-index x to every node (parent centred over children);
     #    also track the misses accumulated at each node (the all-blank branch is
@@ -300,17 +307,15 @@ class WinTree(MovingCameraScene, HangmanScene):
             pat, miss = self._path_state[k]
             w = self._cam_width[k]
             cpos = self._node_pos(path[k])
-            blk = self._blanks(pat, BLK_H * w, ANN_SW_FRAC * w)
-            gal = self._gallows(miss, GAL_H * w, ANN_SW_FRAC * w)
-            if k < dmax:                             # partway UP the edge, centred on it
+            unit = self._annotation(pat, miss, w)    # gallows, with the word below it
+            if k < dmax:                             # along the edge, on its "above" side
                 a = self._node_pos(path[k - 1])      # parent node
-                p = cpos + (a - cpos) * EDGE_FRAC    # a point higher up the edge
-                blk.move_to([p[0] - ANN_DX * w, p[1], 0.0])
-                gal.move_to([p[0] + ANN_DX * w, p[1], 0.0])
-            else:                                    # leaf: stack below the node
-                gal.next_to(cpos, DOWN, buff=LEAF_GAP * w)
-                blk.next_to(gal, DOWN, buff=LEAF_GAP * w)
-            self._ann_by_depth[k] = VGroup(blk, gal)
+                p = cpos + (a - cpos) * EDGE_FRAC    # a point up the edge
+                side = LEFT if cpos[0] < a[0] else RIGHT   # down-left→left, else right
+                unit.move_to(p + side * ANN_DX * w)
+            else:                                    # leaf: stacked below the node
+                unit.next_to(cpos, DOWN, buff=LEAF_GAP * w)
+            self._ann_by_depth[k] = unit
 
         # The leaf keyframe stays at the planned tight zoom with the leaf NODE centred
         # (set in the loop above); the gallows + blanks are now sized small enough to
