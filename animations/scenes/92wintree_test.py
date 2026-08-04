@@ -69,17 +69,18 @@ DOT_R_MIN   = 0.012
 DOT_APPEAR  = 0.9    # a node's dot stays hidden until this fraction of its row's draw
 NODE_LETTER_H = 1.3   # guess-letter height as a multiple of the node radius
 
-# ── board-state annotations (blanks + gallows) — sizes/offsets as fractions of the
-#    camera width at the relevant depth, so they stay a constant on-screen size ────
-BLK_H   = 0.05        # blank rule/letter height
-GAL_H   = 0.10        # gallows height
-ANN_DX  = 0.20        # horizontal offset: blanks to the LEFT, gallows to the RIGHT
-ANN_UP  = 0.12        # how far ABOVE the root the blanks/gallows sit
-EDGE_FRAC = 0.40      # edge labels sit this fraction UP the edge (toward the parent),
-                      # centred horizontally on the edge rather than on the child node
-LEAF_GAP = 0.04       # leaf: gap leaf→gallows and gallows→blanks (stacked below)
-ANN_SW_FRAC = 0.32    # blanks/gallows line thickness as a fraction of the camera width
-                      # (∝ width → constant on-screen thickness as the diagrams shrink)
+# ── board-state annotations (blanks + gallows) — sizes/offsets are fractions of a
+#    SIZING SCALE: the EDGE LENGTH for edge labels (so a label is always the same %
+#    of its edge), or the camera width for the root/leaf labels (so those stay a
+#    constant visible size). ───────────────────────────────────────────────────────
+BLK_H   = 0.05        # blank rule/letter height  (fraction of the sizing scale)
+GAL_H   = 0.10        # gallows height            (fraction of the sizing scale)
+ANN_CLR = 0.06        # clearance between the near (edge-facing) blank and the edge line
+ANN_UP  = 0.05        # how far ABOVE the root node the unit sits (close)
+EDGE_FRAC = 0.40      # edge labels sit this fraction UP the edge; 1-EDGE_FRAC is also
+                      # when they appear (as the growing edge tip passes them)
+LEAF_GAP = 0.04       # stack gap (gallows→word) and node→unit gap
+ANN_SW_FRAC = 0.32    # blanks/gallows line thickness (fraction of the sizing scale)
 ANN_WINDOW = 0.12     # an edge label fades in over this fraction of the row, once the
                       # growing edge tip passes its spot
 
@@ -190,13 +191,30 @@ class WinTree(MovingCameraScene, HangmanScene):
         g.set_stroke(width=sw)
         return g
 
-    def _annotation(self, pattern, misses, w):
+    def _annotation(self, pattern, misses, s):
         """A stacked board-state label — the gallows with the WORD (blanks) BELOW it,
-        sized by the camera width w."""
-        gal = self._gallows(misses, GAL_H * w, ANN_SW_FRAC * w)
-        blk = self._blanks(pattern, BLK_H * w, ANN_SW_FRAC * w)
-        blk.next_to(gal, DOWN, buff=LEAF_GAP * w)
+        sized by scale `s`. The underscores sit a FIXED distance below the gallows
+        (the letter space above them is reserved), so the blanks are the same distance
+        from the gallows whether or not letters are present."""
+        gal = self._gallows(misses, GAL_H * s, ANN_SW_FRAC * s)
+        blk = self._blanks(pattern, BLK_H * s, ANN_SW_FRAC * s)
+        reserve = (LEAF_GAP + 1.22 * BLK_H) * s          # gallows-bottom → underscores
+        blk.set_x(gal.get_center()[0])
+        blk.shift([0, (gal.get_bottom()[1] - reserve) - blk.get_bottom()[1], 0])
         return VGroup(gal, blk)
+
+    # ── edge geometry helpers (for placing/sizing the edge labels) ────────────
+    def _edge_len(self, k):
+        """Length of the edge into path node k (root borrows the first edge)."""
+        lo, hi = max(k - 1, 0), max(k, 1)
+        return float(np.linalg.norm(self._node_pos(self._path[hi])
+                                    - self._node_pos(self._path[lo])))
+
+    def _edge_x_at(self, a, b, y):
+        """x of the line a→b at height y (a.x if the edge is horizontal)."""
+        if abs(a[1] - b[1]) < 1e-6:
+            return a[0]
+        return a[0] + (b[0] - a[0]) * (a[1] - y) / (a[1] - b[1])
 
     # ── assign a raw leaf-index x to every node (parent centred over children);
     #    also track the misses accumulated at each node (the all-blank branch is
@@ -305,16 +323,22 @@ class WinTree(MovingCameraScene, HangmanScene):
         self._ann_by_depth = {}
         for k in range(1, dmax + 1):
             pat, miss = self._path_state[k]
-            w = self._cam_width[k]
             cpos = self._node_pos(path[k])
-            unit = self._annotation(pat, miss, w)    # gallows, with the word below it
-            if k < dmax:                             # along the edge, on its "above" side
-                a = self._node_pos(path[k - 1])      # parent node
-                p = cpos + (a - cpos) * EDGE_FRAC    # a point up the edge
-                side = LEFT if cpos[0] < a[0] else RIGHT   # down-left→left, else right
-                unit.move_to(p + side * ANN_DX * w)
-            else:                                    # leaf: stacked below the node
-                unit.next_to(cpos, DOWN, buff=LEAF_GAP * w)
+            a = self._node_pos(path[k - 1])          # parent node
+            if k < dmax:                             # edge label: sized by EDGE LENGTH
+                s = self._edge_len(k)                # (constant % of the edge)
+                unit = self._annotation(pat, miss, s)
+                unit.set_y((cpos + (a - cpos) * EDGE_FRAC)[1])   # vertical: up the edge
+                blk = unit[1]                        # horizontal: keep the NEAR blank
+                ex = self._edge_x_at(a, cpos, blk.get_bottom()[1])   # clear of the line
+                if cpos[0] < a[0]:                   # down-left → unit LEFT of the line
+                    unit.shift([(ex - ANN_CLR * s) - blk.get_right()[0], 0, 0])
+                else:                                # down-right → unit RIGHT of the line
+                    unit.shift([(ex + ANN_CLR * s) - blk.get_left()[0], 0, 0])
+            else:                                    # leaf: below node, sized on-screen
+                s = self._cam_width[k]
+                unit = self._annotation(pat, miss, s)
+                unit.next_to(cpos, DOWN, buff=LEAF_GAP * s)
             self._ann_by_depth[k] = unit
 
         # The leaf keyframe stays at the planned tight zoom with the leaf NODE centred
