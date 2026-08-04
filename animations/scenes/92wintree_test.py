@@ -77,9 +77,9 @@ NODE_LETTER_H = 1.3   # guess-letter height as a multiple of the node radius
 BLK_H   = 0.05        # blank rule/letter height  (fraction of the camera width)
 GAL_H   = 0.10        # gallows height            (fraction of the camera width)
 ANN_CLR = 0.06        # clearance between the near (edge-facing) blank and the edge line
-ANN_UP  = 0.05        # how far ABOVE the root node the unit sits (close)
-EDGE_FRAC = 0.40      # edge labels sit this fraction UP the edge; 1-EDGE_FRAC is also
-                      # when they appear (as the growing edge tip passes them)
+ANN_UP  = 0.12        # how far ABOVE the root node the unit sits
+EDGE_FRAC = 0.25      # edge labels sit this fraction UP the edge (lower = further DOWN);
+                      # 1-EDGE_FRAC is also when they appear (as the edge tip passes them)
 LEAF_GAP = 0.04       # stack gap (gallows→word) and node→unit gap
 ANN_SW_FRAC = 0.32    # blanks/gallows line thickness (fraction of the sizing scale)
 ANN_WINDOW = 0.12     # an edge label fades in over this fraction of the row, once the
@@ -98,9 +98,10 @@ def _appear_from(trigger, window=1.0):
 
 # ── camera dive ───────────────────────────────────────────────────────────────
 ROW_TIME    = 2.0     # every guess-row grows in the SAME time, at a linear rate
+ROOT_PAUSE  = 1.0     # hold after the opening letter appears, before the dive starts
 CAM_W_START = 3.0     # camera frame width at the root; each level zooms by SHRINK
 CAM_FULL_W  = 16.0    # full-frame width for the zoom-out beat
-ZOOM_OUT_RT = 3.2
+ZOOM_OUT_RT = 5.0
 
 
 class WinTree(MovingCameraScene, HangmanScene):
@@ -213,10 +214,12 @@ class WinTree(MovingCameraScene, HangmanScene):
     # ── assign a raw leaf-index x to every node (parent centred over children);
     #    also track the misses accumulated at each node (the all-blank branch is
     #    the miss) so edges/dots can be coloured by their bottom node ────────────
-    def _assign(self, node, depth, misses):
+    def _assign(self, node, depth, misses, pattern, parent):
         self._depth[id(node)] = depth
         self._misses[id(node)] = misses
         self._guess[id(node)] = node.get("guess")   # None for a leaf
+        self._pattern[id(node)] = pattern           # revealed (hit) letters so far
+        self._parent[id(node)] = parent             # parent id (None for the root)
         if "branches" not in node:
             x = self._next_leaf
             self._next_leaf += 1
@@ -229,17 +232,20 @@ class WinTree(MovingCameraScene, HangmanScene):
             xs = []
             for key, child in items:
                 m = misses + (1 if key == allblank else 0)
-                xs.append(self._assign(child, depth + 1, m))
+                pat = merge_pattern(pattern, key)
+                xs.append(self._assign(child, depth + 1, m, pat, id(node)))
                 self._edges.append((id(node), id(child)))
             x = (xs[0] + xs[-1]) / 2                 # centre over child extent
         self._x[id(node)] = x
         return x
 
-    # ── scene position of a node from its stored raw-x and depth ──────────────
-    def _node_pos(self, node):
-        idn = id(node)
+    # ── scene position of a node (by object or by id) ─────────────────────────
+    def _pos_of(self, idn):
         return np.array([(self._x[idn] - (self._n - 1) / 2) * self._scale,
                          self._row_y(self._depth[idn]), 0.0])
+
+    def _node_pos(self, node):
+        return self._pos_of(id(node))
 
     # ── the root→leaf node chain for `word` (follows the revealed patterns) ────
     def _path_to(self, word):
@@ -254,9 +260,9 @@ class WinTree(MovingCameraScene, HangmanScene):
     # ── build the chalk edges (grouped by depth) + the camera keyframes ───────
     def _setup_tree(self):
         self._x, self._depth, self._edges, self._misses = {}, {}, [], {}
-        self._guess = {}
+        self._guess, self._pattern, self._parent = {}, {}, {}
         self._rows, self._next_leaf = [TOP_Y], 0
-        self._assign(self.tree, 0, 0)
+        self._assign(self.tree, 0, 0, "_" * len(WORD), None)
 
         self._n = self._next_leaf
         self._scale = 2 * HALF_W / max(1, self._n - 1)   # leaf indices → board width
@@ -299,52 +305,41 @@ class WinTree(MovingCameraScene, HangmanScene):
             self._cam_center.append(self._node_pos(node))
             self._cam_width.append(w)
 
-        # board state (revealed pattern, misses) at each path node — for the blanks +
-        # gallows annotations. Only HIT letters fill the blanks; misses only add a
-        # gallows part (missed letters are never written).
-        acc, m = "_" * len(WORD), 0
-        self._path_state = [(acc, m)]
-        for k in range(dmax):
-            g = path[k]["guess"]
-            key = "".join(g if WORD[p] == g else "_" for p in range(len(WORD)))
-            acc = merge_pattern(acc, key)
-            m += 0 if any(c != "_" for c in key) else 1
-            self._path_state.append((acc, m))
-
-        # blanks + gallows annotation for each path node beyond the root (k = 1…dmax).
-        # Intermediate nodes: blanks LEFT / gallows RIGHT, just above the child (toward
-        # the edge bottom). The leaf: gallows below the leaf, blanks below the gallows.
-        self._ann_by_depth = {}
-        for k in range(1, dmax + 1):
-            pat, miss = self._path_state[k]
-            cpos = self._node_pos(path[k])
-            a = self._node_pos(path[k - 1])          # parent node
-            if k < dmax:                             # edge label
-                s = self._cam_width[k]               # constant on-screen size
-                unit = self._annotation(pat, miss, s)
-                unit.set_y((cpos + (a - cpos) * EDGE_FRAC)[1])   # vertical: up the edge
-                blk = unit[1]                        # horizontal: keep the NEAR blank
-                ex = self._edge_x_at(a, cpos, blk.get_bottom()[1])   # clear of the line
-                if cpos[0] < a[0]:                   # down-left → unit LEFT of the line
-                    unit.shift([(ex - ANN_CLR * s) - blk.get_right()[0], 0, 0])
-                else:                                # down-right → unit RIGHT of the line
-                    unit.shift([(ex + ANN_CLR * s) - blk.get_left()[0], 0, 0])
-            else:                                    # leaf: below node, sized on-screen
-                s = self._cam_width[k]
-                unit = self._annotation(pat, miss, s)
+        # blanks + gallows annotation for EVERY node beyond the root, grouped by depth
+        # and by kind. A DECISION node's label sits along its incoming edge (on the
+        # edge's "above" side, held clear of the line) and appears as the edge tip
+        # passes it; a LEAF's label is stacked below the node and appears WITH the node.
+        # Sized off the camera width at that depth (constant on-screen). No missed
+        # letters are ever written — misses only add a gallows part.
+        self._ann_edge_by_depth = {}     # decision-node labels (appear as the edge passes)
+        self._ann_leaf_by_depth = {}     # leaf labels (appear with the node)
+        for idn, d in self._depth.items():
+            if d == 0:                                   # root label placed in setup_scene
+                continue
+            s = self._cam_width[d]
+            unit = self._annotation(self._pattern[idn], self._misses[idn], s)
+            cpos = self._pos_of(idn)
+            if self._guess[idn] is None:                 # LEAF → stacked below the node
                 unit.next_to(cpos, DOWN, buff=LEAF_GAP * s)
-            self._ann_by_depth[k] = unit
-
-        # The leaf keyframe stays at the planned tight zoom with the leaf NODE centred
-        # (set in the loop above); the gallows + blanks are now sized small enough to
-        # fit the lower half of that frame, so no widening is needed.
+                self._ann_leaf_by_depth.setdefault(d, VGroup()).add(unit)
+            else:                                        # DECISION → along its edge
+                a = self._pos_of(self._parent[idn])      # parent node
+                unit.set_y((cpos + (a - cpos) * EDGE_FRAC)[1])
+                blk = unit[1]                            # keep the NEAR blank clear of it
+                ex = self._edge_x_at(a, cpos, blk.get_bottom()[1])
+                if cpos[0] < a[0]:                       # down-left → unit LEFT of line
+                    unit.shift([(ex - ANN_CLR * s) - blk.get_right()[0], 0, 0])
+                else:                                    # down-right → unit RIGHT of line
+                    unit.shift([(ex + ANN_CLR * s) - blk.get_left()[0], 0, 0])
+                self._ann_edge_by_depth.setdefault(d, VGroup()).add(unit)
 
     # a : draw the tree row by row (each row at once, linear, equal time) while the
     #     camera dives down WORD's path, zooming in a step per row to the leaf
     @subscene
     def grow(self):
-        # first beat: fade the opening guess letter into the root node
+        # first beat: fade the opening guess letter into the root node, then hold
         self.play(FadeIn(self.root_letter), run_time=0.8)
+        self.wait(ROOT_PAUSE)
         last = len(self._cam_center) - 1
         for d in sorted(self._by_depth):
             k = min(d + 1, last)                     # camera holds at the leaf once reached
@@ -356,12 +351,12 @@ class WinTree(MovingCameraScene, HangmanScene):
             if (d + 1) in self._dots_by_depth:       # dots pop only as the edges reach them
                 anims.append(FadeIn(self._dots_by_depth[d + 1],
                                     rate_func=_appear_at_end))
-            if (d + 1) in self._ann_by_depth:        # blanks + gallows for this state
-                # the leaf sits BELOW its node (appears on arrival); an edge label
-                # appears as the growing edge tip PASSES it (~1-EDGE_FRAC down)
-                rf = (_appear_at_end if d + 1 == self._dmax
-                      else _appear_from(1 - EDGE_FRAC, ANN_WINDOW))
-                anims.append(FadeIn(self._ann_by_depth[d + 1], rate_func=rf))
+            if (d + 1) in self._ann_edge_by_depth:   # decision labels: as the edge passes
+                anims.append(FadeIn(self._ann_edge_by_depth[d + 1],
+                                    rate_func=_appear_from(1 - EDGE_FRAC, ANN_WINDOW)))
+            if (d + 1) in self._ann_leaf_by_depth:   # leaf labels: with the node
+                anims.append(FadeIn(self._ann_leaf_by_depth[d + 1],
+                                    rate_func=_appear_at_end))
             self.play(*anims, run_time=ROW_TIME)
 
     # b : pull the camera back out to the whole tree
