@@ -63,11 +63,11 @@ EDGE_SW_TAPER = 0.72
 EDGE_SW_MIN   = 0.9
 
 # ── camera dive ───────────────────────────────────────────────────────────────
-ROW_TIME    = 0.7     # every guess-row grows in the SAME time, at a linear rate
+ROW_TIME    = 1.3     # every guess-row grows in the SAME time, at a linear rate
 CAM_W_START = 6.0     # camera frame width at the root (zoomed-in start)
-CAM_W_END   = 2.6     # camera frame width at the leaf (tight close-up)
+CAM_W_END   = 1.0     # camera frame width at the leaf (tight close-up)
 CAM_FULL_W  = 16.0    # full-frame width for the zoom-out beat
-ZOOM_OUT_RT = 2.2
+ZOOM_OUT_RT = 3.2
 
 
 class WinTree(MovingCameraScene, HangmanScene):
@@ -164,12 +164,14 @@ class WinTree(MovingCameraScene, HangmanScene):
                 Line(a, b, color=CHALK, stroke_width=sw))
 
         # camera pose per path node (depth 0…8): centre on the node (clamped inside
-        # the board), width shrinking from CAM_W_START to CAM_W_END.
+        # the board), width shrinking GEOMETRICALLY (constant ratio per row) from
+        # CAM_W_START to CAM_W_END — so it keeps pace with the ×SHRINK row bunching
+        # and each layer zooms in by the same factor, all the way to the leaf.
         path = self._path_to(WORD)
         dmax = len(path) - 1
         self._cam_center, self._cam_width = [], []
         for k, node in enumerate(path):
-            w = CAM_W_START + (CAM_W_END - CAM_W_START) * (k / dmax)
+            w = CAM_W_START * (CAM_W_END / CAM_W_START) ** (k / dmax)
             self._cam_center.append(self._clamp_center(self._node_pos(node), w))
             self._cam_width.append(w)
 
