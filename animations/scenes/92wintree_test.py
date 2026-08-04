@@ -75,7 +75,8 @@ BLK_H   = 0.05        # blank rule/letter height
 GAL_H   = 0.10        # gallows height
 ANN_DX  = 0.20        # horizontal offset: blanks to the LEFT, gallows to the RIGHT
 ANN_UP  = 0.12        # how far ABOVE the root the blanks/gallows sit
-ANN_EDGE_UP = 0.05    # edge labels sit this far above their child ("toward edge bottom")
+EDGE_FRAC = 0.40      # edge labels sit this fraction UP the edge (toward the parent),
+                      # centred horizontally on the edge rather than on the child node
 LEAF_GAP = 0.04       # leaf: gap leaf→gallows and gallows→blanks (stacked below)
 ANN_SW_FRAC = 0.32    # blanks/gallows line thickness as a fraction of the camera width
                       # (∝ width → constant on-screen thickness as the diagrams shrink)
@@ -294,9 +295,11 @@ class WinTree(MovingCameraScene, HangmanScene):
             cpos = self._node_pos(path[k])
             blk = self._blanks(pat, BLK_H * w, ANN_SW_FRAC * w)
             gal = self._gallows(miss, GAL_H * w, ANN_SW_FRAC * w)
-            if k < dmax:
-                blk.move_to(cpos + LEFT * ANN_DX * w + UP * ANN_EDGE_UP * w)
-                gal.move_to(cpos + RIGHT * ANN_DX * w + UP * ANN_EDGE_UP * w)
+            if k < dmax:                             # partway UP the edge, centred on it
+                a = self._node_pos(path[k - 1])      # parent node
+                p = cpos + (a - cpos) * EDGE_FRAC    # a point higher up the edge
+                blk.move_to([p[0] - ANN_DX * w, p[1], 0.0])
+                gal.move_to([p[0] + ANN_DX * w, p[1], 0.0])
             else:                                    # leaf: stack below the node
                 gal.next_to(cpos, DOWN, buff=LEAF_GAP * w)
                 blk.next_to(gal, DOWN, buff=LEAF_GAP * w)
