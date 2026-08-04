@@ -48,10 +48,6 @@ TREE_PATH = (Path(__file__).resolve().parents[2]
 WORD = "six"          # featured deepest-row (depth-8) word — the camera's target
                       # ("six" is a LOST word: its path ends on the fatal 6th miss)
 
-# ── camera framing bounds (roughly the tree's extent; navy fills the whole frame)
-NAVY_HX = 15.2 / 2 - 0.34      # the camera frame is clamped inside these so the dive
-NAVY_HY = 8.4 / 2 - 0.34       # never wanders off the tree into empty navy
-
 # ── layered layout (frame 16×9 → x-radius 8.0, y-radius 4.5) ──────────────────
 TOP_Y   = 3.5         # row 0 (the opening guess) sits here
 ROWGAP0 = 2.6         # gap row-0→row-1; each next gap ×SHRINK (rows bunch downward)
@@ -65,7 +61,7 @@ EDGE_SW_MIN   = 0.9
 DOT_R_ROOT  = 0.09    # node-dot radius at the root; tapers with depth
 DOT_R_TAPER = 0.8
 DOT_R_MIN   = 0.012
-DOT_APPEAR  = 0.96    # a node's dot stays hidden until this fraction of its row's draw
+DOT_APPEAR  = 0.9    # a node's dot stays hidden until this fraction of its row's draw
 
 
 def _appear_at_end(t):
@@ -100,12 +96,6 @@ class WinTree(MovingCameraScene, HangmanScene):
         self.root_dot = Dot(self._node_pos(self.tree), radius=DOT_R_ROOT, color=CHALK)
         self.add(self.root_dot)
         self.camera.frame.move_to(self._cam_center[0]).set(width=self._cam_width[0])
-
-    # ── keep a frame of the given width fully inside the navy board ────────────
-    def _clamp_center(self, c, w):
-        hw, hh = w / 2, w * 9 / 16 / 2
-        return np.array([min(max(c[0], -NAVY_HX + hw), NAVY_HX - hw),
-                         min(max(c[1], -NAVY_HY + hh), NAVY_HY - hh), 0.0])
 
     # ── word-count a child represents (sort key + horizontal ordering) ────────
     def _words(self, node):
@@ -188,16 +178,17 @@ class WinTree(MovingCameraScene, HangmanScene):
             self._dots_by_depth.setdefault(d, VGroup()).add(
                 Dot(pos, radius=r, color=CHALK))
 
-        # camera pose per path node (depth 0…8): centre on the node (clamped inside
-        # the board), width shrinking GEOMETRICALLY (constant ratio per row) from
-        # CAM_W_START to CAM_W_END — so it keeps pace with the ×SHRINK row bunching
-        # and each layer zooms in by the same factor, all the way to the leaf.
+        # camera pose per path node (depth 0…8): centre EXACTLY on the node so the
+        # growing frontier stays at the vertical centre throughout (navy fills the
+        # frame, so there's no board edge to avoid). Width shrinks GEOMETRICALLY
+        # (constant ratio per row) from CAM_W_START to CAM_W_END, keeping pace with
+        # the ×SHRINK row bunching so each layer zooms in by the same factor.
         path = self._path_to(WORD)
         dmax = len(path) - 1
         self._cam_center, self._cam_width = [], []
         for k, node in enumerate(path):
             w = CAM_W_START * (CAM_W_END / CAM_W_START) ** (k / dmax)
-            self._cam_center.append(self._clamp_center(self._node_pos(node), w))
+            self._cam_center.append(self._node_pos(node))
             self._cam_width.append(w)
 
     # a : draw the tree row by row (each row at once, linear, equal time) while the
