@@ -74,7 +74,7 @@ def _appear_at_end(t):
     return 0.0 if t < DOT_APPEAR else (t - DOT_APPEAR) / (1 - DOT_APPEAR)
 
 # ── camera dive ───────────────────────────────────────────────────────────────
-ROW_TIME    = 1.3     # every guess-row grows in the SAME time, at a linear rate
+ROW_TIME    = 2.0     # every guess-row grows in the SAME time, at a linear rate
 CAM_W_START = 6.0     # camera frame width at the root (zoomed-in start)
 CAM_W_END   = 1.0     # camera frame width at the leaf (tight close-up)
 CAM_FULL_W  = 16.0    # full-frame width for the zoom-out beat
@@ -97,7 +97,8 @@ class WinTree(MovingCameraScene, HangmanScene):
         self._setup_tree()                 # layout + edges/dots/camera keyframes
         # the initial node at the ACTUAL root position, on screen from frame 0 so the
         # leading 1s hold sits on it; the camera starts centred on it too
-        self.root_dot = Dot(self._node_pos(self.tree), radius=DOT_R_ROOT, color=CHALK)
+        self.root_dot = Dot(self._node_pos(self.tree), radius=DOT_R_ROOT,
+                            color=CHALK, z_index=2)
         self.add(self.root_dot)
         self.camera.frame.move_to(self._cam_center[0]).set(width=self._cam_width[0])
 
@@ -179,8 +180,9 @@ class WinTree(MovingCameraScene, HangmanScene):
             b = np.array([(self._x[cid] - (self._n - 1) / 2) * self._scale,
                           self._row_y(d + 1), 0.0])
             sw = max(EDGE_SW_MIN, EDGE_SW_ROOT * EDGE_SW_TAPER ** d)
-            self._by_depth.setdefault(d, VGroup()).add(          # colour by bottom node
-                Line(a, b, color=self._miss_color(self._misses[cid]), stroke_width=sw))
+            self._by_depth.setdefault(d, VGroup()).add(          # colour by bottom node;
+                Line(a, b, color=self._miss_color(self._misses[cid]),  # edges UNDER nodes
+                     stroke_width=sw, z_index=1))
 
         # a chalk dot at every node (radius tapers with depth); the root dot is
         # already on screen from setup_scene, so build depth ≥ 1 here.
@@ -191,8 +193,8 @@ class WinTree(MovingCameraScene, HangmanScene):
             pos = np.array([(self._x[idn] - (self._n - 1) / 2) * self._scale,
                             self._row_y(d), 0.0])
             r = max(DOT_R_MIN, DOT_R_ROOT * DOT_R_TAPER ** d)
-            self._dots_by_depth.setdefault(d, VGroup()).add(
-                Dot(pos, radius=r, color=self._miss_color(self._misses[idn])))
+            self._dots_by_depth.setdefault(d, VGroup()).add(     # nodes OVER edges
+                Dot(pos, radius=r, color=self._miss_color(self._misses[idn]), z_index=2))
 
         # camera pose per path node (depth 0…8): centre EXACTLY on the node so the
         # growing frontier stays at the vertical centre throughout (navy fills the
