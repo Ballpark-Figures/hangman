@@ -78,7 +78,7 @@ BLK_H   = 0.05        # blank rule/letter height  (fraction of the camera width)
 GAL_H   = 0.10        # gallows height            (fraction of the camera width)
 ANN_CLR = 0.06        # clearance between the near (edge-facing) blank and the edge line
 ANN_UP  = 0.06        # how far ABOVE the root node the unit sits (must fit above it)
-EDGE_FRAC = 0.25      # edge labels sit this fraction UP the edge (lower = further DOWN);
+EDGE_FRAC = 0.50      # edge labels sit this fraction UP the edge (0.5 = the MIDDLE);
                       # 1-EDGE_FRAC is also when they appear (as the edge tip passes them)
 LEAF_GAP = 0.04       # stack gap (gallows→word) and node→unit gap
 ANN_SW_FRAC = 0.32    # blanks/gallows line thickness (fraction of the sizing scale)
@@ -96,9 +96,23 @@ def _appear_from(trigger, window=1.0):
     """Rate-func factory: hold at 0 until `trigger`, then ramp to 1 over `window`."""
     return lambda t: 0.0 if t <= trigger else min(1.0, (t - trigger) / window)
 
+
+def _ease_then_linear(t):
+    """Rate-func for the FIRST step: ramp velocity from 0 over the first EASE_FRAC of
+    the time, then hold it constant — ending at the linear rows' speed so it hands off
+    seamlessly. Pair with run_time = ROW_TIME / (1 - EASE_FRAC/2) so it still covers the
+    whole edge despite the slow start."""
+    s = EASE_FRAC
+    vfull = 1.0 / (1.0 - s / 2.0)             # constant-phase velocity (normalised)
+    if t <= s:
+        return 0.5 * vfull * t * t / s        # quadratic ramp: velocity 0 → vfull
+    return 0.5 * vfull * s + vfull * (t - s)  # then linear at vfull
+
 # ── camera dive ───────────────────────────────────────────────────────────────
 ROW_TIME    = 3.0     # every guess-row takes the SAME time (constant-rate growth);
                       # this single knob sets the overall traversal speed
+EASE_FRAC   = 0.4     # first step only: fraction of its (slightly longer) time spent
+                      # ramping up to speed; it then ends at the SAME speed as the rest
 ROOT_PAUSE  = 1.0     # hold after the opening letter appears, before the dive starts
 CAM_W_START = 3.0     # camera frame width at the root; each level zooms by SHRINK
 CAM_FULL_W  = 16.0    # full-frame width for the zoom-out beat
@@ -344,7 +358,11 @@ class WinTree(MovingCameraScene, HangmanScene):
         last = len(self._cam_center) - 1
         for d in sorted(self._by_depth):
             k = min(d + 1, last)                     # camera holds at the leaf once reached
-            rf = rush_into if d == 0 else linear     # ease INTO the very first step only
+            if d == 0:                               # ease INTO the first step, but end at
+                rf = _ease_then_linear               # the SAME speed as the linear rows so
+                rt = ROW_TIME / (1 - EASE_FRAC / 2)  # it lines up (extra time for the ramp)
+            else:
+                rf, rt = linear, ROW_TIME
             anims = [
                 Create(self._by_depth[d], lag_ratio=0.0, rate_func=rf),
                 self.camera.frame.animate(rate_func=rf)
@@ -359,7 +377,7 @@ class WinTree(MovingCameraScene, HangmanScene):
             if (d + 1) in self._ann_leaf_by_depth:   # leaf labels: with the node
                 anims.append(FadeIn(self._ann_leaf_by_depth[d + 1],
                                     rate_func=_appear_at_end))
-            self.play(*anims, run_time=ROW_TIME)
+            self.play(*anims, run_time=rt)
 
     # b : pull the camera back out to the whole tree
     @subscene
