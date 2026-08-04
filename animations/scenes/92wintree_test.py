@@ -69,12 +69,11 @@ DOT_R_MIN   = 0.012
 DOT_APPEAR  = 0.9    # a node's dot stays hidden until this fraction of its row's draw
 NODE_LETTER_H = 1.3   # guess-letter height as a multiple of the node radius
 
-# ── board-state annotations (blanks + gallows) — sizes/offsets are fractions of a
-#    SIZING SCALE: the EDGE LENGTH for edge labels (so a label is always the same %
-#    of its edge), or the camera width for the root/leaf labels (so those stay a
-#    constant visible size). ───────────────────────────────────────────────────────
-BLK_H   = 0.05        # blank rule/letter height  (fraction of the sizing scale)
-GAL_H   = 0.10        # gallows height            (fraction of the sizing scale)
+# ── board-state annotations (blanks + gallows) — sizes/offsets are fractions of the
+#    camera width at the relevant depth, so they stay a constant ON-SCREEN size (the
+#    zoom already keeps the local scale constant, like the nodes). ─────────────────
+BLK_H   = 0.05        # blank rule/letter height  (fraction of the camera width)
+GAL_H   = 0.10        # gallows height            (fraction of the camera width)
 ANN_CLR = 0.06        # clearance between the near (edge-facing) blank and the edge line
 ANN_UP  = 0.05        # how far ABOVE the root node the unit sits (close)
 EDGE_FRAC = 0.40      # edge labels sit this fraction UP the edge; 1-EDGE_FRAC is also
@@ -203,13 +202,7 @@ class WinTree(MovingCameraScene, HangmanScene):
         blk.shift([0, (gal.get_bottom()[1] - reserve) - blk.get_bottom()[1], 0])
         return VGroup(gal, blk)
 
-    # ── edge geometry helpers (for placing/sizing the edge labels) ────────────
-    def _edge_len(self, k):
-        """Length of the edge into path node k (root borrows the first edge)."""
-        lo, hi = max(k - 1, 0), max(k, 1)
-        return float(np.linalg.norm(self._node_pos(self._path[hi])
-                                    - self._node_pos(self._path[lo])))
-
+    # ── edge geometry helper (for keeping the edge labels clear of the line) ──
     def _edge_x_at(self, a, b, y):
         """x of the line a→b at height y (a.x if the edge is horizontal)."""
         if abs(a[1] - b[1]) < 1e-6:
@@ -325,8 +318,8 @@ class WinTree(MovingCameraScene, HangmanScene):
             pat, miss = self._path_state[k]
             cpos = self._node_pos(path[k])
             a = self._node_pos(path[k - 1])          # parent node
-            if k < dmax:                             # edge label: sized by EDGE LENGTH
-                s = self._edge_len(k)                # (constant % of the edge)
+            if k < dmax:                             # edge label
+                s = self._cam_width[k]               # constant on-screen size
                 unit = self._annotation(pat, miss, s)
                 unit.set_y((cpos + (a - cpos) * EDGE_FRAC)[1])   # vertical: up the edge
                 blk = unit[1]                        # horizontal: keep the NEAR blank
