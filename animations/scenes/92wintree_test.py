@@ -77,7 +77,7 @@ NODE_LETTER_H = 1.3   # guess-letter height as a multiple of the node radius
 BLK_H   = 0.05        # blank rule/letter height  (fraction of the camera width)
 GAL_H   = 0.10        # gallows height            (fraction of the camera width)
 ANN_CLR = 0.06        # clearance between the near (edge-facing) blank and the edge line
-ANN_UP  = 0.06        # how far ABOVE the root node the unit sits (must fit above it)
+ANN_SIDE = 0.28       # root: horizontal offset of the blanks (LEFT) / gallows (RIGHT)
 EDGE_FRAC = 0.50      # edge labels sit this fraction UP the edge (0.5 = the MIDDLE);
                       # 1-EDGE_FRAC is also when they appear (as the edge tip passes them)
 LEAF_GAP = 0.04       # stack gap (gallows→word) and node→unit gap
@@ -144,10 +144,12 @@ class WinTree(MovingCameraScene, HangmanScene):
                                       color=BOARD_NAVY, weight=BOLD)
         self.root_letter.scale_to_fit_height(NODE_LETTER_H * DOT_R_ROOT)
         self.root_letter.move_to(rpos).set_z_index(3)          # added later (fade-in)
-        # the stacked gallows+word unit, placed ABOVE the root node
-        self.root_ann = self._annotation("_" * len(WORD), 0, w0)
-        self.root_ann.next_to(rpos, UP, buff=ANN_UP * w0)
-        self.add(self.root_dot, self.root_ann)
+        # root board-state flanks the node — blanks to the LEFT, gallows to the RIGHT
+        self.root_blanks = self._blanks("_" * len(WORD), BLK_H * w0, ANN_SW_FRAC * w0)
+        self.root_blanks.move_to(rpos + LEFT * ANN_SIDE * w0)
+        self.root_gallows = self._gallows(0, GAL_H * w0, ANN_SW_FRAC * w0)
+        self.root_gallows.move_to(rpos + RIGHT * ANN_SIDE * w0)
+        self.add(self.root_dot, self.root_blanks, self.root_gallows)
         self.camera.frame.move_to(self._cam_center[0]).set(width=self._cam_width[0])
 
     # ── word-count a child represents (sort key + horizontal ordering) ────────
@@ -433,5 +435,8 @@ class WinTree(MovingCameraScene, HangmanScene):
         # snapshot cache saves neither camera state nor the bg colour → re-set both
         self.camera.background_color = BOARD_NAVY
         self.camera.frame.move_to(self._cam_center[-1]).set(width=self._cam_width[-1])
+        # clear the intermediate (decision-node) labels, keeping only root + leaf ones
+        edge_ann = VGroup(*self._ann_edge_by_depth.values())
+        self.play(FadeOut(edge_ann), run_time=1.0)
         self.play(self.camera.frame.animate.move_to(ORIGIN).set(width=CAM_FULL_W),
                   run_time=ZOOM_OUT_RT, rate_func=smooth)
