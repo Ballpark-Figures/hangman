@@ -76,7 +76,9 @@ NODE_LETTER_H = 1.3   # guess-letter height as a multiple of the node radius
 #    zoom already keeps the local scale constant, like the nodes). ─────────────────
 BLK_H   = 0.05        # blank rule/letter height  (fraction of the camera width)
 GAL_H   = 0.10        # gallows height            (fraction of the camera width)
-ANN_CLR = 0.06        # clearance between the near (edge-facing) blank and the edge line
+ANN_CLR = 0.06        # base clearance between a label and the edge line
+ANN_CLR_STEPS = 6     # if a label still hits a line, try this many larger clearances
+ANN_CLR_STEP  = 0.9   # each step adds this × ANN_CLR to the clearance
 ANN_SIDE = 0.28       # root: horizontal offset of the blanks (LEFT) / gallows (RIGHT)
 EDGE_FRAC = 0.50      # edge labels sit this fraction UP the edge (0.5 = the MIDDLE);
                       # 1-EDGE_FRAC is also when they appear (as the edge tip passes them)
@@ -245,14 +247,13 @@ class WinTree(MovingCameraScene, HangmanScene):
                     return False
         return True
 
-    def _ann_hits(self, lo, hi, depth, own):
-        """How many edges near `depth` (excluding the label's own edge `own`) cross
-        the box [lo, hi] — used to pick the less-colliding side for a label."""
+    def _ann_hits(self, lo, hi, depth):
+        """How many edges near `depth` cross the box [lo, hi] — INCLUDING the label's
+        own edge, so the whole unit (gallows too, which sits higher up the diagonal
+        where the line slopes back) is pushed clear of every line."""
         n = 0
-        for pd in (depth - 2, depth - 1, depth):
+        for pd in (depth - 3, depth - 2, depth - 1, depth):
             for pid, cid in self._edges_by_pdepth.get(pd, ()):
-                if (pid, cid) == own:
-                    continue
                 p0, p1 = self._pos_of(pid)[:2], self._pos_of(cid)[:2]
                 if (max(p0[0], p1[0]) < lo[0] or min(p0[0], p1[0]) > hi[0] or
                         max(p0[1], p1[1]) < lo[1] or min(p0[1], p1[1]) > hi[1]):
@@ -380,22 +381,25 @@ class WinTree(MovingCameraScene, HangmanScene):
                 unit.set_y((cpos + (a - cpos) * EDGE_FRAC)[1])
                 blk = unit[1]                            # keep the NEAR blank clear of it
                 ex = self._edge_x_at(a, cpos, blk.get_bottom()[1])
-                dx_l = (ex - ANN_CLR * s) - blk.get_right()[0]   # sit LEFT of the line
-                dx_r = (ex + ANN_CLR * s) - blk.get_left()[0]    # sit RIGHT of the line
-                # try both sides; keep whichever collides with fewer OTHER edge-lines
-                # (tie → the "above" side of the diagonal: left of a down-left edge)
+                # place the label clear of the LINES: try each side at increasing
+                # clearances, keep the collision-free spot nearest the edge; if none is
+                # clear, the least-colliding one (tie → the "above" side of the diagonal).
                 bl, br = unit.get_left()[0], unit.get_right()[0]
                 bb, bt = unit.get_bottom()[1], unit.get_top()[1]
-                own = (self._parent[idn], idn)
-                hl = self._ann_hits(np.array([bl + dx_l, bb]),
-                                    np.array([br + dx_l, bt]), d, own)
-                hr = self._ann_hits(np.array([bl + dx_r, bb]),
-                                    np.array([br + dx_r, bt]), d, own)
-                if hl != hr:
-                    dx = dx_l if hl < hr else dx_r
-                else:
-                    dx = dx_l if cpos[0] < a[0] else dx_r
-                unit.shift([dx, 0, 0])
+                default_left = cpos[0] < a[0]
+                best = None
+                for sign in (-1, 1):                     # -1 = left of line, +1 = right
+                    for m in range(ANN_CLR_STEPS):
+                        clr = ANN_CLR * (1 + m * ANN_CLR_STEP) * s
+                        dx = (ex - clr - br) if sign < 0 else (ex + clr - bl)
+                        hits = self._ann_hits(np.array([bl + dx, bb]),
+                                              np.array([br + dx, bt]), d)
+                        key = (hits, m, 0 if (sign < 0) == default_left else 1)
+                        if best is None or key < best[0]:
+                            best = (key, dx)
+                        if hits == 0:
+                            break                        # this side clear at this clearance
+                unit.shift([best[1], 0, 0])
                 self._ann_edge_by_depth.setdefault(d, VGroup()).add(unit)
 
     # a : draw the tree row by row (each row at once, linear, equal time) while the
