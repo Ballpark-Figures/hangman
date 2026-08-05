@@ -80,6 +80,10 @@ ANN_CLR = 0.06        # base clearance between a label and the edge line
 ANN_CLR_STEPS = 6     # if a label still hits a line, try this many larger clearances
 ANN_CLR_STEP  = 0.9   # each step adds this × ANN_CLR to the clearance
 ANN_SIDE = 0.28       # root: horizontal offset of the blanks (LEFT) / gallows (RIGHT)
+# manual per-state overrides for which side of its edge a label sits on — keyed by
+# (pattern, misses); -1 = left of the line, +1 = right. Escape hatch for the few cases
+# the auto side-picker gets wrong.
+SIDE_OVERRIDE = {("_e_", 1): -1}      # the "_E_" at ~8s → left of its edge
 EDGE_FRAC = 0.50      # edge labels sit this fraction UP the edge (0.5 = the MIDDLE);
                       # 1-EDGE_FRAC is also when they appear (as the edge tip passes them)
 LEAF_GAP = 0.04       # stack gap (gallows→word) and node→unit gap
@@ -146,11 +150,15 @@ class WinTree(MovingCameraScene, HangmanScene):
                                       color=BOARD_NAVY, weight=BOLD)
         self.root_letter.scale_to_fit_height(NODE_LETTER_H * DOT_R_ROOT)
         self.root_letter.move_to(rpos).set_z_index(3)          # added later (fade-in)
-        # root board-state flanks the node — blanks to the LEFT, gallows to the RIGHT
+        # root board-state flanks the node — blanks to the LEFT, gallows to the RIGHT —
+        # with the blanks' underscores and the gallows' base aligned to the node's BOTTOM
+        base_y = rpos[1] - DOT_R_ROOT
         self.root_blanks = self._blanks("_" * len(WORD), BLK_H * w0, ANN_SW_FRAC * w0)
-        self.root_blanks.move_to(rpos + LEFT * ANN_SIDE * w0)
+        self.root_blanks.set_x(rpos[0] - ANN_SIDE * w0)
+        self.root_blanks.shift([0, base_y - self.root_blanks.get_bottom()[1], 0])
         self.root_gallows = self._gallows(0, GAL_H * w0, ANN_SW_FRAC * w0)
-        self.root_gallows.move_to(rpos + RIGHT * ANN_SIDE * w0)
+        self.root_gallows.set_x(rpos[0] + ANN_SIDE * w0)
+        self.root_gallows.shift([0, base_y - self.root_gallows.get_bottom()[1], 0])
         self.add(self.root_dot, self.root_blanks, self.root_gallows)
         self.camera.frame.move_to(self._cam_center[0]).set(width=self._cam_width[0])
 
@@ -387,8 +395,10 @@ class WinTree(MovingCameraScene, HangmanScene):
                 bl, br = unit.get_left()[0], unit.get_right()[0]
                 bb, bt = unit.get_bottom()[1], unit.get_top()[1]
                 default_left = cpos[0] < a[0]
+                override = SIDE_OVERRIDE.get((self._pattern[idn], self._misses[idn]))
+                sides = (override,) if override is not None else (-1, 1)
                 best = None
-                for sign in (-1, 1):                     # -1 = left of line, +1 = right
+                for sign in sides:                       # -1 = left of line, +1 = right
                     for m in range(ANN_CLR_STEPS):
                         clr = ANN_CLR * (1 + m * ANN_CLR_STEP) * s
                         dx = (ex - clr - br) if sign < 0 else (ex + clr - bl)
