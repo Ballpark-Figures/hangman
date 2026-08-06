@@ -296,10 +296,24 @@ class OptimalSolver:
         self._index = game._index
 
         self.freq: np.ndarray | None = None
+        self._pos: np.ndarray | None = None     # search root: indices of possible-secret words
         self.memo: dict = {}                    # (S.tobytes(), r) -> (exact value, best letter)
         self.lb: dict = {}                      # (S.tobytes(), r) -> proven lower bound
         self._ubbuf = np.zeros(self.N, dtype=np.float64)
         self._solve_cap = None
+
+    def _positive_root(self) -> np.ndarray:
+        """Root candidate set for the SEARCH: only words that can be the secret
+        (``freq > 0``). Zero-freq words are impossible secrets -- they carry no
+        weight in the objective, and separating a real word from one is always free
+        (the real word's letter at any differing position distinguishes them at no
+        cost), so excluding them from the search is EXACT (verified by
+        ``zero_freq_check.py``) while skipping the bulk of the state space under the
+        adversarial weightings. When every word is positive (uniform/zipf) this is
+        just ``arange(N)`` and nothing changes. The saved tree is still built over
+        ALL words (zero-freq words greedy-completed below the optimal part, exactly
+        like capped branches), so every downstream replay/verifier is unaffected."""
+        return np.where(self.freq > 0)[0].astype(self._idt)
 
     # ---- upper bound: greedy's own (capped) value on S ---------------------
     def _greedy_ub(self, S: np.ndarray, r=None) -> float:
@@ -442,7 +456,7 @@ class OptimalSolver:
 
     # ---- root (opener-by-opener, for progress) -----------------------------
     def _solve_root(self, cap) -> tuple[float, int]:
-        f, root = self.freq, np.arange(self.N, dtype=self._idt)
+        f, root = self.freq, self._pos          # optimize over possible-secret words only
         MS = self.masks[root]
         fR = f[root]
         splits = MS.min(0) != MS.max(0)
@@ -556,13 +570,22 @@ class OptimalSolver:
         """Optimal first letter for (S, r): the move stored by the search (now
         always optimal for cached nodes). A node that was left as a lower bound
         (never fully solved) is solved once here with an INF budget, which caches
-        it exact -- rare, and cheap since its children are already memoized."""
-        if S.shape[0] == 2:
-            return self._sep_two(int(S[0]), int(S[1]))[1]
-        key = (S.tobytes(), r)
+        it exact -- rare, and cheap since its children are already memoized.
+
+        The move depends ONLY on the possible-secret (freq>0) words -- zero-freq
+        words carry no weight -- so we key on that positive subset. Returns -1 when
+        the subset has <=1 word (the objective is settled; the caller greedy-
+        completes any remaining zero-freq words). For an all-positive S this is a
+        no-op subset and behaves exactly as before."""
+        Sp = S[self.freq[S] > 0]
+        if Sp.shape[0] <= 1:
+            return -1
+        if Sp.shape[0] == 2:
+            return self._sep_two(int(Sp[0]), int(Sp[1]))[1]
+        key = (Sp.tobytes(), r)
         e = self.memo.get(key)
         if e is None:
-            self._V(S, r, INF, 99)
+            self._V(Sp, r, INF, 99)
             e = self.memo.get(key)
         return e[1] if e is not None else -1
 
@@ -577,6 +600,7 @@ class OptimalSolver:
         self._verbose, self._heartbeat, self._ub_depth = verbose, heartbeat, ub_depth
         self._opener_ub_depth = opener_ub_depth
         self._total = float(self.freq.sum())
+        self._pos = self._positive_root()
         self._cap = max_misses
         self._solve_cap = max_misses
         self._reset_progress()
@@ -649,6 +673,7 @@ class OptimalSolver:
         self._verbose, self._heartbeat, self._ub_depth = verbose, heartbeat, ub_depth
         self._opener_ub_depth = opener_ub_depth
         self._total = float(self.freq.sum())
+        self._pos = self._positive_root()
         self._reset_progress()
 
         # "auto" -> size the caches off system RAM; None -> explicitly uncapped.
@@ -760,7 +785,7 @@ class OptimalSolver:
                 # largest cap). ``max_miss`` is then the true max misses. The
                 # avg-plateau is kept only as a defensive fallback; it can never
                 # fire before zero-capped does.
-                root = np.arange(self.N, dtype=self._idt)
+                root = self._pos                  # judge convergence over possible-secret words
                 capped, max_miss = self._tree_stats(root, cap, cap)
                 # Upper bound on the true optimum: finish the capped groups greedily
                 # (capped-optimal tree above the cap, greedy below). Equals ``avg``
@@ -845,16 +870,41 @@ class OptimalSolver:
         return "".join(ALPHABET[c] if (mask >> p) & 1 else "_"
                        for p in range(self.game.length))
 
-    def _build_tree(self, S: np.ndarray, r) -> dict:
+    def _greedy_subtree(self, S: np.ndarray, guessed_bits: int) -> dict:
+        """A greedy decision subtree (same node schema as the optimal tree) that
+        resolves ``S`` from state ``guessed_bits``. Used to finish the zero-freq
+        words once <=1 possible-secret word remains: those words carry no weight, so
+        completing them greedily adds 0 to the optimal value while keeping the saved
+        tree defined for EVERY word (so tree replay + the exactness gates, which
+        walk all words, are unaffected). Mirrors strategy_view's completion of
+        capped branches."""
+        n = int(S.shape[0])
+        if n <= 1:
+            return {"word": self.words[int(S[0])]} if n == 1 else {}
+        c = self.game._pick(S, guessed_bits, self.freq)   # same rule as greedy _solve
+        pats = self.masks[S, c]
+        nxt = guessed_bits | (1 << c)
+        branches = {self._pattern_str(c, int(pat)): self._greedy_subtree(S[pats == pat], nxt)
+                    for pat in np.unique(pats)}
+        return {"guess": ALPHABET[c], "n": n, "branches": branches}
+
+    def _build_tree(self, S: np.ndarray, r, gb: int = 0) -> dict:
         n = S.shape[0]
         if n <= 1:
             return {"word": self.words[int(S[0])]} if n == 1 else {}
-        if r == 0:                                        # capped out: these words are lost
+        Sp = S[self.freq[S] > 0]
+        if Sp.shape[0] <= 1:
+            # objective settled: <=1 possible-secret word remains. Separate any
+            # leftover zero-freq words greedily (free -- no weight), exactly like the
+            # greedy completion below a cap. Keeps the tree defined for every word.
+            return self._greedy_subtree(S, gb)
+        if r == 0:                                        # capped out: possible-secret words lost
             return {"capped": [self.words[int(i)] for i in S]}
-        c = self._move(S, r)
+        c = self._move(Sp, r)
         pats = self.masks[S, c]
         branches = {self._pattern_str(c, int(pv)):
-                    self._build_tree(S[pats == pv], r - 1 if (r is not None and pv == 0) else r)
+                    self._build_tree(S[pats == pv], r - 1 if (r is not None and pv == 0) else r,
+                                     gb | (1 << c))
                     for pv in np.unique(pats)}
         return {"guess": ALPHABET[c], "n": n, "branches": branches}
 

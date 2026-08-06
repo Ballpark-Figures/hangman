@@ -47,6 +47,53 @@ def check_optimal(length: int, weighting: str, cap: int) -> dict:
             "avg_diff": abs(avg_full - avg_red)}
 
 
+def _pattern_str(c: int, mask: int, length: int) -> str:
+    from strategy import ALPHABET
+    return "".join(ALPHABET[c] if (mask >> p) & 1 else "_" for p in range(length))
+
+
+def _replay(tree: dict, i: int, masks, length: int):
+    """Walk `tree` for word index `i`; return (misses, capped). Raises KeyError if
+    the tree has no branch for a pattern the word produces (= tree incomplete)."""
+    node, misses = tree, 0
+    while "branches" in node:
+        c = ord(node["guess"]) - 97
+        mask = int(masks[i, c])
+        if mask == 0:
+            misses += 1
+        node = node["branches"][_pattern_str(c, mask, length)]   # KeyError => incomplete
+    return misses, ("capped" in node)
+
+
+def check_optimal_tree(length: int, weighting: str, cap: int) -> dict:
+    """Build the optimal tree over positive words + greedy-completed zeros, then
+    replay EVERY word (incl. zero-freq) through it: verifies (a) completeness -- no
+    word falls off -- and (b) that the solver's reported capped_avg is unchanged
+    (the neutrality invariant; the tree-vs-DP gap for partial caps is the
+    pre-existing reconstruction gap in optimal_discrepancy_report.md)."""
+    from optimal import OptimalSolver
+    g, f, _, _ = _reduced(length, weighting)
+    solver = OptimalSolver(g)
+    avg = solver.solve(f, max_misses=cap, verbose=False)
+    tree = solver.optimal_tree()
+
+    fell_off, capped = 0, 0
+    misses = np.zeros(g.N)
+    for i in range(g.N):
+        try:
+            m, cap_hit = _replay(tree, i, g.masks, length)
+        except KeyError:
+            fell_off += 1
+            continue
+        misses[i] = m
+        capped += int(cap_hit)
+    denom = float(f.sum())
+    tree_avg = float(f @ misses / denom) if denom else 0.0   # zeros weigh 0
+    return {"length": length, "weighting": weighting, "cap": cap,
+            "N": g.N, "fell_off": fell_off, "capped_leaves": capped,
+            "solver_avg": avg, "tree_avg": tree_avg}
+
+
 def check(length: int, weighting: str) -> dict:
     """Compare greedy per-word misses (positive words) full vs. zeros-removed."""
     g_full = GreedyGame(length)
@@ -84,6 +131,20 @@ def main(argv):
                   f"avg_red={r['avg_red']:.6f}  diff={r['avg_diff']:.2e}")
             ok = ok and r["avg_diff"] == 0.0
         print("\nNEUTRAL" if ok else "\n!! NON-NEUTRAL")
+        return 0 if ok else 1
+
+    if argv and argv[0] == "tree":
+        # tree <length> <cap> [weighting ...] -- completeness + solver-avg vs committed CSV
+        length, cap = int(argv[1]), int(argv[2])
+        weightings = argv[3:] or ["best_opener"]
+        ok = True
+        for w in weightings:
+            r = check_optimal_tree(length, w, cap)
+            print(f"len {r['length']} cap {r['cap']} {r['weighting']:<16} N {r['N']}  "
+                  f"fell_off={r['fell_off']}  capped_leaves={r['capped_leaves']}  "
+                  f"solver_avg={r['solver_avg']:.6f}  tree_replay={r['tree_avg']:.6f}")
+            ok = ok and r["fell_off"] == 0
+        print("\nCOMPLETE (every word replays)" if ok else "\n!! INCOMPLETE: a word fell off")
         return 0 if ok else 1
 
     lengths, weightings = [], []
