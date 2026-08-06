@@ -94,6 +94,64 @@ def check_optimal_tree(length: int, weighting: str, cap: int) -> dict:
             "solver_avg": avg, "tree_avg": tree_avg}
 
 
+def _play_wp(tree: dict, i: int, masks, length: int):
+    """Walk a winprob tree for word i; return (won, misses). Raises KeyError if the
+    word has no path (tree incomplete)."""
+    from strategy import ALPHABET
+    node, misses, word_i = tree, 0, i
+    while True:
+        if "word" in node:
+            return (node["word"] == _WORDS[length][word_i]), misses
+        if "lost" in node:
+            return False, misses
+        c = ord(node["guess"]) - 97
+        mask = int(masks[i, c])
+        if mask == 0:
+            misses += 1
+        node = node["branches"][_pattern_str(c, mask, length)]
+
+
+_WORDS: dict = {}
+
+
+def check_winprob(length: int, weighting: str, n: int) -> dict:
+    """p_win over possible-secret words + full-tree replay: verifies completeness
+    (no word falls off), no over-budget 'win', and that p_win matches the committed
+    JSON (if present). Zero-freq words carry no mass, so p_win is unchanged."""
+    import json
+    from pathlib import Path
+    from winprob import WinProbSolver
+    from tree_complete import complete_tree
+    g, f, _, _ = _reduced(length, weighting)
+    _WORDS[length] = g.words
+    wp = WinProbSolver(length, freq=f, weighting=weighting, game=g)
+    wp._verbose = False
+    letter, w, m = wp.best_opener(n)
+    p_win = w / wp.total if wp.total else 0.0
+    tree = complete_tree(wp.build_tree(np.arange(g.N, dtype=wp._idt), n, n))
+
+    unreached, over, won_w = 0, 0, 0.0
+    for i in range(g.N):
+        try:
+            won_i, miss_i = _play_wp(tree, i, g.masks, length)
+        except KeyError:
+            unreached += 1
+            continue
+        if won_i:
+            won_w += float(f[i])
+            over += int(miss_i > n)
+    total_w = float(f.sum())
+    replay_p = won_w / total_w if total_w else 0.0
+
+    committed = None
+    cf = Path(f"data/shared/winprob/len{length:02d}_{weighting}_n{n:02d}.json")
+    if cf.exists():
+        committed = json.loads(cf.read_text()).get("p_win")
+    return {"length": length, "weighting": weighting, "n": n, "N": g.N,
+            "p_win": p_win, "replay_p": replay_p, "unreached": unreached,
+            "over_budget": over, "committed_p": committed}
+
+
 def check(length: int, weighting: str) -> dict:
     """Compare greedy per-word misses (positive words) full vs. zeros-removed."""
     g_full = GreedyGame(length)
@@ -131,6 +189,24 @@ def main(argv):
                   f"avg_red={r['avg_red']:.6f}  diff={r['avg_diff']:.2e}")
             ok = ok and r["avg_diff"] == 0.0
         print("\nNEUTRAL" if ok else "\n!! NON-NEUTRAL")
+        return 0 if ok else 1
+
+    if argv and argv[0] == "winprob":
+        # winprob <length> <n> [weighting ...]
+        length, n = int(argv[1]), int(argv[2])
+        weightings = argv[3:] or ["best_opener"]
+        ok = True
+        for w in weightings:
+            r = check_winprob(length, w, n)
+            cp = f"{r['committed_p']:.6f}" if r["committed_p"] is not None else "n/a"
+            cdiff = (abs(r["p_win"] - r["committed_p"]) if r["committed_p"] is not None else 0.0)
+            print(f"len {r['length']} n {r['n']} {r['weighting']:<16} N {r['N']}  "
+                  f"p_win={r['p_win']:.6f}  replay_p={r['replay_p']:.6f}  "
+                  f"committed={cp} (d={cdiff:.1e})  unreached={r['unreached']}  "
+                  f"over_budget={r['over_budget']}")
+            ok = ok and r["unreached"] == 0 and r["over_budget"] == 0 \
+                and abs(r["p_win"] - r["replay_p"]) < 1e-9 and cdiff < 1e-9
+        print("\nCOMPLETE + NEUTRAL" if ok else "\n!! PROBLEM")
         return 0 if ok else 1
 
     if argv and argv[0] == "tree":

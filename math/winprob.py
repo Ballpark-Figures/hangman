@@ -53,6 +53,14 @@ class WinProbSolver:
         self.N = s.N
         self._idt = s._idt
         self.total = float(self.f.sum())
+        # Search root: only words that can be the secret (freq > 0). Zero-freq words
+        # are impossible secrets -- they carry no mass, so they change no p_win /
+        # E[miss] (verified in zero_freq_check.py) but bloat the state space under
+        # the adversarial weightings. The saved tree is still built over ALL words
+        # (zero-freq tail greedy-completed within budget), so tree replay + the
+        # gates are unaffected. uniform/zipf have no zeros -> exact no-op.
+        self._pos = np.where(self.f > 0)[0].astype(self._idt)
+        self._root_n = int(self._pos.shape[0])
         # tolerance for "equal" masses/miss-sums.  Integer-valued weights (uniform,
         # or zipf via round(10**zipf)) give exact sums, so cap eps below 1 so large
         # weighted totals don't wash out genuine (>= 1) differences.
@@ -175,7 +183,7 @@ class WinProbSolver:
         MS = self.masks[S]
         splits = MS.min(0) != MS.max(0)
         order = np.argsort(fS @ (MS > 0).astype(np.float64))[::-1]
-        is_root = n == self.N
+        is_root = n == self._root_n
         best_l, best_m, best_c = bl, bm, -1
         for oi in range(order.shape[0]):
             c = int(order[oi])
@@ -245,7 +253,7 @@ class WinProbSolver:
 
     def best_opener(self, r):
         """Best first guess at budget r: (letter, won_mass, miss_sum). One pass."""
-        root = np.arange(self.N, dtype=self._idt)
+        root = self._pos                            # search over possible-secret words only
         self._n = r
         self._op = ("", 0, 0)
         self._best_p = 0.0
@@ -262,7 +270,33 @@ class WinProbSolver:
         return "".join(ALPHABET[c] if (mask >> p) & 1 else "_"
                        for p in range(self.length))
 
-    def build_tree(self, S, r, n0):
+    def _greedy_complete(self, S, r, n0, gb):
+        """Complete a subtree greedily, respecting the miss budget. Used once <=1
+        possible-secret word remains: the possible word (if any) is separated first
+        (greedy prefers its letters -- only it carries mass), so it wins with the
+        misses already spent; leftover zero-freq words are separated too, but a
+        group that runs out of budget becomes {lost} rather than a >n-miss 'win'.
+        Zero-freq words carry no mass, so p_win / E[miss] are unchanged either way;
+        this only keeps the tree DEFINED for every word (no replay fall-off)."""
+        k = S.shape[0]
+        if k == 1:
+            return {"word": self.words[int(S[0])], "misses": int(n0 - r)}
+        if k == 0:
+            return {}
+        c = self.game._pick(S, gb, self.f)          # same rule as greedy _solve
+        pats = self.masks[S, c]
+        nxt = gb | (1 << c)
+        branches = {}
+        for pv in np.unique(pats):
+            grp = S[pats == pv]
+            template = self._pattern_str(c, int(pv))
+            if pv == 0 and r == 0:                  # absent, no budget left -> lost
+                branches[template] = {"lost": [self.words[int(i)] for i in grp]}
+            else:
+                branches[template] = self._greedy_complete(grp, r - 1 if pv == 0 else r, n0, nxt)
+        return {"guess": ALPHABET[c], "n": int(k), "branches": branches}
+
+    def build_tree(self, S, r, n0, gb=0):
         """Nested optimal decision tree for (S, r).  n0 is the game's total
         budget, so a leaf records misses spent = n0 - r.
           internal: {"guess", "n", "branches": {template: subtree}}
@@ -273,10 +307,13 @@ class WinProbSolver:
             return {"word": self.words[int(S[0])], "misses": int(n0 - r)}
         if k == 0:
             return {}
-        W = self.won(S, r)
+        Sp = S[self.f[S] > 0]                        # possible-secret words in this group
+        if Sp.shape[0] <= 1:                         # objective settled -> greedy-complete rest
+            return self._greedy_complete(S, r, n0, gb)
+        W = self.won(Sp, r)
         if W <= self.eps:                   # nothing here is winnable -> all lost
             return {"lost": [self.words[int(i)] for i in S]}
-        c = self._choose(S, r)
+        c = self._choose(Sp, r)
         pats = self.masks[S, c]
         branches = {}
         for pv in np.unique(pats):
@@ -285,7 +322,7 @@ class WinProbSolver:
             if pv == 0 and r == 0:          # absent branch, no misses left -> lost
                 branches[template] = {"lost": [self.words[int(i)] for i in grp]}
             else:
-                branches[template] = self.build_tree(grp, r - 1 if pv == 0 else r, n0)
+                branches[template] = self.build_tree(grp, r - 1 if pv == 0 else r, n0, gb | (1 << c))
         return {"guess": ALPHABET[c], "n": int(k), "branches": branches}
 
     def save_tree(self, n, path, *, p_win=None, e_misses=None, opener=None):
