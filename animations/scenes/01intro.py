@@ -206,6 +206,15 @@ class Scene01(MovingCameraScene, HangmanScene):
             full.remove(p)
         self.hang = full
 
+    def _layout_board(self):
+        """Place the blanks + gallows with EQUAL horizontal gaps across the navy board:
+        left→blanks, blanks→gallows, gallows→right. Sets only x (y stays as built)."""
+        L, R = self.cb.board.get_left()[0], self.cb.board.get_right()[0]
+        wb, wg = self.rules.width, self.hang.width
+        gap = (R - L - wb - wg) / 3
+        self.rules.set_x(L + gap + wb / 2)
+        self.hang.set_x(L + 2 * gap + wb + wg / 2)
+
     # ══════════════════════════════════════════════════════════════════════════
     #  TREE machinery (verbatim from 92wintree_test)
     # ══════════════════════════════════════════════════════════════════════════
@@ -443,6 +452,7 @@ class Scene01(MovingCameraScene, HangmanScene):
     def board(self):
         self._setup_blanks()
         self._setup_gallows()
+        self._layout_board()          # equal gaps: left→blanks→gallows→right
         self.play(FadeIn(self.rules), FadeIn(self.hang), run_time=1.2)
 
     # b : guess I, N, W — all hits, the word WIN fills in with no misses
@@ -452,20 +462,33 @@ class Scene01(MovingCameraScene, HangmanScene):
         self._play_guess(1, rt_bubble=0.7, rt_write=0.9, rt_out=0.4)   # N
         self._play_guess(2, rt_bubble=0.7, rt_write=0.9, rt_out=0.4)   # W
 
-    # c : the bridge. Everything but the node reconfigures together: the WIN letters
-    #     fade OUT, the blanks + gallows MORPH into the tree's root annotation, the
-    #     wooden frame dissolves as the navy board EXPANDS to fill the frame (navy
-    #     stays navy), and the camera pushes in to the root. THEN the root node (no
-    #     letter yet) JUST fades in, with the camera held still — a clean fade, no
-    #     moving-in.
+    # c : the bridge, all in ONE play. The blanks + gallows MORPH into the tree's root
+    #     annotation; the WIN letters RIDE that morph while fading out; the wooden frame
+    #     dissolves as the navy board EXPANDS to fill the frame (navy stays navy); the
+    #     camera pushes in to the root; and the root node (no letter yet) fades IN pinned
+    #     to the screen centre (a counter-scale so it doesn't look like it's moving).
     @subscene
     def to_tree(self):
+        # letters ride the blanks: apply the SAME affine that carries self.rules →
+        # self.root_blanks (scale about the rules' centre, then translate to root_blanks)
+        # so they shrink/move WITH the blanks instead of drifting under the camera zoom.
+        lscale = self.root_blanks.width / self.rules.width
+        labout = self.rules.get_center()
+        lshift = self.root_blanks.get_center() - self.rules.get_center()
+        # node pinned to screen centre: start it big at the camera's current centre
+        # (origin) and shrink it to root size as the camera zooms in by the SAME factor,
+        # so radius/​camera_width stays constant → a constant-size dot fading in at centre.
+        zoom = CAM_FULL_W / self._cam_width[0]
+        self.root_dot.scale(zoom).move_to(ORIGIN).set_opacity(0)
         self.play(
-            FadeOut(self.revealed),                           # WIN letters fade out
+            self.revealed.animate.scale(lscale, about_point=labout)
+                .shift(lshift).set_opacity(0),                # letters ride the blanks + fade
             ReplacementTransform(self.rules, self.root_blanks),
             ReplacementTransform(self.hang, self.root_gallows),
             FadeOut(self.cb.frame),                           # wooden frame dissolves
             self.cb.board.animate.scale(6),                   # navy expands to fill frame
+            self.root_dot.animate.scale(1 / zoom)             # node fades in, screen-pinned
+                .move_to(self._cam_center[0]).set_opacity(1),
             self.camera.frame.animate.move_to(self._cam_center[0])
                 .set(width=self._cam_width[0]),
             run_time=2.5, rate_func=smooth,
@@ -473,7 +496,7 @@ class Scene01(MovingCameraScene, HangmanScene):
         # the expanded board is now the navy backdrop for the tree; also set the camera
         # bg navy so the snapshot carries it forward (framework restores both).
         self.camera.background_color = BOARD_NAVY
-        self.play(FadeIn(self.root_dot), run_time=0.7)        # node just fades in
+        self.remove(self.revealed)                            # faded to 0 — drop it
         self.rules = self.hang = self.revealed = None         # drop consumed carry-overs
 
     # d : draw the tree row by row (each row at once, linear, equal time) while the
