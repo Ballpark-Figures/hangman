@@ -24,8 +24,8 @@ Script beat ↔ subscene (Script.md row 02, split on '—'):
   d fill_a     — "if in the word, chooser fills all its blanks"     write A (pos 2 & 6)
   e guess_e    — "if not in the word, draws a body part"            'E' miss → head
   f body_parts — "6 parts: head, torso, 2 arms, 2 legs"             colour demo, then revert
-  g win        — "complete the word first → the guesser wins"       fill L K B P R + green box, reset
-  h lose       — "hangman filled first → the chooser wins"          miss I O T N D + red box → full hangman
+  g win        — "complete the word first → the guesser wins"       fill L K B P R + green burst, reset
+  h lose       — "hangman filled first → the chooser wins"          miss I O T N D + red burst → full hangman
 
 BEAT MAP
   blanks     — draw the 8 word blanks, one at a time
@@ -34,14 +34,14 @@ BEAT MAP
   fill_a     — write the two A's into their blanks, dismiss the bubble
   guess_e    — 'E' misses: write it below the gallows + draw the head (miss #1)
   body_parts — recolour the head, draw the other 5 parts in palette colours, then revert
-  win        — guess L K B P R → BALLPARK complete; flash a green box; fade the word + box back to A's + E-miss + head
-  lose       — guess I O T N D → full hangman; flash a red box, removed before the scene ends
+  win        — guess L K B P R → BALLPARK complete; green burst flash; fade the word back to A's + E-miss + head
+  lose       — guess I O T N D → full hangman; red burst flash
 
 Render:  render 02a --fast … 02h   /   render 02 sub  for the whole scene
 
 TIMING KNOBS LEFT AT A GUESS (feel — judge from the video): every guess's
 bubble/write/part/out run_times, the colour-demo per-part 0.5s, the win-hold /
-reset run_times in `win`, and the green/red box flash run_times (BOX_RT).
+reset run_times in `win`, and the green/red burst flash (BURST_RT + BURST_* shape).
 """
 from pathlib import Path
 import sys
@@ -94,13 +94,15 @@ BUBBLE_TIP   = np.array([-7.9, 2.4, 0])
 BUBBLE_FS    = 56
 BUBBLE_TAIL  = 1.5
 
-# win/loss flash: a box drawn AROUND the target as many small segments, appearing one
-# at a time very quickly (LIGHT_GREEN on a win, LIGHT_RED on a loss — the intro palette).
-BOX_PAD     = 0.30     # gap between the box and the target's bounding box
-BOX_SW      = 5.0      # chalk-ish stroke width for the box segments
-BOX_NSIDE   = 4        # segments per side (× 4 sides → the count of "little lines")
-BOX_LAG     = 0.9      # near-sequential: the segments trace around one at a time
-BOX_RT      = 0.8      # whole flash duration (short → the lines snap in quickly)
+# win/loss flash: short radial dashes bursting OUTWARD from around the target, that
+# radiate out and fade in→out — modelled on yahtzee's (63) top-bonus spark burst
+# (scorecard.animate_top_score). LIGHT_GREEN on a win, LIGHT_RED on a loss.
+BURST_N       = 16       # number of dashes, spread evenly around the target
+BURST_GAP     = 0.18     # gap from the target's bounding box to a dash's inner end
+BURST_LEN     = 0.42     # length of each dash
+BURST_SW      = 4.0      # dash stroke width
+BURST_RADIATE = 0.25     # how far the dashes drift outward over the flash
+BURST_RT      = 0.5      # flash duration (feel knob) — matches yahtzee's FLASH_DUR
 
 
 class Scene02(HangmanScene):
@@ -175,25 +177,36 @@ class Scene02(HangmanScene):
     def _dismiss_bubble(self, run_time):
         self.play(FadeOut(self.bub), run_time=run_time)
 
-    # ── win/loss flash: a box traced around a target one segment at a time ────
-    def _flash_box(self, target, color, run_time):
-        """Draw a rectangle around `target`'s bounding box as BOX_NSIDE×4 little
-        segments that Create one at a time (near-sequential, quick). Returns the
-        VGroup of segments so the caller can fade it out later."""
-        l = target.get_left()[0] - BOX_PAD
-        r = target.get_right()[0] + BOX_PAD
-        b = target.get_bottom()[1] - BOX_PAD
-        t = target.get_top()[1] + BOX_PAD
-        corners = [np.array([l, b, 0]), np.array([l, t, 0]),
-                   np.array([r, t, 0]), np.array([r, b, 0]), np.array([l, b, 0])]
-        segs = VGroup()
-        for a, c in zip(corners[:-1], corners[1:]):
-            for k in range(BOX_NSIDE):
-                p0 = a + (c - a) * (k / BOX_NSIDE)
-                p1 = a + (c - a) * ((k + 1) / BOX_NSIDE)
-                segs.add(Line(p0, p1, color=color, stroke_width=BOX_SW))
-        self.play(LaggedStartMap(Create, segs, lag_ratio=BOX_LAG), run_time=run_time)
-        return segs
+    # ── win/loss flash: a radial burst of short dashes around a target ────────
+    def _burst_dashes(self, c, hx, hy, dirs, color, radiate):
+        """The burst's dashes at a given radiate distance: each dash sits just past
+        the target's (hx,hy) half-box along its direction, pushed out by `radiate`."""
+        g = VGroup()
+        for d in dirs:
+            tx = hx / abs(d[0]) if abs(d[0]) > 1e-9 else float("inf")
+            ty = hy / abs(d[1]) if abs(d[1]) > 1e-9 else float("inf")
+            inner = c + (min(tx, ty) + BURST_GAP + radiate) * d
+            g.add(Line(inner, inner + BURST_LEN * d, stroke_color=color,
+                       stroke_width=BURST_SW))
+        return g
+
+    def _flash_burst(self, target, color, run_time):
+        """A one-shot flash: BURST_N short dashes bursting outward from around
+        `target`, radiating out (BURST_RADIATE) and fading in→out (sin) over
+        `run_time`. Self-contained — the burst is removed when it finishes."""
+        c = target.get_center()
+        hx, hy = target.width / 2, target.height / 2
+        dirs = [np.array([np.cos(i * TAU / BURST_N), np.sin(i * TAU / BURST_N), 0.0])
+                for i in range(BURST_N)]
+        burst = self._burst_dashes(c, hx, hy, dirs, color, 0.0).set_opacity(0.0)
+        self.add(burst)
+        tr = ValueTracker(0.0)
+        burst.add_updater(lambda m: m.become(
+            self._burst_dashes(c, hx, hy, dirs, color, BURST_RADIATE * tr.get_value())
+            .set_opacity(np.sin(np.pi * tr.get_value()))))
+        self.play(tr.animate.set_value(1.0), run_time=run_time, rate_func=linear)
+        burst.clear_updaters()
+        self.remove(burst)
 
     # ── setup helpers ─────────────────────────────────────────────────────────
     def _setup_blanks(self):
@@ -282,25 +295,23 @@ class Scene02(HangmanScene):
         for p in self.hang_parts[1:]:
             self.hang.remove(p)
 
-    # g : the WIN — guess the remaining hits (L K B P R) to complete BALLPARK, flash
-    #     a green box around it, then fade the word + box back to A's + E-miss + head.
+    # g : the WIN — guess the remaining hits (L K B P R) to complete BALLPARK, flash a
+    #     green burst around it, then fade the word back to A's + E-miss + head.
     @subscene
     def win(self):
         for g in WIN_HITS:
             self._pop_bubble(g, 0.6)
             self._write_hit(g, 0.8)
             self._dismiss_bubble(0.3)
-        # celebratory green box, traced around the finished word one segment at a time
         word = VGroup(self.rules, *self.hits.values())
-        self.win_box = self._flash_box(word, LIGHT_GREEN, BOX_RT)
-        self.wait(0.6)                                             # VO: "…they win"
+        self._flash_burst(word, LIGHT_GREEN, BURST_RT)            # celebratory green flash
+        self.wait(0.4)                                            # VO: "…they win"
         won = VGroup(*[self.hits[g] for g in WIN_HITS])
-        self.play(FadeOut(won), FadeOut(self.win_box),            # box removed WITH the word
-                  run_time=0.8)                                    # reset to partial
+        self.play(FadeOut(won), run_time=0.8)                    # reset to partial
 
     # h : the LOSS — guess I O T N D (all misses); each draws the next body part,
     #     filling the hangman (6 misses with the earlier E) → the chooser wins. A red
-    #     box flashes around the gallows + miss row, then clears before the scene ends.
+    #     burst flashes around the gallows + miss row.
     @subscene
     def lose(self):
         for g in LOSE_MISS:
@@ -308,6 +319,5 @@ class Scene02(HangmanScene):
             self._write_miss(g, rt_write=0.8, rt_part=0.6)
             self._dismiss_bubble(0.3)
         lost = VGroup(self.hang, self.miss_row)
-        self.lose_box = self._flash_box(lost, LIGHT_RED, BOX_RT)
-        self.wait(0.6)                                             # VO: "…the chooser wins"
-        self.play(FadeOut(self.lose_box), run_time=0.6)           # removed before scene end
+        self._flash_burst(lost, LIGHT_RED, BURST_RT)             # red loss flash
+        self.wait(0.4)                                           # VO: "…the chooser wins"
