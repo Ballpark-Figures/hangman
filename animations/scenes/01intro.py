@@ -278,8 +278,10 @@ class Scene01(MovingCameraScene, HangmanScene):
                         stroke_width=sw)
             cell = VGroup(rule)
             if ch != "_":
-                t = crisp_text(ch.upper(), color=CHALK, weight=BOLD)
-                t.scale_to_fit_height(h).next_to(rule, UP, buff=h * 0.22)
+                # revealed HIT letters use the hand-written chalk strokes (shown, not
+                # stroke-animated), not the Inter font — to match the chalk game.
+                t = chalk_letter(ch, height=h, stroke_width=sw, color=CHALK)
+                t.next_to(rule, UP, buff=h * 0.22)
                 cell.add(t)
             row.add(cell)
         row.arrange(RIGHT, buff=gap, aligned_edge=DOWN)
