@@ -469,14 +469,16 @@ class Scene01(MovingCameraScene, HangmanScene):
     #     work here to fight (that coupling caused every drift/pop/edge artifact).
     @subscene
     def to_tree(self):
+        # grow ONLY the chalkboard (frame + navy slate): its border sweeps outward and the
+        # navy fills the frame. The WIN game is left ALONE — it fades in place, NOT scaled —
+        # so nothing zooms. Then drop the board onto flat navy.
         content = VGroup(self.rules, self.hang, self.revealed)
         self.play(
-            self.cb.board.animate.scale(2.5, about_point=ORIGIN),  # chalkboard grows → navy
-            self.cb.frame.animate.set_opacity(0),                  # wooden frame fades
-            FadeOut(content, scale=2.5),                           # WIN game zooms in + fades
+            self.cb.animate.scale(2.5, about_point=ORIGIN),   # chalkboard border grows → navy fills
+            FadeOut(content),                                 # WIN game fades IN PLACE (not scaled)
             run_time=2.5, rate_func=smooth,
         )
-        self.camera.background_color = BOARD_NAVY        # flat navy from here (snapshot saves it)
+        self.camera.background_color = BOARD_NAVY
         self.remove(self.cb)
         self.cb = self.rules = self.hang = self.revealed = None
 
