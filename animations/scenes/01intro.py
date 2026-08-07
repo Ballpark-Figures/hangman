@@ -462,41 +462,72 @@ class Scene01(MovingCameraScene, HangmanScene):
         self._play_guess(1, rt_bubble=0.7, rt_write=0.9, rt_out=0.4)   # N
         self._play_guess(2, rt_bubble=0.7, rt_write=0.9, rt_out=0.4)   # W
 
-    # c : the bridge, all in ONE play. The blanks + gallows MORPH into the tree's root
-    #     annotation; the WIN letters RIDE that morph while fading out; the wooden frame
-    #     dissolves as the navy board EXPANDS to fill the frame (navy stays navy); the
-    #     camera pushes in to the root; and the root node (no letter yet) fades IN pinned
-    #     to the screen centre (a counter-scale so it doesn't look like it's moving).
+    # c : the bridge, all in ONE simultaneous play (run_time drives everything). The
+    #     blanks + gallows MORPH into the tree's root annotation; the WIN letters RIDE
+    #     that morph and fade out early; a navy backdrop FADES in (light-blue → navy,
+    #     gradually); the camera pushes in to the root; and the root node fades in pinned
+    #     to the screen centre, arriving with the rest. One ValueTracker (`a`), animated
+    #     with the SAME smooth rate as the camera, drives the letters and the node so they
+    #     stay in lockstep with it.
     @subscene
     def to_tree(self):
-        # letters ride the blanks: apply the SAME affine that carries self.rules →
-        # self.root_blanks (scale about the rules' centre, then translate to root_blanks)
-        # so they shrink/move WITH the blanks instead of drifting under the camera zoom.
-        lscale = self.root_blanks.width / self.rules.width
+        a = ValueTracker(0.0)
+
+        # letters ride the blanks (same rules→root_blanks affine) but fade out by 60% so
+        # they vanish while still crisp — a full shrink-to-nothing turns the fixed-width
+        # chalk strokes into a fuzzy blob.
         labout = self.rules.get_center()
         lshift = self.root_blanks.get_center() - self.rules.get_center()
-        # node pinned to screen centre: start it big at the camera's current centre
-        # (origin) and shrink it to root size as the camera zooms in by the SAME factor,
-        # so radius/​camera_width stays constant → a constant-size dot fading in at centre.
-        zoom = CAM_FULL_W / self._cam_width[0]
-        self.root_dot.scale(zoom).move_to(ORIGIN).set_opacity(0)
+        lfull = self.root_blanks.width / self.rules.width
+        letters_home = self.revealed.copy()
+
+        def _letters(m):
+            t = a.get_value()
+            m.become(letters_home)
+            m.scale(1 + t * (lfull - 1), about_point=labout)
+            m.shift(t * lshift)
+            m.set_opacity(1.0 - float(np.clip(t / 0.6, 0.0, 1.0)))
+        self.revealed.add_updater(_letters)
+
+        # node pinned to SCREEN CENTRE: position + size track the camera (constant on-screen
+        # size, no apparent motion) while opacity is DELAYED to the 2nd half, so it finishes
+        # arriving WITH the morph/zoom instead of early.
+        cam0 = self.camera.frame.get_center()
+        w0, w1 = self.camera.frame.get_width(), self._cam_width[0]
+        rpos = self._cam_center[0]
+        self.root_dot.set_opacity(0)
+
+        def _pin(m):
+            t = a.get_value()
+            m.move_to(cam0 + t * (rpos - cam0))
+            camw = w0 + t * (w1 - w0)
+            m.scale_to_fit_width(2 * DOT_R_ROOT * camw / w1)
+            m.set_opacity(float(np.clip((t - 0.5) / 0.5, 0.0, 1.0)))
+        self.root_dot.add_updater(_pin)
+        self.add(self.root_dot)          # updater-driven → must be added explicitly
+
+        # navy backdrop that FADES in over the whole beat, so the light-blue surround turns
+        # navy gradually and simultaneously (an expanding board would cover the frame almost
+        # instantly). The board stays opaque underneath — only the wooden frame fades — so
+        # navy never bleeds back to light-blue.
+        self.backdrop = Rectangle(width=40, height=40, stroke_width=0,
+                                  fill_color=BOARD_NAVY, fill_opacity=0).set_z_index(-11)
+        self.add(self.backdrop)
+
         self.play(
-            self.revealed.animate.scale(lscale, about_point=labout)
-                .shift(lshift).set_opacity(0),                # letters ride the blanks + fade
+            a.animate.set_value(1.0),                         # drives the letters + node
             ReplacementTransform(self.rules, self.root_blanks),
             ReplacementTransform(self.hang, self.root_gallows),
-            FadeOut(self.cb.frame),                           # wooden frame dissolves
-            self.cb.board.animate.scale(6),                   # navy expands to fill frame
-            self.root_dot.animate.scale(1 / zoom)             # node fades in, screen-pinned
-                .move_to(self._cam_center[0]).set_opacity(1),
-            self.camera.frame.animate.move_to(self._cam_center[0])
-                .set(width=self._cam_width[0]),
+            self.cb.frame.animate.set_opacity(0),             # wooden frame fades (board stays)
+            self.cb.board.animate.set_stroke(opacity=0),      # kill the board's edge line
+            self.backdrop.animate.set_opacity(1),             # navy fills in, gradually
+            self.camera.frame.animate.move_to(rpos).set(width=w1),
             run_time=2.5, rate_func=smooth,
         )
-        # the expanded board is now the navy backdrop for the tree; also set the camera
-        # bg navy so the snapshot carries it forward (framework restores both).
-        self.camera.background_color = BOARD_NAVY
-        self.remove(self.revealed)                            # faded to 0 — drop it
+        self.revealed.remove_updater(_letters)
+        self.root_dot.remove_updater(_pin)
+        self.camera.background_color = BOARD_NAVY              # carried forward by the snapshot
+        self.remove(self.revealed, a)                         # faded out / invisible tracker
         self.rules = self.hang = self.revealed = None         # drop consumed carry-overs
 
     # d : draw the tree row by row (each row at once, linear, equal time) while the
