@@ -52,7 +52,7 @@ LETTER_SW    = 4.5      # chalk stroke width for a revealed letter
 LETTER_BUFF  = 0.14
 
 HANG_SCALE   = 1.2                      # gallows on the RIGHT
-HANG_POS     = np.array([4.3, 0.5, 0])
+HANG_POS     = np.array([4.3, 0.0, 0])   # centre of the empty gallows FRAME (y=0 → vertically centred)
 HANG_SW      = 6.0
 MISS_H       = 0.50                     # wrong letters, chalked below the gallows
 MISS_SW      = 4.0
@@ -152,10 +152,13 @@ class ChalkGame(HangmanScene):
 
     # ── setup for the gallows (owner: subscene b) ─────────────────────────────
     def _setup_gallows(self):
-        # build with ALL parts so scale/move places them too, THEN detach the
-        # parts (revealed one per miss); the gallows stays, drawn in subscene b.
+        # build with ALL parts so scale places them too, THEN detach the parts
+        # (revealed one per miss); the gallows stays, drawn in subscene b. Anchor by
+        # the FRAME's centre (not the full-drawing bbox, which the hanging parts pull
+        # down) so the empty gallows is vertically centred at HANG_POS; parts shift too.
         full = hangman_drawing(6, color=CHALK, stroke_width=HANG_SW)
-        full.scale(HANG_SCALE).move_to(HANG_POS)
+        full.scale(HANG_SCALE)
+        full.shift(HANG_POS - full.gallows.get_center())
         self.hang_parts = list(full.parts)     # 6 body parts, in draw order
         for p in self.hang_parts:
             full.remove(p)
