@@ -170,14 +170,20 @@ class Scene01(MovingCameraScene, HangmanScene):
     # ══════════════════════════════════════════════════════════════════════════
     def _frame(self, mob):
         """Re-home a mobject built in design (16-wide) coords into the fixed camera frame:
-        scale about the origin by _fscale, then translate to the root position."""
-        return mob.scale(self._fscale, about_point=ORIGIN).shift(self._rpos)
+        scale about the origin by _fscale, then translate to the root position. Also scale
+        stroke width by _fscale — manim's scale() leaves stroke untouched, so without this
+        every stroked line renders ~1/_fscale too thick through the zoomed-in camera."""
+        mob.scale(self._fscale, about_point=ORIGIN).shift(self._rpos)
+        for m in mob.family_members_with_points():
+            m.set_stroke(width=m.get_stroke_width() * self._fscale)
+        return mob
 
     def _reveal_letter(self, ch, rule):
-        # rule is already framed; build the letter at frame scale (sizes ×_fscale, stroke
-        # unchanged — stroke width is ~screen-space) so it sits correctly above it.
-        L = chalk_letter(ch, height=LETTER_H * self._fscale, stroke_width=LETTER_SW,
-                         color=CHALK)
+        # rule is already framed; build the letter at frame scale — sizes AND stroke ×_fscale
+        # (this builder bypasses _frame, so bake the stroke correction in here) — so it
+        # matches the framed blanks and renders at design thickness through the zoomed camera.
+        L = chalk_letter(ch, height=LETTER_H * self._fscale,
+                         stroke_width=LETTER_SW * self._fscale, color=CHALK)
         L.next_to(rule, UP, buff=LETTER_BUFF * self._fscale)
         L.set_x(rule.get_center()[0])
         return L
