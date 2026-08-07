@@ -13,6 +13,13 @@ loading" for the full cross-machine debugging history.
 ## Script
 - `animations/Script.md` is the video script. Scenes become
   `scenes/NN<name>.py`. (Fill in this video's script/scene conventions.)
+- **In the animation column, "fill in <letter>" while the beat is describing a MISS
+  means write that letter BELOW THE GALLOWS (the running wrong-guess tally), NOT fill a
+  blank.** A hit "fills in" a blank; a miss "fills in" the miss row. So a beat like
+  "guess, fill in E" on a word without an E is a miss (E goes under the gallows + draws
+  the next body part), not a contradiction. (Bit us on scene 02: read the miss "fill
+  in"s as blank-fills and misread the whole win/loss structure — the markdown DID encode
+  it. Word there is BALLPARK; the non-ballpark letters e/i/o/t/n/d are the losing misses.)
 
 ## Math / data
 - `math/data/wordlist_master.txt` — the curated frequency wordlist
