@@ -24,8 +24,8 @@ Script beat ↔ subscene (Script.md row 02, split on '—'):
   d fill_a     — "if in the word, chooser fills all its blanks"     write A (pos 2 & 6)
   e guess_e    — "if not in the word, draws a body part"            'E' miss → head
   f body_parts — "6 parts: head, torso, 2 arms, 2 legs"             colour demo, then revert
-  g win        — "complete the word first → the guesser wins"       fill L K B P R + green sparks, reset
-  h lose       — "hangman filled first → the chooser wins"          miss I O T N D + red sparks → full hangman
+  g win        — "complete the word first → the guesser wins"       fill L K B P R, flash green, reset
+  h lose       — "hangman filled first → the chooser wins"          miss I O T N D → full hangman, flash red
 
 BEAT MAP
   blanks     — draw the 8 word blanks, one at a time
@@ -34,14 +34,14 @@ BEAT MAP
   fill_a     — write the two A's into their blanks, dismiss the bubble
   guess_e    — 'E' misses: write it below the gallows + draw the head (miss #1)
   body_parts — recolour the head, draw the other 5 parts in palette colours, then revert
-  win        — guess L K B P R → BALLPARK complete; green chalk sparks (B & K haloes), drawn one at a time; fade word + sparks back to A's + E-miss + head
-  lose       — guess I O T N D → full hangman; red chalk sparks at the 4 corners, drawn one at a time, then fade together
+  win        — guess L K B P R → BALLPARK complete; flash every white mark green; fade the word back to A's + E-miss + head (rest returns to white)
+  lose       — guess I O T N D → full hangman; flash every white mark red and back to white
 
 Render:  render 02a --fast … 02h   /   render 02 sub  for the whole scene
 
 TIMING KNOBS LEFT AT A GUESS (feel — judge from the video): every guess's
 bubble/write/part/out run_times, the colour-demo per-part 0.5s, the win-hold /
-reset run_times in `win`, and the one-at-a-time spark draw (1.5s) + DASH/ARC/CLUSTER shape.
+reset run_times in `win`, and the green/red flash time (FLASH_RT).
 """
 from pathlib import Path
 import sys
@@ -94,21 +94,10 @@ BUBBLE_TIP   = np.array([-7.9, 2.4, 0])
 BUBBLE_FS    = 56
 BUBBLE_TAIL  = 1.5
 
-# win/loss flash: short chalk dashes DRAWN ONE AT A TIME (Create, sequential) — a
-# single hand sparking the board. Green on the win, red on the loss (intro palette).
-DASH_LEN     = 0.28    # length of each dash
-DASH_SW      = 4.0     # dash stroke width
-
-# WIN: two radial haloes — a left arc around the B (drawn 6→12 o'clock) and a right
-# arc around the K (drawn 12→6 o'clock).
-WIN_ARC_N    = 6       # dashes per arc
-WIN_ARC_GAP  = 0.14    # gap from the letter to a dash's inner end
-
-# LOSE: four small clusters, one near each corner of the drawing (gallows top-left /
-# top-right, the E, the D), each a few dashes fanned outward from the drawing centre.
-LOSE_CLUSTER_N      = 3     # dashes per corner
-LOSE_CLUSTER_SPREAD = 0.8   # angular fan width (radians)
-LOSE_CLUSTER_STAND  = 0.14  # standoff from the corner point to a dash's inner end
+# win/loss flash: every white chalk mark on the board flashes colour — green when the
+# guesser wins (returning to white as the word fades), red when they lose (LIGHT_GREEN
+# / LIGHT_RED from the intro palette).
+FLASH_RT = 0.5     # go-to-colour time on the win; half the there-and-back on the loss
 
 
 class Scene02(HangmanScene):
@@ -183,33 +172,14 @@ class Scene02(HangmanScene):
     def _dismiss_bubble(self, run_time):
         self.play(FadeOut(self.bub), run_time=run_time)
 
-    # ── win/loss flash: short chalk dashes, drawn one at a time ───────────────
-    def _add_radial_dashes(self, group, center, r_inner, angles, color):
-        """Append a radial dash for each angle in `angles` (in order), each pointing
-        outward from `center`, inner end at radius `r_inner`. Order = draw order."""
-        for a in angles:
-            d = np.array([np.cos(a), np.sin(a), 0.0])
-            inner = center + r_inner * d
-            group.add(Line(inner, inner + DASH_LEN * d, stroke_color=color,
-                           stroke_width=DASH_SW))
-
-    def _add_cluster_dashes(self, group, point, outward, color):
-        """Append LOSE_CLUSTER_N dashes fanned about the `outward` direction, all
-        emanating from just past `point` — a little spark at one corner."""
-        base = np.arctan2(outward[1], outward[0])
-        n = LOSE_CLUSTER_N
-        for i in range(n):
-            frac = 0.0 if n == 1 else (i - (n - 1) / 2) / (n - 1)
-            a = base + LOSE_CLUSTER_SPREAD * frac
-            d = np.array([np.cos(a), np.sin(a), 0.0])
-            inner = point + LOSE_CLUSTER_STAND * d
-            group.add(Line(inner, inner + DASH_LEN * d, stroke_color=color,
-                           stroke_width=DASH_SW))
-
-    def _draw_one_at_a_time(self, dashes, run_time):
-        """Create the dashes sequentially (lag_ratio=1.0) — a single hand drawing
-        each in turn, in the group's order. Leaves them on screen for the caller."""
-        self.play(LaggedStartMap(Create, dashes, lag_ratio=1.0), run_time=run_time)
+    # ── win/loss flash: recolour every white chalk mark on the board ──────────
+    def _chalk_marks(self, *, exclude=None):
+        """Every white chalk mark currently on the board — blanks, revealed letters,
+        the gallows + drawn body parts, and the miss row — as one flat VGroup (minus
+        any handles in `exclude`). Used to flash the whole board green / red."""
+        exclude = exclude or ()
+        parts = [self.rules, self.hang, self.miss_row, *self.hits.values()]
+        return VGroup(*[p for p in parts if p not in exclude])
 
     # ── setup helpers ─────────────────────────────────────────────────────────
     def _setup_blanks(self):
@@ -298,53 +268,33 @@ class Scene02(HangmanScene):
         for p in self.hang_parts[1:]:
             self.hang.remove(p)
 
-    # g : the WIN — guess the remaining hits (L K B P R) to complete BALLPARK, spark
-    #     green chalk dashes (a left halo on the B, a right halo on the K) drawn one at
-    #     a time, then fade the word + those dashes back to A's + E-miss + head.
+    # g : the WIN — guess the remaining hits (L K B P R) to complete BALLPARK; every
+    #     white mark flashes GREEN, then returns to white as the word fades back to the
+    #     A's + E-miss + head.
     @subscene
     def win(self):
         for g in WIN_HITS:
             self._pop_bubble(g, 0.6)
             self._write_hit(g, 0.8)
             self._dismiss_bubble(0.3)
-        # celebratory chalk sparks: left arc around the B (6→12 o'clock), right arc
-        # around the K (12→6 o'clock) — drawn one dash at a time.
-        b, k = self.hits["b"], self.hits["k"]
-        self.win_dashes = VGroup()
-        self._add_radial_dashes(self.win_dashes, b.get_center(),
-                                max(b.width, b.height) / 2 + WIN_ARC_GAP,
-                                np.linspace(3 * PI / 2, PI / 2, WIN_ARC_N), LIGHT_GREEN)
-        self._add_radial_dashes(self.win_dashes, k.get_center(),
-                                max(k.width, k.height) / 2 + WIN_ARC_GAP,
-                                np.linspace(PI / 2, -PI / 2, WIN_ARC_N), LIGHT_GREEN)
-        self._draw_one_at_a_time(self.win_dashes, 1.5)
+        self.play(self._chalk_marks().animate.set_color(LIGHT_GREEN),  # flash green
+                  run_time=FLASH_RT)
         self.wait(0.4)                                           # VO: "…they win"
         won = VGroup(*[self.hits[g] for g in WIN_HITS])
-        self.play(FadeOut(won), FadeOut(self.win_dashes),        # dashes fade WITH the word
-                  run_time=0.8)                                  # reset to partial
+        kept = self._chalk_marks(exclude=[self.hits[g] for g in WIN_HITS])
+        self.play(FadeOut(won),                                  # completed word fades…
+                  kept.animate.set_color(CHALK), run_time=0.8)   # …the rest back to white
+        for g in WIN_HITS:
+            self.hits.pop(g, None)         # only the A's remain in self.hits now
 
     # h : the LOSS — guess I O T N D (all misses); each draws the next body part,
-    #     filling the hangman (6 misses with the earlier E) → the chooser wins. Red
-    #     chalk sparks at the four corners (gallows TL/TR, the E, the D), drawn one at a
-    #     time, then all fade together.
+    #     filling the hangman (6 misses with the earlier E) → the chooser wins. Every
+    #     white mark flashes RED and back to white.
     @subscene
     def lose(self):
         for g in LOSE_MISS:
             self._pop_bubble(g, 0.6)
             self._write_miss(g, rt_write=0.8, rt_part=0.6)
             self._dismiss_bubble(0.3)
-        lost = VGroup(self.hang, self.miss_row)
-        centre = lost.get_center()
-        corners = [self.hang.gallows.get_corner(UL),    # top-left of the gallows
-                   self.hang.gallows.get_corner(UR),    # top-right of the gallows
-                   self.miss_row[0].get_center(),       # the E
-                   self.miss_row[-1].get_center()]      # the D
-        self.lose_dashes = VGroup()
-        for pt in corners:
-            out = pt - centre
-            n = np.linalg.norm(out)
-            self._add_cluster_dashes(self.lose_dashes, pt,
-                                     out / n if n > 1e-9 else RIGHT, LIGHT_RED)
-        self._draw_one_at_a_time(self.lose_dashes, 1.5)
-        self.wait(0.4)                                           # VO: "…the chooser wins"
-        self.play(FadeOut(self.lose_dashes), run_time=0.6)       # all fade together
+        self.play(self._chalk_marks().animate.set_color(LIGHT_RED),    # flash red…
+                  rate_func=there_and_back, run_time=FLASH_RT * 2)      # …and back to white
