@@ -57,6 +57,7 @@ from assets.hangman_board import hangman_drawing
 WORD      = "ballpark"
 WIN_HITS  = ["l", "k", "b", "p", "r"]     # remaining hits, test-scene order → WIN
 LOSE_MISS = ["i", "o", "t", "n", "d"]     # not in ballpark → fill the hangman → LOSS
+FULL_MISS = ["e", *LOSE_MISS]             # every miss in reveal order (E first, then loss)
 
 
 def _part_color(k):
@@ -82,8 +83,7 @@ HANG_POS     = np.array([4.3, 0.5, 0])
 HANG_SW      = 6.0
 MISS_H       = 0.50                     # wrong letters, chalked below the gallows
 MISS_SW      = 4.0
-MISS_X       = 3.3                      # left edge of the miss row
-MISS_Y       = -2.75
+MISS_Y       = -2.75                    # miss-row baseline (centred x = the gallows base)
 MISS_GAP     = 0.34
 
 # the guesser is off the LEFT edge: the tail TIP sits at the screen edge and the
@@ -119,11 +119,12 @@ class Scene02(HangmanScene):
         return L
 
     def _miss_letter(self, ch):
+        # each miss drops into its precomputed slot (see _setup_gallows): the FULL
+        # 6-miss row is laid out centred under the gallows, so the finished tally sits
+        # centred (the early lone E therefore sits left of centre — a static shift, not
+        # a per-miss recentre).
         L = chalk_letter(ch, height=MISS_H, stroke_width=MISS_SW, color=CHALK)
-        if len(self.miss_row):
-            L.next_to(self.miss_row[-1], RIGHT, buff=MISS_GAP)
-        else:
-            L.move_to([MISS_X, MISS_Y, 0]).align_to([MISS_X, 0, 0], LEFT)
+        L.move_to([self.miss_slots_x[len(self.miss_row)], MISS_Y, 0])
         self.miss_row.add(L)
         return L
 
@@ -191,6 +192,16 @@ class Scene02(HangmanScene):
         self.hang = full
         self.miss_n = 0
         self.miss_row = VGroup()               # wrong letters, chalked below
+        # Precompute the miss-row slots: lay the FULL miss set (E, then the loss
+        # letters) left→right and CENTRE the finished row under the gallows base, so
+        # each miss lands in its final slot and the completed tally is centred. Measured
+        # off the base (gallows[0]) so it tracks the gallows if it moves.
+        gallows_cx = self.hang.gallows[0].get_center()[0]
+        tmpl = VGroup(*[chalk_letter(ch, height=MISS_H, stroke_width=MISS_SW,
+                                     color=CHALK) for ch in FULL_MISS])
+        tmpl.arrange(RIGHT, buff=MISS_GAP)
+        tmpl.move_to([gallows_cx, MISS_Y, 0])
+        self.miss_slots_x = [m.get_center()[0] for m in tmpl]
 
     # ══════════════════════════════════════════════════════════════════════════
     #  SUBSCENES
