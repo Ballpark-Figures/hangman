@@ -462,37 +462,43 @@ class Scene01(MovingCameraScene, HangmanScene):
         self._play_guess(1, rt_bubble=0.7, rt_write=0.9, rt_out=0.4)   # N
         self._play_guess(2, rt_bubble=0.7, rt_write=0.9, rt_out=0.4)   # W
 
-    # c : the CAMERA-FREE bridge. The chalkboard GROWS to fill the frame (its navy slate
-    #     covers the light-blue surround) while the WIN game zooms in and fades out; then
-    #     we drop the board and stand on a flat navy background. Nothing carries into the
-    #     tree — the root appears at the start of the dive (grow) — so there is NO camera
-    #     work here to fight (that coupling caused every drift/pop/edge artifact).
+    # c : the bridge — ALL SIMULTANEOUS, camera UNTOUCHED (the camera zoom lives at the
+    #     start of the dive now, so nothing here fights it):
+    #       · the chalkboard expands off the screen (its navy fills the frame),
+    #       · the blanks + gallows MOVE to their beat-d root positions,
+    #       · the root node (from d) appears,
+    #       · the WIN letters disappear while riding the blanks.
+    #     The root node + blanks + gallows carry into the dive (grow), at their native
+    #     tree scale; grow then pushes the camera IN to make them readable.
     @subscene
     def to_tree(self):
-        # grow ONLY the chalkboard (frame + navy slate): its border sweeps outward and the
-        # navy fills the frame. The WIN game is left ALONE — it fades in place, NOT scaled —
-        # so nothing zooms. Then drop the board onto flat navy.
-        content = VGroup(self.rules, self.hang, self.revealed)
+        # letters ride the blanks: the SAME affine that carries rules → root_blanks
+        # (scale about the rules' centre, then translate), plus a fade.
+        lscale = self.root_blanks.width / self.rules.width
+        labout = self.rules.get_center()
+        lshift = self.root_blanks.get_center() - self.rules.get_center()
         self.play(
-            self.cb.animate.scale(2.5, about_point=ORIGIN),   # chalkboard border grows → navy fills
-            FadeOut(content),                                 # WIN game fades IN PLACE (not scaled)
+            self.cb.animate.scale(3.0, about_point=ORIGIN),        # chalkboard expands off-screen
+            ReplacementTransform(self.rules, self.root_blanks),    # blanks → their d position
+            ReplacementTransform(self.hang, self.root_gallows),    # gallows → their d position
+            FadeIn(self.root_dot),                                 # the node from d appears
+            self.revealed.animate.scale(lscale, about_point=labout)
+                .shift(lshift).set_opacity(0),                     # letters ride the blanks + vanish
             run_time=2.5, rate_func=smooth,
         )
         self.camera.background_color = BOARD_NAVY
-        self.remove(self.cb)
-        self.cb = self.rules = self.hang = self.revealed = None
+        self.remove(self.cb, self.revealed)          # chalkboard gone; letters faded out
+        self.cb = self.rules = self.hang = self.revealed = None    # root_* carry into grow
 
-    # d : the dive. c left a FLAT navy frame, so establish the tree's zoomed root pose
-    #     (invisible on navy — both sides are just navy), bring in the root node + its
-    #     blanks/gallows and the opening letter, then draw the tree row by row while the
-    #     camera dives down WORD's path.
+    # d : the dive. c left the root (node + blanks + gallows) at its native tree scale on a
+    #     full-frame navy view. Push the camera IN to the root (making it readable), fade the
+    #     opening letter on, then draw the tree row by row while the camera dives WORD's path.
     @subscene
     def grow(self):
         self.camera.background_color = BOARD_NAVY
-        self.camera.frame.move_to(self._cam_center[0]).set(width=self._cam_width[0])
-        self.play(FadeIn(self.root_dot), FadeIn(self.root_blanks),
-                  FadeIn(self.root_gallows), run_time=0.8)         # the root emerges
-        self.play(FadeIn(self.root_letter), run_time=0.8)         # opening guess letter
+        self.play(self.camera.frame.animate.move_to(self._cam_center[0])
+                  .set(width=self._cam_width[0]), run_time=1.2)   # push in to the root
+        self.play(FadeIn(self.root_letter), run_time=0.6)         # opening guess letter
         self.wait(ROOT_PAUSE)                                 # hold on the root before diving
         last = len(self._cam_center) - 1
         for d in sorted(self._by_depth):
