@@ -150,25 +150,43 @@ class Scene01(MovingCameraScene, HangmanScene):
     def setup_scene(self):
         self.tree = json.loads(TREE_PATH.read_text())["tree"]
         self._setup_tree()                 # layout + edges/dots/annos/camera keyframes
-        self.cb = chalkboard(BOARD_W, BOARD_H)
+        # Fix the camera at the START-OF-DIVE pose for the WHOLE of a/b/c — the ONLY camera
+        # motion in the scene is the dive itself (d). The chalk game is authored in design
+        # (full-frame, 16-wide) coords, then RE-HOMED into this width-3 frame by _frame():
+        # scale about the origin by _fscale (= cam-width / 16), then translate to the root.
+        # So on screen the chalk game looks identical, but it lives in the tree's frame —
+        # meaning the c transition is a pure IN-FRAME morph with no camera to fight.
+        self._rpos = self._cam_center[0]
+        self._fscale = self._cam_width[0] / 16.0
+        self.camera.frame.move_to(self._cam_center[0]).set(width=self._cam_width[0])
+        self.cb = self._frame(chalkboard(BOARD_W, BOARD_H))
         self.cb.set_z_index(-10)
         self.add(self.cb)
         self.revealed = VGroup()           # revealed WIN letters (faded out in to_tree)
 
     # ══════════════════════════════════════════════════════════════════════════
-    #  CHALK GAME builders (from 94chalkgame)
+    #  CHALK GAME builders (from 94chalkgame) — authored in design coords, then
+    #  re-homed into the fixed width-3 camera frame via _frame().
     # ══════════════════════════════════════════════════════════════════════════
+    def _frame(self, mob):
+        """Re-home a mobject built in design (16-wide) coords into the fixed camera frame:
+        scale about the origin by _fscale, then translate to the root position."""
+        return mob.scale(self._fscale, about_point=ORIGIN).shift(self._rpos)
+
     def _reveal_letter(self, ch, rule):
-        L = chalk_letter(ch, height=LETTER_H, stroke_width=LETTER_SW, color=CHALK)
-        L.next_to(rule, UP, buff=LETTER_BUFF)
+        # rule is already framed; build the letter at frame scale (sizes ×_fscale, stroke
+        # unchanged — stroke width is ~screen-space) so it sits correctly above it.
+        L = chalk_letter(ch, height=LETTER_H * self._fscale, stroke_width=LETTER_SW,
+                         color=CHALK)
+        L.next_to(rule, UP, buff=LETTER_BUFF * self._fscale)
         L.set_x(rule.get_center()[0])
         return L
 
     def _bubble(self, ch):
         b = speech_bubble(ch.upper(), font_size=BUBBLE_FS, tail="left",
                           tail_len=BUBBLE_TAIL)
-        b.shift(BUBBLE_TIP - b.tip_dot.get_center())   # anchor the tail tip
-        return b
+        b.shift(BUBBLE_TIP - b.tip_dot.get_center())   # anchor the tail tip (design coords)
+        return self._frame(b)
 
     def _play_guess(self, i, *, rt_bubble, rt_write, rt_out):
         """One guess: pop the bubble, write the hit letter(s) into the blank(s),
@@ -193,6 +211,7 @@ class Scene01(MovingCameraScene, HangmanScene):
             self.rules.add(Line([x - BLANK_SLOT / 2, BLANK_Y, 0],
                                 [x + BLANK_SLOT / 2, BLANK_Y, 0],
                                 color=CHALK, stroke_width=BLANK_SW))
+        self._frame(self.rules)
 
     def _setup_gallows(self):
         # build the full gallows just to place it, then keep only the gallows frame
@@ -204,7 +223,7 @@ class Scene01(MovingCameraScene, HangmanScene):
         full.shift(HANG_POS - full.gallows.get_center())
         for p in list(full.parts):
             full.remove(p)
-        self.hang = full
+        self.hang = self._frame(full)
 
     def _layout_board(self):
         """Place the blanks + gallows with EQUAL horizontal gaps across the navy board:
@@ -462,14 +481,12 @@ class Scene01(MovingCameraScene, HangmanScene):
         self._play_guess(1, rt_bubble=0.7, rt_write=0.9, rt_out=0.4)   # N
         self._play_guess(2, rt_bubble=0.7, rt_write=0.9, rt_out=0.4)   # W
 
-    # c : the bridge — ALL SIMULTANEOUS, camera UNTOUCHED (the camera zoom lives at the
-    #     start of the dive now, so nothing here fights it):
-    #       · the chalkboard expands off the screen (its navy fills the frame),
-    #       · the blanks + gallows MOVE to their beat-d root positions,
-    #       · the root node (from d) appears,
-    #       · the WIN letters disappear while riding the blanks.
-    #     The root node + blanks + gallows carry into the dive (grow), at their native
-    #     tree scale; grow then pushes the camera IN to make them readable.
+    # c : the bridge — a PURE IN-FRAME morph (camera never moves; it's been on the root the
+    #     whole time). All simultaneous: the chalkboard expands off-screen (its navy fills
+    #     the frame), the blanks + gallows MOVE to their root positions, the root node
+    #     appears, the WIN letters ride the blanks and vanish. The blanks are already at ~the
+    #     root scale (both live in the width-3 frame), so the morph is a gentle nudge — no
+    #     dramatic shrink, no camera, no drift. Ends EXACTLY at scene 92's opening state.
     @subscene
     def to_tree(self):
         # letters ride the blanks: the SAME affine that carries rules → root_blanks
@@ -478,10 +495,10 @@ class Scene01(MovingCameraScene, HangmanScene):
         labout = self.rules.get_center()
         lshift = self.root_blanks.get_center() - self.rules.get_center()
         self.play(
-            self.cb.animate.scale(3.0, about_point=ORIGIN),        # chalkboard expands off-screen
-            ReplacementTransform(self.rules, self.root_blanks),    # blanks → their d position
-            ReplacementTransform(self.hang, self.root_gallows),    # gallows → their d position
-            FadeIn(self.root_dot),                                 # the node from d appears
+            self.cb.animate.scale(5.0, about_point=self._rpos),    # chalkboard expands off-screen
+            ReplacementTransform(self.rules, self.root_blanks),    # blanks → their root position
+            ReplacementTransform(self.hang, self.root_gallows),    # gallows → their root position
+            FadeIn(self.root_dot),                                 # the root node appears
             self.revealed.animate.scale(lscale, about_point=labout)
                 .shift(lshift).set_opacity(0),                     # letters ride the blanks + vanish
             run_time=2.5, rate_func=smooth,
@@ -490,15 +507,13 @@ class Scene01(MovingCameraScene, HangmanScene):
         self.remove(self.cb, self.revealed)          # chalkboard gone; letters faded out
         self.cb = self.rules = self.hang = self.revealed = None    # root_* carry into grow
 
-    # d : the dive. c left the root (node + blanks + gallows) at its native tree scale on a
-    #     full-frame navy view. Push the camera IN to the root (making it readable), fade the
-    #     opening letter on, then draw the tree row by row while the camera dives WORD's path.
+    # d : the dive. c ended EXACTLY at scene 92's opening state — camera already framed on
+    #     the root, on navy, root node + blanks + gallows in place. Fade the opening letter
+    #     on, then draw the tree row by row while the camera dives down WORD's path.
     @subscene
     def grow(self):
         self.camera.background_color = BOARD_NAVY
-        self.play(self.camera.frame.animate.move_to(self._cam_center[0])
-                  .set(width=self._cam_width[0]), run_time=1.2)   # push in to the root
-        self.play(FadeIn(self.root_letter), run_time=0.6)         # opening guess letter
+        self.play(FadeIn(self.root_letter), run_time=0.8)         # opening guess letter
         self.wait(ROOT_PAUSE)                                 # hold on the root before diving
         last = len(self._cam_center) - 1
         for d in sorted(self._by_depth):
