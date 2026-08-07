@@ -14,33 +14,34 @@ Body-part colours (beat g's demo only) = the intro's tree-edge miss colours:
 part k (1..6) → LIGHT_PALETTE[6-k]  →  head purple, torso blue, L-arm green,
 R-arm yellow, L-leg orange, R-leg red.  Real misses draw in plain white chalk.
 
+The chalkboard is on screen from frame 0 (the script's "fade in chalkboard" beat
+is dropped) — so `setup_scene` holds it and the first subscene draws the blanks.
+
 Script beat ↔ subscene (Script.md row 02, split on '—'):
-  a board      — "First, what is hangman? … chooser & guesser"     fade in chalkboard
-  b blanks     — "chooser chooses a word, draws the blanks"         draw 8 blanks
-  c gallows    — "draws a set of gallows to keep score"             draw gallows
-  d guess_a    — "the guesser guesses letters one at a time"        bubble 'A'
-  e fill_a     — "if in the word, chooser fills all its blanks"     write A (pos 2 & 6)
-  f guess_e    — "if not in the word, draws a body part"            'E' miss → head
-  g body_parts — "6 parts: head, torso, 2 arms, 2 legs"             colour demo, then revert
-  h win        — "complete the word first → the guesser wins"       fill L K B P R, then reset
-  i lose       — "hangman filled first → the chooser wins"          miss I O T N D → full hangman
+  a blanks     — "chooser chooses a word, draws the blanks"         draw 8 blanks
+  b gallows    — "draws a set of gallows to keep score"             draw gallows
+  c guess_a    — "the guesser guesses letters one at a time"        bubble 'A'
+  d fill_a     — "if in the word, chooser fills all its blanks"     write A (pos 2 & 6)
+  e guess_e    — "if not in the word, draws a body part"            'E' miss → head
+  f body_parts — "6 parts: head, torso, 2 arms, 2 legs"             colour demo, then revert
+  g win        — "complete the word first → the guesser wins"       fill L K B P R + green box, reset
+  h lose       — "hangman filled first → the chooser wins"          miss I O T N D + red box → full hangman
 
 BEAT MAP
-  board      — fade the wooden chalkboard in over the light-blue surround
   blanks     — draw the 8 word blanks, one at a time
   gallows    — draw the gallows on the right
   guess_a    — pop the guesser's 'A' bubble
   fill_a     — write the two A's into their blanks, dismiss the bubble
   guess_e    — 'E' misses: write it below the gallows + draw the head (miss #1)
   body_parts — recolour the head, draw the other 5 parts in palette colours, then revert
-  win        — guess L K B P R (hits) → BALLPARK complete; fade back to A's + E-miss + head
-  lose       — guess I O T N D (misses) → torso/arm/arm/leg/leg → 6 misses, hangman done
+  win        — guess L K B P R → BALLPARK complete; flash a green box; fade the word + box back to A's + E-miss + head
+  lose       — guess I O T N D → full hangman; flash a red box, removed before the scene ends
 
-Render:  render 02a --fast … 02i   /   render 02 sub  for the whole scene
+Render:  render 02a --fast … 02h   /   render 02 sub  for the whole scene
 
 TIMING KNOBS LEFT AT A GUESS (feel — judge from the video): every guess's
-bubble/write/part/out run_times, the colour-demo per-part 0.5s, and the win-hold /
-reset run_times in `win`.
+bubble/write/part/out run_times, the colour-demo per-part 0.5s, the win-hold /
+reset run_times in `win`, and the green/red box flash run_times (BOX_RT).
 """
 from pathlib import Path
 import sys
@@ -93,6 +94,14 @@ BUBBLE_TIP   = np.array([-7.9, 2.4, 0])
 BUBBLE_FS    = 56
 BUBBLE_TAIL  = 1.5
 
+# win/loss flash: a box drawn AROUND the target as many small segments, appearing one
+# at a time very quickly (LIGHT_GREEN on a win, LIGHT_RED on a loss — the intro palette).
+BOX_PAD     = 0.30     # gap between the box and the target's bounding box
+BOX_SW      = 5.0      # chalk-ish stroke width for the box segments
+BOX_NSIDE   = 4        # segments per side (× 4 sides → the count of "little lines")
+BOX_LAG     = 0.9      # near-sequential: the segments trace around one at a time
+BOX_RT      = 0.8      # whole flash duration (short → the lines snap in quickly)
+
 
 class Scene02(HangmanScene):
     """Teach the rules of hangman on the chalkboard, playing BALLPARK.
@@ -107,9 +116,11 @@ class Scene02(HangmanScene):
     are exposed and composed per subscene.
     """
 
-    # nothing on screen from frame 0 — beat `board` fades the chalkboard in
+    # the wooden chalkboard is the backdrop — on screen from frame 0
     def setup_scene(self):
-        pass
+        self.cb = chalkboard(BOARD_W, BOARD_H)
+        self.cb.set_z_index(-10)
+        self.add(self.cb)
 
     # ── small chalk builders (verbatim from 94chalkgame) ──────────────────────
     def _reveal_letter(self, ch, rule):
@@ -164,11 +175,27 @@ class Scene02(HangmanScene):
     def _dismiss_bubble(self, run_time):
         self.play(FadeOut(self.bub), run_time=run_time)
 
-    # ── setup helpers ─────────────────────────────────────────────────────────
-    def _setup_board(self):
-        self.cb = chalkboard(BOARD_W, BOARD_H)
-        self.cb.set_z_index(-10)
+    # ── win/loss flash: a box traced around a target one segment at a time ────
+    def _flash_box(self, target, color, run_time):
+        """Draw a rectangle around `target`'s bounding box as BOX_NSIDE×4 little
+        segments that Create one at a time (near-sequential, quick). Returns the
+        VGroup of segments so the caller can fade it out later."""
+        l = target.get_left()[0] - BOX_PAD
+        r = target.get_right()[0] + BOX_PAD
+        b = target.get_bottom()[1] - BOX_PAD
+        t = target.get_top()[1] + BOX_PAD
+        corners = [np.array([l, b, 0]), np.array([l, t, 0]),
+                   np.array([r, t, 0]), np.array([r, b, 0]), np.array([l, b, 0])]
+        segs = VGroup()
+        for a, c in zip(corners[:-1], corners[1:]):
+            for k in range(BOX_NSIDE):
+                p0 = a + (c - a) * (k / BOX_NSIDE)
+                p1 = a + (c - a) * ((k + 1) / BOX_NSIDE)
+                segs.add(Line(p0, p1, color=color, stroke_width=BOX_SW))
+        self.play(LaggedStartMap(Create, segs, lag_ratio=BOX_LAG), run_time=run_time)
+        return segs
 
+    # ── setup helpers ─────────────────────────────────────────────────────────
     def _setup_blanks(self):
         n = len(WORD)
         total = n * BLANK_SLOT + (n - 1) * BLANK_GAP
@@ -207,44 +234,38 @@ class Scene02(HangmanScene):
     #  SUBSCENES
     # ══════════════════════════════════════════════════════════════════════════
 
-    # a : fade the wooden chalkboard in over the light-blue surround
-    @subscene
-    def board(self):
-        self._setup_board()
-        self.play(FadeIn(self.cb), run_time=1.0)
-
-    # b : draw the 8 word blanks, one at a time
+    # a : draw the 8 word blanks, one at a time
     @subscene
     def blanks(self):
         self._setup_blanks()
         self.play(LaggedStartMap(Create, self.rules, lag_ratio=0.8), run_time=2.2)
 
-    # c : draw the gallows on the right
+    # b : draw the gallows on the right
     @subscene
     def gallows(self):
         self._setup_gallows()
         self.play(LaggedStartMap(Create, self.hang.gallows, lag_ratio=0.6),
                   run_time=1.6)
 
-    # d : the guesser guesses a letter — pop the 'A' bubble
+    # c : the guesser guesses a letter — pop the 'A' bubble
     @subscene
     def guess_a(self):
         self._pop_bubble("a", 0.7)
 
-    # e : 'A' is in the word — write it into both its blanks, dismiss the bubble
+    # d : 'A' is in the word — write it into both its blanks, dismiss the bubble
     @subscene
     def fill_a(self):
         self._write_hit("a", 0.9)
         self._dismiss_bubble(0.4)
 
-    # f : 'E' is NOT in the word — chalk it below the gallows + draw the head
+    # e : 'E' is NOT in the word — chalk it below the gallows + draw the head
     @subscene
     def guess_e(self):
         self._pop_bubble("e", 0.7)
         self._write_miss("e", rt_write=0.9, rt_part=0.7)   # head = miss #1
         self._dismiss_bubble(0.4)
 
-    # g : the 6 body parts — recolour the head, draw the rest in palette colours,
+    # f : the 6 body parts — recolour the head, draw the rest in palette colours,
     #     then revert to just a white head (this was only a demo of the parts).
     @subscene
     def body_parts(self):
@@ -261,23 +282,32 @@ class Scene02(HangmanScene):
         for p in self.hang_parts[1:]:
             self.hang.remove(p)
 
-    # h : the WIN — guess the remaining hits (L K B P R) to complete BALLPARK,
-    #     then fade back to just the A's + the E-miss + the head for the loss case.
+    # g : the WIN — guess the remaining hits (L K B P R) to complete BALLPARK, flash
+    #     a green box around it, then fade the word + box back to A's + E-miss + head.
     @subscene
     def win(self):
         for g in WIN_HITS:
             self._pop_bubble(g, 0.6)
             self._write_hit(g, 0.8)
             self._dismiss_bubble(0.3)
+        # celebratory green box, traced around the finished word one segment at a time
+        word = VGroup(self.rules, *self.hits.values())
+        self.win_box = self._flash_box(word, LIGHT_GREEN, BOX_RT)
         self.wait(0.6)                                             # VO: "…they win"
         won = VGroup(*[self.hits[g] for g in WIN_HITS])
-        self.play(FadeOut(won), run_time=0.8)                     # reset to partial
+        self.play(FadeOut(won), FadeOut(self.win_box),            # box removed WITH the word
+                  run_time=0.8)                                    # reset to partial
 
-    # i : the LOSS — guess I O T N D (all misses); each draws the next body part,
-    #     filling the hangman (6 misses with the earlier E) → the chooser wins.
+    # h : the LOSS — guess I O T N D (all misses); each draws the next body part,
+    #     filling the hangman (6 misses with the earlier E) → the chooser wins. A red
+    #     box flashes around the gallows + miss row, then clears before the scene ends.
     @subscene
     def lose(self):
         for g in LOSE_MISS:
             self._pop_bubble(g, 0.6)
             self._write_miss(g, rt_write=0.8, rt_part=0.6)
             self._dismiss_bubble(0.3)
+        lost = VGroup(self.hang, self.miss_row)
+        self.lose_box = self._flash_box(lost, LIGHT_RED, BOX_RT)
+        self.wait(0.6)                                             # VO: "…the chooser wins"
+        self.play(FadeOut(self.lose_box), run_time=0.6)           # removed before scene end
