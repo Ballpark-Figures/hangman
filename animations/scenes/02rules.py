@@ -1,0 +1,272 @@
+"""SCENE 02 — "what is hangman?": the rules, taught on the chalkboard with BALLPARK.
+
+Structurally the chalk game (`94chalkgame`): navy chalkboard backdrop, word blanks
+on the LEFT, gallows on the RIGHT, a white speech bubble per guess; a HIT is written
+into its blank(s), a MISS is written below the gallows and draws the next body part.
+Reuses chalkboard / chalk_letter / hangman_drawing / speech_bubble verbatim.
+
+Word = BALLPARK.  Guess order follows the test scene's converged len-8 uniform
+optimal walk (hits a·l·k·b·p·r), but re-ordered here to TEACH: a HIT first (A), then
+a MISS (E), then the win/loss cases.  The letters that are NOT in ballpark
+(e / i o t n d) are the misses that fill the hangman in the LOSS case.
+
+Body-part colours (beat g's demo only) = the intro's tree-edge miss colours:
+part k (1..6) → LIGHT_PALETTE[6-k]  →  head purple, torso blue, L-arm green,
+R-arm yellow, L-leg orange, R-leg red.  Real misses draw in plain white chalk.
+
+Script beat ↔ subscene (Script.md row 02, split on '—'):
+  a board      — "First, what is hangman? … chooser & guesser"     fade in chalkboard
+  b blanks     — "chooser chooses a word, draws the blanks"         draw 8 blanks
+  c gallows    — "draws a set of gallows to keep score"             draw gallows
+  d guess_a    — "the guesser guesses letters one at a time"        bubble 'A'
+  e fill_a     — "if in the word, chooser fills all its blanks"     write A (pos 2 & 6)
+  f guess_e    — "if not in the word, draws a body part"            'E' miss → head
+  g body_parts — "6 parts: head, torso, 2 arms, 2 legs"             colour demo, then revert
+  h win        — "complete the word first → the guesser wins"       fill L K B P R, then reset
+  i lose       — "hangman filled first → the chooser wins"          miss I O T N D → full hangman
+
+BEAT MAP
+  board      — fade the wooden chalkboard in over the light-blue surround
+  blanks     — draw the 8 word blanks, one at a time
+  gallows    — draw the gallows on the right
+  guess_a    — pop the guesser's 'A' bubble
+  fill_a     — write the two A's into their blanks, dismiss the bubble
+  guess_e    — 'E' misses: write it below the gallows + draw the head (miss #1)
+  body_parts — recolour the head, draw the other 5 parts in palette colours, then revert
+  win        — guess L K B P R (hits) → BALLPARK complete; fade back to A's + E-miss + head
+  lose       — guess I O T N D (misses) → torso/arm/arm/leg/leg → 6 misses, hangman done
+
+Render:  render 02a --fast … 02i   /   render 02 sub  for the whole scene
+
+TIMING KNOBS LEFT AT A GUESS (feel — judge from the video): every guess's
+bubble/write/part/out run_times, the colour-demo per-part 0.5s, and the win-hold /
+reset run_times in `win`.
+"""
+from pathlib import Path
+import sys
+
+sys.path.append(str(Path(__file__).resolve().parent.parent))
+sys.path.append(str(Path(__file__).resolve().parent.parent.parent.parent))
+
+from config import *
+from bpkfigures.speech_bubble import speech_bubble
+from assets.chalkboard import chalkboard, chalk_letter, CHALK
+from assets.hangman_board import hangman_drawing
+
+# ── the game (word + the letters guessed in each phase) ───────────────────────
+WORD      = "ballpark"
+WIN_HITS  = ["l", "k", "b", "p", "r"]     # remaining hits, test-scene order → WIN
+LOSE_MISS = ["i", "o", "t", "n", "d"]     # not in ballpark → fill the hangman → LOSS
+
+
+def _part_color(k):
+    """Body part k (1..6) → the intro's tree-edge miss colour for miss #k
+    (= scene 01's `_miss_color(k)`): head purple … R-leg red."""
+    return LIGHT_PALETTE[len(LIGHT_PALETTE) - k]
+
+
+# ── layout (verbatim from 94chalkgame — same word, same board) ────────────────
+BOARD_W, BOARD_H = 15.2, 8.4
+
+BLANK_SLOT   = 0.50     # width of one underscore rule
+BLANK_GAP    = 0.22     # gap between blanks
+BLANK_CX     = -3.0     # blank-row centre x (left side of the board)
+BLANK_Y      = -0.38    # rule baseline; a filled blank is vertically centred at y=0
+BLANK_SW     = 6.0      # chalk stroke width for the rules
+LETTER_H     = 0.62     # cap height of a revealed letter (drawn as strokes)
+LETTER_SW    = 4.5      # chalk stroke width for a revealed letter
+LETTER_BUFF  = 0.14
+
+HANG_SCALE   = 1.2                      # gallows on the RIGHT
+HANG_POS     = np.array([4.3, 0.5, 0])
+HANG_SW      = 6.0
+MISS_H       = 0.50                     # wrong letters, chalked below the gallows
+MISS_SW      = 4.0
+MISS_X       = 3.3                      # left edge of the miss row
+MISS_Y       = -2.75
+MISS_GAP     = 0.34
+
+# the guesser is off the LEFT edge: the tail TIP sits at the screen edge and the
+# bubble grows from there. Anchored by the tip — NOT move_to (its group-bbox centring
+# would pull the long tail inward). Verbatim from 94chalkgame.
+BUBBLE_TIP   = np.array([-7.9, 2.4, 0])
+BUBBLE_FS    = 56
+BUBBLE_TAIL  = 1.5
+
+
+class Scene02(HangmanScene):
+    """Teach the rules of hangman on the chalkboard, playing BALLPARK.
+
+    chalkboard/CHALK from assets.chalkboard; gallows from
+    assets.hangman_board.hangman_drawing (chalk-white); the guesser's speech bubble
+    from bpkfigures.speech_bubble.
+
+    Unlike 94chalkgame's single `_guess` beat, the guess and the fill are split
+    across subscenes here (d pops the bubble, e writes the hit) to teach the
+    mechanic, so the small chalk builders (_bubble / _reveal_letter / _miss_letter)
+    are exposed and composed per subscene.
+    """
+
+    # nothing on screen from frame 0 — beat `board` fades the chalkboard in
+    def setup_scene(self):
+        pass
+
+    # ── small chalk builders (verbatim from 94chalkgame) ──────────────────────
+    def _reveal_letter(self, ch, rule):
+        L = chalk_letter(ch, height=LETTER_H, stroke_width=LETTER_SW, color=CHALK)
+        L.next_to(rule, UP, buff=LETTER_BUFF)
+        L.set_x(rule.get_center()[0])
+        return L
+
+    def _miss_letter(self, ch):
+        L = chalk_letter(ch, height=MISS_H, stroke_width=MISS_SW, color=CHALK)
+        if len(self.miss_row):
+            L.next_to(self.miss_row[-1], RIGHT, buff=MISS_GAP)
+        else:
+            L.move_to([MISS_X, MISS_Y, 0]).align_to([MISS_X, 0, 0], LEFT)
+        self.miss_row.add(L)
+        return L
+
+    def _bubble(self, ch):
+        b = speech_bubble(ch.upper(), font_size=BUBBLE_FS, tail="left",
+                          tail_len=BUBBLE_TAIL)
+        b.shift(BUBBLE_TIP - b.tip_dot.get_center())   # anchor the tail tip
+        return b
+
+    # ── composed guess steps ──────────────────────────────────────────────────
+    def _pop_bubble(self, ch, run_time):
+        """Pop the guesser's speech bubble on the right; leaves it up (self.bub)."""
+        self.bub = self._bubble(ch)
+        self.play(GrowFromPoint(self.bub, self.bub.tip_dot.get_center()),
+                  run_time=run_time)
+
+    def _write_hit(self, ch, run_time):
+        """Write ch into every blank it occupies, LEFT→RIGHT, stroke-by-stroke.
+        Records the letters under self.hits[ch] so the win-reset can fade them."""
+        letters = VGroup()
+        for p in [p for p, c in enumerate(WORD) if c == ch]:
+            L = self._reveal_letter(ch, self.rules[p])
+            letters.add(L)
+            self.play(LaggedStartMap(Create, L, lag_ratio=0.5), run_time=run_time)
+        self.hits[ch] = letters
+
+    def _write_miss(self, ch, *, rt_write, rt_part):
+        """A miss: write ch below the gallows, then draw the next body part (white)."""
+        miss = self._miss_letter(ch)
+        self.play(LaggedStartMap(Create, miss, lag_ratio=0.5), run_time=rt_write)
+        part = self.hang_parts[self.miss_n]
+        part.set_color(CHALK)            # reset any leftover demo colour (beat g)
+        self.hang.add(part)
+        self.miss_n += 1
+        self.play(Create(part), run_time=rt_part)
+
+    def _dismiss_bubble(self, run_time):
+        self.play(FadeOut(self.bub), run_time=run_time)
+
+    # ── setup helpers ─────────────────────────────────────────────────────────
+    def _setup_board(self):
+        self.cb = chalkboard(BOARD_W, BOARD_H)
+        self.cb.set_z_index(-10)
+
+    def _setup_blanks(self):
+        n = len(WORD)
+        total = n * BLANK_SLOT + (n - 1) * BLANK_GAP
+        x0 = BLANK_CX - total / 2 + BLANK_SLOT / 2
+        self.rules = VGroup()
+        for k in range(n):
+            x = x0 + k * (BLANK_SLOT + BLANK_GAP)
+            self.rules.add(Line([x - BLANK_SLOT / 2, BLANK_Y, 0],
+                                [x + BLANK_SLOT / 2, BLANK_Y, 0],
+                                color=CHALK, stroke_width=BLANK_SW))
+        self.hits = {}                   # guess char → VGroup of its revealed letters
+
+    def _setup_gallows(self):
+        # build with ALL parts so scale/move places them too, THEN detach them
+        # (revealed one per miss); the gallows stays, drawn in subscene c.
+        full = hangman_drawing(6, color=CHALK, stroke_width=HANG_SW)
+        full.scale(HANG_SCALE).move_to(HANG_POS)
+        self.hang_parts = list(full.parts)     # 6 body parts, in draw order
+        for p in self.hang_parts:
+            full.remove(p)
+        self.hang = full
+        self.miss_n = 0
+        self.miss_row = VGroup()               # wrong letters, chalked below
+
+    # ══════════════════════════════════════════════════════════════════════════
+    #  SUBSCENES
+    # ══════════════════════════════════════════════════════════════════════════
+
+    # a : fade the wooden chalkboard in over the light-blue surround
+    @subscene
+    def board(self):
+        self._setup_board()
+        self.play(FadeIn(self.cb), run_time=1.0)
+
+    # b : draw the 8 word blanks, one at a time
+    @subscene
+    def blanks(self):
+        self._setup_blanks()
+        self.play(LaggedStartMap(Create, self.rules, lag_ratio=0.8), run_time=2.2)
+
+    # c : draw the gallows on the right
+    @subscene
+    def gallows(self):
+        self._setup_gallows()
+        self.play(LaggedStartMap(Create, self.hang.gallows, lag_ratio=0.6),
+                  run_time=1.6)
+
+    # d : the guesser guesses a letter — pop the 'A' bubble
+    @subscene
+    def guess_a(self):
+        self._pop_bubble("a", 0.7)
+
+    # e : 'A' is in the word — write it into both its blanks, dismiss the bubble
+    @subscene
+    def fill_a(self):
+        self._write_hit("a", 0.9)
+        self._dismiss_bubble(0.4)
+
+    # f : 'E' is NOT in the word — chalk it below the gallows + draw the head
+    @subscene
+    def guess_e(self):
+        self._pop_bubble("e", 0.7)
+        self._write_miss("e", rt_write=0.9, rt_part=0.7)   # head = miss #1
+        self._dismiss_bubble(0.4)
+
+    # g : the 6 body parts — recolour the head, draw the rest in palette colours,
+    #     then revert to just a white head (this was only a demo of the parts).
+    @subscene
+    def body_parts(self):
+        head = self.hang_parts[0]
+        self.play(head.animate.set_color(_part_color(1)), run_time=0.5)  # purple
+        for k in range(2, 7):                    # torso, L-arm, R-arm, L-leg, R-leg
+            part = self.hang_parts[k - 1]
+            part.set_color(_part_color(k))
+            self.hang.add(part)
+            self.play(Create(part), run_time=0.5)
+        # revert: head back to white, fade the other 5 parts back out
+        rest = VGroup(*self.hang_parts[1:])
+        self.play(head.animate.set_color(CHALK), FadeOut(rest), run_time=0.8)
+        for p in self.hang_parts[1:]:
+            self.hang.remove(p)
+
+    # h : the WIN — guess the remaining hits (L K B P R) to complete BALLPARK,
+    #     then fade back to just the A's + the E-miss + the head for the loss case.
+    @subscene
+    def win(self):
+        for g in WIN_HITS:
+            self._pop_bubble(g, 0.6)
+            self._write_hit(g, 0.8)
+            self._dismiss_bubble(0.3)
+        self.wait(0.6)                                             # VO: "…they win"
+        won = VGroup(*[self.hits[g] for g in WIN_HITS])
+        self.play(FadeOut(won), run_time=0.8)                     # reset to partial
+
+    # i : the LOSS — guess I O T N D (all misses); each draws the next body part,
+    #     filling the hangman (6 misses with the earlier E) → the chooser wins.
+    @subscene
+    def lose(self):
+        for g in LOSE_MISS:
+            self._pop_bubble(g, 0.6)
+            self._write_miss(g, rt_write=0.8, rt_part=0.6)
+            self._dismiss_bubble(0.3)
