@@ -61,14 +61,14 @@ WORD = "yes"          # featured deepest-row (depth-8) word — the camera's tar
 # ── chalk-game layout (frame 16×9 → x-radius 8.0, y-radius 4.5) ───────────────
 BOARD_W, BOARD_H = 15.2, 8.4
 
-BLANK_SLOT   = 0.50     # width of one underscore rule
-BLANK_GAP    = 0.22     # gap between blanks
+BLANK_SLOT   = 0.85     # width of one underscore rule
+BLANK_GAP    = 0.36     # gap between blanks
 BLANK_CX     = -3.0     # blank-row centre x (left side of the board)
 BLANK_Y      = -0.2     # blank-row baseline y
-BLANK_SW     = 6.0      # chalk stroke width for the rules
-LETTER_H     = 0.62     # cap height of a revealed letter (drawn as strokes)
-LETTER_SW    = 4.5      # chalk stroke width for a revealed letter
-LETTER_BUFF  = 0.14
+BLANK_SW     = 7.0      # chalk stroke width for the rules
+LETTER_H     = 1.05     # cap height of a revealed letter (drawn as strokes)
+LETTER_SW    = 5.5      # chalk stroke width for a revealed letter
+LETTER_BUFF  = 0.20
 
 HANG_SCALE   = 1.2                      # gallows on the RIGHT
 HANG_POS     = np.array([4.3, 0.5, 0])
@@ -110,7 +110,7 @@ ANN_WINDOW = 0.12
 
 ROW_TIME    = 3.0     # every guess-row takes the SAME time (constant-rate growth)
 EASE_FRAC   = 0.4     # first step only: fraction of its time spent ramping to speed
-ROOT_PAUSE  = 1.0     # (unused here — the framework's leading hold covers the root pause)
+ROOT_PAUSE  = 1.0     # hold after the opening letter fades onto the root, before diving
 CAM_W_START = 3.0     # camera frame width at the root; each level zooms by SHRINK
 CAM_FULL_W  = 16.0
 ZOOM_OUT_RT = 5.0
@@ -144,10 +144,9 @@ class Scene01(MovingCameraScene, HangmanScene):
     camera keyframes so the bridge (to_tree) and dive (grow) can hand off cleanly.
     """
 
-    # the navy chalkboard is the backdrop; the surround is navy too, so the board
-    # can later dissolve seamlessly into a full navy background.
+    # the wooden chalkboard sits on the light-blue BG_COLOR surround (set by
+    # HangmanScene.construct); in to_tree the navy board EXPANDS to fill the frame.
     def setup_scene(self):
-        self.camera.background_color = BOARD_NAVY
         self.tree = json.loads(TREE_PATH.read_text())["tree"]
         self._setup_tree()                 # layout + edges/dots/annos/camera keyframes
         self.cb = chalkboard(BOARD_W, BOARD_H)
@@ -449,35 +448,37 @@ class Scene01(MovingCameraScene, HangmanScene):
         self._play_guess(1, rt_bubble=0.7, rt_write=0.9, rt_out=0.4)   # N
         self._play_guess(2, rt_bubble=0.7, rt_write=0.9, rt_out=0.4)   # W
 
-    # c : the bridge — dissolve the board into the navy background, fade the WIN
-    #     letters, MORPH the gallows+blanks into the tree's root annotation, fade
-    #     in the root node, and zoom the camera onto the root.
+    # c : the bridge — the navy board EXPANDS to fill the frame (navy stays navy;
+    #     the light-blue surround is covered), the WIN letters fade OUT, the gallows
+    #     + blanks MORPH into the tree's root annotation, the root node (no letter
+    #     yet) FADES in, and the camera zooms onto the root.
     @subscene
     def to_tree(self):
-        # the board dissolves to reveal the background — which the snapshot cache does
-        # NOT save, so re-establish navy (else it reverts to BG_COLOR) before the reveal.
-        self.camera.background_color = BOARD_NAVY
         self.play(
-            FadeOut(self.cb),                                 # board → navy background
-            FadeOut(self.revealed),                           # fade the WIN text
+            self.cb.board.animate.scale(6),                   # navy expands to fill frame
+            FadeOut(self.cb.frame),                           # wooden frame dissolves
+            FadeOut(self.revealed),                           # WIN letters fade out
             ReplacementTransform(self.rules, self.root_blanks),
             ReplacementTransform(self.hang, self.root_gallows),
-            FadeIn(self.root_dot), FadeIn(self.root_letter),
+            FadeIn(self.root_dot),                            # node fades in (no letter yet)
             self.camera.frame.animate.move_to(self._cam_center[0])
                 .set(width=self._cam_width[0]),
             run_time=2.5, rate_func=smooth,
         )
-        self.cb = None                                        # drop consumed carry-overs
-        self.rules = self.hang = self.revealed = None
+        # the expanded board is now the navy backdrop for the tree; also set the camera
+        # bg navy so the snapshot carries it forward (framework restores both).
+        self.camera.background_color = BOARD_NAVY
+        self.rules = self.hang = self.revealed = None         # drop consumed carry-overs
 
     # d : draw the tree row by row (each row at once, linear, equal time) while the
     #     camera dives down WORD's path, zooming a step per row to the leaf. The
     #     root node + annotation are already on screen (from to_tree).
     @subscene
     def grow(self):
-        # snapshot cache saves neither camera pose nor bg → re-establish the root pose
-        self.camera.background_color = BOARD_NAVY
-        self.camera.frame.move_to(self._cam_center[0]).set(width=self._cam_width[0])
+        # the framework restores the incoming root pose + navy bg from to_tree's
+        # snapshot. First beat: fade the opening guess letter onto the root node.
+        self.play(FadeIn(self.root_letter), run_time=0.8)
+        self.wait(ROOT_PAUSE)                                 # hold on the root before diving
         last = len(self._cam_center) - 1
         for d in sorted(self._by_depth):
             k = min(d + 1, last)
@@ -505,8 +506,7 @@ class Scene01(MovingCameraScene, HangmanScene):
     # e : pull the camera back out to the whole tree
     @subscene
     def zoom_out(self):
-        self.camera.background_color = BOARD_NAVY
-        self.camera.frame.move_to(self._cam_center[-1]).set(width=self._cam_width[-1])
+        # framework restores the incoming leaf pose + navy bg from grow's snapshot.
         edge_ann = VGroup(*self._ann_edge_by_depth.values())
         self.play(FadeOut(edge_ann), run_time=1.0)
         self.play(self.camera.frame.animate.move_to(ORIGIN).set(width=CAM_FULL_W),
