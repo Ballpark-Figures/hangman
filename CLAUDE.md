@@ -78,7 +78,32 @@ greedy, greedy_word, best_opener, best_opener_word):
   `python3 <scratchpad>/fulltables.py`).
 
 ## Gameplay layout
-- (Describe this video's on-screen layout and the assets in `animations/assets/`.)
+- **The shared board is `animations/assets/game_board.py` (imported as `gb`) — every
+  gameplay scene uses it (02rules, 94chalkgame, 04greedy); do NOT reinvent the
+  layout.** Fixed positions on the chalkboard: word blanks centred on the LEFT
+  (`BLANK_CX`), the gallows on the RIGHT (`HANG_POS`), the wrong-guess tally centred
+  under the gallows base (`MISS_Y`), the guesser's speech bubble growing from the
+  LEFT edge (`BUBBLE_TIP`, `tail="left"`). All marks are chalk. Stateless builders +
+  constants: `gb.build_rules(length)` (pass `cx=`/`slot=`/`gap=` for a long word or a
+  different centre), `gb.build_gallows()` → `(container, parts)`, `gb.miss_slots(container,
+  letters)`, and `gb.reveal_letter` / `gb.miss_letter` / `gb.bubble`. A scene keeps its
+  own `self.rules`/`self.hang`/`self.miss_slots_x` handles built from these.
+- **Guessing a letter is a STANDARD TWO-STEP: (1) a speech bubble containing the letter
+  pops from the left edge (`gb.bubble`), then (2) the letter is WRITTEN ON — chalk
+  strokes via `Create`, LEFT→RIGHT — into its blank(s) on a hit, or into the miss row +
+  the next body part on a miss; then dismiss the bubble.** "Guess X" ALWAYS means
+  bubble-then-write; never just reveal a guessed letter. (Exception: scene 04's greedy
+  A-walk shows the PICK via the frequency bar graph — a decision view, not a played-out
+  guess — so it has no per-guess bubbles.)
+- **Writing a letter = draw its chalk STROKES with `Create` (the hand-written look),
+  not `FadeIn`.** To write several letters, flatten their strokes into one VGroup and
+  `LaggedStartMap(Create, strokes)` (Create over a whole multi-stroke letter inside a
+  LaggedStart throws `int * VMobject`; Create over single strokes is fine).
+- **"Written font" = the hand-drawn `chalk_letter` strokes (chalkboard.py), NOT the
+  Inter `crisp_text`.** When the script says a word is "in written font," render it with
+  chalk strokes (see scene 04's `_word_grid`, which monospaces them to equal width).
+- **Win/loss recolour tints the WHOLE board** — revealed letters, the blanks, the miss
+  row, AND the gallows (`self.hang` includes it) → green on a win, red on a loss.
 
 ## Style
 - Uses `bpkfigures` style + the local `config.py` for colors/fonts.
