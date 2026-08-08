@@ -49,7 +49,7 @@ DATA = greedy_data.get()
 
 # ── frequency bar graph (bottom-left, VERTICAL bars, light palette) ───────────
 FBARS_LEFT = -6.5          # x of the first bar's centre column (inside the board)
-FBARS_BASE = -3.3          # baseline y (x-axis) — raised clear of the bottom edge
+FBARS_BASE = -2.9          # baseline y (x-axis) — well clear of the bottom edge
 FBARS_W    = 6.6           # total width across `FBARS_TOP` columns
 FBARS_H    = 2.3           # height of the tallest bar
 FBARS_TOP  = 10            # letters shown
@@ -89,6 +89,25 @@ def _vbars(pairs, *, top=FBARS_TOP, hl_letter=None, scale_max=None):
         col_grp = VGroup(bar, label, value)
         grp.add(col_grp)
         grp.cols[ltr] = col_grp
+    return grp
+
+
+def _chalk_phrase(text, *, height=0.4, stroke_width=3.2, buff=0.10, space=0.34,
+                  color=CHALK):
+    """A phrase written in the chalk (written) font — one row of `chalk_letter`s,
+    left→right, spaces as gaps. `chalk_letter` is CAPITALS-ONLY, so the phrase
+    renders all-caps. Returns a VGroup whose submobjects are the letters."""
+    grp = VGroup()
+    x = 0.0
+    for ch in text.upper():
+        if ch == " ":
+            x += space
+            continue
+        L = chalk_letter(ch, height=height, stroke_width=stroke_width, color=color)
+        L.move_to([x + L.width / 2, 0, 0])
+        grp.add(L)
+        x += L.width + buff
+    grp.move_to(ORIGIN)
     return grp
 
 
@@ -158,8 +177,10 @@ class Scene04(HangmanScene):
     @subscene
     def montage(self):
         self._setup_board()
-        self.play(LaggedStartMap(Create, self.hang.gallows, lag_ratio=0.5),
-                  LaggedStartMap(Create, self.rules, lag_ratio=0.6), run_time=1.6)
+        # draw the blanks, THEN the gallows (not together — like scene 02)
+        self.play(LaggedStartMap(Create, self.rules, lag_ratio=0.8), run_time=2.0)
+        self.play(LaggedStartMap(Create, self.hang.gallows, lag_ratio=0.6),
+                  run_time=1.6)
         games = DATA["montage"]
         for i, entry in enumerate(games):
             self._show_game(entry)
@@ -271,8 +292,9 @@ class Scene04(HangmanScene):
         self.play(FadeOut(board), run_time=0.6)
         self.revealed = {}
         self.chart = self._avg_chart()
+        self._write_letters(self.chart.title, run_time=2.6)     # write the title on
         self.play(FadeIn(self.chart.axes), FadeIn(self.chart.labels),
-                  FadeIn(self.chart.yticks), FadeIn(self.chart.title),
+                  FadeIn(self.chart.yticks),
                   LaggedStart(*[GrowFromEdge(b, DOWN) for b in self.chart.bars],
                               lag_ratio=0.04), run_time=1.8)
 
@@ -281,8 +303,9 @@ class Scene04(HangmanScene):
     def pirates(self):
         self.play(FadeOut(self.chart), run_time=0.5)
         gal, _ = gb.build_gallows()
-        # the rest of the alphabet, in rows UNDER the gallows
-        pool_chars = "bcdefghijklmnopqrstuvwxyz"
+        # the whole alphabet, in rows UNDER the gallows; A starts already faded
+        # (it's the letter we begin the word with)
+        pool_chars = "abcdefghijklmnopqrstuvwxyz"
         alpha_letters = [chalk_letter(c, height=0.30, stroke_width=3.0, color=CHALK)
                          for c in pool_chars]
         alpha = VGroup(*alpha_letters)
@@ -290,14 +313,17 @@ class Scene04(HangmanScene):
         alpha.next_to(gal.gallows.get_bottom(), DOWN, buff=0.3)
         alpha.set_x(gal.gallows.get_center()[0])
         alpha_map = dict(zip(pool_chars, alpha_letters))
+        alpha_map["a"].set_stroke(opacity=0.15)              # A is used from the start
         self.play(LaggedStartMap(Create, gal.gallows, lag_ratio=0.5),
                   FadeIn(alpha), run_time=1.2)
 
         chain = [p["word"] for p in DATA["pirates_chain"]]   # a, at, …, pirates
         spacing = gb.BLANK_SLOT + gb.BLANK_GAP
         xs = [gb.BLANK_CX]                                   # current letter x's L→R
-        board = VGroup(self._blank_with("a", gb.BLANK_CX))   # A starts on its blank
-        self.play(FadeIn(board), run_time=0.6)
+        cell0 = self._blank_with("a", gb.BLANK_CX)           # A starts on its blank
+        board = VGroup(cell0)
+        self.play(Create(cell0[0]), run_time=0.3)            # the blank
+        self._write_letters([cell0[1]], run_time=0.5)        # write the A
         prev = "a"
         for nxt in chain[1:]:
             if nxt[1:] == prev:                              # inserted at the START
@@ -308,9 +334,9 @@ class Scene04(HangmanScene):
                 xs.append(x)
             cell = self._blank_with(newc, x)                 # in place — nothing moves
             board.add(cell)
-            self.play(FadeIn(cell),
-                      alpha_map[newc].animate.set_stroke(opacity=0.15),
-                      run_time=0.7)
+            self.play(Create(cell[0]),
+                      alpha_map[newc].animate.set_stroke(opacity=0.15), run_time=0.35)
+            self._write_letters([cell[1]], run_time=0.5)     # write the new letter
             prev = nxt
         self.pir_grp = VGroup(gal, alpha, board)
 
@@ -321,12 +347,16 @@ class Scene04(HangmanScene):
         ec = DATA["e_combos"]
         left = VGroup(*[self._mini_board(p, slot=0.32, gap=0.10, height=0.44)
                         for p, _ in ec["3"]["patterns"]])
-        left.arrange(DOWN, buff=0.32).move_to([-6.3, 0, 0])
+        left.arrange(DOWN, buff=0.32)
         right = VGroup(*[self._mini_board(p, slot=0.14, gap=0.045, height=0.26)
                          for p, _ in ec["12"]["patterns"]])
         right.arrange_in_grid(rows=26, cols=6, buff=(0.32, 0.13))   # 26×6 = 156
         right.scale(min(9.4 / right.width, 7.5 / right.height, 1.0))
         right.move_to([1.9, 0, 0])
+        # the 3-letter column sits halfway between the board's left inner edge and
+        # the left end of the 12-letter grid
+        board_left = -(gb.BOARD_W / 2 - 0.34)
+        left.move_to([(board_left + right.get_left()[0]) / 2, 0, 0])
         self.ecombo_grp = VGroup(left, right)
         self.play(FadeIn(left), run_time=0.7)
         self.play(FadeIn(right), run_time=0.9)
@@ -360,11 +390,12 @@ class Scene04(HangmanScene):
         eyes = VGroup(*[ch for row in self.w17 for ch in row.i_chars])
         self.play(eyes.animate.set_color(ACCENT_GOLD), run_time=1.0)
 
-    # v : a 17-letter game — guess I (bubble → write), then guess the whole word
+    # v : a 17-letter game (INDISTINGUISHABLE) — guess I (bubble → write), then
+    #     guess the whole word; every letter is WRITTEN one at a time
     @subscene
     def guess17(self):
         self.play(FadeOut(self.w17), run_time=0.5)
-        word = DATA["constitutionality"]["word"]
+        word = DATA["demo17"]["word"]
         gal, _ = gb.build_gallows()
         # centre the blanks between the board's left inner edge and the gallows
         board_left = -(gb.BOARD_W / 2 - 0.34)
@@ -372,19 +403,19 @@ class Scene04(HangmanScene):
         rules = gb.build_rules(len(word), slot=0.40, gap=0.10, cx=cx)
         self.play(LaggedStartMap(Create, gal.gallows, lag_ratio=0.5), run_time=1.2)
         self.play(LaggedStartMap(Create, rules, lag_ratio=1.0), run_time=2.6)  # one at a time
-        i_pos = DATA["constitutionality"]["i_positions"]
-        # guess I: bubble, THEN write every i (chalk strokes)
+        i_pos = DATA["demo17"]["i_positions"]
+        # guess I: bubble, THEN write every i (one at a time)
         ibub = gb.bubble("i", tail="left")
         self.play(GrowFromPoint(ibub, ibub.tip_dot.get_center()), run_time=0.6)
         self._write_letters([gb.reveal_letter("i", rules[p]) for p in i_pos],
-                            run_time=1.0, lag=0.15)
+                            run_time=1.8)
         self.play(FadeOut(ibub), run_time=0.4)
-        # guess the whole word: bubble CONSTITUTIONALITY, then write the rest quickly
+        # guess the whole word: bubble the word, then write the rest one at a time (fast)
         wbub = gb.bubble(word.upper(), tail="left", font_size=30)
         self.play(GrowFromPoint(wbub, wbub.tip_dot.get_center()), run_time=0.7)
         self._write_letters([gb.reveal_letter(ch, rules[p])
                              for p, ch in enumerate(word) if p not in i_pos],
-                            run_time=1.5, lag=0.04)
+                            run_time=3.2)
         self.play(FadeOut(wbub), run_time=0.4)
 
     # ── A-walk helpers (c–n) ──────────────────────────────────────────────────
@@ -398,9 +429,11 @@ class Scene04(HangmanScene):
         self.play(Create(part), run_time=rt_part)
         self.miss_n += 1
 
-    def _write_letters(self, letters, *, run_time, lag=0.06):
-        """WRITE chalk letters on as strokes (Create), stroke-by-stroke across them
-        — the hand-written look. `letters` is an iterable of chalk_letter VGroups."""
+    def _write_letters(self, letters, *, run_time, lag=1.0):
+        """WRITE chalk letters on as strokes (Create), ONE STROKE AT A TIME — the
+        hand-written look, simulating a person writing on the board (no two strokes,
+        hence no two letters, drawn at once). `lag=1.0` = a stroke finishes before
+        the next begins; `letters` is an iterable of chalk_letter VGroups."""
         strokes = VGroup(*[s for L in letters for s in L])
         self.play(LaggedStartMap(Create, strokes, lag_ratio=lag), run_time=run_time)
 
@@ -469,11 +502,10 @@ class Scene04(HangmanScene):
             tl = crisp_text(str(t), font_size=15, color=CHALK)
             tl.next_to(tick, LEFT, buff=0.1)
             yticks.add(tick, tl)
-        # crisp_text supersamples and wraps a long string (~24-char threshold), so
-        # build the title as an explicit 2-line, centre-aligned paragraph.
-        title = crisp_paragraph("Average misses", "by word length",
-                                alignment="center", font_size=30, color=CHALK)
-        title.move_to([(x0 + x1) / 2, base + height + 0.75, 0])
+        # title in the written (chalk) font — one row, centred over the plot
+        # (chalk is capitals-only, so it reads ALL-CAPS)
+        title = _chalk_phrase("Average Misses by Word Length", height=0.38)
+        title.move_to([(x0 + x1) / 2, base + height + 0.7, 0])
         grp = VGroup(xaxis, yaxis, bars, labels, yticks, title)
         grp.axes = VGroup(xaxis, yaxis)
         grp.bars, grp.labels, grp.yticks, grp.title = bars, labels, yticks, title

@@ -2461,8 +2461,8 @@
   "all_have_i": true,
   "i_positions_distinct": true
  },
- "constitutionality": {
-  "word": "constitutionality",
+ "demo17": {
+  "word": "indistinguishable",
   "in_list": true,
   "trace": [
    [
@@ -2474,7 +2474,23 @@
     true
    ],
    [
-    "c",
+    "b",
+    true
+   ],
+   [
+    "d",
+    true
+   ],
+   [
+    "e",
+    true
+   ],
+   [
+    "g",
+    true
+   ],
+   [
+    "h",
     true
    ],
    [
@@ -2483,10 +2499,6 @@
    ],
    [
     "n",
-    true
-   ],
-   [
-    "o",
     true
    ],
    [
@@ -2500,16 +2512,13 @@
    [
     "u",
     true
-   ],
-   [
-    "y",
-    true
    ]
   ],
   "i_positions": [
-   5,
-   9,
-   14
+   0,
+   3,
+   6,
+   10
   ],
   "misses_before_determined": 0
  }

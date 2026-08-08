@@ -46,7 +46,7 @@ CHART_LENS = list(range(1, 21))
 # the two lengths compared for E's position-patterns (beat q)
 E_COMBO_LENS = (3, 12)
 # the 17-letter word played out in beat v
-DEMO_WORD_17 = "constitutionality"
+DEMO_WORD_17 = "indistinguishable"
 
 # ── FLAG: the beat-a montage words (a curated content choice — swap freely) ────
 # A spread of common 3-letter words; their greedy win/loss falls out of the trace.
@@ -234,7 +234,7 @@ def build():
         "pirates_chain": pirates,
         "e_combos": e_combos,
         "len17": len17,
-        "constitutionality": demo,
+        "demo17": demo,
     }
     CACHE.write_text(json.dumps(data, indent=1))
     return data
@@ -300,7 +300,7 @@ if __name__ == "__main__":
     print(f"\n[len17] {l17['n']} words; all have an i: {l17['all_have_i']}; "
           f"i-positions distinct across all: {l17['i_positions_distinct']}")
 
-    d = data["constitutionality"]
+    d = data["demo17"]
     if d.get("in_list"):
         print(f"[len17] {d['word']}: i at {d['i_positions']}, "
               f"{d['misses_before_determined']} misses guessing i first")
