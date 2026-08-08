@@ -19,22 +19,25 @@ Script row 04, split on '—' → 22 beats a–v (voiceover ↔ animation zip 1:
   f starts_a    — blanks A__ → E
   g mid_a       — blanks _A_ → P (~1/6)
   h absent_o    — blanks ___, A a MISS under gallows + head; bars→454 → O (~1/3)
-  --- (miss chain i–n, avg-misses chart o, PIRATES p, E-combos q, len-17 t–v: TODO)
+  i–m miss chain— O·E·I·U·Y each miss in turn (torso…leg2); bars re-sort each time
+  n reveal_nth  — one word left → NTH in the blanks; text+gallows turn red (loss)
+  o avg_chart   — clear; avg greedy misses by length (peak len-3 gold, →0 at 17+)
+  p pirates     — a single blank A grows AT·RAT·RATE·IRATE·PIRATE·PIRATES
+  q e_combos    — E's position-patterns: 6 in 3-letter words vs 156 in 12-letter
+  r bring_back  — clear E-combos, bring the avg-misses chart back
+  s emphasize   — highlight lengths 17–20 (guaranteed no misses)
+  t words17     — all 18 length-17 words in written font
+  u emphasize_i — every i turns gold (in a different place in every word)
+  v guess17     — 17 blanks; guess I → fill CONSTITUTIONALITY's i's → bubble the word
 
-BEAT MAP (implemented so far: a–h)
-  montage    — a few finished greedy games flash by, tinted green (win) / red (loss)
-  clear      — everything fades but the gallows + 3 blanks
-  root_bars  — the sorted letter-frequency bar graph fades in (A on top)
-  two_a      — reveal _AA, morph bars to the lone BAA candidate, guess B → win
-  ends_a     — reveal __A, morph bars to the 13 A-enders, guess E
-  starts_a   — reveal A__, morph bars, guess E
-  mid_a      — reveal _A_, morph bars, guess P
-  absent_o   — A missed (under gallows + head), morph bars to the 454, guess O
+Render:  render 04c --fast   (…04v)   /   render 04 sub  for the whole scene
 
-Render:  render 04c --fast   (…04h)   /   render 04 sub  for the whole scene
+ROUGH — first full pass; known layout details to refine later: the montage (a) is
+a placeholder 4-up grid; q's 12-letter grid overflows the right edge; v's speech
+bubble clips the top; bar/chart colours + win/loss tinting are unrefined.
 
-TIMING KNOBS LEFT AT A GUESS (feel — judge from the video): every fade/morph
-run_time; the montage per-game hold; the bar-morph run_times in c–h.
+TIMING KNOBS LEFT AT A GUESS (feel — judge from the video): every fade/morph/
+Create run_time; the montage per-game hold; the bar-morph run_times throughout.
 """
 from pathlib import Path
 import sys
@@ -43,6 +46,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from config import *
+from bpkfigures.speech_bubble import speech_bubble
 from assets.chalkboard import chalkboard, chalk_letter, CHALK
 from assets.hangman_board import hangman_drawing
 from assets import greedy_data
@@ -164,6 +168,17 @@ class Scene04(HangmanScene):
         L.move_to([self.miss_slots_x[slot], MISS_Y, 0])
         return L
 
+    def _add_miss(self, letter, *, rt_write=0.7, rt_part=0.6):
+        """A wrong guess: chalk `letter` in the next miss slot, then draw the next
+        body part (miss #k → part k). Grows self.miss_row + self.hang."""
+        miss = self._miss_letter(letter, self.miss_n)
+        self.miss_row.add(miss)
+        self.play(LaggedStartMap(Create, miss, lag_ratio=0.5), run_time=rt_write)
+        part = self.hang_parts[self.miss_n]
+        self.hang.add(part)
+        self.play(Create(part), run_time=rt_part)
+        self.miss_n += 1
+
     # ── finished-game card for the montage (beat a) ───────────────────────────
     def _finished_game(self, entry, center):
         """A static finished greedy game: the (possibly partial) word above its
@@ -221,6 +236,7 @@ class Scene04(HangmanScene):
         tmpl.arrange(RIGHT, buff=MISS_GAP).move_to([gallows_cx, MISS_Y, 0])
         self.miss_slots_x = [m.get_center()[0] for m in tmpl]
         self.revealed = {}     # position -> revealed chalk letter
+        self.miss_row = VGroup()   # the wrong-guess letters chalked below
 
     # ══════════════════════════════════════════════════════════════════════════
     #  SUBSCENES
@@ -298,19 +314,171 @@ class Scene04(HangmanScene):
     @subscene
     def absent_o(self):
         self._reset_pattern()
-        miss = self._miss_letter("a", 0)
-        self.miss_n = 1
-        self.play(LaggedStartMap(Create, miss, lag_ratio=0.5), run_time=0.7)
-        head = self.hang_parts[0]
-        self.hang.add(head)
-        self.play(Create(head), run_time=0.6)
+        self._add_miss("a")                       # miss #1 -> head
         self._update_bars("___", missed="a")
 
-    # ── walk helpers (used by d–h) ────────────────────────────────────────────
+    # i : O misses -> torso (#2); bars -> 305, guess E
+    @subscene
+    def miss_o(self):
+        self._add_miss("o")
+        self._update_bars("___", missed="ao")
+
+    # j : E misses -> arm1 (#3); bars -> 180, guess I
+    @subscene
+    def miss_e(self):
+        self._add_miss("e")
+        self._update_bars("___", missed="aoe")
+
+    # k : I misses -> arm2 (#4); bars -> 83, guess U
+    @subscene
+    def miss_i(self):
+        self._add_miss("i")
+        self._update_bars("___", missed="aoei")
+
+    # l : U misses -> leg1 (#5); bars -> 17, guess Y
+    @subscene
+    def miss_u(self):
+        self._add_miss("u")
+        self._update_bars("___", missed="aoeiu")
+
+    # m : Y misses -> leg2 (#6, full hangman); the word is now determined (nth)
+    @subscene
+    def miss_y(self):
+        self._add_miss("y")
+
+    # n : one word left -> NTH; turn text + gallows red (the chooser wins)
+    @subscene
+    def reveal_nth(self):
+        self.play(FadeOut(self.bars), run_time=0.4)
+        self.bars = None
+        for p, ch in enumerate("nth"):
+            L = self._reveal_on(ch, self.rules[p])
+            self.revealed[p] = L
+            self.play(LaggedStartMap(Create, L, lag_ratio=0.5), run_time=0.5)
+        board = VGroup(self.rules, self.hang, self.miss_row,
+                       *self.revealed.values())
+        self.play(board.animate.set_color(LIGHT_RED), run_time=0.6)
+
+    # o : clear the game; the avg-misses-by-length chart (greedy, uniform)
+    @subscene
+    def avg_chart(self):
+        board = VGroup(self.rules, self.hang, self.miss_row,
+                       *self.revealed.values())
+        self.play(FadeOut(board), run_time=0.6)
+        self.revealed = {}
+        self.chart = self._avg_misses_chart()
+        self.play(FadeIn(self.chart.axis), FadeIn(self.chart.labels),
+                  LaggedStart(*[GrowFromEdge(b, DOWN) for b in self.chart.bars],
+                              lag_ratio=0.05), run_time=1.8)
+
+    # p : PIRATES chain — a single blank A grows AT·RAT·RATE·IRATE·PIRATE·PIRATES,
+    #     each new letter fading out of the alphabet pool below the gallows (ROUGH)
+    @subscene
+    def pirates(self):
+        self.play(FadeOut(self.chart), run_time=0.5)
+        pool_chars = "bcdefghijklmnopqrstuvwxyz"
+        alpha = VGroup(*[chalk_letter(c, height=0.42, stroke_width=3.0, color=CHALK)
+                         for c in pool_chars])
+        alpha.arrange(RIGHT, buff=0.28).move_to([0, -3.3, 0])
+        alpha_map = dict(zip(pool_chars, alpha))
+        gal = hangman_drawing(0, color=CHALK, stroke_width=HANG_SW)
+        gal.scale(0.65).move_to([5.4, 1.6, 0])
+        chain = [p["word"] for p in DATA["pirates_chain"]]
+        word = self._spell(chain[0])
+        self.play(Create(gal.gallows), FadeIn(alpha), FadeIn(word), run_time=1.2)
+        used = set(chain[0])
+        for nxt in chain[1:]:
+            new_word = self._spell(nxt)
+            newc = (set(nxt) - used).pop()
+            anims = [ReplacementTransform(word, new_word)]
+            if newc in alpha_map:
+                anims.append(alpha_map[newc].animate.set_opacity(0.12))
+            self.play(*anims, run_time=0.8)
+            word, used = new_word, set(nxt)
+        self.pir_grp = VGroup(gal, alpha, word)
+
+    # q : E's letter-combinations — few in 3-letter words, many in 12-letter (ROUGH)
+    @subscene
+    def e_combos(self):
+        self.play(FadeOut(self.pir_grp), run_time=0.5)
+        ec = DATA["e_combos"]
+        left = self._combo_column("3-letter words", ec["3"]["patterns"],
+                                  ec["3"]["n_patterns"])
+        right = self._combo_column("12-letter words", ec["12"]["patterns"],
+                                   ec["12"]["n_patterns"], grid=True)
+        left.move_to([-4.0, 0, 0])
+        right.move_to([3.6, 0, 0])
+        self.ecombo_grp = VGroup(left, right)
+        self.play(FadeIn(left), run_time=0.8)
+        self.play(FadeIn(right), run_time=0.8)
+
+    # r : clear the E-combos, bring the avg-misses chart back
+    @subscene
+    def bring_back_chart(self):
+        self.play(FadeOut(self.ecombo_grp), run_time=0.5)
+        self.chart = self._avg_misses_chart()
+        self.play(FadeIn(self.chart), run_time=1.0)
+
+    # s : emphasise lengths 17–20 (guaranteed no misses) on the chart
+    @subscene
+    def emphasize_long(self):
+        long_bars = VGroup(*[self.chart.bar_of[L] for L in (17, 18, 19, 20)
+                             if L in self.chart.bar_of])
+        cx = long_bars.get_center()[0]
+        cy = self.chart.axis.get_y() + 0.7
+        highlight(self, [(np.array([cx, cy, 0]), 2.2, 1.6)])
+
+    # t : clear; all 18 length-17 words in written font
+    @subscene
+    def words17(self):
+        self.play(FadeOut(self.chart), run_time=0.5)
+        self.w17 = self._word_list([e["word"] for e in DATA["len17"]["words"]])
+        self.play(LaggedStartMap(FadeIn, self.w17, lag_ratio=0.06), run_time=1.6)
+
+    # u : emphasise every i (in different places in every word)
+    @subscene
+    def emphasize_i(self):
+        eyes = VGroup(*[ch for row in self.w17 for ch in row.i_chars])
+        self.play(eyes.animate.set_color(ACCENT_GOLD), run_time=1.0)
+
+    # v : a 17-letter game — guess I, fill CONSTITUTIONALITY's i's, then the word
+    @subscene
+    def guess17(self):
+        self.play(FadeOut(self.w17), run_time=0.5)
+        word = DATA["constitutionality"]["word"]
+        rules = self._blank_rules_n(len(word), slot=0.44, gap=0.16, y=0.4)
+        gal = hangman_drawing(0, color=CHALK, stroke_width=HANG_SW)
+        gal.scale(0.7).move_to([0, 2.6, 0])
+        self.play(Create(gal.gallows),
+                  LaggedStartMap(Create, rules, lag_ratio=0.4), run_time=1.6)
+        # guess I: fill every i
+        i_pos = DATA["constitutionality"]["i_positions"]
+        eyes = VGroup()
+        for p in i_pos:
+            L = chalk_letter("i", height=0.5, stroke_width=LETTER_SW, color=CHALK)
+            L.next_to(rules[p], UP, buff=0.1).set_x(rules[p].get_center()[0])
+            eyes.add(L)
+        self.play(LaggedStartMap(FadeIn, eyes, lag_ratio=0.4), run_time=1.0)
+        # speech-bubble the whole word, then fill the rest
+        bub = speech_bubble(word.upper(), font_size=30, tail="bottom", tail_len=0.8)
+        bub.next_to(gal, UP, buff=0.2)
+        self.play(GrowFromPoint(bub, bub.tip_dot.get_center()), run_time=0.7)
+        rest = VGroup()
+        for p, ch in enumerate(word):
+            if p in i_pos:
+                continue
+            L = chalk_letter(ch, height=0.5, stroke_width=LETTER_SW, color=CHALK)
+            L.next_to(rules[p], UP, buff=0.1).set_x(rules[p].get_center()[0])
+            rest.add(L)
+        self.play(LaggedStartMap(FadeIn, rest, lag_ratio=0.08), run_time=1.2)
+
+    # ── walk helpers (used by d–n) ────────────────────────────────────────────
     def _walk_node(self, board, missed=""):
-        """The cached walk node matching (board, missed)."""
+        """The cached walk node matching (board, missed). The cache stores `missed`
+        SORTED (state() normalizes it), so match on the letter SET, not order."""
+        want = set(missed)
         for nd in DATA["walk"]:
-            if nd["board"] == board and "".join(nd["missed"]) == missed:
+            if nd["board"] == board and set(nd["missed"]) == want:
                 return nd
         raise KeyError(f"no walk node for {board!r} missed={missed!r}")
 
@@ -345,3 +513,90 @@ class Scene04(HangmanScene):
         new = _freq_bars([(l, c) for l, c in node["bars"]])
         _morph_bars(self, self.bars, new, 1.0)
         self.bars = new
+
+    # ── components for the later beats (o–v) ──────────────────────────────────
+    def _avg_misses_chart(self):
+        """Vertical bar chart of avg greedy misses by word length (chalk styling,
+        peak length-3 in gold). Handles: .axis .bars .labels .bar_of{L:bar}."""
+        data = DATA["avg_misses_by_length"]
+        lengths = sorted(int(k) for k in data)
+        vals = [data[str(L)]["avg_misses"] for L in lengths]
+        vmax = max(vals)
+        x0, x1, base_y, height = -6.5, 6.5, -3.0, 4.4
+        n = len(lengths)
+        slot = (x1 - x0) / n
+        axis = Line([x0, base_y, 0], [x1, base_y, 0], color=CHALK, stroke_width=4)
+        bars, labels, bar_of = VGroup(), VGroup(), {}
+        for i, L in enumerate(lengths):
+            h = max(vals[i] / vmax * height, 1e-3)
+            x = x0 + (i + 0.5) * slot
+            col = ACCENT_GOLD if L == 3 else ACCENT_FILL
+            bar = Rectangle(width=slot * 0.78, height=h, fill_color=col,
+                            fill_opacity=1.0, stroke_width=0)
+            bar.move_to([x, base_y + h / 2, 0])
+            bars.add(bar)
+            bar_of[L] = bar
+            lab = crisp_text(str(L), font_size=18, color=CHALK)
+            lab.move_to([x, base_y - 0.3, 0])
+            labels.add(lab)
+        grp = VGroup(axis, bars, labels)
+        grp.axis, grp.bars, grp.labels, grp.bar_of = axis, bars, labels, bar_of
+        return grp
+
+    def _spell(self, word, *, height=0.7, center=(0, 0.6, 0)):
+        """A word spelled out in chalk letters (row), centred at `center`."""
+        letters = VGroup(*[chalk_letter(c, height=height, stroke_width=LETTER_SW,
+                                        color=CHALK) for c in word])
+        letters.arrange(RIGHT, buff=0.18).move_to(list(center))
+        return letters
+
+    def _pattern_text(self, pattern, *, font_size=22):
+        """A position-pattern like '_e_' with the e's in gold, blanks as '_'."""
+        chars = VGroup(*[crisp_text(ch.upper() if ch != "_" else "_",
+                                    font_size=font_size,
+                                    color=ACCENT_GOLD if ch == "e" else CHALK)
+                         for ch in pattern])
+        chars.arrange(RIGHT, buff=0.06, aligned_edge=DOWN)
+        return chars
+
+    def _combo_column(self, title, patterns, total, *, grid=False):
+        """A titled column of E position-patterns + a total-count caption."""
+        head = crisp_text(title, font_size=26, color=CHALK, weight="BOLD")
+        if grid:
+            cells = VGroup(*[self._pattern_text(p, font_size=18)
+                             for p, _ in patterns[:24]])
+            cells.arrange_in_grid(cols=4, buff=(0.4, 0.24))
+        else:
+            cells = VGroup(*[self._pattern_text(p) for p, _ in patterns])
+            cells.arrange(DOWN, buff=0.22)
+        count = crisp_text(f"{total} combinations", font_size=22, color=ACCENT_GOLD)
+        return VGroup(head, cells, count).arrange(DOWN, buff=0.4)
+
+    def _word_list(self, words, *, font_size=17):
+        """The words in written (crisp) font, in a 2-column grid; each word-row
+        carries an ``.i_chars`` handle (its i glyphs) for later emphasis."""
+        rows = VGroup()
+        for w in words:
+            chars = VGroup()
+            i_chars = VGroup()
+            for ch in w:
+                t = crisp_text(ch.upper(), font_size=font_size, color=CHALK)
+                chars.add(t)
+                if ch == "i":
+                    i_chars.add(t)
+            chars.arrange(RIGHT, buff=0.04)
+            chars.i_chars = i_chars
+            rows.add(chars)
+        rows.arrange_in_grid(cols=2, buff=(1.0, 0.3), aligned_edge=LEFT)
+        rows.move_to(ORIGIN)
+        return rows
+
+    def _blank_rules_n(self, n, *, slot, gap, y):
+        total = n * slot + (n - 1) * gap
+        x0 = -total / 2 + slot / 2
+        rules = VGroup()
+        for k in range(n):
+            x = x0 + k * (slot + gap)
+            rules.add(Line([x - slot / 2, y, 0], [x + slot / 2, y, 0],
+                           color=CHALK, stroke_width=BLANK_SW))
+        return rules
