@@ -51,7 +51,7 @@ DATA = greedy_data.get()
 FBARS_LEFT = -6.5          # x of the first bar's centre column (inside the board)
 FBARS_BASE = -2.9          # baseline y (x-axis) — well clear of the bottom edge
 FBARS_W    = 6.6           # total width across `FBARS_TOP` columns
-FBARS_H    = 2.3           # height of the tallest bar
+FBARS_H    = 1.9           # height of the tallest bar (short enough to clear the blanks)
 FBARS_TOP  = 10            # letters shown
 FBAR_COLOR = LIGHT_BLUE    # light palette — reads on the navy board
 FBAR_HL    = ACCENT_GOLD   # greedy's pick (the guessed letter)
@@ -84,12 +84,18 @@ def _vbars(pairs, *, top=FBARS_TOP, hl_letter=None, scale_max=None):
         bar.move_to([x, FBARS_BASE + h / 2, 0])
         label = chalk_letter(ltr, height=0.30, stroke_width=3.0, color=CHALK)
         label.move_to([x, FBARS_BASE - 0.34, 0])
-        value = crisp_text(str(count), font_size=16, color=CHALK)
+        value = _chalk_num(count, height=0.20)          # written-font count
         value.next_to(bar, UP, buff=0.08)
         col_grp = VGroup(bar, label, value)
         grp.add(col_grp)
         grp.cols[ltr] = col_grp
     return grp
+
+
+def _chalk_num(n, *, height, stroke_width=2.6, color=CHALK):
+    """An integer rendered in the chalk (written) font — tight digit spacing."""
+    return _chalk_phrase(str(n), height=height, stroke_width=stroke_width,
+                         buff=0.06, color=color)
 
 
 def _chalk_phrase(text, *, height=0.4, stroke_width=3.2, buff=0.10, space=0.34,
@@ -292,9 +298,8 @@ class Scene04(HangmanScene):
         self.play(FadeOut(board), run_time=0.6)
         self.revealed = {}
         self.chart = self._avg_chart()
-        self._write_letters(self.chart.title, run_time=2.6)     # write the title on
         self.play(FadeIn(self.chart.axes), FadeIn(self.chart.labels),
-                  FadeIn(self.chart.yticks),
+                  FadeIn(self.chart.yticks), FadeIn(self.chart.title),
                   LaggedStart(*[GrowFromEdge(b, DOWN) for b in self.chart.bars],
                               lag_ratio=0.04), run_time=1.8)
 
@@ -313,7 +318,6 @@ class Scene04(HangmanScene):
         alpha.next_to(gal.gallows.get_bottom(), DOWN, buff=0.3)
         alpha.set_x(gal.gallows.get_center()[0])
         alpha_map = dict(zip(pool_chars, alpha_letters))
-        alpha_map["a"].set_stroke(opacity=0.15)              # A is used from the start
         self.play(LaggedStartMap(Create, gal.gallows, lag_ratio=0.5),
                   FadeIn(alpha), run_time=1.2)
 
@@ -323,7 +327,9 @@ class Scene04(HangmanScene):
         cell0 = self._blank_with("a", gb.BLANK_CX)           # A starts on its blank
         board = VGroup(cell0)
         self.play(Create(cell0[0]), run_time=0.3)            # the blank
-        self._write_letters([cell0[1]], run_time=0.5)        # write the A
+        self.play(LaggedStartMap(Create, cell0[1], lag_ratio=1.0),
+                  alpha_map["a"].animate.set_stroke(opacity=0.15),
+                  run_time=0.5)                              # write A, fade it from the pool
         prev = "a"
         for nxt in chain[1:]:
             if nxt[1:] == prev:                              # inserted at the START
@@ -476,7 +482,7 @@ class Scene04(HangmanScene):
         data = DATA["avg_misses_by_length"]
         lengths = sorted(int(k) for k in data)
         vals = [data[str(L)]["avg_misses"] for L in lengths]
-        x0, x1, base, height, ytop = -6.0, 6.0, -3.2, 4.5, 7   # plot centred at x=0
+        x0, x1, base, height, ytop = -6.0, 6.0, -3.2, 4.2, 7   # plot centred at x=0
         n = len(lengths)
         slot = (x1 - x0) / n
         xaxis = Line([x0, base, 0], [x1, base, 0], color=CHALK, stroke_width=3)
@@ -491,22 +497,23 @@ class Scene04(HangmanScene):
             bar.move_to([x, base + h / 2, 0])
             bars.add(bar)
             bar_of[L] = bar
-            lab = crisp_text(str(L), font_size=17, color=CHALK)
-            lab.move_to([x, base - 0.3, 0])
+            lab = _chalk_num(L, height=0.24)                # written-font x-label
+            lab.move_to([x, base - 0.32, 0])
             labels.add(lab)
             label_of[L] = lab
         yticks = VGroup()
         for t in range(0, ytop + 1, 2):
             y = base + t / ytop * height
             tick = Line([x0 - 0.12, y, 0], [x0, y, 0], color=CHALK, stroke_width=2)
-            tl = crisp_text(str(t), font_size=15, color=CHALK)
-            tl.next_to(tick, LEFT, buff=0.1)
+            tl = _chalk_num(t, height=0.22)                 # written-font y-tick
+            tl.next_to(tick, LEFT, buff=0.12)
             yticks.add(tick, tl)
         # title in the written (chalk) font — one row, centred over the plot
         # (chalk is capitals-only, so it reads ALL-CAPS)
         title = _chalk_phrase("Average Misses by Word Length", height=0.38)
-        title.move_to([(x0 + x1) / 2, base + height + 0.7, 0])
+        title.move_to([(x0 + x1) / 2, base + height + 0.5, 0])
         grp = VGroup(xaxis, yaxis, bars, labels, yticks, title)
+        grp.shift([0, -grp.get_center()[1], 0])             # centre vertically (no big top gap)
         grp.axes = VGroup(xaxis, yaxis)
         grp.bars, grp.labels, grp.yticks, grp.title = bars, labels, yticks, title
         grp.bar_of, grp.label_of = bar_of, label_of

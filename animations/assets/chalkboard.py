@@ -9,7 +9,7 @@ values: navy slate, wood frame, and an off-white CHALK the scene draws with.
 ``chalk_letter`` builds a capital as a set of hand-drawn STROKES (an E is four
 lines: top, middle, bottom, left), so ``Create`` writes it stroke-by-stroke like
 a hand — unlike a font glyph, whose outline only traces the letter's silhouette.
-The full A–Z alphabet is defined.
+The full A–Z alphabet AND the digits 0–9 are defined.
 """
 import numpy as np
 from manim import *
@@ -130,17 +130,50 @@ _ALPHABET = {
 }
 
 
+# ── stroke digits 0–9 (same normalised box + hand-written stroke order) ────────
+_DIGITS = {
+    "0": [(True,  [(0.0, 0.48), (0.20, 0.30), (0.22, 0.0), (0.20, -0.30),
+                   (0.0, -0.48), (-0.20, -0.30), (-0.22, 0.0), (-0.20, 0.30),
+                   (0.0, 0.48)])],
+    "1": [(False, [(-0.14, 0.32), (0.03, 0.50), (0.03, -0.50)]),
+          (False, [(-0.17, -0.50), (0.21, -0.50)])],
+    "2": [(True,  [(-0.20, 0.30), (-0.05, 0.48), (0.15, 0.43), (0.18, 0.20),
+                   (-0.06, -0.12), (-0.20, -0.48)]),
+          (False, [(-0.20, -0.48), (0.21, -0.48)])],
+    "3": [(True,  [(-0.17, 0.34), (0.02, 0.50), (0.20, 0.33), (0.07, 0.08),
+                   (0.0, 0.06)]),
+          (True,  [(0.0, 0.06), (0.15, 0.03), (0.24, -0.17), (0.13, -0.44),
+                   (-0.06, -0.50), (-0.18, -0.34)])],
+    "4": [(False, [(0.08, 0.50), (-0.22, -0.07), (0.24, -0.07)]),
+          (False, [(0.08, 0.50), (0.08, -0.50)])],
+    "5": [(False, [(0.20, 0.50), (-0.18, 0.50), (-0.18, 0.07)]),
+          (True,  [(-0.18, 0.07), (0.06, 0.15), (0.22, -0.06), (0.16, -0.38),
+                   (-0.04, -0.50), (-0.20, -0.40)])],
+    "6": [(True,  [(0.16, 0.40), (-0.02, 0.50), (-0.20, 0.20), (-0.21, -0.20),
+                   (0.0, -0.50), (0.20, -0.28), (0.10, -0.02), (-0.12, 0.02),
+                   (-0.21, -0.14)])],
+    "7": [(False, [(-0.20, 0.50), (0.22, 0.50), (-0.04, -0.50)])],
+    "8": [(True,  [(0.0, 0.04), (0.16, 0.20), (0.10, 0.46), (-0.10, 0.46),
+                   (-0.16, 0.20), (0.0, 0.04), (0.18, -0.16), (0.10, -0.46),
+                   (-0.10, -0.46), (-0.18, -0.16), (0.0, 0.04)])],
+    "9": [(True,  [(0.18, 0.06), (0.04, 0.0), (-0.13, 0.14), (-0.11, 0.38),
+                   (0.06, 0.50), (0.20, 0.36), (0.20, -0.14), (0.06, -0.50)])],
+}
+
+_GLYPHS = {**_ALPHABET, **_DIGITS}
+
+
 def chalk_letter(ch, *, height=0.6, stroke_width=4.5, color=CHALK):
-    """A capital drawn as ordered chalk STROKES, centred on the origin.
+    """A capital OR digit drawn as ordered chalk STROKES, centred on the origin.
 
     Returns a VGroup whose submobjects are the strokes in writing order — animate
     with ``LaggedStartMap(Create, letter, lag_ratio=…)`` to write it on. ``height``
     is the cap height in scene units (width follows the glyph, ~0.6·height)."""
     ch = ch.upper()
-    if ch not in _ALPHABET:
+    if ch not in _GLYPHS:
         raise ValueError(f"chalk_letter: no strokes defined for {ch!r}")
     letter = VGroup()
-    for smooth, pts in _ALPHABET[ch]:
+    for smooth, pts in _GLYPHS[ch]:
         p3 = [np.array([x * height, y * height, 0.0]) for x, y in pts]
         stroke = VMobject(stroke_color=color, stroke_width=stroke_width)
         if smooth:
