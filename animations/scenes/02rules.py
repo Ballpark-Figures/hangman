@@ -50,9 +50,8 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from config import *
-from bpkfigures.speech_bubble import speech_bubble
-from assets.chalkboard import chalkboard, chalk_letter, CHALK
-from assets.hangman_board import hangman_drawing
+from assets.chalkboard import chalkboard, CHALK
+from assets import game_board as gb
 
 # ── the game (word + the letters guessed in each phase) ───────────────────────
 WORD      = "ballpark"
@@ -67,32 +66,8 @@ def _part_color(k):
     return LIGHT_PALETTE[len(LIGHT_PALETTE) - k]
 
 
-# ── layout (verbatim from 94chalkgame — same word, same board) ────────────────
-BOARD_W, BOARD_H = 15.2, 8.4
-
-BLANK_SLOT   = 0.50     # width of one underscore rule
-BLANK_GAP    = 0.22     # gap between blanks
-BLANK_CX     = -3.0     # blank-row centre x (left side of the board)
-BLANK_Y      = -0.38    # rule baseline; a filled blank is vertically centred at y=0
-BLANK_SW     = 6.0      # chalk stroke width for the rules
-LETTER_H     = 0.62     # cap height of a revealed letter (drawn as strokes)
-LETTER_SW    = 4.5      # chalk stroke width for a revealed letter
-LETTER_BUFF  = 0.14
-
-HANG_SCALE   = 1.2                      # gallows on the RIGHT
-HANG_POS     = np.array([4.3, 0.5, 0])
-HANG_SW      = 6.0
-MISS_H       = 0.50                     # wrong letters, chalked below the gallows
-MISS_SW      = 4.0
-MISS_Y       = -2.75                    # miss-row baseline (centred x = the gallows base)
-MISS_GAP     = 0.34
-
-# the guesser is off the LEFT edge: the tail TIP sits at the screen edge and the
-# bubble grows from there. Anchored by the tip — NOT move_to (its group-bbox centring
-# would pull the long tail inward). Verbatim from 94chalkgame.
-BUBBLE_TIP   = np.array([-7.9, 2.4, 0])
-BUBBLE_FS    = 56
-BUBBLE_TAIL  = 1.5
+# The fixed board layout (blanks/gallows/miss row/bubble + their constants) now
+# lives in assets.game_board (gb) — shared with 94chalkgame / 04greedy.
 
 # win/loss flash: every white chalk mark on the board flashes colour — green when the
 # guesser wins (returning to white as the word fades), red when they lose (LIGHT_GREEN
@@ -115,32 +90,25 @@ class Scene02(HangmanScene):
 
     # the wooden chalkboard is the backdrop — on screen from frame 0
     def setup_scene(self):
-        self.cb = chalkboard(BOARD_W, BOARD_H)
+        self.cb = chalkboard(gb.BOARD_W, gb.BOARD_H)
         self.cb.set_z_index(-10)
         self.add(self.cb)
 
-    # ── small chalk builders (verbatim from 94chalkgame) ──────────────────────
+    # ── small chalk builders (shared board layout: assets.game_board) ─────────
     def _reveal_letter(self, ch, rule):
-        L = chalk_letter(ch, height=LETTER_H, stroke_width=LETTER_SW, color=CHALK)
-        L.next_to(rule, UP, buff=LETTER_BUFF)
-        L.set_x(rule.get_center()[0])
-        return L
+        return gb.reveal_letter(ch, rule)
 
     def _miss_letter(self, ch):
         # each miss drops into its precomputed slot (see _setup_gallows): the FULL
         # 6-miss row is laid out centred under the gallows, so the finished tally sits
         # centred (the early lone E therefore sits left of centre — a static shift, not
         # a per-miss recentre).
-        L = chalk_letter(ch, height=MISS_H, stroke_width=MISS_SW, color=CHALK)
-        L.move_to([self.miss_slots_x[len(self.miss_row)], MISS_Y, 0])
+        L = gb.miss_letter(ch, self.miss_slots_x[len(self.miss_row)])
         self.miss_row.add(L)
         return L
 
     def _bubble(self, ch):
-        b = speech_bubble(ch.upper(), font_size=BUBBLE_FS, tail="left",
-                          tail_len=BUBBLE_TAIL)
-        b.shift(BUBBLE_TIP - b.tip_dot.get_center())   # anchor the tail tip
-        return b
+        return gb.bubble(ch, tail="left")
 
     # ── composed guess steps ──────────────────────────────────────────────────
     def _pop_bubble(self, ch, run_time):
@@ -183,38 +151,18 @@ class Scene02(HangmanScene):
 
     # ── setup helpers ─────────────────────────────────────────────────────────
     def _setup_blanks(self):
-        n = len(WORD)
-        total = n * BLANK_SLOT + (n - 1) * BLANK_GAP
-        x0 = BLANK_CX - total / 2 + BLANK_SLOT / 2
-        self.rules = VGroup()
-        for k in range(n):
-            x = x0 + k * (BLANK_SLOT + BLANK_GAP)
-            self.rules.add(Line([x - BLANK_SLOT / 2, BLANK_Y, 0],
-                                [x + BLANK_SLOT / 2, BLANK_Y, 0],
-                                color=CHALK, stroke_width=BLANK_SW))
+        self.rules = gb.build_rules(len(WORD))
         self.hits = {}                   # guess char → VGroup of its revealed letters
 
     def _setup_gallows(self):
-        # build with ALL parts so scale/move places them too, THEN detach them
-        # (revealed one per miss); the gallows stays, drawn in subscene c.
-        full = hangman_drawing(6, color=CHALK, stroke_width=HANG_SW)
-        full.scale(HANG_SCALE).move_to(HANG_POS)
-        self.hang_parts = list(full.parts)     # 6 body parts, in draw order
-        for p in self.hang_parts:
-            full.remove(p)
-        self.hang = full
+        # gallows on the RIGHT with parts detached (revealed one per miss); the FULL
+        # miss set (E, then the loss letters) is centred under the gallows base, so
+        # each miss lands in its final slot and the completed tally is centred (the
+        # early lone E sits left of centre — a static shift, not a per-miss recentre).
+        self.hang, self.hang_parts = gb.build_gallows()
         self.miss_n = 0
         self.miss_row = VGroup()               # wrong letters, chalked below
-        # Precompute the miss-row slots: lay the FULL miss set (E, then the loss
-        # letters) left→right and CENTRE the finished row under the gallows base, so
-        # each miss lands in its final slot and the completed tally is centred. Measured
-        # off the base (gallows[0]) so it tracks the gallows if it moves.
-        gallows_cx = self.hang.gallows[0].get_center()[0]
-        tmpl = VGroup(*[chalk_letter(ch, height=MISS_H, stroke_width=MISS_SW,
-                                     color=CHALK) for ch in FULL_MISS])
-        tmpl.arrange(RIGHT, buff=MISS_GAP)
-        tmpl.move_to([gallows_cx, MISS_Y, 0])
-        self.miss_slots_x = [m.get_center()[0] for m in tmpl]
+        self.miss_slots_x = gb.miss_slots(self.hang, FULL_MISS)
 
     # ══════════════════════════════════════════════════════════════════════════
     #  SUBSCENES
