@@ -80,6 +80,7 @@ def _vbars(pairs, *, top=FBARS_TOP, hl_letter=None, scale_max=None):
         bar_color=FBAR_COLOR,
         highlight=({hl_letter: FBAR_HL} if hl_letter else None),
         bar_ratio=FBAR_WFRAC,
+        bar_fill_opacity=0.0, bar_stroke_width=4, bar_open_base=True,  # chalk outline
         label_factory=lambda ltr: chalk_letter(ltr, height=0.32, stroke_width=3.0,
                                                color=CHALK),
         label_buff=0.20,
@@ -190,8 +191,9 @@ class Scene04(HangmanScene):
     @subscene
     def root_bars(self):
         self.bars = _vbars(DATA["root"]["bars"])
-        self.play(LaggedStartMap(FadeIn, VGroup(*self.bars.cols.values()),
-                                 lag_ratio=0.08), run_time=1.4)
+        # draw the bar OUTLINES on (bottom-left up), letters + counts fade in with them
+        self.play(*[Create(b) for b in self.bars.bars],
+                  FadeIn(self.bars.labels), FadeIn(self.bars.values), run_time=1.4)
 
     # d : two A's -> _AA -> the lone BAA; whole word + gallows turn green (win)
     @subscene
@@ -282,17 +284,11 @@ class Scene04(HangmanScene):
         self.play(FadeOut(board), run_time=0.6)
         self.revealed = {}
         self.chart = self._avg_chart()
-        # bars grow straight UP from the baseline (height only, no width expansion):
-        # flatten each to the axis, then Transform back to full height
-        base_y = self.chart.axes[0].get_center()[1]        # x-axis baseline
-        full = self.chart.bars.copy()
-        for b in self.chart.bars:
-            b.stretch_to_fit_height(0.001).set_y(base_y)
+        # draw each bar OUTLINE on as one continuous chalk line (bottom-left up), all
+        # at once; axes / labels / y-ticks / title fade in with them
         self.play(FadeIn(self.chart.axes), FadeIn(self.chart.labels),
                   FadeIn(self.chart.yticks), FadeIn(self.chart.title),
-                  LaggedStart(*[Transform(b, fb)
-                                for b, fb in zip(self.chart.bars, full)],
-                              lag_ratio=0.04), run_time=1.8)
+                  *[Create(b) for b in self.chart.bars], run_time=1.8)
 
     # p : the PIRATES chain — a single blank A grows in place, used letters fading
     @subscene
@@ -479,6 +475,7 @@ class Scene04(HangmanScene):
         chart = get_bar_chart(
             items, center=[0, 0, 0], width=12.0, height=4.2, y_max=7,
             bar_color=CHART_COLOR, ink_color=CHALK, bar_ratio=0.75,
+            bar_fill_opacity=0.0, bar_stroke_width=4, bar_open_base=True,  # chalk outline
             label_factory=lambda L: _chalk_num(L, height=0.24), label_buff=0.20,
             x_axis=True, y_axis=True,
             y_ticks=range(0, 8, 2),
