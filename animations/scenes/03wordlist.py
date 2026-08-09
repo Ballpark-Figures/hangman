@@ -87,7 +87,7 @@ def _sci_freq(p, y, x, *, height, color=CHALK):
 COLS, ROWS = 5, 16
 COL_X0, COL_DX = -6.7, 2.85      # left edge of column 0's word / column pitch
 ROW_Y0, ROW_DY = 3.55, 0.462     # top row baseline / row pitch (spread to fill)
-PCT_DX = 1.35                    # word-left → pct-left within a cell
+PCT_GAP = 0.32                   # gap after a column's longest word → its % column
 WORD_H, PCT_H = 0.24, 0.20
 
 # ── layout: the cutoff zoom (beats c–d) ───────────────────────────────────────
@@ -116,18 +116,26 @@ class Scene03(HangmanScene):
     #  a–b : the word list — top-96 columns, then % each
     # ══════════════════════════════════════════════════════════════════════════
     def _setup_table(self):
-        words, pcts = VGroup(), VGroup()
+        ws, ps, meta = [], [], []
         for i, e in enumerate(DATA["top_words"]):
             col, row = divmod(i, ROWS)
             ax = COL_X0 + col * COL_DX
             ay = ROW_Y0 - row * ROW_DY
-            w = chalk_phrase(e["word"], height=WORD_H).move_to([ax, ay, 0],
-                                                               aligned_edge=LEFT)
-            # % right after the word (close, never overlapping a long word)
-            p = chalk_phrase(_pct_str(e["pct"]), height=PCT_H, color=LIGHT_BLUE)
-            p.next_to(w, RIGHT, buff=0.28).set_y(ay)
-            words.add(w)
-            pcts.add(p)
+            ws.append(chalk_phrase(e["word"], height=WORD_H).move_to(
+                [ax, ay, 0], aligned_edge=LEFT))
+            ps.append(chalk_phrase(_pct_str(e["pct"]), height=PCT_H,
+                                   color=LIGHT_BLUE))
+            meta.append((col, ay))
+        # RIGHT-ALIGN the % per column, just past that column's longest word (so the
+        # decimals line up in a column without a long word ever overlapping its %)
+        col_wr, col_pw = {}, {}
+        for w, p, (col, _ay) in zip(ws, ps, meta):
+            col_wr[col] = max(col_wr.get(col, -1e9), w.get_right()[0])
+            col_pw[col] = max(col_pw.get(col, 0.0), p.width)
+        for p, (col, ay) in zip(ps, meta):
+            p.move_to([col_wr[col] + PCT_GAP + col_pw[col], ay, 0],
+                      aligned_edge=RIGHT)
+        words, pcts = VGroup(*ws), VGroup(*ps)
         self.table = VGroup(words, pcts)
         self.table.words, self.table.pcts = words, pcts
 
@@ -212,7 +220,7 @@ class Scene03(HangmanScene):
         strokes = VGroup(*[s for glyph in mob for s in glyph])
         self.play(LaggedStartMap(Create, strokes, lag_ratio=0.6), run_time=run_time)
 
-    def _strike(self, mob, run_time=0.35, color=CHALK):
+    def _strike(self, mob, run_time=0.35, color=LIGHT_RED):
         y = mob.get_center()[1]
         ln = Line([mob.get_left()[0] - 0.06, y, 0], [mob.get_right()[0] + 0.06, y, 0],
                   color=color, stroke_width=4)
