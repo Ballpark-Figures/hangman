@@ -90,8 +90,8 @@ def _sci_freq(p, y, x, *, height, color=CHALK):
 # is right-aligned just past that column's longest word (PCT_GAP).
 COLS, ROWS = 5, 16
 ROW_Y0, ROW_DY = 3.55, 0.462     # top row baseline / row pitch (spread to fill)
-PCT_GAP = 0.32                   # gap: a column's longest word → its right-aligned %
-COL_GAP = 0.80                   # gap: a column's % → the next column's word
+PCT_GAP = 0.60                   # gap: a column's longest word → its right-aligned %
+COL_GAP = 0.45                   # gap: a column's % → the next column's word
 WORD_H, PCT_H = 0.24, 0.20
 
 # ── layout: the cutoff zoom (beats c–d) ───────────────────────────────────────
@@ -108,7 +108,7 @@ CAS_NUM_R = -0.35                # right edge of the number column (just left of
 CAS_WORD_L = 0.35                # left edge of the removed word (just right of x=0)
 CAS_LABEL_R = -2.25              # right edge of the "TOTAL WORDS:" label
 CAS_Y0, CAS_DY = 3.10, 0.50
-CAS_NUM_H, CAS_WORD_H, CAS_LABEL_H = 0.32, 0.32, 0.28
+CAS_NUM_H, CAS_WORD_H, CAS_LABEL_H = 0.32, 0.32, 0.32   # label matches the words
 
 
 class Scene03(HangmanScene):
