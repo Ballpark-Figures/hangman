@@ -73,7 +73,20 @@ def load_sections(path: Path) -> list[tuple[str, list[str]]]:
     return sections
 
 
-def main() -> None:
+def compute() -> dict:
+    """Reproduce the pipeline and return the scene-03 counter data as a dict:
+
+        {cutoff, anchors:{start,non_letter,hunspell,final},
+         deltas:{non_letter,hunspell},
+         categories:[{name,count,members}, ...  in video (removal) order],
+         addbacks:[...], proper_down:{count,members}}
+
+    `categories` are the NAMED removal steps (abbreviations, single letters,
+    initialisms, roman numerals, interjections, profanity, greek letters);
+    proper_down / addbacks are the two halves of the final "disagreed with the
+    spellchecker" beat (down / up). Reconciles: hunspell - sum(categories) -
+    proper_down + addbacks == final == 34,483.
+    """
     speller = Dictionary.from_files("en_US")
     freqs = get_frequency_dict("en", wordlist=WORDLIST)
     zf = lambda w: zipf_frequency(w, "en", wordlist=WORDLIST)
@@ -110,41 +123,58 @@ def main() -> None:
     addbacks = [w for w in allow if w not in hunspell_kept and zf(w) >= CUTOFF
                 and w.isascii() and w.isalpha() and w.islower()]
 
-    # --- the counter, in the video's narrated order ---
-    print(f"cutoff zipf >= {CUTOFF}  (wordlist={WORDLIST!r})\n")
-    n = n0
+    # named removal steps, in the video's narrated order
+    categories = [
+        {"name": "abbreviations", "count": len(abbrev), "members": sorted(abbrev)},
+        {"name": "single letters", "count": len(single), "members": sorted(single)},
+        {"name": "initialisms", "count": len(initial), "members": sorted(initial)},
+        {"name": "roman numerals", "count": len(roman), "members": sorted(roman)},
+        {"name": "interjections", "count": len(interj), "members": sorted(interj)},
+        {"name": "profanity", "count": len(prof), "members": sorted(prof)},
+        {"name": "greek letters", "count": len(greek), "members": sorted(greek)},
+    ]
+    final = n2 - sum(c["count"] for c in categories) - len(proper) + len(addbacks)
+    assert final == 34483, f"reconcile failed: {final}"
+    return {
+        "cutoff": CUTOFF,
+        "anchors": {"start": n0, "non_letter": n1, "hunspell": n2, "final": final},
+        "deltas": {"non_letter": n0 - n1, "hunspell": n1 - n2},
+        "categories": categories,
+        "addbacks": sorted(addbacks),
+        "proper_down": {"count": len(proper), "members": sorted(proper)},
+    }
+
+
+def main() -> None:
+    d = compute()
+    a = d["anchors"]
+    print(f"cutoff zipf >= {d['cutoff']}  (wordlist={WORDLIST!r})\n")
+    n = a["start"]
     print(f"  start  wordfreq @ cutoff        {n:>7,}")
-    def step(label, delta, up=False):
+
+    def line(label, delta, up=False):
         nonlocal n
         n += delta if up else -delta
-        sign = "+" if up else "−"
-        print(f"  {label:<28}{sign}{delta:<6,} {n:>7,}")
-    step("drop non-letter chars", n0 - n1)
-    step("hunspell spellcheck", n1 - n2)
-    step("abbreviations", len(abbrev))
-    step("single letters", len(single))
-    step("initialisms", len(initial))
-    step("roman numerals", len(roman))
-    step("interjections", len(interj))
-    step("profanity", len(prof))
-    step("greek letters", len(greek))
+        print(f"  {label:<28}{'+' if up else '−'}{delta:<6,} {n:>7,}")
+
+    line("drop non-letter chars", d["deltas"]["non_letter"])
+    line("hunspell spellcheck", d["deltas"]["hunspell"])
+    for c in d["categories"]:
+        line(c["name"], c["count"])
     print(f"    (narrative: fake −1 for pi, then +1 pi -> back to {n:,})")
     print("  disagreed w/ spellchecker:")
-    step("  add-backs (up)", len(addbacks), up=True)
-    step("  proper nouns/misc (down)", len(proper))
+    line("  add-backs (up)", len(d["addbacks"]), up=True)
+    line("  proper nouns/misc (down)", d["proper_down"]["count"])
     print(f"\n  FINAL {n:,}   (target 34,483 -> {'OK' if n == 34483 else 'MISMATCH'})")
 
-    # --- category word lists, for review/editing ---
     print("\n--- category members (edit ROMAN/INITIALISM/PROPER at top of file) ---")
-    for name, ws in [("abbreviations", abbrev), ("single letters", single),
-                     ("initialisms", initial), ("roman numerals", roman),
-                     ("interjections", interj), ("profanity", prof),
-                     ("greek letters", greek),
-                     ("proper/misc (disagreements down)", proper),
-                     ("add-backs (disagreements up)", addbacks)]:
+    groups = [(c["name"], c["members"]) for c in d["categories"]]
+    groups += [("proper/misc (disagreements down)", d["proper_down"]["members"]),
+               ("add-backs (disagreements up)", d["addbacks"])]
+    for name, ws in groups:
         print(f"\n[{len(ws)}] {name}:")
         for i in range(0, len(ws), 14):
-            print("   " + " ".join(sorted(ws)[i:i + 14]))
+            print("   " + " ".join(ws[i:i + 14]))
 
 
 if __name__ == "__main__":
