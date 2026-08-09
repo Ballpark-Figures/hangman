@@ -360,6 +360,7 @@ class Scene03(HangmanScene):
             list(counts.items()), center=[0, -0.35, 0], width=13.2, height=4.6,
             bar_color=LIGHT_BLUE, ink_color=CHALK, bar_ratio=0.7,
             bar_fill_opacity=0.0, bar_stroke_width=4,   # chalk OUTLINE bars
+            bar_open_base=True,                         # 3 sides, drawn bottom-left up
             label_factory=lambda L: chalk_number(L, height=0.24, commas=False),
             label_buff=0.22,
             value_labels=True,
