@@ -38,8 +38,8 @@ REUSE MAP (every element → its source):
   the counter         → local ValueTracker+always_redraw count (Yahtzee 05
                         `perfect_average` pattern), rebuilt static per drop so
                         snapshots stay picklable
-  by-length bar chart → local `_by_length_chart` (vertical bars) — MIRRORS scene
-                        04's `_avg_chart`; a promote-to-shared candidate (flagged)
+  by-length bar chart → SHARED bpkfigures.histogram.get_histogram (dark-themed via
+                        ink_color=CHALK) — NOT a hand-rolled chart
   every number        → assets.wordlist_data (committed cache)
 
 Render:  render 03a --fast … 03r   /   render 03 sub  for the whole scene
@@ -57,6 +57,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from config import *
+from bpkfigures.histogram import get_histogram
 from assets.chalkboard import chalkboard, CHALK
 from assets import game_board as gb
 from assets import wordlist_data
@@ -205,8 +206,7 @@ class Scene03(HangmanScene):
     def _setup_extras(self):
         ex = DATA["extras"]
         rows = [(ex["proper"], "proper noun"), (ex["abbr"], "abbreviation"),
-                (ex["roman"], "roman numeral"), (ex["apostrophe"], "apostrophe"),
-                (ex["accented"], "accent")]
+                (ex["roman"], "roman numeral"), (ex["apostrophe"], "apostrophe")]
         grp = VGroup()
         for word, tag in rows:
             w = self._txt(word, EXTRA_FS, weight="BOLD")
@@ -363,38 +363,18 @@ class Scene03(HangmanScene):
     #  r : the final list's word count by length (NEW beat)
     # ══════════════════════════════════════════════════════════════════════════
     def _by_length_chart(self):
-        """Vertical bar chart of the final list's word count by length. Mirrors
-        scene 04's `_avg_chart` (a shared-asset promote candidate). Handles:
-        .axes .bars .labels .title .bar_of{L}."""
-        data = DATA["by_length"]
-        lengths = [d["length"] for d in data]
-        vals = [d["count"] for d in data]
-        x0, x1, base, height = -6.6, 6.6, -3.0, 5.2
-        ymax = max(vals)
-        n = len(lengths)
-        slot = (x1 - x0) / n
-        xaxis = Line([x0, base, 0], [x1, base, 0], color=CHALK, stroke_width=3)
-        bars, labels, bar_of = VGroup(), VGroup(), {}
-        peak = max(range(n), key=lambda i: vals[i])
-        for i, L in enumerate(lengths):
-            h = max(vals[i] / ymax * height, 1e-3)
-            x = x0 + (i + 0.5) * slot
-            col = ACCENT_GOLD if i == peak else LIGHT_BLUE
-            bar = Rectangle(width=slot * 0.72, height=h, fill_color=col,
-                            fill_opacity=1.0, stroke_width=0)
-            bar.move_to([x, base + h / 2, 0])
-            bars.add(bar)
-            bar_of[L] = bar
-            lab = self._txt(str(L), 16).move_to([x, base - 0.3, 0])
-            labels.add(lab)
-        # value on the peak bar
-        pk = self._txt(f"{vals[peak]:,}", 18, color=ACCENT_GOLD)
-        pk.next_to(bars[peak], UP, buff=0.12)
-        title = self._txt("Words by length", 34).move_to([0, base + height + 0.55, 0])
-        grp = VGroup(xaxis, bars, labels, pk, title)
-        grp.axes, grp.bars, grp.labels, grp.title = xaxis, bars, labels, title
-        grp.bar_of = bar_of
-        return grp
+        """The by-length distribution on the SHARED `get_histogram` (dark-themed via
+        ink_color=CHALK): standing bars over lengths 1–20, with a gold count label
+        on the peak (len 7) via `bar_labels`."""
+        counts = {d["length"]: d["count"] for d in DATA["by_length"]}
+        peak = max(counts, key=counts.get)
+        return get_histogram(
+            None, counts=counts, min_val=1, max_val=20, is_vertical=False,
+            width=12.4, height=4.4, center=[0, -0.35, 0],
+            bar_color=LIGHT_BLUE, ink_color=CHALK,
+            x_tick_step=1, x_axis_label="word length", title="Words by length",
+            bar_labels={peak: f"{counts[peak]:,}"}, bar_label_color=ACCENT_GOLD,
+        )
 
     # r : the by-length bar graph, then clear to the bare chalkboard (04 follows)
     @subscene
@@ -403,15 +383,17 @@ class Scene03(HangmanScene):
         self.play(FadeOut(board), run_time=0.6)
         self.counter_label = self.counter_num = self.removed = None
         self.chart = self._by_length_chart()
-        base_y = self.chart.axes.get_center()[1]
+        # grow the bars up from the x-axis baseline (heights only)
+        base_y = self.chart.x_axis.get_center()[1]
         full = self.chart.bars.copy()
         for b in self.chart.bars:
             b.stretch_to_fit_height(0.001).set_y(base_y)
-        self.play(FadeIn(self.chart.axes), FadeIn(self.chart.labels),
-                  FadeIn(self.chart.title),
+        statics = VGroup(self.chart.x_axis, self.chart.x_labels,
+                         self.chart.x_axis_label_text, self.chart.title_text)
+        self.play(FadeIn(statics),
                   LaggedStart(*[Transform(b, fb)
                                 for b, fb in zip(self.chart.bars, full)],
                               lag_ratio=0.04), run_time=1.8)
-        self.play(FadeIn(self.chart[3]), run_time=0.5)      # the peak value label
-        self.wait(1.2)                                      # VO
-        self.play(FadeOut(self.chart), run_time=0.7)        # clear → bare chalkboard
+        self.play(FadeIn(self.chart.bar_labels), run_time=0.5)   # gold peak count
+        self.wait(1.2)                                  # VO
+        self.play(FadeOut(self.chart), run_time=0.7)    # clear → bare chalkboard

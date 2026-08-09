@@ -125,15 +125,13 @@ def build():
                     if zf(w) >= cutoff and w.isalpha() and not speller.lookup(w)]
     assert len(valid_proper) >= 2, f"need 2 proper-noun examples, got {valid_proper}"
     # NOTE: wordfreq has NO hyphenated tokens above the cutoff, so the script's
-    # "word with a hyphen" example can't be sourced. The real non-letter drop is
-    # apostrophe words, numbers, and ACCENTED words — so we substitute an accented
-    # word (a non-ascii letter) for the hyphen slot. FLAGGED for the user.
+    # "word with a hyphen" example can't be sourced; the apostrophe example covers
+    # the non-letter case, so the hyphen slot is simply dropped (per the user).
     extras = {
         "proper": valid_proper[0],
         "abbr": "etc",
         "roman": "xiv",
         "apostrophe": _highest(lambda w: "'" in w),
-        "accented": _highest(lambda w: w.isalpha() and not w.isascii()),
     }
     assert all(extras.values()), f"missing an extras example: {extras}"
 
