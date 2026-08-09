@@ -150,7 +150,7 @@ def build():
                         "example": example})
 
     apostrophe_word = extras["apostrophe"]
-    spell_nonword = valid_proper[1]      # a proper noun the spellchecker drops
+    spell_nonword = extras["proper"]     # the SAME proper noun previewed in beat e
     add("non_letter", "drop non-letter characters", steps["deltas"]["non_letter"],
         a["non_letter"], apostrophe_word)
     add("hunspell", "spellcheck", steps["deltas"]["hunspell"], a["hunspell"],
