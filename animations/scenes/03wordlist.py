@@ -84,10 +84,14 @@ def _sci_freq(p, y, x, *, height, color=CHALK):
 
 
 # ── layout: the top-80 columns (beats a–b) ────────────────────────────────────
+# The whole 5-column block is CENTRED on screen (so the left-navy→first-word margin
+# equals the last-%→right-navy margin), columns separated by a fixed COL_GAP (so the
+# gap from each %-column to the next word-column is consistent), and each column's %
+# is right-aligned just past that column's longest word (PCT_GAP).
 COLS, ROWS = 5, 16
-COL_X0, COL_DX = -6.7, 2.85      # left edge of column 0's word / column pitch
 ROW_Y0, ROW_DY = 3.55, 0.462     # top row baseline / row pitch (spread to fill)
-PCT_GAP = 0.32                   # gap after a column's longest word → its % column
+PCT_GAP = 0.32                   # gap: a column's longest word → its right-aligned %
+COL_GAP = 0.80                   # gap: a column's % → the next column's word
 WORD_H, PCT_H = 0.24, 0.20
 
 # ── layout: the cutoff zoom (beats c–d) ───────────────────────────────────────
@@ -97,9 +101,12 @@ CUT_WORD_H, CUT_META_H = 0.30, 0.22
 CUT_RANK_X, CUT_FREQ_X = -2.1, 2.1
 
 # ── layout: the TOTAL WORDS cascade (beats f–q) ───────────────────────────────
-CAS_NUM_R = -1.2                 # right edge of the number column
-CAS_WORD_L = -0.6                # left edge of the removed word (right of number)
-CAS_LABEL_R = -3.0               # right edge of the "TOTAL WORDS:" label
+# The number column + crossed-word column straddle screen centre: the boundary
+# between them sits at x=0 (numbers right-aligned just left of it, words just
+# right). "TOTAL WORDS:" is a row-0 prefix to the left of the numbers.
+CAS_NUM_R = -0.35                # right edge of the number column (just left of x=0)
+CAS_WORD_L = 0.35                # left edge of the removed word (just right of x=0)
+CAS_LABEL_R = -2.25              # right edge of the "TOTAL WORDS:" label
 CAS_Y0, CAS_DY = 3.10, 0.50
 CAS_NUM_H, CAS_WORD_H, CAS_LABEL_H = 0.32, 0.32, 0.28
 
@@ -119,23 +126,29 @@ class Scene03(HangmanScene):
         ws, ps, meta = [], [], []
         for i, e in enumerate(DATA["top_words"]):
             col, row = divmod(i, ROWS)
-            ax = COL_X0 + col * COL_DX
-            ay = ROW_Y0 - row * ROW_DY
-            ws.append(chalk_phrase(e["word"], height=WORD_H).move_to(
-                [ax, ay, 0], aligned_edge=LEFT))
+            ws.append(chalk_phrase(e["word"], height=WORD_H))
             ps.append(chalk_phrase(_pct_str(e["pct"]), height=PCT_H,
                                    color=LIGHT_BLUE))
-            meta.append((col, ay))
-        # RIGHT-ALIGN the % per column, just past that column's longest word (so the
-        # decimals line up in a column without a long word ever overlapping its %)
-        col_wr, col_pw = {}, {}
-        for w, p, (col, _ay) in zip(ws, ps, meta):
-            col_wr[col] = max(col_wr.get(col, -1e9), w.get_right()[0])
-            col_pw[col] = max(col_pw.get(col, 0.0), p.width)
-        for p, (col, ay) in zip(ps, meta):
-            p.move_to([col_wr[col] + PCT_GAP + col_pw[col], ay, 0],
-                      aligned_edge=RIGHT)
-        words, pcts = VGroup(*ws), VGroup(*ps)
+            meta.append((col, row))
+        # each column's width = its longest word + PCT_GAP + its widest %; lay the
+        # columns out with a fixed COL_GAP between and CENTRE the whole block at x=0
+        col_ww = [max((w.width for w, (c, _r) in zip(ws, meta) if c == col),
+                      default=0.0) for col in range(COLS)]
+        col_pw = [max((p.width for p, (c, _r) in zip(ps, meta) if c == col),
+                      default=0.0) for col in range(COLS)]
+        col_W = [col_ww[c] + PCT_GAP + col_pw[c] for c in range(COLS)]
+        total = sum(col_W) + (COLS - 1) * COL_GAP
+        col_left, x = [], -total / 2
+        for c in range(COLS):
+            col_left.append(x)
+            x += col_W[c] + COL_GAP
+        words, pcts = VGroup(), VGroup()
+        for w, p, (col, row) in zip(ws, ps, meta):
+            ay = ROW_Y0 - row * ROW_DY
+            w.move_to([col_left[col], ay, 0], aligned_edge=LEFT)
+            p.move_to([col_left[col] + col_W[col], ay, 0], aligned_edge=RIGHT)
+            words.add(w)
+            pcts.add(p)
         self.table = VGroup(words, pcts)
         self.table.words, self.table.pcts = words, pcts
 

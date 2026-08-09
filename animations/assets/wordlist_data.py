@@ -42,7 +42,15 @@ CACHE = Path(__file__).resolve().parent / "wordlist_cache.json"
 
 # ── FLAGS (content choices) ───────────────────────────────────────────────────
 N_TOP = 80           # top FINAL-list words in the beat-a columns (5 cols × 16)
-N_CUTOFF = 7         # words shown on EACH side of the cutoff divider (beat c)
+
+# beat c — a SELECTION of words tied EXACTLY at the frequency cutoff (all at zipf
+# 2.50 are IN the list at one shared rank/freq; all at 2.49 are DROPPED at another).
+# Pure content picks from the tied lists; every word here is verified to sit at the
+# right zipf at build. 6 per side (keeps the column clear of the board edges).
+CUTOFF_ABOVE = ["airmail", "defrost", "chickpea", "seahorse", "wishbone",
+                "pickpocket"]            # zipf 2.50, IN the list
+CUTOFF_BELOW = ["cookout", "iguanas", "chessboard", "rattlesnakes", "warthog",
+                "ballerinas"]            # zipf 2.49, DROPPED
 
 # per-category example word crossed off (beats e–q). bldg/p/pi/styrofoam are
 # script-specified; the rest are illustrative picks, verified in scope at build.
@@ -54,9 +62,11 @@ EXAMPLES = {
     "interjections": "hmm",
     "profanity": "#*%!",         # script: random characters, NOT a real word
     "greek letters": "phi",      # a greek name that IS removed (pi is kept)
+    "disagree_down": "morocco",  # a proper noun HUNSPELL KEPT but we removed by hand
 }
-PROPER_CANDIDATES = ["america", "john", "london", "france", "monday", "google",
-                     "paris", "chicago", "boston", "canada"]
+# proper nouns HUNSPELL REJECTS (a spellchecker removal) — extras + beat-g cross.
+PROPER_CANDIDATES = ["chicago", "america", "john", "london", "france", "monday",
+                     "google", "paris", "boston", "canada"]
 
 
 def _imports():
@@ -93,30 +103,27 @@ def build():
                   "rank": i + 1}
                  for i, w in enumerate(final[:N_TOP])]
 
-    # beat c/d — REAL words straddling the frequency cutoff (raw wordfreq near the
-    # cutoff is mostly junk — emoji, numbers, proper nouns — so we show curated
-    # master-list words the viewer can actually evaluate "do I know about half?").
-    # Each carries its rank in the FULL raw wordfreq list (so the rank lands near
-    # the ~53,572 boundary) and a "1 in N" rate. rank crosses ~54,000 at the line.
-    full_rank = {w: i + 1 for i, (w, _z)
-                 in enumerate(sorted(((w, zf(w)) for w in freqs), key=lambda wz: -wz[1]))}
-    master = [(w.text, w.zipf) for w in wordlist._raw()]      # curated real words + zipf
-    # An evenly-spaced alphabetical SAMPLE of the real words just above / just below
-    # the cutoff (hundreds tie at zipf 2.50, so this reads as a varied cross-section
-    # rather than a run of one letter). All are within a hair of the frequency line.
-    def _spread(band, k):
-        band = sorted(band)                       # alphabetical
-        if len(band) <= k:
-            return band
-        return [band[round(i * (len(band) - 1) / (k - 1))] for i in range(k)]
-    above_m = _spread([wz for wz in master if cutoff <= wz[1] < cutoff + 0.05], N_CUTOFF)
-    below_m = _spread([wz for wz in master if cutoff - 0.05 <= wz[1] < cutoff], N_CUTOFF)
+    # beat c/d — words tied EXACTLY at the frequency cutoff. wordfreq quantizes zipf
+    # to 2 decimals, so ~hundreds tie at 2.50 (the lowest freq IN the list) and at
+    # 2.49 (the highest DROPPED). Tied words share ONE rank + ONE frequency: the
+    # in-list side gets the COMPETITION rank of that tie block (final − |tie| + 1),
+    # the dropped side gets final + 1. All are verified to sit at the right zipf.
+    zof = {w.text: w.zipf for w in wordlist._raw()}
+    for w in CUTOFF_ABOVE:
+        assert zof.get(w) == cutoff, f"{w!r} not at zipf {cutoff} (got {zof.get(w)})"
+    for w in CUTOFF_BELOW:
+        assert zof.get(w) == round(cutoff - 0.01, 2), \
+            f"{w!r} not at zipf {cutoff - 0.01} (got {zof.get(w)})"
+    n_at_cut = sum(1 for w in wordlist._raw() if w.zipf == cutoff)
+    above_rank = 34483 - n_at_cut + 1        # shared rank of the last tie block IN
+    below_rank = 34483 + 1                    # shared rank of the first tie block OUT
     cutoff_region = {
-        "boundary_rank": len(ranked),           # ~53,572 -> "about 54,000"
-        "above": [{"word": w, "per_n": per_n(z), "pct": pct(z), "rank": full_rank[w]}
-                  for w, z in above_m],
-        "below": [{"word": w, "per_n": per_n(z), "pct": pct(z), "rank": full_rank[w]}
-                  for w, z in below_m],
+        "n_at_cutoff": n_at_cut, "n_below_cutoff":
+            sum(1 for w in wordlist._raw() if w.zipf == round(cutoff - 0.01, 2)),
+        "above": [{"word": w, "pct": pct(cutoff), "rank": above_rank}
+                  for w in CUTOFF_ABOVE],
+        "below": [{"word": w, "pct": pct(cutoff - 0.01), "rank": below_rank}
+                  for w in CUTOFF_BELOW],
     }
 
     # beat e — example "extras" wordfreq wrongly includes
@@ -178,9 +185,9 @@ def build():
                     "delta": len(steps["addbacks"]), "value": n,
                     "example": "styrofoam",
                     "all_addbacks": steps["addbacks"]})
-    down_ex = EXAMPLES.get("disagree_down", steps["proper_down"]["members"][0])
-    down_ex = "panama" if "panama" in steps["proper_down"]["members"] else \
-        steps["proper_down"]["members"][0]
+    down_ex = EXAMPLES["disagree_down"]
+    assert down_ex in steps["proper_down"]["members"], \
+        f"disagree_down {down_ex!r} is not a hunspell-kept, hand-removed word"
     n -= steps["proper_down"]["count"]
     counter.append({"key": "disagree_down", "label": "removals",
                     "delta": -steps["proper_down"]["count"], "value": n,
@@ -231,10 +238,10 @@ if __name__ == "__main__":
     t = d["top_words"][0]
     print(f"   #{t['rank']} {t['word']!r} = {t['pct']:.2f}% of English text")
     cr = d["cutoff_region"]
-    print(f"[cutoff] boundary rank {cr['boundary_rank']:,} (~54,000); "
-          f"above: {', '.join(w['word'] for w in cr['above'][-4:])} | "
-          f"below: {', '.join(w['word'] for w in cr['below'][:4])}")
-    print(f"   near-cutoff rate ~1 in {cr['above'][-1]['per_n']:,}")
+    print(f"[cutoff] {cr['n_at_cutoff']} tied IN @ rank {cr['above'][0]['rank']:,}; "
+          f"{cr['n_below_cutoff']} tied OUT @ rank {cr['below'][0]['rank']:,}")
+    print(f"   above: {', '.join(w['word'] for w in cr['above'])}")
+    print(f"   below: {', '.join(w['word'] for w in cr['below'])}")
     print(f"[extras] {d['extras']}")
     bl = d["by_length"]
     peak = max(bl, key=lambda b: b["count"])

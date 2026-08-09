@@ -29,7 +29,7 @@
    "label": "spellcheck",
    "delta": -16136,
    "value": 34941,
-   "example": "america"
+   "example": "chicago"
   },
   {
    "key": "abbreviations",
@@ -102,7 +102,7 @@
    "label": "removals",
    "delta": -51,
    "value": 34483,
-   "example": "panama"
+   "example": "morocco"
   }
  ],
  "top_words": [
@@ -588,98 +588,75 @@
   }
  ],
  "cutoff_region": {
-  "boundary_rank": 53572,
+  "n_at_cutoff": 237,
+  "n_below_cutoff": 276,
   "above": [
    {
-    "word": "abattoir",
-    "per_n": 3162278,
+    "word": "airmail",
     "pct": 3.1622776601683795e-05,
-    "rank": 52965
+    "rank": 34247
    },
    {
-    "word": "conformance",
-    "per_n": 3090295,
-    "pct": 3.235936569296281e-05,
-    "rank": 52449
-   },
-   {
-    "word": "framers",
-    "per_n": 2884032,
-    "pct": 3.467368504525317e-05,
-    "rank": 50731
-   },
-   {
-    "word": "leotard",
-    "per_n": 2884032,
-    "pct": 3.467368504525317e-05,
-    "rank": 50854
-   },
-   {
-    "word": "prongs",
-    "per_n": 3162278,
+    "word": "defrost",
     "pct": 3.1622776601683795e-05,
-    "rank": 53403
+    "rank": 34247
    },
    {
-    "word": "stabbings",
-    "per_n": 2951209,
-    "pct": 3.38844156139202e-05,
-    "rank": 51626
+    "word": "chickpea",
+    "pct": 3.1622776601683795e-05,
+    "rank": 34247
    },
    {
-    "word": "zoologist",
-    "per_n": 3090295,
-    "pct": 3.235936569296281e-05,
-    "rank": 52950
+    "word": "seahorse",
+    "pct": 3.1622776601683795e-05,
+    "rank": 34247
+   },
+   {
+    "word": "wishbone",
+    "pct": 3.1622776601683795e-05,
+    "rank": 34247
+   },
+   {
+    "word": "pickpocket",
+    "pct": 3.1622776601683795e-05,
+    "rank": 34247
    }
   ],
   "below": [
    {
-    "word": "abductor",
-    "per_n": 3467369,
-    "pct": 2.8840315031266056e-05,
-    "rank": 55439
-   },
-   {
-    "word": "codon",
-    "per_n": 3548134,
-    "pct": 2.818382931264455e-05,
-    "rank": 56247
-   },
-   {
-    "word": "fathoms",
-    "per_n": 3235937,
+    "word": "cookout",
     "pct": 3.090295432513592e-05,
-    "rank": 53754
+    "rank": 34484
    },
    {
-    "word": "kibble",
-    "per_n": 3311311,
-    "pct": 3.0199517204020192e-05,
-    "rank": 54502
+    "word": "iguanas",
+    "pct": 3.090295432513592e-05,
+    "rank": 34484
    },
    {
-    "word": "pitying",
-    "per_n": 3548134,
-    "pct": 2.818382931264455e-05,
-    "rank": 56597
+    "word": "chessboard",
+    "pct": 3.090295432513592e-05,
+    "rank": 34484
    },
    {
-    "word": "spews",
-    "per_n": 3548134,
-    "pct": 2.818382931264455e-05,
-    "rank": 56690
+    "word": "rattlesnakes",
+    "pct": 3.090295432513592e-05,
+    "rank": 34484
    },
    {
-    "word": "zirconium",
-    "per_n": 3548134,
-    "pct": 2.818382931264455e-05,
-    "rank": 56781
+    "word": "warthog",
+    "pct": 3.090295432513592e-05,
+    "rank": 34484
+   },
+   {
+    "word": "ballerinas",
+    "pct": 3.090295432513592e-05,
+    "rank": 34484
    }
   ]
  },
  "extras": {
-  "proper": "america",
+  "proper": "chicago",
   "abbr": "etc",
   "roman": "xiv",
   "apostrophe": "it's"
