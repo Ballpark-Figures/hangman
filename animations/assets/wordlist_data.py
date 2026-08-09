@@ -41,7 +41,7 @@ _MATH = Path(__file__).resolve().parents[2] / "math"
 CACHE = Path(__file__).resolve().parent / "wordlist_cache.json"
 
 # ── FLAGS (content choices) ───────────────────────────────────────────────────
-N_TOP = 96           # top FINAL-list words in the beat-a columns (6 cols × 16)
+N_TOP = 80           # top FINAL-list words in the beat-a columns (5 cols × 16)
 N_CUTOFF = 7         # words shown on EACH side of the cutoff divider (beat c)
 
 # per-category example word crossed off (beats e–q). bldg/p/pi/styrofoam are

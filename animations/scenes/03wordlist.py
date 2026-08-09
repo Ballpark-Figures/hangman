@@ -68,11 +68,26 @@ def _klabel(c):
     return f"{round(c / 100) / 10:.1f}k" if c >= 1000 else str(c)
 
 
-# ── layout: the top-96 columns (beats a–b) ────────────────────────────────────
-COLS, ROWS = 6, 16
-COL_X0, COL_DX = -7.0, 2.40      # left edge of column 0's word / column pitch
-ROW_Y0, ROW_DY = 3.40, 0.40      # top row baseline / row pitch
-PCT_DX = 1.55                    # word-left → pct-left within a cell
+def _sci_freq(p, y, x, *, height, color=CHALK):
+    """A word's frequency (as a FRACTION, not a percentage — no % sign) in
+    scientific notation, written in chalk, left-aligned at (x, y) on the mantissa:
+    a 3.16e-5 % rate -> '3.2×10⁻⁷' (2-sig-fig mantissa, raised exponent). Returns a
+    VGroup(mantissa+×10, exponent)."""
+    frac = p / 100.0                                  # percentage -> fraction
+    exp = math.floor(math.log10(frac))
+    mant = frac / 10 ** exp
+    base = chalk_phrase(f"{mant:.1f}×10", height=height, color=color)
+    base.move_to([x, y, 0], aligned_edge=LEFT)
+    sup = chalk_phrase(str(exp), height=height * 0.62, color=color)
+    sup.next_to(base, RIGHT, buff=0.04).shift(UP * height * 0.30)
+    return VGroup(base, sup)
+
+
+# ── layout: the top-80 columns (beats a–b) ────────────────────────────────────
+COLS, ROWS = 5, 16
+COL_X0, COL_DX = -6.7, 2.85      # left edge of column 0's word / column pitch
+ROW_Y0, ROW_DY = 3.55, 0.462     # top row baseline / row pitch (spread to fill)
+PCT_DX = 1.35                    # word-left → pct-left within a cell
 WORD_H, PCT_H = 0.24, 0.20
 
 # ── layout: the cutoff zoom (beats c–d) ───────────────────────────────────────
@@ -108,8 +123,9 @@ class Scene03(HangmanScene):
             ay = ROW_Y0 - row * ROW_DY
             w = chalk_phrase(e["word"], height=WORD_H).move_to([ax, ay, 0],
                                                                aligned_edge=LEFT)
-            p = chalk_phrase(_pct_str(e["pct"]), height=PCT_H)
-            p.move_to([ax + PCT_DX, ay, 0], aligned_edge=LEFT)
+            # % right after the word (close, never overlapping a long word)
+            p = chalk_phrase(_pct_str(e["pct"]), height=PCT_H, color=LIGHT_BLUE)
+            p.next_to(w, RIGHT, buff=0.28).set_y(ay)
             words.add(w)
             pcts.add(p)
         self.table = VGroup(words, pcts)
@@ -143,12 +159,10 @@ class Scene03(HangmanScene):
             placed.append((e, -(j + 0.5) * CUT_G))
         for e, y in placed:
             words.add(chalk_phrase(e["word"], height=CUT_WORD_H).move_to([CUT_CX, y, 0]))
-            r = chalk_number(e["rank"], height=CUT_META_H)
+            r = chalk_phrase(f"#{e['rank']:,}", height=CUT_META_H)   # # sign back
             r.move_to([CUT_RANK_X, y, 0], aligned_edge=RIGHT)
             ranks.add(r)
-            f = chalk_phrase(_pct_str(e["pct"]), height=CUT_META_H)
-            f.move_to([CUT_FREQ_X, y, 0], aligned_edge=LEFT)
-            freqs.add(f)
+            freqs.add(_sci_freq(e["pct"], y, CUT_FREQ_X, height=CUT_META_H))
         divider = Line([CUT_CX - 3.3, 0, 0], [CUT_CX + 3.3, 0, 0],
                        color=ACCENT_GOLD, stroke_width=3)
         cap = chalk_phrase("CUTOFF", height=0.24, color=ACCENT_GOLD)
@@ -187,7 +201,8 @@ class Scene03(HangmanScene):
         grp = VGroup(*[chalk_phrase(w, height=0.44) for w in rows])
         grp.arrange(DOWN, buff=0.50).move_to(ORIGIN)
         self.extras = grp
-        self.play(LaggedStartMap(FadeIn, self.extras, lag_ratio=0.15), run_time=1.6)
+        for w in grp:                    # one at a time, written on
+            self._write(w, 0.6)
 
     # ══════════════════════════════════════════════════════════════════════════
     #  f–q : the TOTAL WORDS cascade dropping to 34,483
@@ -244,7 +259,7 @@ class Scene03(HangmanScene):
         self.cur_value = self.cas_value
         self.pending_word = None
         self.cascade.add(label, self.cur_num)
-        self.play(FadeIn(label), run_time=0.6)
+        self._write(label, 0.9)                    # write out "TOTAL WORDS:"
         self._write(self.cur_num, 0.7)
         self._drop(STEP["non_letter"]["example"], STEP["non_letter"]["value"])
 
@@ -332,11 +347,12 @@ class Scene03(HangmanScene):
         self.play(FadeOut(self.cascade), run_time=0.6)
         self.cascade = None
         self.chart = self._by_length_chart()
+        self._write(self.chart.title, 1.0)                      # write out the title
         base_y = self.chart.x_axis.get_center()[1]
         full = self.chart.bars.copy()
         for b in self.chart.bars:
             b.stretch_to_fit_height(0.001).set_y(base_y)
-        statics = VGroup(self.chart.x_axis, self.chart.labels, self.chart.title)
+        statics = VGroup(self.chart.x_axis, self.chart.labels)
         self.play(FadeIn(statics),
                   LaggedStart(*[Transform(b, fb)
                                 for b, fb in zip(self.chart.bars, full)],
