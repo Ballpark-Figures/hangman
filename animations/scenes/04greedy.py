@@ -50,8 +50,9 @@ DATA = greedy_data.get()
 # ── frequency bar graph (bottom-left, VERTICAL bars, light palette) ───────────
 FBARS_LEFT = -6.5          # x of the first bar's centre column (inside the board)
 FBARS_BASE = -2.9          # baseline y (x-axis) — well clear of the bottom edge
-FBARS_W    = 6.6           # total width across `FBARS_TOP` columns
+FBARS_W    = 7.6           # total width across `FBARS_TOP` columns (extends right)
 FBARS_H    = 1.9           # height of the tallest bar (short enough to clear the blanks)
+FBAR_WFRAC = 0.75          # fraction of a column each bar fills
 FBARS_TOP  = 10            # letters shown
 FBAR_COLOR = LIGHT_BLUE    # light palette — reads on the navy board
 FBAR_HL    = ACCENT_GOLD   # greedy's pick (the guessed letter)
@@ -79,12 +80,12 @@ def _vbars(pairs, *, top=FBARS_TOP, hl_letter=None, scale_max=None):
         x = FBARS_LEFT + (i + 0.5) * slot
         h = max(count / scale_max * FBARS_H, 1e-3)
         col = FBAR_HL if ltr == hl_letter else FBAR_COLOR
-        bar = Rectangle(width=slot * 0.68, height=h, fill_color=col,
+        bar = Rectangle(width=slot * FBAR_WFRAC, height=h, fill_color=col,
                         fill_opacity=1.0, stroke_width=0)
         bar.move_to([x, FBARS_BASE + h / 2, 0])
-        label = chalk_letter(ltr, height=0.30, stroke_width=3.0, color=CHALK)
-        label.move_to([x, FBARS_BASE - 0.34, 0])
-        value = _chalk_num(count, height=0.20)          # written-font count
+        label = chalk_letter(ltr, height=0.32, stroke_width=3.0, color=CHALK)
+        label.move_to([x, FBARS_BASE - 0.36, 0])
+        value = _chalk_num(count, height=0.26)          # written-font count (bigger)
         value.next_to(bar, UP, buff=0.08)
         col_grp = VGroup(bar, label, value)
         grp.add(col_grp)
@@ -118,16 +119,21 @@ def _chalk_phrase(text, *, height=0.4, stroke_width=3.2, buff=0.10, space=0.34,
 
 
 def _morph_vbars(scene, old, new, run_time):
-    """Morph one vertical bar graph into the next, pairing columns by letter."""
+    """Morph one vertical bar graph into the next by fixed COLUMN POSITION (not by
+    letter): each column's bar just changes HEIGHT in place (anchored at the
+    baseline) while its letter + count swap — the bars never rearrange. Extra
+    columns fade out / in when the two graphs have different bar counts."""
     anims = []
-    for ltr, col in old.cols.items():
-        if ltr in new.cols:
-            anims.append(ReplacementTransform(col, new.cols[ltr]))
-        else:
-            anims.append(FadeOut(col))
-    for ltr, col in new.cols.items():
-        if ltr not in old.cols:
-            anims.append(FadeIn(col))
+    n = min(len(old.submobjects), len(new.submobjects))
+    for i in range(n):
+        oc, nc = old[i], new[i]
+        anims.append(ReplacementTransform(oc[0], nc[0]))   # bar: height, in place
+        anims.append(FadeTransform(oc[1], nc[1]))          # letter swap
+        anims.append(FadeTransform(oc[2], nc[2]))          # count swap
+    for i in range(n, len(old.submobjects)):
+        anims.append(FadeOut(old[i]))
+    for i in range(n, len(new.submobjects)):
+        anims.append(FadeIn(new[i]))
     scene.play(*anims, run_time=run_time)
 
 
@@ -298,9 +304,16 @@ class Scene04(HangmanScene):
         self.play(FadeOut(board), run_time=0.6)
         self.revealed = {}
         self.chart = self._avg_chart()
+        # bars grow straight UP from the baseline (height only, no width expansion):
+        # flatten each to the axis, then Transform back to full height
+        base_y = self.chart.axes[0].get_center()[1]        # x-axis baseline
+        full = self.chart.bars.copy()
+        for b in self.chart.bars:
+            b.stretch_to_fit_height(0.001).set_y(base_y)
         self.play(FadeIn(self.chart.axes), FadeIn(self.chart.labels),
                   FadeIn(self.chart.yticks), FadeIn(self.chart.title),
-                  LaggedStart(*[GrowFromEdge(b, DOWN) for b in self.chart.bars],
+                  LaggedStart(*[Transform(b, fb)
+                                for b, fb in zip(self.chart.bars, full)],
                               lag_ratio=0.04), run_time=1.8)
 
     # p : the PIRATES chain — a single blank A grows in place, used letters fading
