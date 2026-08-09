@@ -124,18 +124,24 @@ class Scene03(HangmanScene):
     # ══════════════════════════════════════════════════════════════════════════
     def _setup_table(self):
         ws, ps, meta = [], [], []
+        last = len(DATA["top_words"]) - 1
         for i, e in enumerate(DATA["top_words"]):
             col, row = divmod(i, ROWS)
-            ws.append(chalk_phrase(e["word"], height=WORD_H))
-            ps.append(chalk_phrase(_pct_str(e["pct"]), height=PCT_H,
-                                   color=LIGHT_BLUE))
+            if i == last:                       # ellipsis "…and so on", no % after it
+                ws.append(chalk_phrase("...", height=WORD_H))
+                ps.append(None)
+            else:
+                ws.append(chalk_phrase(e["word"], height=WORD_H))
+                ps.append(chalk_phrase(_pct_str(e["pct"]), height=PCT_H,
+                                       color=LIGHT_BLUE))
             meta.append((col, row))
         # each column's width = its longest word + PCT_GAP + its widest %; lay the
         # columns out with a fixed COL_GAP between and CENTRE the whole block at x=0
         col_ww = [max((w.width for w, (c, _r) in zip(ws, meta) if c == col),
                       default=0.0) for col in range(COLS)]
-        col_pw = [max((p.width for p, (c, _r) in zip(ps, meta) if c == col),
-                      default=0.0) for col in range(COLS)]
+        col_pw = [max((p.width for p, (c, _r) in zip(ps, meta)
+                       if c == col and p is not None), default=0.0)
+                  for col in range(COLS)]
         col_W = [col_ww[c] + PCT_GAP + col_pw[c] for c in range(COLS)]
         total = sum(col_W) + (COLS - 1) * COL_GAP
         col_left, x = [], -total / 2
@@ -146,9 +152,10 @@ class Scene03(HangmanScene):
         for w, p, (col, row) in zip(ws, ps, meta):
             ay = ROW_Y0 - row * ROW_DY
             w.move_to([col_left[col], ay, 0], aligned_edge=LEFT)
-            p.move_to([col_left[col] + col_W[col], ay, 0], aligned_edge=RIGHT)
             words.add(w)
-            pcts.add(p)
+            if p is not None:
+                p.move_to([col_left[col] + col_W[col], ay, 0], aligned_edge=RIGHT)
+                pcts.add(p)
         self.table = VGroup(words, pcts)
         self.table.words, self.table.pcts = words, pcts
 
