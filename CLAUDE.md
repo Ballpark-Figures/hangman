@@ -102,6 +102,14 @@ greedy, greedy_word, best_opener, best_opener_word):
 - **"Written font" = the hand-drawn `chalk_letter` strokes (chalkboard.py), NOT the
   Inter `crisp_text`.** When the script says a word is "in written font," render it with
   chalk strokes (see scene 04's `_word_grid`, which monospaces them to equal width).
+- **DEFAULT to the written (chalk) font for ALL text on the chalkboard.** On a
+  chalkboard scene, basically every piece of text — words, numbers, percentages,
+  labels, titles — is chalk strokes (`chalk_letter` / `chalk_phrase` / `chalk_number`
+  from chalkboard.py), NOT `crisp_text`. The chalk font is CAPITALS-ONLY plus digits
+  and the punctuation `' . , : % # * !`; add a glyph to `_PUNCT` if you need another.
+  Use `crisp_text` on the chalkboard ONLY when explicitly asked. (This is why a
+  chalkboard bar chart uses `get_bar_chart` with chalk factories, not `get_histogram`,
+  which is `crisp_text`-only.)
 - **Win/loss recolour tints the WHOLE board** — revealed letters, the blanks, the miss
   row, AND the gallows (`self.hang` includes it) → green on a win, red on a loss.
 

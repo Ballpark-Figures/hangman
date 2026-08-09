@@ -160,7 +160,36 @@ _DIGITS = {
                    (0.06, 0.50), (0.20, 0.36), (0.20, -0.14), (0.06, -0.50)])],
 }
 
-_GLYPHS = {**_ALPHABET, **_DIGITS}
+# ── stroke punctuation (same normalised box + hand-written stroke order) ───────
+# Enough to write the chalkboard's data text: apostrophes, decimal points, commas,
+# a colon, a percent sign, and a small grawlix set (# * !) for a censored word.
+_PUNCT = {
+    "'": [(True,  [(0.03, 0.50), (-0.01, 0.42), (-0.06, 0.30)])],
+    ".": [(True,  [(0.0, -0.38), (0.06, -0.44), (0.0, -0.50),
+                   (-0.06, -0.44), (0.0, -0.38)])],
+    ",": [(True,  [(0.05, -0.34), (0.0, -0.42), (-0.06, -0.50), (-0.12, -0.58)])],
+    ":": [(True,  [(0.0, 0.22), (0.05, 0.16), (0.0, 0.10), (-0.05, 0.16),
+                   (0.0, 0.22)]),
+          (True,  [(0.0, -0.28), (0.05, -0.34), (0.0, -0.40), (-0.05, -0.34),
+                   (0.0, -0.28)])],
+    "%": [(False, [(-0.20, -0.48), (0.20, 0.48)]),
+          (True,  [(-0.12, 0.36), (-0.02, 0.26), (-0.12, 0.16), (-0.22, 0.26),
+                   (-0.12, 0.36)]),
+          (True,  [(0.12, -0.16), (0.22, -0.26), (0.12, -0.36), (0.02, -0.26),
+                   (0.12, -0.16)])],
+    "#": [(False, [(-0.10, 0.50), (-0.16, -0.50)]),
+          (False, [(0.16, 0.50), (0.10, -0.50)]),
+          (False, [(-0.24, 0.18), (0.22, 0.22)]),
+          (False, [(-0.26, -0.20), (0.20, -0.16)])],
+    "*": [(False, [(-0.20, 0.10), (0.20, 0.10)]),
+          (False, [(-0.16, -0.10), (0.16, 0.30)]),
+          (False, [(-0.16, 0.30), (0.16, -0.10)])],
+    "!": [(False, [(0.0, 0.50), (0.0, -0.18)]),
+          (True,  [(0.0, -0.34), (0.05, -0.40), (0.0, -0.46), (-0.05, -0.40),
+                   (0.0, -0.34)])],
+}
+
+_GLYPHS = {**_ALPHABET, **_DIGITS, **_PUNCT}
 
 
 def chalk_letter(ch, *, height=0.6, stroke_width=4.5, color=CHALK):
@@ -182,3 +211,35 @@ def chalk_letter(ch, *, height=0.6, stroke_width=4.5, color=CHALK):
             stroke.set_points_as_corners(p3)
         letter.add(stroke)
     return letter
+
+
+def chalk_phrase(text, *, height=0.4, stroke_width=3.2, buff=0.10, space=0.34,
+                 color=CHALK):
+    """A phrase in the chalk (written) font — one row of `chalk_letter` glyphs,
+    left→right, spaces as gaps. CAPITALS-ONLY (letters are upper-cased); digits and
+    the _PUNCT set (``' . , : % # * !``) are supported. Returns a VGroup whose
+    submobjects are the glyphs, centred on the origin. (Promoted from the byte-
+    identical scene-04 helper when scene 03 needed it too.)"""
+    grp = VGroup()
+    x = 0.0
+    for ch in str(text).upper():
+        if ch == " ":
+            x += space
+            continue
+        L = chalk_letter(ch, height=height, stroke_width=stroke_width, color=color)
+        # set the left edge to x but PRESERVE the glyph's intrinsic y (so a comma /
+        # period sits low and an apostrophe rides high — never recentre to mid-line)
+        L.shift(np.array([x - L.get_left()[0], 0.0, 0.0]))
+        grp.add(L)
+        x += L.width + buff
+    grp.move_to(ORIGIN)
+    return grp
+
+
+def chalk_number(n, *, height=0.4, stroke_width=2.6, buff=0.06, color=CHALK,
+                 commas=True):
+    """An integer in the chalk font, thousands-separated by default (needs the ','
+    glyph). Tighter digit spacing than `chalk_phrase`."""
+    s = f"{n:,}" if commas else str(n)
+    return chalk_phrase(s, height=height, stroke_width=stroke_width, buff=buff,
+                        color=color)

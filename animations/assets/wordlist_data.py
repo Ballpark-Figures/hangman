@@ -41,7 +41,7 @@ _MATH = Path(__file__).resolve().parents[2] / "math"
 CACHE = Path(__file__).resolve().parent / "wordlist_cache.json"
 
 # ── FLAGS (content choices) ───────────────────────────────────────────────────
-N_TOP = 100          # top words shown in the beat-a columns
+N_TOP = 96           # top FINAL-list words in the beat-a columns (6 cols × 16)
 N_CUTOFF = 7         # words shown on EACH side of the cutoff divider (beat c)
 
 # per-category example word crossed off (beats e–q). bldg/p/pi/styrofoam are
@@ -52,7 +52,7 @@ EXAMPLES = {
     "initialisms": "mph",
     "roman numerals": "xiv",
     "interjections": "hmm",
-    "profanity": "$#@%",         # script: random characters, NOT a real word
+    "profanity": "#*%!",         # script: random characters, NOT a real word
     "greek letters": "phi",      # a greek name that IS removed (pi is kept)
 }
 PROPER_CANDIDATES = ["america", "john", "london", "france", "monday", "google",
@@ -79,15 +79,19 @@ def build():
     pct = lambda z: 10.0 ** (z - 7.0)                 # % of all English text
     per_n = lambda z: round(10.0 ** (9.0 - z))        # ~1 appearance per N words
 
-    # raw wordfreq list at the cutoff, most-common first (rank = 1-based position)
+    # raw wordfreq list at the cutoff, most-common first (rank = 1-based position);
+    # used only to place the cutoff-region words on the ~54,000 boundary.
     freqs = get_frequency_dict("en", wordlist="large")
     ranked = sorted(((w, zf(w)) for w in freqs if zf(w) >= cutoff),
                     key=lambda wz: -wz[1])
 
-    # beats a/b/d — the top-N words with % and rank
-    top_words = [{"word": w, "zipf": round(z, 2), "pct": round(pct(z), 3),
+    # beats a/b — the top-N words that ACTUALLY END UP in our list (the final,
+    # curated list in frequency order), with their % of English text (full float
+    # precision; the scene rounds to 2 significant figures).
+    final = wordlist.load(min_zipf=cutoff)
+    top_words = [{"word": w.text, "zipf": round(w.zipf, 2), "pct": pct(w.zipf),
                   "rank": i + 1}
-                 for i, (w, z) in enumerate(ranked[:N_TOP])]
+                 for i, w in enumerate(final[:N_TOP])]
 
     # beat c/d — REAL words straddling the frequency cutoff (raw wordfreq near the
     # cutoff is mostly junk — emoji, numbers, proper nouns — so we show curated
@@ -109,9 +113,9 @@ def build():
     below_m = _spread([wz for wz in master if cutoff - 0.05 <= wz[1] < cutoff], N_CUTOFF)
     cutoff_region = {
         "boundary_rank": len(ranked),           # ~53,572 -> "about 54,000"
-        "above": [{"word": w, "per_n": per_n(z), "rank": full_rank[w]}
+        "above": [{"word": w, "per_n": per_n(z), "pct": pct(z), "rank": full_rank[w]}
                   for w, z in above_m],
-        "below": [{"word": w, "per_n": per_n(z), "rank": full_rank[w]}
+        "below": [{"word": w, "per_n": per_n(z), "pct": pct(z), "rank": full_rank[w]}
                   for w, z in below_m],
     }
 
