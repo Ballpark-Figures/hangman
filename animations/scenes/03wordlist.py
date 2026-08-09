@@ -359,6 +359,7 @@ class Scene03(HangmanScene):
         return get_bar_chart(
             list(counts.items()), center=[0, -0.35, 0], width=13.2, height=4.6,
             bar_color=LIGHT_BLUE, ink_color=CHALK, bar_ratio=0.7,
+            bar_fill_opacity=0.0, bar_stroke_width=4,   # chalk OUTLINE bars
             label_factory=lambda L: chalk_number(L, height=0.24, commas=False),
             label_buff=0.22,
             value_labels=True,
@@ -376,13 +377,7 @@ class Scene03(HangmanScene):
         self.cascade = None
         self.chart = self._by_length_chart()
         self._write(self.chart.title, 1.0)                      # write out the title
-        base_y = self.chart.x_axis.get_center()[1]
-        full = self.chart.bars.copy()
-        for b in self.chart.bars:
-            b.stretch_to_fit_height(0.001).set_y(base_y)
-        statics = VGroup(self.chart.x_axis, self.chart.labels)
-        self.play(FadeIn(statics),
-                  LaggedStart(*[Transform(b, fb)
-                                for b, fb in zip(self.chart.bars, full)],
-                              lag_ratio=0.04), run_time=1.8)
+        self.play(FadeIn(VGroup(self.chart.x_axis, self.chart.labels)), run_time=0.8)
+        # draw every bar OUTLINE at once, each as one continuous chalk line (not grown)
+        self.play(*[Create(b) for b in self.chart.bars], run_time=1.6)
         self.play(FadeIn(self.chart.values), run_time=0.6)      # all counts, white
