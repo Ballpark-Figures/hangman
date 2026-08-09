@@ -41,6 +41,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from config import *
+from bpkfigures.bar_graph import get_bar_chart, morph_bar_chart
 from assets.chalkboard import chalkboard, chalk_letter, CHALK
 from assets import game_board as gb
 from assets import greedy_data
@@ -491,48 +492,26 @@ class Scene04(HangmanScene):
 
     # ── components for o–v ────────────────────────────────────────────────────
     def _avg_chart(self):
-        """Vertical bar chart of avg greedy misses by word length — one light
-        colour (no special peak) + a y-axis with ticks. Handles: .axes .bars
-        .labels .yticks .bar_of{L} .label_of{L}."""
+        """Vertical bar chart of avg greedy misses by word length, on the SHARED
+        `get_bar_chart` (written-font labels via chalk factories, ink_color=CHALK,
+        y_max=7 so the 6-miss line is meaningful). Handles the beats use: .axes
+        .bars .labels .yticks .title .bar_of{L} .label_of{L}."""
         data = DATA["avg_misses_by_length"]
         lengths = sorted(int(k) for k in data)
-        vals = [data[str(L)]["avg_misses"] for L in lengths]
-        x0, x1, base, height, ytop = -6.0, 6.0, -3.2, 4.2, 7   # plot centred at x=0
-        n = len(lengths)
-        slot = (x1 - x0) / n
-        xaxis = Line([x0, base, 0], [x1, base, 0], color=CHALK, stroke_width=3)
-        yaxis = Line([x0, base, 0], [x0, base + height, 0], color=CHALK,
-                     stroke_width=3)
-        bars, labels, bar_of, label_of = VGroup(), VGroup(), {}, {}
-        for i, L in enumerate(lengths):
-            h = max(vals[i] / ytop * height, 1e-3)
-            x = x0 + (i + 0.5) * slot
-            bar = Rectangle(width=slot * 0.75, height=h, fill_color=CHART_COLOR,
-                            fill_opacity=1.0, stroke_width=0)
-            bar.move_to([x, base + h / 2, 0])
-            bars.add(bar)
-            bar_of[L] = bar
-            lab = _chalk_num(L, height=0.24)                # written-font x-label
-            lab.move_to([x, base - 0.32, 0])
-            labels.add(lab)
-            label_of[L] = lab
-        yticks = VGroup()
-        for t in range(0, ytop + 1, 2):
-            y = base + t / ytop * height
-            tick = Line([x0 - 0.12, y, 0], [x0, y, 0], color=CHALK, stroke_width=2)
-            tl = _chalk_num(t, height=0.22)                 # written-font y-tick
-            tl.next_to(tick, LEFT, buff=0.12)
-            yticks.add(tick, tl)
-        # title in the written (chalk) font — one row, centred over the plot
-        # (chalk is capitals-only, so it reads ALL-CAPS)
-        title = _chalk_phrase("Average Misses by Word Length", height=0.38)
-        title.move_to([(x0 + x1) / 2, base + height + 0.5, 0])
-        grp = VGroup(xaxis, yaxis, bars, labels, yticks, title)
-        grp.shift([0, -grp.get_center()[1], 0])             # centre vertically (no big top gap)
-        grp.axes = VGroup(xaxis, yaxis)
-        grp.bars, grp.labels, grp.yticks, grp.title = bars, labels, yticks, title
-        grp.bar_of, grp.label_of = bar_of, label_of
-        return grp
+        items = [(L, data[str(L)]["avg_misses"]) for L in lengths]
+        chart = get_bar_chart(
+            items, center=[0, 0, 0], width=12.0, height=4.2, y_max=7,
+            bar_color=CHART_COLOR, ink_color=CHALK, bar_ratio=0.75,
+            label_factory=lambda L: _chalk_num(L, height=0.24), label_buff=0.20,
+            x_axis=True, y_axis=True,
+            y_ticks=range(0, 8, 2),
+            y_tick_factory=lambda t: _chalk_num(t, height=0.22),
+            title_mobject=_chalk_phrase("Average Misses by Word Length", height=0.38),
+            title_buff=0.5,
+        )
+        chart.shift([0, -chart.get_center()[1], 0])         # centre vertically
+        chart.axes = VGroup(chart.x_axis, chart.y_axis)     # beats use .axes[0] = x-axis
+        return chart
 
     def _blank_with(self, ch, x, *, y=None):
         """One blank rule at x with a chalk letter written above it (for PIRATES)."""
