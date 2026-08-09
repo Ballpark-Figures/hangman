@@ -80,7 +80,8 @@ def _vbars(pairs, *, top=FBARS_TOP, hl_letter=None, scale_max=None):
         bar_color=FBAR_COLOR,
         highlight=({hl_letter: FBAR_HL} if hl_letter else None),
         bar_ratio=FBAR_WFRAC,
-        bar_fill_opacity=0.0, bar_stroke_width=4, bar_open_base=True,  # chalk outline
+        bar_stroke_width=4, bar_outline="closed",   # 4-sided chalk outline (no x-axis
+                                                    # here), drawn bottom-left up
         label_factory=lambda ltr: chalk_letter(ltr, height=0.32, stroke_width=3.0,
                                                color=CHALK),
         label_buff=0.20,
@@ -475,7 +476,7 @@ class Scene04(HangmanScene):
         chart = get_bar_chart(
             items, center=[0, 0, 0], width=12.0, height=4.2, y_max=7,
             bar_color=CHART_COLOR, ink_color=CHALK, bar_ratio=0.75,
-            bar_fill_opacity=0.0, bar_stroke_width=4, bar_open_base=True,  # chalk outline
+            bar_stroke_width=4, bar_outline="open",   # 3-sided outline (x-axis is base)
             label_factory=lambda L: _chalk_num(L, height=0.24), label_buff=0.20,
             x_axis=True, y_axis=True,
             y_ticks=range(0, 8, 2),
