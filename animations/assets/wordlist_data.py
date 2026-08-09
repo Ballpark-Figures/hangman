@@ -41,6 +41,14 @@ _MATH = Path(__file__).resolve().parents[2] / "math"
 CACHE = Path(__file__).resolve().parent / "wordlist_cache.json"
 
 # ── FLAGS (content choices) ───────────────────────────────────────────────────
+# Every flag here is a CONTENT choice that must SERVE its beat's VOICEOVER (Script.md
+# row 03, column 1), not just column 2's mechanic — each cites the clause it serves
+# so a future edit can't drift from the point (see bpkfigures/CLAUDE.md "A CONTENT
+# choice … is governed by the beat's VOICEOVER").
+
+# beat a — VOICEOVER: "a list of words that roughly simulated a typical person's
+# vocabulary." column 2: "Fill screen with columns of words sorted by zipf, starting
+# with 'the'." So: the TOP words of the FINAL list, most-common first.
 N_TOP = 80           # top FINAL-list words in the beat-a columns (5 cols × 16)
 
 # beat c — a SELECTION of words tied EXACTLY at the frequency cutoff (all at zipf
@@ -57,19 +65,25 @@ CUTOFF_ABOVE = ["abbess", "airmail", "defrost", "laminar", "phylogeny",
 CUTOFF_BELOW = ["bijou", "cookout", "iguanas", "oriel", "semiotics",
                 "warthog"]               # zipf 2.49, DROPPED (3 familiar/3 obscure)
 
-# per-category example word crossed off (beats e–q). bldg/p/pi/styrofoam are
-# script-specified; the rest are illustrative picks, verified in scope at build.
+# beats e–q — the ONE example word shown + crossed off per removal category. column
+# 2 walks the categories ("Show bldg", "Show p", "Same for X"); the VOICEOVER lists
+# them ("abbreviations … single letters … Initialisms … Roman numerals …"). SCRIPT
+# INTENT: each example must be a CLEAR, RECOGNISABLE instance of its category so the
+# audience instantly gets why it's junk (bldg/p/pi/styrofoam are script-named; the
+# rest are illustrative but must still be obviously-that-category), verified in scope.
 EXAMPLES = {
-    "abbreviations": "bldg",     # script: "Show bldg"
-    "single letters": "p",       # script: "Show p"
-    "initialisms": "mph",
-    "roman numerals": "xiv",
-    "interjections": "hmm",
-    "profanity": "#*%!",         # script: random characters, NOT a real word
-    "greek letters": "phi",      # a greek name that IS removed (pi is kept)
-    "disagree_down": "morocco",  # a proper noun HUNSPELL KEPT but we removed by hand
+    "abbreviations": "bldg",     # script-named: "Playing BLDG in hangman…"
+    "single letters": "p",       # script-named: "Show p"
+    "initialisms": "mph",        # an obvious initialism
+    "roman numerals": "xiv",     # an obvious roman numeral
+    "interjections": "hmm",      # an obvious interjection
+    "profanity": "#*%!",         # script: "a string of random characters", NOT a slur
+    "greek letters": "phi",      # a greek-letter NAME that IS removed (pi is kept)
+    "disagree_down": "morocco",  # proper noun HUNSPELL KEPT but we removed ("adding
+                                 # and removing … where I disagreed with the spellchecker")
 }
-# proper nouns HUNSPELL REJECTS (a spellchecker removal) — extras + beat-g cross.
+# beat e ("a proper noun") + beat g ("a non-word the spellchecker removes"): proper
+# nouns HUNSPELL REJECTS. Must read as an OBVIOUS proper noun; first valid one used.
 PROPER_CANDIDATES = ["chicago", "america", "john", "london", "france", "monday",
                      "google", "paris", "boston", "canada"]
 
