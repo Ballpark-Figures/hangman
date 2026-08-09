@@ -63,35 +63,30 @@ CHART_COLOR = LIGHT_BLUE
 
 
 def _vbars(pairs, *, top=FBARS_TOP, hl_letter=None, scale_max=None):
-    """A sorted VERTICAL letter-frequency bar graph, bottom-left. `pairs` =
-    [(letter, count)] sorted descending. Returns a VGroup with ``.cols`` =
-    {letter: VGroup(bar, label, value)} so a later beat can morph column-by-column
-    as the candidate set narrows. `hl_letter` (default: the tallest = greedy's
-    pick) is drawn in FBAR_HL. Bars normalise to `scale_max` (default: this call's
-    own max)."""
+    """A sorted VERTICAL letter-frequency bar graph, bottom-left, on the SHARED
+    `get_bar_chart` (written-font labels + counts via chalk factories). `pairs` =
+    [(letter, count)] sorted descending; shown top `top`. `hl_letter` (default: the
+    tallest = greedy's pick) is drawn in FBAR_HL; bars normalise to `scale_max`
+    (default: this call's own max). FIXED 10-slot pitch (`n_slots=top`) so a node
+    with fewer letters keeps its columns in place — the result feeds
+    `morph_bar_chart` for the candidate-narrowing A-walk. `.cols`/`.bars`/`.labels`/
+    `.values` handles come from get_bar_chart."""
     shown = pairs[:top]
-    if scale_max is None:
-        scale_max = max((c for _, c in shown), default=1)
     if hl_letter is None and shown:
         hl_letter = shown[0][0]
-    slot = FBARS_W / top
-    grp = VGroup()
-    grp.cols = {}
-    for i, (ltr, count) in enumerate(shown):
-        x = FBARS_LEFT + (i + 0.5) * slot
-        h = max(count / scale_max * FBARS_H, 1e-3)
-        col = FBAR_HL if ltr == hl_letter else FBAR_COLOR
-        bar = Rectangle(width=slot * FBAR_WFRAC, height=h, fill_color=col,
-                        fill_opacity=1.0, stroke_width=0)
-        bar.move_to([x, FBARS_BASE + h / 2, 0])
-        label = chalk_letter(ltr, height=0.32, stroke_width=3.0, color=CHALK)
-        label.move_to([x, FBARS_BASE - 0.36, 0])
-        value = _chalk_num(count, height=0.26)          # written-font count (bigger)
-        value.next_to(bar, UP, buff=0.08)
-        col_grp = VGroup(bar, label, value)
-        grp.add(col_grp)
-        grp.cols[ltr] = col_grp
-    return grp
+    return get_bar_chart(
+        shown, center=[FBARS_LEFT + FBARS_W / 2, FBARS_BASE + FBARS_H / 2, 0],
+        width=FBARS_W, height=FBARS_H, y_max=scale_max, n_slots=top,
+        bar_color=FBAR_COLOR,
+        highlight=({hl_letter: FBAR_HL} if hl_letter else None),
+        bar_ratio=FBAR_WFRAC,
+        label_factory=lambda ltr: chalk_letter(ltr, height=0.32, stroke_width=3.0,
+                                               color=CHALK),
+        label_buff=0.20,
+        value_labels=True,
+        value_factory=lambda c: _chalk_num(c, height=0.26),
+        value_buff=0.08,
+    )
 
 
 def _chalk_num(n, *, height, stroke_width=2.6, color=CHALK):
@@ -117,25 +112,6 @@ def _chalk_phrase(text, *, height=0.4, stroke_width=3.2, buff=0.10, space=0.34,
         x += L.width + buff
     grp.move_to(ORIGIN)
     return grp
-
-
-def _morph_vbars(scene, old, new, run_time):
-    """Morph one vertical bar graph into the next by fixed COLUMN POSITION (not by
-    letter): each column's bar just changes HEIGHT in place (anchored at the
-    baseline) while its letter + count swap — the bars never rearrange. Extra
-    columns fade out / in when the two graphs have different bar counts."""
-    anims = []
-    n = min(len(old.submobjects), len(new.submobjects))
-    for i in range(n):
-        oc, nc = old[i], new[i]
-        anims.append(ReplacementTransform(oc[0], nc[0]))   # bar: height, in place
-        anims.append(FadeTransform(oc[1], nc[1]))          # letter swap
-        anims.append(FadeTransform(oc[2], nc[2]))          # count swap
-    for i in range(n, len(old.submobjects)):
-        anims.append(FadeOut(old[i]))
-    for i in range(n, len(new.submobjects)):
-        anims.append(FadeIn(new[i]))
-    scene.play(*anims, run_time=run_time)
 
 
 class Scene04(HangmanScene):
@@ -214,7 +190,8 @@ class Scene04(HangmanScene):
     @subscene
     def root_bars(self):
         self.bars = _vbars(DATA["root"]["bars"])
-        self.play(LaggedStartMap(FadeIn, self.bars, lag_ratio=0.08), run_time=1.4)
+        self.play(LaggedStartMap(FadeIn, VGroup(*self.bars.cols.values()),
+                                 lag_ratio=0.08), run_time=1.4)
 
     # d : two A's -> _AA -> the lone BAA; whole word + gallows turn green (win)
     @subscene
@@ -487,7 +464,7 @@ class Scene04(HangmanScene):
     def _update_bars(self, board, missed=""):
         node = self._walk_node(board, missed)
         new = _vbars(node["bars"])
-        _morph_vbars(self, self.bars, new, 1.0)
+        self.play(*morph_bar_chart(self.bars, new), run_time=1.0)
         self.bars = new
 
     # ── components for o–v ────────────────────────────────────────────────────
