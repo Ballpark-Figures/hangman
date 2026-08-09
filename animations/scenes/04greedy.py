@@ -403,17 +403,19 @@ class Scene04(HangmanScene):
         self.w17 = self._word_grid([e["word"] for e in DATA["len17"]["words"]])
         self.play(LaggedStartMap(FadeIn, self.w17, lag_ratio=0.05), run_time=1.6)
 
-    # u : emphasise every i (a different place in every word)
+    # u : box every i (a different place in every word)
     @subscene
     def emphasize_i(self):
-        eyes = VGroup(*[ch for row in self.w17 for ch in row.i_chars])
-        self.play(eyes.animate.set_color(ACCENT_GOLD), run_time=1.0)
+        eyes = [ch for row in self.w17 for ch in row.i_chars]
+        self.i_boxes = VGroup(*[SurroundingRectangle(i, color=ACCENT_GOLD, buff=0.07,
+                                                     stroke_width=2.5) for i in eyes])
+        self.play(LaggedStartMap(Create, self.i_boxes, lag_ratio=0.04), run_time=1.6)
 
     # v : a 17-letter game (INDISTINGUISHABLE) — guess I (bubble → write), then
     #     guess the whole word; every letter is WRITTEN one at a time
     @subscene
     def guess17(self):
-        self.play(FadeOut(self.w17), run_time=0.5)
+        self.play(FadeOut(self.w17), FadeOut(self.i_boxes), run_time=0.5)
         word = DATA["demo17"]["word"]
         gal, _ = gb.build_gallows()
         # centre the blanks between the board's left inner edge and the gallows
