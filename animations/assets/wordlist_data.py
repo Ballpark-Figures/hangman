@@ -45,12 +45,17 @@ N_TOP = 80           # top FINAL-list words in the beat-a columns (5 cols × 16)
 
 # beat c — a SELECTION of words tied EXACTLY at the frequency cutoff (all at zipf
 # 2.50 are IN the list at one shared rank/freq; all at 2.49 are DROPPED at another).
-# Pure content picks from the tied lists; every word here is verified to sit at the
-# right zipf at build. 6 per side (keeps the column clear of the board edges).
-CUTOFF_ABOVE = ["airmail", "defrost", "chickpea", "seahorse", "wishbone",
-                "pickpocket"]            # zipf 2.50, IN the list
-CUTOFF_BELOW = ["cookout", "iguanas", "chessboard", "rattlesnakes", "warthog",
-                "ballerinas"]            # zipf 2.49, DROPPED
+# Every word is verified to sit at the right zipf at build. 6 per side (keeps the
+# column clear of the board edges).
+#   SCRIPT INTENT (Script.md row 03, column 1 / voiceover): "I tried to find a
+#   frequency cutoff where I KNEW ABOUT HALF of the words near the cutoff." So this
+#   SELECTION must read as ~HALF FAMILIAR, ~HALF OBSCURE — NOT all recognizable
+#   (that silently breaks the beat's whole point). Current split is 3 familiar / 3
+#   obscure per side; keep that balance when swapping words.
+CUTOFF_ABOVE = ["abbess", "airmail", "defrost", "laminar", "phylogeny",
+                "seahorse"]              # zipf 2.50, IN the list (3 familiar/3 obscure)
+CUTOFF_BELOW = ["bijou", "cookout", "iguanas", "oriel", "semiotics",
+                "warthog"]               # zipf 2.49, DROPPED (3 familiar/3 obscure)
 
 # per-category example word crossed off (beats e–q). bldg/p/pi/styrofoam are
 # script-specified; the rest are illustrative picks, verified in scope at build.
