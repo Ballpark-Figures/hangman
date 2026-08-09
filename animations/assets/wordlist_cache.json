@@ -22,7 +22,7 @@
    "label": "drop non-letter characters",
    "delta": -2495,
    "value": 51077,
-   "example": "it's"
+   "example": "don't"
   },
   {
    "key": "hunspell",
@@ -659,7 +659,7 @@
   "proper": "chicago",
   "abbr": "etc",
   "roman": "xiv",
-  "apostrophe": "it's"
+  "apostrophe": "don't"
  },
  "by_length": [
   {

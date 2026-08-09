@@ -87,6 +87,12 @@ EXAMPLES = {
 PROPER_CANDIDATES = ["chicago", "america", "john", "london", "france", "monday",
                      "google", "paris", "boston", "canada"]
 
+# beat e ("a word with an apostrophe") + beat f (the non-letter cross-off): an
+# apostrophe word wordfreq KEEPS but the non-letter drop REMOVES. Verified at build
+# to be handled exactly like any apostrophe word (in wordfreq @ cutoff, has "'", not
+# all-letters → dropped by the non-letter filter).
+APOSTROPHE_EX = "don't"
+
 
 def _imports():
     if str(_MATH) not in sys.path:
@@ -146,22 +152,22 @@ def build():
     }
 
     # beat e — example "extras" wordfreq wrongly includes
-    def _highest(pred):
-        for w, _z in ranked:
-            if pred(w):
-                return w
-        return None
     valid_proper = [w for w in PROPER_CANDIDATES
                     if zf(w) >= cutoff and w.isalpha() and not speller.lookup(w)]
     assert len(valid_proper) >= 2, f"need 2 proper-noun examples, got {valid_proper}"
-    # NOTE: wordfreq has NO hyphenated tokens above the cutoff, so the script's
-    # "word with a hyphen" example can't be sourced; the apostrophe example covers
-    # the non-letter case, so the hyphen slot is simply dropped (per the user).
+    # the apostrophe example must be handled EXACTLY like any apostrophe word: kept by
+    # wordfreq at the cutoff, has a "'", and is NOT all-letters (so the non-letter drop
+    # removes it). (wordfreq has no hyphenated tokens above the cutoff, so the script's
+    # "word with a hyphen" example can't be sourced — the apostrophe covers non-letter.)
+    assert (APOSTROPHE_EX in freqs and zf(APOSTROPHE_EX) >= cutoff
+            and "'" in APOSTROPHE_EX
+            and not (APOSTROPHE_EX.isascii() and APOSTROPHE_EX.isalpha())), \
+        f"{APOSTROPHE_EX!r} is not an in-scope apostrophe word handled like the rest"
     extras = {
         "proper": valid_proper[0],
         "abbr": "etc",
         "roman": "xiv",
-        "apostrophe": _highest(lambda w: "'" in w),
+        "apostrophe": APOSTROPHE_EX,
     }
     assert all(extras.values()), f"missing an extras example: {extras}"
 
