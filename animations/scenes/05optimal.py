@@ -479,6 +479,52 @@ class Scene05(HangmanScene):
         self.a_tree = None
         self.grid = VGroup(*cells)
 
+    def _hit_tail(self, br, word):
+        """Extend a DETERMINED child (its ``word`` is now fixed) with the remaining
+        GUARANTEED-HIT guesses — one white hit node per forced guess (its letter inside),
+        straight down — ending in the leaf whose blanks show the fully-revealed word. A
+        'leaf' is the FINAL GUESS (we keep guessing till every letter is up), so the child
+        becomes an interior node: its frontier annotation (blanks + red miss tally) MOVES
+        down to the final leaf. Returns the tail VGroup. Build BEFORE tiling (scales with
+        the cell)."""
+        start = br.dot
+        r = start.radius
+        revealed = set(c for c in br.pat if c != "_")
+        forced = []
+        for c in word:                                    # remaining letters, first-appearance
+            if c not in revealed and c not in forced:
+                forced.append(c)
+        tail = VGroup()
+        prev = start
+        for g in forced:
+            pos = prev.get_center() + np.array([0, -GRID_CHILD_DY, 0])
+            dot = Dot(pos, radius=r, color=CHALK)         # guaranteed hit → white
+            lab = crisp_text(g.upper(), color=BOARD_NAVY, weight=BOLD)
+            lab.scale_to_fit_height(NODE_LETTER_H * r).move_to(dot)
+            edge = Line(prev.get_center() + DOWN * prev.radius, pos + UP * r,
+                        color=CHALK, stroke_width=2.0)
+            tail.add(edge, dot, lab)
+            prev = dot
+        # frontier annotation relocates to the final leaf (fully-revealed word + the tally)
+        br.blanks.set_opacity(0)                          # child is no longer the frontier
+        leaf_blanks = self._blanks(word).set_x(prev.get_center()[0])
+        leaf_blanks.shift([0, (prev.get_center()[1] - GRID_BLANK_DROP)
+                           - leaf_blanks.get_bottom()[1], 0])
+        tail.add(leaf_blanks)
+        if br.missrow is not None:
+            br.missrow.next_to(leaf_blanks, DOWN, buff=0.09).set_x(leaf_blanks.get_x())
+        return tail
+
+    def _avg0_label(self, node_dot, height=0.34, direction=LEFT):
+        """The base-case annotation: 'Avg misses: 0' beside a determined node from which
+        every remaining guess is a guaranteed HIT (0 more misses). Sourced: the n=1
+        node's avg == 0 in the cache."""
+        # build small (crisp_text supersamples to a 240pt cap where a longer string
+        # WRAPS in pango — see hangman/bpkfigures CLAUDE.md) then scale to a readable height
+        lab = crisp_text("Avg misses: 0", font_size=12, color=WHITE, weight=BOLD)
+        lab.scale_to_fit_height(height).next_to(node_dot, direction, buff=height * 0.6)
+        return lab
+
     # ── f : keep drilling — expand the top-left (greedy pick O) tree's all-miss leaf
     #        into the next grid, each cell now rooted along the path A→O (depth 2),
     #        greedy-sorted, drilling the top-left again. ───────────────────────────────
@@ -494,6 +540,38 @@ class Scene05(HangmanScene):
         self.play(FadeOut(VGroup(*self.grid[1:])), run_time=0.6)
         self._transform_into(src, cells, 2.2)
         self.grid = VGroup(*cells)
+
+    # ── g : keep drilling to the BASE CASE. Following the all-miss diagonal
+    #        A→O→I→E→U the surviving set shrinks to {BY, MY}; guessing B (top-left,
+    #        greedy) splits them into a HIT (BY) and a MISS (MY). The MY node is now
+    #        DETERMINED with only a guaranteed-hit guess left → 'Avg misses: 0' (the
+    #        recursion's base case we back up from in h). A "leaf" is the FINAL GUESS,
+    #        not the point the word is known — see hangman CLAUDE.md. ───────────────────
+    #  NOTE: STATIC END-FRAME ONLY for now (per the lock-the-still-first rule) — the
+    #        drill animation (full option-grid each level, depth 2→5) comes after this
+    #        composition is approved.
+    @subscene
+    def g_resolve(self):
+        self.clear()
+        opts = sorted((o for o in self._n_miss_node(5)["options"] if o["splits"]),
+                      key=lambda o: (-_greedy_score(o), o["letter"]))
+        cells = [self._diag_cell(5, o) for o in opts]     # 2 cells: B (top-left), M
+        # augment the top-left (B) cell: draw the forced guaranteed-hit tails below its
+        # determined children (BY→Y, MY→M,Y) so each branch is seen going to a leaf.
+        b = cells[0]
+        branches = opts[0]["subtree"]["branches"]
+        for pat, br in b.sub.kid.items():
+            word = branches[pat].get("word")
+            if word:                                      # a determined single word → tail
+                b.sub.add(self._hit_tail(br, word))
+        # only 2 options at this depth → a narrower box (side margins) leaves room for
+        # the base-case label left of the (far-left) MY node
+        self._tile(cells, cols=2, w=11.0)
+        # base-case label on the after-miss determined node (the MY leaf-parent)
+        miss_dot = cells[0].sub.kid["__"].dot
+        self.avg0 = self._avg0_label(miss_dot)
+        self.grid = VGroup(*cells)
+        self.add(self.grid, self.avg0)
 
     # ── components ─────────────────────────────────────────────────────────────
     def _greedy_chart(self):

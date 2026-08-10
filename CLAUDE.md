@@ -148,6 +148,17 @@ greedy, greedy_word, best_opener, best_opener_word):
     Expanding a node REMOVES its blanks and adds them under its new children; un-expanded
     siblings keep theirs. The red missed-letter tally ACCUMULATES down the path (A, then
     A O, then A O I …) and appears under EVERY blank that sits below a miss node.
+  - **A "LEAF" is the FINAL GUESS, NOT the point the word is uniquely determined.** Per the
+    game convention (a game runs until every letter is UP — see "Game / guess-order
+    convention"), you keep guessing even once the word is known; those remaining guesses are
+    GUARANTEED HITS. So the base case with **"Avg misses: 0" is the node where the word is
+    already determined and only guaranteed-hit guesses remain** (its child is the final-guess
+    leaf) — NOT a node that still has a real choice/miss ahead. Concretely at length 2: the
+    A→O→I→E→U all-miss drill reaches the 2-word set {BY, MY}; guessing B splits it into a HIT
+    (BY) and a MISS (MY); the **MY node** (now determined, next guess is a forced hit) is the
+    avg-0 base case. Do NOT label a node "Avg misses: 0" just because the word is knowable —
+    label the node from which every remaining guess cannot miss. (Bit us building beat g:
+    conflated "uniquely determined" with "leaf/avg 0".)
   - **`05optimal`'s drill beats (d/e/f…) render each option as a DIAGONAL tree rooted at
     A: the MISS branch is always the LEFT child**, so the tree grows down-left and the
     root sits OFF-CENTRE (never re-centred as you drill). Grids are GREEDY-sorted (most
