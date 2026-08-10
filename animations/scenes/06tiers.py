@@ -54,11 +54,12 @@ class Scene06(HangmanScene):
                     for j in range(self.tl.n) if j != i],
                   rate_func=there_and_back, run_time=run_time)
 
-    def _swap_labels(self, factory, run_time):
+    def _swap_labels(self, factory, run_time, extra_anims=()):
         """Crossfade every tier's label into a new one from `factory(i)` (built at
         the cell centre): the old fades out as the new fades in, in place. The new
         label joins its row VGroup (so later emphasis keeps dimming it); the old is
-        dropped. No shape-morph — clean for unrelated glyphs (S→19→HIGH▲)."""
+        dropped. No shape-morph — clean for unrelated glyphs (S→19→HIGH▲).
+        `extra_anims` play concurrently (e.g. the beat-f cell recolour)."""
         news, anims = [], []
         for i in range(self.tl.n):
             new = factory(i).move_to(self.tl.cells[i]).set_opacity(0)
@@ -66,7 +67,7 @@ class Scene06(HangmanScene):
             news.append(new)
             anims += [self.tl.labels[i].animate.set_opacity(0),
                       new.animate.set_opacity(1)]
-        self.play(*anims, run_time=run_time)
+        self.play(*anims, *extra_anims, run_time=run_time)
         for i, new in enumerate(news):
             self.tl.rows[i].remove(self.tl.labels[i])
             self.tl.labels[i] = new
@@ -104,7 +105,10 @@ class Scene06(HangmanScene):
     def numbers(self):
         self._swap_labels(tl.number_label, 0.9)
 
-    # f : swap to named tiers with up/down arrows
+    # f : swap to named tiers with arrows, recolouring cells into name-groups
+    #     (TOP red · HIGH orange · MID yellow · LOW green)
     @subscene
     def names(self):
-        self._swap_labels(tl.name_label, 1.0)
+        recolor = [self.tl.cells[i].animate.set_fill(tl.NAME_TIER_COLORS[i])
+                   for i in range(self.tl.n)]
+        self._swap_labels(tl.name_label, 1.0, extra_anims=recolor)

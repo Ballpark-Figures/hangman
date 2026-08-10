@@ -38,10 +38,20 @@ NAME_LABELS   = [("TOP",  None),      # tier 0
                  ("LOW",  "up"),      # tier 5
                  ("LOW",  "down")]    # tier 6
 
-# Classic S-tier rainbow (LIGHT_PALETTE ramp + a neutral grey for the last tier).
+# Classic S-tier rainbow (LIGHT_PALETTE ramp + a neutral grey for the last tier) —
+# used while the labels are the S,A,B,… GRADES.
 TIER_GREY   = ManimColor("#9AA0A6")
 TIER_COLORS = [LIGHT_RED, LIGHT_ORANGE, LIGHT_YELLOW,
                LIGHT_GREEN, LIGHT_BLUE, LIGHT_PURPLE, TIER_GREY]
+
+# Once the tiers are NAMED, each name-group shares a hue (two shades apart, the ↑
+# tier the deeper of the pair): TOP red, HIGH orange, MID yellow, LOW green.
+NAME_TIER_COLORS = [
+    LIGHT_RED,                                          # TOP
+    ManimColor("#EF7D22"), ManimColor("#F79A4A"),      # HIGH ↑ / ↓  (orange)
+    ManimColor("#F0C51E"), ManimColor("#F7D95A"),      # MID  ↑ / ↓  (yellow)
+    ManimColor("#45A85E"), ManimColor("#6FCB84"),      # LOW  ↑ / ↓  (green)
+]
 
 PANEL_FILL   = ManimColor("#2B2B2B")   # dark charcoal content row (letters pop on it)
 PANEL_STROKE = ManimColor("#15151A")
@@ -84,17 +94,21 @@ def name_label(i, *, height=0.34, color=LABEL_COLOR):
 # ── the tier list ─────────────────────────────────────────────────────────────
 def get_tier_list(labels="letter", *, center=ORIGIN, panel_width=10.2,
                   cell_width=1.75, row_height=0.82, row_gap=0.10,
-                  cell_gap=0.08, colors=TIER_COLORS, dimmed=False):
+                  cell_gap=0.08, colors=None, dimmed=False):
     """A 7-row tier list: a coloured grade CELL on the left + a dark content
     PANEL on the right, per tier, top (best) → bottom (worst).
 
     labels : "letter" | "number" | "name" — which label state to build.
     dimmed : start every row muted (for the beat-06 emphasis build-up).
+    colors : per-tier cell colours; default = the S-tier rainbow for grade labels,
+             the grouped TOP/HIGH/MID/LOW palette once the tiers are NAMED.
 
     Returns VGroup(*rows) with `.rows` (list of VGroup(cell, panel, label,
     contents)), parallel `.cells/.panels/.labels/.contents`, and geometry
     `.panel_left_x` / `.row_cy(i)` for placing letters later.
     """
+    if colors is None:
+        colors = NAME_TIER_COLORS if labels == "name" else TIER_COLORS
     n = len(LETTER_LABELS)
     pitch = row_height + row_gap
     total_h = n * row_height + (n - 1) * row_gap
