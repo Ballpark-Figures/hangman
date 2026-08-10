@@ -28,8 +28,10 @@ Script row 04, split on '—' → 22 beats a–v (voiceover ↔ animation zip 1:
   t words17     — all 18 length-17 words in the written (chalk) font, equal-width grid
   u emphasize_i — every i turns gold (a different place in every word)
   v guess17     — 17 blanks; guess I → fill CONSTITUTIONALITY's i's → bubble the word
+  w to_navy     — bridge to scene 05: fade the game out, expand the board until its
+                  navy slate fills the frame (→ scene 05 opens on navy), like scene 01
 
-Render:  render 04c --fast   (…04v)   /   render 04 sub  for the whole scene
+Render:  render 04c --fast   (…04w)   /   render 04 sub  for the whole scene
 
 TIMING KNOBS LEFT AT A GUESS (feel — judge from the video): every fade/morph/
 Create run_time; the montage per-game hold; the bar-morph run_times throughout.
@@ -42,7 +44,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from config import *
 from bpkfigures.bar_graph import get_bar_chart, morph_bar_chart
-from assets.chalkboard import chalkboard, chalk_letter, CHALK
+from assets.chalkboard import chalkboard, chalk_letter, CHALK, BOARD_NAVY
 from assets import game_board as gb
 from assets import greedy_data
 
@@ -413,6 +415,23 @@ class Scene04(HangmanScene):
                              for p, ch in enumerate(word) if p not in i_pos],
                             run_time=3.2)
         self.play(FadeOut(wbub), run_time=0.4)
+
+    # w : the bridge to scene 05 — fade the length-17 game out, then EXPAND the
+    #     chalkboard (about the origin) until its navy slate fills the whole frame,
+    #     the wooden frame sliding off-screen. Ends on pure navy so scene 05 opens on
+    #     the same navy background. Mirrors scene 01's `to_tree` board→navy dissolve.
+    @subscene
+    def to_navy(self):
+        # fade the game out AS the board expands — both in one play
+        others = [m for m in self.mobjects if m is not self.cb]
+        self.play(
+            *[FadeOut(m) for m in others],
+            self.cb.animate.scale(5.0, about_point=ORIGIN),
+            run_time=2.0, rate_func=smooth,
+        )
+        self.camera.background_color = BOARD_NAVY
+        self.remove(self.cb)                         # board gone; frame ends on navy
+        self.cb = None
 
     # ── A-walk helpers (c–n) ──────────────────────────────────────────────────
     def _add_miss(self, letter, *, rt_write=0.7, rt_part=0.6):
