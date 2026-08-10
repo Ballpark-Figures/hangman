@@ -146,7 +146,23 @@ greedy, greedy_word, best_opener, best_opener_word):
   - **Blanks are a LEAF annotation** in `05optimal`: the partially-filled word (+ the red
     missed letter under the miss child) sits only under the CURRENT frontier nodes.
     Expanding a node REMOVES its blanks and adds them under its new children; un-expanded
-    siblings keep theirs.
+    siblings keep theirs. The red missed-letter tally ACCUMULATES down the path (A, then
+    A O, then A O I …) and appears under EVERY blank that sits below a miss node.
+  - **`05optimal`'s drill beats (d/e/f…) render each option as a DIAGONAL tree rooted at
+    A: the MISS branch is always the LEFT child**, so the tree grows down-left and the
+    root sits OFF-CENTRE (never re-centred as you drill). Grids are GREEDY-sorted (most
+    remaining words containing the letter first → greedy's pick top-left). The drilled-past
+    path (A→O→…) is SHRUNK (`PATH_SCALE`) so the active option subtree dominates; the
+    path's hit-siblings drop their blanks. See `_diag_cell`/`_path_diag`/`_mini_tree`.
+  - **Drilling one grid → the next is the PIECE-BY-PIECE transform `_transform_into`** (do
+    NOT whole-object morph the tree — see bpkfigures "per-mobject ledger" + the blob-morph
+    gotcha). Role handles (`_mini_tree.gdot/glab/kid`, `_path_diag.levels`,
+    `_diag_cell.path/sub/drilled_edge`) let it pair each source node/edge → its counterpart
+    cell: the ORIGINAL becomes the top-left cell (`ReplacementTransform`), copies become the
+    rest (`TransformFromCopy`); the extra text (blanks/tallies) MOVES + shrinks with the
+    tree while fading (not a fade-in-place); THEN the drilled node's letter fades in and its
+    children grow (d-style sprout). Ends with `clear()`+`add(cells)` to re-track clean
+    groups. (This design cost ~10 rounds to converge — see the e/f postmortem; keep it.)
 - **Win/loss recolour tints the WHOLE board** — revealed letters, the blanks, the miss
   row, AND the gallows (`self.hang` includes it) → green on a win, red on a loss.
 
