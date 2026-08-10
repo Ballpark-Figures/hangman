@@ -54,11 +54,30 @@ class Scene06(HangmanScene):
                     for j in range(self.tl.n) if j != i],
                   rate_func=there_and_back, run_time=run_time)
 
-    # a : show the tier list at full, then peek the S (top) and F (bottom) tiers
+    def _swap_labels(self, factory, run_time):
+        """Crossfade every tier's label into a new one from `factory(i)` (built at
+        the cell centre): the old fades out as the new fades in, in place. The new
+        label joins its row VGroup (so later emphasis keeps dimming it); the old is
+        dropped. No shape-morph — clean for unrelated glyphs (S→19→HIGH▲)."""
+        news, anims = [], []
+        for i in range(self.tl.n):
+            new = factory(i).move_to(self.tl.cells[i]).set_opacity(0)
+            self.tl.rows[i].add(new)
+            news.append(new)
+            anims += [self.tl.labels[i].animate.set_opacity(0),
+                      new.animate.set_opacity(1)]
+        self.play(*anims, run_time=run_time)
+        for i, new in enumerate(news):
+            self.tl.rows[i].remove(self.tl.labels[i])
+            self.tl.labels[i] = new
+
+    # a : lagged fade-in (rows rise into place), then peek the S + F tiers
     @subscene
     def establish(self):
         self._setup_tiers()
-        self.play(FadeIn(self.tl, shift=0.3 * UP), run_time=1.0)
+        self.play(LaggedStart(*[FadeIn(row, shift=0.4 * UP)
+                                for row in self.tl.rows], lag_ratio=0.15),
+                  run_time=1.4)
         self.wait(0.4)                                   # VO
         self._pulse(0, 0.7)                              # S — most useful
         self._pulse(self.tl.n - 1, 0.7)                 # F — least useful
@@ -83,19 +102,9 @@ class Scene06(HangmanScene):
     # e : swap every grade for its numerical position in the alphabet (S→19, A→1…)
     @subscene
     def numbers(self):
-        news = []
-        for i in range(self.tl.n):
-            new = tl.number_label(i).move_to(self.tl.cells[i])
-            news.append(new)
-        self.play(*[Transform(self.tl.labels[i], news[i])
-                    for i in range(self.tl.n)], run_time=0.9)
+        self._swap_labels(tl.number_label, 0.9)
 
     # f : swap to named tiers with up/down arrows
     @subscene
     def names(self):
-        news = []
-        for i in range(self.tl.n):
-            new = tl.name_label(i).move_to(self.tl.cells[i])
-            news.append(new)
-        self.play(*[Transform(self.tl.labels[i], news[i])
-                    for i in range(self.tl.n)], run_time=1.0)
+        self._swap_labels(tl.name_label, 1.0)
