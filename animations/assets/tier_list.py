@@ -42,6 +42,13 @@ NAME_LABELS   = [("TOP",  None),      # tier 0
 # user (the product; not derived here). One string per tier, top → bottom.
 TIER_LETTERS = ["EIA", "SR", "TNO", "LDC", "PUGMBH", "FYVKW", "XZJQ"]
 
+# Letter layout inside a panel: fixed slot pitch + edge buff. The default panel
+# width is sized so the FULLEST tier (most letters) sits with EQUAL left/right
+# margins (the letters fill a symmetric block; shorter tiers stay left-aligned).
+LETTER_PITCH = 0.82
+LETTER_BUFF  = 0.40
+_DEFAULT_PANEL_W = 2 * LETTER_BUFF + max(len(t) for t in TIER_LETTERS) * LETTER_PITCH
+
 # Classic S-tier rainbow (LIGHT_PALETTE ramp + a neutral grey for the last tier) —
 # used while the labels are the S,A,B,… GRADES.
 TIER_GREY   = ManimColor("#9AA0A6")
@@ -119,7 +126,7 @@ def name_label(i, *, height=0.34, color=LABEL_COLOR):
 
 
 # ── the tier list ─────────────────────────────────────────────────────────────
-def get_tier_list(labels="letter", *, center=ORIGIN, panel_width=10.2,
+def get_tier_list(labels="letter", *, center=ORIGIN, panel_width=_DEFAULT_PANEL_W,
                   cell_width=1.75, row_height=0.82, row_gap=0.10,
                   cell_gap=0.08, colors=None, dimmed=False):
     """A 7-row tier list: a coloured grade CELL on the left + a dark content
@@ -192,7 +199,8 @@ def letter_tile(ch, *, height=0.5, color=LETTER_COLOR):
                       weight=BOLD).set_height(height)
 
 
-def fill_tier(tl, i, letters=None, *, height=0.5, buff=0.4, pitch=0.72):
+def fill_tier(tl, i, letters=None, *, height=0.5, buff=LETTER_BUFF,
+              pitch=LETTER_PITCH):
     """Lay tier `i`'s `letters` (default: the sourced TIER_LETTERS[i]) left→right
     in its panel — each centred in a fixed `pitch`-wide slot so they stay evenly
     spaced regardless of glyph width — and add them to the tier's `.contents` (so
