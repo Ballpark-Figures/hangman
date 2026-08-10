@@ -16,9 +16,9 @@ Beats a–h (no script animation column for row 14 → mirrors 07 minus common-u
   b S intro     fill S into HIGH↑; tier list → top-left; copy of S → ↙
   c S heatmap   position-frequency heatmaps (Location Frequencies)
   d S ngram     add the n-gram view (Top N-grams)
-  e R intro     S's copy returns AS R fades in, then a copy of R → ↙
-  f R heatmap   heatmaps for R
-  g R ngram     add the n-gram view for R
+  e R intro     S's copy returns AS R fades in, then a copy of R → ↙ (views persist)
+  f R heatmap   MORPH the heatmap S→R in place (96-style), fade old n-gram out
+  g R ngram     rise R's n-gram content under the persistent title
   h close       fade everything out — ends blank
 
 Heatmap/ngram numbers come from the committed caches (letter_heat_data /
@@ -139,12 +139,25 @@ class Scene09(HangmanScene):
         self.play(FadeIn(self.ng_title),
                   self._rise(self.ngram, self.ngram.rows), run_time=run_time)
 
-    def _clear_views(self, run_time=0.6):
-        outs = [FadeOut(v) for v in (self.heat, self.loc_title, self.ngram,
-                                     self.ng_title) if v]
-        if outs:
-            self.play(*outs, run_time=run_time)
-        self.heat = self.loc_title = self.ngram = self.ng_title = None
+    def _morph_heat(self, ch, run_time):
+        """96's letter switch: MORPH the current heatmap into `ch`'s in place
+        (ReplacementTransform — the cells recolour, they don't disappear + come back)
+        and fade the old n-gram content out. Both titles persist."""
+        new = letter_heatmaps(ch, center=HEAT_CENTER)
+        anims = [ReplacementTransform(self.heat, new)]
+        if self.ngram is not None:
+            anims.append(FadeOut(self.ngram))
+        self.play(*anims, run_time=run_time)
+        self.heat, self.ngram = new, None
+
+    def _rise_ngram(self, ch, run_time):
+        """Rise `ch`'s n-gram content in under the (persistent) Top N-grams title —
+        the n-grams cross-fade letter to letter (their structure differs), as in 96."""
+        top_y = self.heat.heatmaps[0].get_top()[1]
+        bot_y = self.heat.heatmaps[-1].get_bottom()[1]
+        new = letter_ngrams(ch, center_x=NG_X, top_y=top_y, bottom_y=bot_y)
+        self.play(self._rise(new, new.rows), run_time=run_time)
+        self.ngram = new
 
     # ── beats ───────────────────────────────────────────────────────────────────
     # a : the named tier list (E/I/A filled) fades in, centred
@@ -175,21 +188,22 @@ class Scene09(HangmanScene):
         self._add_ngram("s", 0.8)
 
     # e : S's copy returns AS R fades in (together), then a copy of R moves ↙
+    #     (the heatmap + n-gram STAY on screen — they morph/cross-fade next)
     @subscene
     def r_intro(self):
-        self._clear_views()
         self._return_next(1, 0.9)
         self._send_copy_down(self.tier_tiles[1], 1.0)
 
-    # f : heatmaps for R
+    # f : morph the Location Frequencies heatmap S→R (cells recolour in place),
+    #     fading the old n-gram out
     @subscene
     def r_heat(self):
-        self._show_heat("r", 1.0)
+        self._morph_heat("r", 1.0)
 
-    # g : add the n-gram view for R
+    # g : rise R's n-gram content in under the persistent Top N-grams title
     @subscene
     def r_ngram(self):
-        self._add_ngram("r", 0.8)
+        self._rise_ngram("r", 0.8)
 
     # h : clear the whole screen for the next scene (ends blank)
     @subscene
