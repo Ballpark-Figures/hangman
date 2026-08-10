@@ -394,14 +394,8 @@ class Scene05(HangmanScene):
                       key=lambda o: (-_greedy_score(o), o["letter"]))
         cells = [self._diag_cell(1, o) for o in opts]
         grid = self._tile(cells, cols=GRID_COLS)
-        # d-style, two phases. (1) MOVE the A tree into every cell's slot — it shrinks to
-        # the small path top as it goes (the source fades so nothing lingers). (2) GROW
-        # the next level (the option subtree) out of each, once they're in place.
-        self.play(*[TransformFromCopy(self.a_tree, c[0]) for c in grid],
-                  FadeOut(self.a_tree), run_time=run_time * 0.5)
+        self._spread_and_grow(cells, self.a_tree, run_time)
         self.a_tree = None
-        self.play(*[GrowFromPoint(VGroup(c[1], c[2]), c[1].get_start()) for c in grid],
-                  run_time=run_time * 0.5)
         self.grid = grid
 
     # ── f : keep drilling — expand the top-left (greedy pick O) tree's all-miss leaf
@@ -414,16 +408,29 @@ class Scene05(HangmanScene):
         cells = [self._diag_cell(2, o) for o in opts]
         grid = self._tile(cells, cols=GRID_COLS)
         src = self.grid[0]                               # the top-left (A→O) tree from e
-        others = VGroup(*self.grid[1:])
-        # fade the trees we're removing, then d-style: (1) MOVE the top-left tree into
-        # every slot — its full O level shrinks into the A→O path as it goes; (2) GROW
-        # the next option subtree out of each, once in place.
-        self.play(FadeOut(others), run_time=0.5)
-        self.play(*[TransformFromCopy(src, c[0]) for c in grid],
-                  FadeOut(src), run_time=1.2)
-        self.play(*[GrowFromPoint(VGroup(c[1], c[2]), c[1].get_start()) for c in grid],
-                  run_time=1.2)
+        # fade EVERYTHING ELSE out first, then expand the top-left tree out in place
+        self.play(FadeOut(VGroup(*self.grid[1:])), run_time=0.6)
+        self._spread_and_grow(cells, src, 2.2)
         self.grid = grid
+
+    def _spread_and_grow(self, cells, source, run_time):
+        """d-style reveal, reusing the source tree. Each cell's TOP part (the tree so far
+        — identical to the source except the letter at the drilled node) is stacked onto
+        ``source``, then all spread OUT to their grid slots (the source is one of them, so
+        it MOVES, never fades); then the drilled node's children GROW. No morph, no delete-
+        and-re-add. tops = path + miss edge + drilled node; fans = that node's children."""
+        tops = [VGroup(c[0], c[1], c[2][0]) for c in cells]
+        fans = [c[2][1] for c in cells]
+        src_A = source[0][0]                             # the source's root (A) dot
+        for t in tops:
+            t.save_state()
+            t.scale(src_A.width / t[0][0].width)         # match the source's scale…
+            t.shift(src_A.get_center() - t[0][0].get_center())   # …and stack on it
+        self.remove(source)
+        self.add(*tops[:0:-1], tops[0])                  # greedy pick on top of the stack
+        self.play(*[Restore(t) for t in tops], run_time=run_time * 0.55)
+        self.play(*[GrowFromPoint(f, c[2][0].get_center()) for f, c in zip(fans, cells)],
+                  run_time=run_time * 0.45)
 
     # ── components ─────────────────────────────────────────────────────────────
     def _greedy_chart(self):
