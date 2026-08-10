@@ -63,12 +63,16 @@ def _miss_color(misses):
     return LIGHT_PALETTE[len(LIGHT_PALETTE) - misses]
 
 
-# ── beat d : the 4×7 grid of openers, each sprouting its next level ────────────
-GRID_ROWS, GRID_COLS = 4, 7
+# ── beat d : the 4×5 grid of (splitting) openers, each sprouting its next level.
+#    The 6 letters absent from every 2-letter word (c/j/k/q/v/z — a single miss
+#    child) are dropped, leaving 20. ─────────────────────────────────────────────
+GRID_ROWS, GRID_COLS = 4, 5
 GRID_NODE_R      = 0.16   # parent-node radius (natural; the whole grid is scaled to fit)
 GRID_CHILD_RF    = 0.68   # child radius as a fraction of the parent radius
-GRID_CHILD_DY    = 0.52   # parent → child vertical drop (natural units)
-GRID_CHILD_SPR   = 0.34   # child horizontal half-spread (natural units)
+GRID_CHILD_DY    = 0.55   # parent → child vertical drop (natural units)
+GRID_CHILD_SPR   = 0.52   # child horizontal half-spread (blanks sit under each child)
+GRID_BLANK_H     = 0.13   # blank-row height under a child (rule + revealed letter)
+GRID_MISS_H      = 0.14   # missed-letter height (red, below the blanks)
 GRID_W, GRID_H   = 15.4, 8.4       # box the arranged grid is fit into (near full frame)
 GRID_CENTER      = [0, 0, 0]
 
@@ -106,11 +110,29 @@ class Scene05(HangmanScene):
         self.play(*[Restore(b) for b in bars], *extra, run_time=run_time)
 
     # ── grid of openers (beat d) ──────────────────────────────────────────────
+    def _blanks(self, pattern, h=GRID_BLANK_H):
+        """A row of blanks (white rules) for a length-N pattern, each revealed HIT
+        letter written above its slot. Mirrors 92wintree_test._blanks."""
+        slot, gap = h * 0.9, h * 0.5
+        row = VGroup()
+        for ch in pattern:
+            rule = Line([-slot / 2, 0, 0], [slot / 2, 0, 0], color=CHALK,
+                        stroke_width=2.0)
+            cell = VGroup(rule)
+            if ch != "_":
+                t = crisp_text(ch.upper(), color=CHALK, weight=BOLD)
+                t.scale_to_fit_height(h).next_to(rule, UP, buff=h * 0.22)
+                cell.add(t)
+            row.add(cell)
+        row.arrange(RIGHT, buff=gap, aligned_edge=DOWN)
+        return row
+
     def _mini_tree(self, option):
         """One opener's mini-tree: the parent node (its letter) + a downward fan of
-        child nodes, one per situation the guess produces (its partition). The
-        absent ('____') branch is a miss → coloured; the hit branches stay white.
-        Returns VGroup(parent, fan) with `.parent` / `.fan` handles."""
+        child nodes, one per situation the guess produces (its partition). Under each
+        child sit the partially-filled blanks; the absent ('____') branch is a miss
+        → the missed opener letter goes in RED below its blanks. Returns
+        VGroup(parent, fan) with `.parent` / `.fan` handles."""
         r = GRID_NODE_R
         dot = Dot(ORIGIN, radius=r, color=_miss_color(0))
         lab = crisp_text(option["letter"].upper(), color=BOARD_NAVY, weight=BOLD)
@@ -128,12 +150,21 @@ class Scene05(HangmanScene):
             d = normalize(cpos - dot.get_center())
             fan.add(Line(dot.get_center() + d * r, cpos - d * cr,
                          color=_miss_color(miss), stroke_width=2.0), cdot)
+            blanks = self._blanks(pat).next_to(cdot, DOWN, buff=0.10)
+            fan.add(blanks)
+            if miss:                                     # the missed opener letter, in red
+                ml = crisp_text(option["letter"].upper(), color=LIGHT_RED, weight=BOLD)
+                ml.scale_to_fit_height(GRID_MISS_H).next_to(blanks, DOWN, buff=0.08)
+                fan.add(ml)
         mt = VGroup(parent, fan)
         mt.parent, mt.fan = parent, fan
         return mt
 
     def _setup_grid(self):
-        opts = sorted(DATA["tree"]["options"], key=lambda o: o["letter"])   # A–Z
+        # only the letters that actually SPLIT (appear in some 2-letter word); the 6
+        # always-miss letters (c/j/k/q/v/z) are dropped → 20 openers, a clean 4×5.
+        opts = sorted((o for o in DATA["tree"]["options"] if o["splits"]),
+                      key=lambda o: o["letter"])
         cells = VGroup(*[self._mini_tree(o) for o in opts])
         cells.arrange_in_grid(rows=GRID_ROWS, cols=GRID_COLS, flow_order="rd",
                               buff=(0.5, 0.7))
