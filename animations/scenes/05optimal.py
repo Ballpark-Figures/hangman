@@ -6,9 +6,11 @@ game — the 49 length-2 words — try every first letter, expand every situatio
 recurse to the bottom, count the average misses, then back the values up the tree.
 It closes with a greedy-vs-optimal comparison across all word lengths.
 
-Runs on the NAVY chalkboard background (scene 04 ends by expanding the board to
-navy). Decision nodes are the shared `tree_view` graph nodes (blue `ACCENT_FILL`
-circle + white letter); board text is the chalk (written) font.
+Runs on the NAVY background (scene 04 ends by expanding the board to navy). This is
+NOT the chalkboard, so text is `crisp_text` and charts are FILLED (no chalk font, no
+line-outline bars — see hangman CLAUDE.md). Decision nodes use the INTRO tree styling
+(a `Dot` coloured by miss-count with the guess letter knocked out in `BOARD_NAVY` —
+mirrors `92wintree_test._node_marker`), NOT `tree_view`'s solid-circle nodes.
 
 All numbers are SOURCED from `assets/tree2_data.py` (committed `tree2_cache.json`,
 the annotated length-2 optimal tree from `optimal.annotated_tree`) and, for the
@@ -35,45 +37,30 @@ sys.path.append(str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from config import *
 from bpkfigures.bar_graph import get_bar_chart
-from assets.chalkboard import CHALK, BOARD_NAVY, chalk_letter
-from assets import tree_view as tv
+from assets.chalkboard import CHALK, BOARD_NAVY
 from assets import tree2_data
 from assets import greedy_data
 
 DATA = tree2_data.get()
 GDATA = greedy_data.get()
 
-# ── recap chart (beat a) — light bars on navy, chalk labels ───────────────────
+# ── recap chart (beat a) — crisp labels + FILLED bars on navy (NOT chalk / not
+#    line-outline: navy is not the chalkboard — see hangman CLAUDE.md) ───────────
 CHART_COLOR = LIGHT_BLUE
 
-# ── decision node (beats b–c) ─────────────────────────────────────────────────
-NODE_R_ROOT = 0.9         # radius of the lone root node at centre
-LETTER_HFRAC = 0.8        # letter height as a fraction of node radius (matches tree_view)
+# ── decision nodes (intro tree styling: a Dot coloured by miss-count with the
+#    guess letter knocked out in navy; mirrors 92wintree_test._node_marker) ──────
+NODE_R_ROOT   = 0.5       # lone root node at full frame (≈ the intro's on-screen root:
+                          # DOT_R_ROOT/CAM_W_START × frame width ≈ 0.09/3 × 16)
+NODE_LETTER_H = 1.3       # guess-letter height as a multiple of node radius (intro)
 
 
-# NOTE: `_chalk_num` / `_chalk_phrase` mirror scene 04's chart helpers so beat a
-# renders identically to scene 04's avg chart. The chart itself DUPLICATES scene
-# 04's `_avg_chart`; it will be unified into a shared helper when Part C builds the
-# paired greedy-vs-optimal chart (which extends the same `bar_graph` asset).
-def _chalk_phrase(text, *, height=0.4, stroke_width=3.2, buff=0.10, space=0.34,
-                  color=CHALK):
-    grp = VGroup()
-    x = 0.0
-    for ch in text.upper():
-        if ch == " ":
-            x += space
-            continue
-        L = chalk_letter(ch, height=height, stroke_width=stroke_width, color=color)
-        L.move_to([x + L.width / 2, 0, 0])
-        grp.add(L)
-        x += L.width + buff
-    grp.move_to(ORIGIN)
-    return grp
-
-
-def _chalk_num(n, *, height, stroke_width=2.6, color=CHALK):
-    return _chalk_phrase(str(n), height=height, stroke_width=stroke_width,
-                         buff=0.06, color=color)
+def _miss_color(misses):
+    """Node/edge colour by miss-count: 0 = CHALK (white), then 1→purple … 6→red
+    (LIGHT_PALETTE reversed). Mirrors 92wintree_test._miss_color."""
+    if misses <= 0:
+        return CHALK
+    return LIGHT_PALETTE[len(LIGHT_PALETTE) - misses]
 
 
 class Scene05(HangmanScene):
@@ -89,14 +76,14 @@ class Scene05(HangmanScene):
         # navy from frame 0 (scene 04 handed off on navy); nothing else on screen
         self.camera.background_color = BOARD_NAVY
 
-    # ── shared node builder ───────────────────────────────────────────────────
-    def _node_circle(self, center, r=NODE_R_ROOT):
-        return Circle(radius=r, color=ACCENT_FILL, fill_opacity=1.0,
-                      stroke_width=2.5).move_to(center)
+    # ── shared node builder (intro styling) ───────────────────────────────────
+    def _node_dot(self, center, r=NODE_R_ROOT, *, misses=0):
+        return Dot(center, radius=r, color=_miss_color(misses), z_index=2)
 
-    def _node_letter(self, ch, circ):
-        lab = crisp_text(ch.upper(), color=WHITE, weight=BOLD)
-        lab.scale_to_fit_height(circ.radius * LETTER_HFRAC).move_to(circ)
+    def _node_letter(self, ch, node):
+        lab = crisp_text(ch.upper(), color=BOARD_NAVY, weight=BOLD)
+        lab.scale_to_fit_height(NODE_LETTER_H * node.radius).move_to(node)
+        lab.set_z_index(3)
         return lab
 
     # ── a : recap the greedy avg-misses-by-length chart (from scene 04) ────────
@@ -104,7 +91,7 @@ class Scene05(HangmanScene):
     def greedy_chart(self):
         self.chart = self._greedy_chart()
         self.play(FadeIn(self.chart.axes), FadeIn(self.chart.labels),
-                  FadeIn(self.chart.yticks), FadeIn(self.chart.title),
+                  FadeIn(self.chart.yticks),
                   *[Create(b) for b in self.chart.bars], run_time=1.8)
 
     # ── b : the root decision node appears centre (the top of the tree) ────────
@@ -112,7 +99,7 @@ class Scene05(HangmanScene):
     def root_node(self):
         self.play(FadeOut(self.chart), run_time=0.6)
         self.chart = None
-        self.node = self._node_circle(ORIGIN)
+        self.node = self._node_dot(ORIGIN)
         self.node_letter = self._node_letter("a", self.node)
         self.play(GrowFromCenter(self.node), run_time=0.7)
         self.play(FadeIn(self.node_letter), run_time=0.3)
@@ -127,22 +114,20 @@ class Scene05(HangmanScene):
 
     # ── components ─────────────────────────────────────────────────────────────
     def _greedy_chart(self):
-        """Greedy avg misses by word length, on the SHARED `get_bar_chart` (chalk
-        labels, y_max=7). DUPLICATES scene 04's `_avg_chart` — see module note."""
+        """Greedy avg misses by word length. Non-chalkboard scene → crisp labels +
+        FILLED bars (see hangman CLAUDE.md: chalk font / line-outline graphs are
+        chalkboard-only). Same shared `get_bar_chart`, light ink for the navy bg.
+        (Part C will fold this into the paired greedy-vs-optimal chart.)"""
         data = GDATA["avg_misses_by_length"]
         lengths = sorted(int(k) for k in data)
         items = [(L, data[str(L)]["avg_misses"]) for L in lengths]
         chart = get_bar_chart(
             items, center=[0, 0, 0], width=12.0, height=4.2, y_max=7,
-            bar_color=CHART_COLOR, ink_color=CHALK, bar_ratio=0.75,
-            bar_stroke_width=4, bar_outline="open",
-            label_factory=lambda L: _chalk_num(L, height=0.24), label_buff=0.20,
+            bar_color=CHART_COLOR, ink_color=WHITE, bar_ratio=0.75,
             x_axis=True, y_axis=True,
             y_ticks=range(0, 8, 2),
-            y_tick_factory=lambda t: _chalk_num(t, height=0.22),
-            title_mobject=_chalk_phrase("Average Misses by Word Length", height=0.38),
-            title_buff=0.5,
-        )
+        )   # no title — not called for by the script (and get_bar_chart's title
+            # wraps here; revisit when Part C builds the paired chart)
         chart.shift([0, -chart.get_center()[1], 0])
         chart.axes = VGroup(chart.x_axis, chart.y_axis)
         return chart

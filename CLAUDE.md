@@ -110,6 +110,24 @@ greedy, greedy_word, best_opener, best_opener_word):
   Use `crisp_text` on the chalkboard ONLY when explicitly asked. (This is why a
   chalkboard bar chart uses `get_bar_chart` with chalk factories, not `get_histogram`,
   which is `crisp_text`-only.)
+- **Chalk font AND line-drawn/outline graphs are ONLY for the CHALKBOARD.** The chalk
+  strokes (`chalk_*`) and the "made out of lines" chart look (`bar_outline="open"`/
+  `"closed"`, no fill) belong to the framed-chalkboard scenes (02/03/04/94). On a
+  NON-chalkboard background — the navy tree scenes (the intro `01`, `05optimal`, the
+  `92/95/98` tree scenes) — use `crisp_text` and FILLED shapes instead: `crisp_text`
+  labels/titles (light ink, e.g. `WHITE`) and solid-fill bars (`get_bar_chart` with no
+  `bar_outline`). So a chart RECAPPED from a chalkboard scene onto navy is re-rendered
+  crisp + filled, not chalk. (Navy is the board's slate colour, but a bare navy scene is
+  NOT the chalkboard.)
+- **TREE styling = the INTRO's, not `tree_view`'s big circles.** The decision-tree scenes
+  (`01`, `05optimal`) render a node as a `Dot` COLOURED BY MISS-COUNT (0 misses = `CHALK`
+  off-white, then `LIGHT_PALETTE` reversed 1→purple … 6→red) with the guess letter in
+  `crisp_text` **`color=BOARD_NAVY`** (knocked out of the disc), bold, height
+  `NODE_LETTER_H`×radius; edges are `Line`s coloured by the child node's miss-count. The
+  canonical builders are `92wintree_test.py`'s `_miss_color` / `_node_marker` (layout +
+  camera-dive) — currently inlined/copied in `01`, so a shared `tree_view` extraction is a
+  promote-candidate (ASK first). Do NOT use `tree_view.guess_node`'s solid `ACCENT_FILL`
+  circle + white letter for these scenes — that's the *other* tree style (95/98's walk).
 - **Win/loss recolour tints the WHOLE board** — revealed letters, the blanks, the miss
   row, AND the gallows (`self.hang` includes it) → green on a win, red on a loss.
 
