@@ -172,6 +172,7 @@ class Scene05(HangmanScene):
         lab.scale_to_fit_height(NODE_LETTER_H * r).move_to(dot)
         parent = VGroup(dot, lab)
         fan = VGroup()
+        kid = {}                                          # pattern -> branch (role handles)
         pats = list(option["subtree"]["branches"].keys())
         xs = np.linspace(-GRID_CHILD_SPR, GRID_CHILD_SPR, len(pats)) if len(pats) > 1 \
             else [0.0]
@@ -193,14 +194,18 @@ class Scene05(HangmanScene):
             # the running missed-letter tally (red) under EVERY blank below a miss: the
             # path misses so far (e.g. A), plus this letter if THIS branch also missed
             tally = (missed or []) + ([option["letter"].upper()] if miss else [])
+            row = None
             if tally:
                 row = self._miss_row(tally)
                 row.next_to(blanks, DOWN, buff=0.09).set_x(blanks.get_x())
                 branch.add(row)
-            branch.edge, branch.dot, branch.blanks = edge, cdot, blanks
+            branch.edge, branch.dot, branch.blanks, branch.missrow = edge, cdot, blanks, row
+            branch.pat, branch.miss = pat, miss
+            kid[pat] = branch
             fan.add(branch)
         mt = VGroup(parent, fan)
         mt.parent, mt.fan = parent, fan
+        mt.gdot, mt.glab, mt.kid = dot, lab, kid   # role handles for the transform
         return mt
 
     def _tile(self, cells, *, rows=None, cols=None, w=GRID_W, h=GRID_H, center=None):
@@ -243,6 +248,7 @@ class Scene05(HangmanScene):
         r = GRID_NODE_R
         node = DATA["tree"]
         grp = VGroup()
+        levels = []                                       # role handles, one per guess
         A_pos = pos = np.array([0.0, 0.0, 0.0])
         prev_dot = last_dot = None
         for i in range(depth):
@@ -250,22 +256,29 @@ class Scene05(HangmanScene):
             lab = crisp_text(node["optimal_letter"].upper(), color=BOARD_NAVY, weight=BOLD)
             lab.scale_to_fit_height(NODE_LETTER_H * r).move_to(dot)
             grp.add(dot, lab)
+            in_edge = None
             if prev_dot is not None:
                 dn = normalize(pos - prev_dot.get_center())
-                grp.add(Line(prev_dot.get_center() + dn * r, pos - dn * r,
-                             color=LIGHT_RED, stroke_width=2.0))
-            hits = [p for p in node["children"] if set(p) != {"_"}]   # hit siblings, no blanks
-            for j, _ in enumerate(hits):
+                in_edge = Line(prev_dot.get_center() + dn * r, pos - dn * r,
+                               color=LIGHT_RED, stroke_width=2.0)
+                grp.add(in_edge)
+            hitpats = [p for p in node["children"] if set(p) != {"_"}]  # hit siblings, no blanks
+            hits = []
+            for j, _ in enumerate(hitpats):
                 hpos = pos + np.array([GRID_CHILD_SPR * (j + 1), -GRID_CHILD_DY, 0.0])
                 hdot = Dot(hpos, radius=r * GRID_CHILD_RF, color=_miss_color(0))
                 dn = normalize(hpos - pos)
-                grp.add(Line(pos + dn * r, hpos - dn * r * GRID_CHILD_RF,
-                             color=CHALK, stroke_width=2.0), hdot)
+                hedge = Line(pos + dn * r, hpos - dn * r * GRID_CHILD_RF,
+                             color=CHALK, stroke_width=2.0)
+                grp.add(hedge, hdot)
+                hits.append((hedge, hdot))
+            levels.append({"dot": dot, "lab": lab, "in_edge": in_edge, "hits": hits})
             prev_dot = last_dot = dot
             pos = pos + np.array([-GRID_CHILD_SPR, -GRID_CHILD_DY, 0.0])   # miss → down-left
             node = node["children"]["__"]
         anchor = A_pos + (pos - A_pos) * PATH_SCALE
         grp.scale(PATH_SCALE, about_point=A_pos)
+        grp.levels = levels
         return grp, anchor, last_dot
 
     def _diag_cell(self, depth, option):
@@ -283,7 +296,61 @@ class Scene05(HangmanScene):
         edge = Line(last_dot.get_center() + dn * (GRID_NODE_R * PATH_SCALE),
                     sub[0][0].get_center() - dn * GRID_NODE_R,
                     color=LIGHT_RED, stroke_width=2.0)
-        return VGroup(path, edge, sub)
+        cell = VGroup(path, edge, sub)
+        cell.path, cell.drilled_edge, cell.sub = path, edge, sub   # role handles
+        return cell
+
+    # ── piece-by-piece transform of the on-screen tree into the option grid ────────
+    def _source_pieces(self, tree):
+        """Pieces of the CURRENT on-screen tree, by role, for pairing: the guess levels
+        it already has (A, or A→O), the FRONTIER leaf (the all-miss node that will be
+        drilled), that leaf's incoming edge, and the extra text to fade (blanks/tallies).
+        Handles both the `_mini_tree` A-opener (beat e's source) and a `_diag_cell`
+        (beat f's source, whose drilled node becomes a path level)."""
+        if hasattr(tree, "path"):                         # a _diag_cell used as source
+            levels = list(tree.path.levels)
+            sub, in_edge = tree.sub, tree.drilled_edge
+        else:                                             # the _mini_tree A-opener
+            levels, sub, in_edge = [], tree, None
+        hitpats = [p for p in sub.kid if set(p) != {"_"}]
+        levels = levels + [{"dot": sub.gdot, "lab": sub.glab, "in_edge": in_edge,
+                            "hits": [(sub.kid[p].edge, sub.kid[p].dot) for p in hitpats]}]
+        miss = sub.kid["__"]
+        extra = [miss.blanks] + ([miss.missrow] if miss.missrow else []) \
+            + [sub.kid[p].blanks for p in hitpats]
+        return levels, miss.dot, miss.edge, extra
+
+    def _target_pieces(self, cell):
+        """Pieces of a TARGET `_diag_cell`, by role: the path levels, the edge to the
+        drilled node, its dot + (new) letter, and its children (grown after the move)."""
+        return (cell.path.levels, cell.drilled_edge, cell.sub.gdot, cell.sub.glab,
+                cell.sub.fan)
+
+    def _transform_into(self, source, cells, run_time):
+        """Move each node/edge of ``source`` to its counterpart in every ``cells`` grid
+        cell (the original becomes the top-left one; copies become the rest), fading the
+        extra text out DURING the move; THEN grow each drilled node's letter + children.
+        Piece-by-piece, so nothing morphs as a blob or is switched out."""
+        s_levels, s_fdot, s_fedge, s_extra = self._source_pieces(source)
+        move, fade_in, grow = [], [], []
+        for k, cell in enumerate(cells):
+            t_levels, t_dedge, t_ddot, t_dlab, t_kids = self._target_pieces(cell)
+            pairs = []
+            for sl, tl in zip(s_levels, t_levels):        # same length by construction
+                pairs += [(sl["dot"], tl["dot"]), (sl["lab"], tl["lab"])]
+                if sl["in_edge"] is not None and tl["in_edge"] is not None:
+                    pairs.append((sl["in_edge"], tl["in_edge"]))
+                for (se, sd), (te, td) in zip(sl["hits"], tl["hits"]):
+                    pairs += [(se, te), (sd, td)]
+            pairs += [(s_fedge, t_dedge), (s_fdot, t_ddot)]
+            xf = ReplacementTransform if k == 0 else lambda a, b: TransformFromCopy(a, b)
+            move += [xf(a, b) for a, b in pairs]
+            fade_in.append(FadeIn(t_dlab))
+            grow.append(GrowFromPoint(t_kids, t_ddot.get_center()))
+        self.play(*move, *[FadeOut(x) for x in s_extra], run_time=run_time * 0.6)
+        self.play(*fade_in, *grow, run_time=run_time * 0.4)
+        self.clear()                                      # drop the transform's stray copies…
+        self.add(*cells)                                  # …and re-track clean cell groups
 
     def _setup_grid(self):
         # only the letters that actually SPLIT (appear in some 2-letter word); the 6
@@ -394,14 +461,13 @@ class Scene05(HangmanScene):
         opts = sorted((o for o in self._n_miss_node(1)["options"] if o["splits"]),
                       key=lambda o: (-_greedy_score(o), o["letter"]))
         cells = [self._diag_cell(1, o) for o in opts]
-        grid = self._tile(cells, cols=GRID_COLS)
-        # TRANSFORM the A tree into the cells: the original becomes the top-left one,
-        # copies of it become the rest — reused, not switched out or left behind.
-        self.play(ReplacementTransform(self.a_tree, cells[0]),
-                  *[TransformFromCopy(self.a_tree, cells[i])
-                    for i in range(1, len(cells))], run_time=run_time)
+        self._tile(cells, cols=GRID_COLS)
+        # piece-by-piece: move each of the A tree's nodes/edges to its counterpart in
+        # every cell (original → top-left, copies → the rest), fade the extra text, then
+        # grow each drilled node's letter + children.
+        self._transform_into(self.a_tree, cells, run_time)
         self.a_tree = None
-        self.grid = grid
+        self.grid = VGroup(*cells)
 
     # ── f : keep drilling — expand the top-left (greedy pick O) tree's all-miss leaf
     #        into the next grid, each cell now rooted along the path A→O (depth 2),
@@ -411,15 +477,13 @@ class Scene05(HangmanScene):
         opts = sorted((o for o in self._n_miss_node(2)["options"] if o["splits"]),
                       key=lambda o: (-_greedy_score(o), o["letter"]))
         cells = [self._diag_cell(2, o) for o in opts]
-        grid = self._tile(cells, cols=GRID_COLS)
+        self._tile(cells, cols=GRID_COLS)
         src = self.grid[0]                               # the top-left (A→O) tree from e
-        # fade EVERYTHING ELSE out first, then TRANSFORM the top-left tree into the cells
-        # (it becomes the top-left one, copies become the rest — reused, no leftover)
+        # fade everything else out first, then piece-by-piece transform the top-left tree
+        # into the cells (O shrinks into the path, O-miss becomes each new drilled node)
         self.play(FadeOut(VGroup(*self.grid[1:])), run_time=0.6)
-        self.play(ReplacementTransform(src, cells[0]),
-                  *[TransformFromCopy(src, cells[i])
-                    for i in range(1, len(cells))], run_time=2.0)
-        self.grid = grid
+        self._transform_into(src, cells, 2.2)
+        self.grid = VGroup(*cells)
 
     # ── components ─────────────────────────────────────────────────────────────
     def _greedy_chart(self):
