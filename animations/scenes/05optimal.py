@@ -29,8 +29,9 @@ Script row 05, split on '—' (voiceover ↔ animation zip 1:1). BEAT MAP:
   b root_node     — one decision node appears centre (the top of the tree)
   c cycle_letters — cycle every letter A–Z through the node (which opener is best?)
   d grid_spread   — 20 openers into a 4×5 grid; each sprouts its next level (blanks + miss)
+  e a_dive        — bring A to centre; walk-highlight its children (node+edge gold); focus leftmost
   --- next sections (not yet built) ---
-  e … the A-case dive, back-up/solve, dedup + prune, paired greedy-vs-optimal chart
+  f … expand the leftmost child into an option grid; count/back-up; dedup + prune; paired chart
 
 Render:  render 05a --fast  (…05c)   /   render 05 sub  for the whole scene
 
@@ -158,17 +159,21 @@ class Scene05(HangmanScene):
             cpos = np.array([x, -GRID_CHILD_DY, 0.0])
             cdot = Dot(cpos, radius=cr, color=_miss_color(miss))
             d = normalize(cpos - dot.get_center())
-            fan.add(Line(dot.get_center() + d * r, cpos - d * cr,
-                         color=_miss_color(miss), stroke_width=2.0), cdot)
+            edge = Line(dot.get_center() + d * r, cpos - d * cr,
+                        color=_miss_color(miss), stroke_width=2.0)
             # align by the RULE baseline (blanks' bottom), so filled and empty blanks
             # sit at the SAME height whether or not a letter is written above them
             blanks = self._blanks(pat).set_x(cpos[0])
             blanks.shift([0, (cpos[1] - GRID_BLANK_DROP) - blanks.get_bottom()[1], 0])
-            fan.add(blanks)
+            # each child is a BRANCH sub-group [0]=edge [1]=dot [2]=blanks [3]=miss letter,
+            # so a later beat can recolour / drop a single branch by index
+            branch = VGroup(edge, cdot, blanks)
             if miss:                                     # the missed opener letter, in red
                 ml = crisp_text(option["letter"].upper(), color=LIGHT_RED, weight=BOLD)
                 ml.scale_to_fit_height(GRID_MISS_H).next_to(blanks, DOWN, buff=0.09)
-                fan.add(ml)
+                branch.add(ml)
+            branch.edge, branch.dot, branch.blanks = edge, cdot, blanks
+            fan.add(branch)
         mt = VGroup(parent, fan)
         mt.parent, mt.fan = parent, fan
         return mt
@@ -244,6 +249,42 @@ class Scene05(HangmanScene):
         # phase 2: every opener sprouts its next level at once (its partition)
         self.play(*[GrowFromPoint(mt.fan, mt.parent.get_center()) for mt in self.grid],
                   run_time=1.4)
+
+    # ── e : bring the A case to centre, walk-highlight its children (node + incoming
+    #        edge → gold), then settle on the leftmost (the A-miss situation) ────────
+    @subscene
+    def a_dive(self):
+        self._e_isolate_a(1.2)
+        self._e_walk_children(2.4)      # total for the walk (split across the children)
+        self._e_focus_leftmost(0.6)
+
+    def _e_isolate_a(self, run_time):
+        a = self.grid[0]                                 # 'A' — sorted first, top-left cell
+        self.play(FadeOut(VGroup(*self.grid[1:])),
+                  a.animate.scale_to_fit_height(4.2).move_to(ORIGIN),
+                  run_time=run_time)
+        self.a_tree = a
+        self.grid = None
+
+    def _e_walk_children(self, run_time):
+        # highlight each child (its dot + incoming edge → gold), one at a time, restoring
+        # to its own colour before moving on. fan = a[1]; branch = [edge, dot, ...].
+        fan = self.a_tree[1]
+        per = run_time / len(fan)
+        for br in fan:
+            edge, dot = br[0], br[1]
+            oe, od = edge.get_color(), dot.get_color()
+            self.play(edge.animate.set_color(ACCENT_GOLD),
+                      dot.animate.set_color(ACCENT_GOLD), run_time=per * 0.35)
+            self.wait(per * 0.30)
+            self.play(edge.animate.set_color(oe), dot.animate.set_color(od),
+                      run_time=per * 0.35)
+
+    def _e_focus_leftmost(self, run_time):
+        # go back to the leftmost child (the A-miss node) and LEAVE it gold
+        br = self.a_tree[1][0]
+        self.play(br[0].animate.set_color(ACCENT_GOLD),
+                  br[1].animate.set_color(ACCENT_GOLD), run_time=run_time)
 
     # ── components ─────────────────────────────────────────────────────────────
     def _greedy_chart(self):
