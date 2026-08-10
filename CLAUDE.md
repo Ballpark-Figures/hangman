@@ -20,6 +20,18 @@ loading" for the full cross-machine debugging history.
   the next body part), not a contradiction. (Bit us on scene 02: read the miss "fill
   in"s as blank-fills and misread the whole win/loss structure — the markdown DID encode
   it. Word there is BALLPARK; the non-ballpark letters e/i/o/t/n/d are the losing misses.)
+- **"Common uses" view (scenes 07 + the tier scenes 13-21) = a list of GAME STATES in
+  which the strategy's NEXT guess is the letter in question** — each row is a blanked
+  word + a gallows (body parts = misses so far) + the missed-letter tally below it,
+  representing the board at the moment that letter gets guessed. For a letter that is a
+  BEST FIRST GUESS (E len 5-11, I len 12-20, A len 1-4 — the top tier), the state is a
+  fresh game, so the row is LITERALLY a blank word (all underscores of that length) + an
+  EMPTY gallows (no body parts, no misses). A consonant guessed only AFTER misses shows a
+  partially-revealed board + hung body parts + a miss row. The example WORD behind a blank
+  row is invisible (a blank board of length N is just N underscores); the sourced fact is
+  the LENGTH RANGE each top-tier letter owns as the best first guess (partitions 1-20),
+  cross-checked against `letter_analysis.ipynb`'s first-guess-by-length. Built via
+  `assets/hangman_board.py` (brand-bg / ACCENT_FILL board — NOT the chalk `game_board.py`).
 
 ## Math / data
 - `math/data/wordlist_master.txt` — the curated frequency wordlist
