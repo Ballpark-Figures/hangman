@@ -9,8 +9,11 @@ revealed board + its red missed letters.
 
 Brand light-blue world (crisp_text + ACCENT_FILL board): built on `hangman_board.py`
 (blanked_board / missed_letters), NOT the chalk `game_board.py`. Rows are left-
-aligned (board left edges line up, like the heatmap stack) with the length label to
-the left of each.
+aligned (board left edges line up, like the heatmap stack) and sit on a common rule
+BASELINE, so blank and lettered rows align and letters grow upward. The length label
+(and any misses) align to the LETTER band — level with where a revealed letter sits,
+not the middle of the blanks — so the numbers read correctly once later tiers fill in
+some blanks.
 
 A spec is (length,) for a blank first-guess row, or (length, board, missed) to pin
 a partially-played state: `board` a pattern string ("_a__t_"), `missed` an iterable
@@ -43,13 +46,24 @@ def _spec(s):
     return length, pattern, list(missed)
 
 
-def _row(spec, *, slot, gap, board_fs, miss_fs, miss_buff):
+def _letter_cy(slot, gap, board_fs):
+    """Vertical offset from a board's baseline (the rule line) up to a REVEALED
+    letter's centre. Labels + misses align to THIS (where letters sit), not to the
+    middle of the blanks — so a length number reads level with a filled-in letter,
+    and blank vs lettered rows line up on a common baseline. Measured off a real
+    revealed cell (no magic buff duplicated from hangman_board)."""
+    ref = blanked_board("A", slot=slot, gap=gap, font_size=board_fs)
+    return ref[0][1].get_center()[1] - ref.get_bottom()[1]
+
+
+def _row(spec, *, slot, gap, board_fs, miss_fs, miss_buff, letter_cy):
     length, pattern, missed = _spec(spec)
     brd = blanked_board(pattern, slot=slot, gap=gap, font_size=board_fs)
     row = VGroup(brd)
     if missed:
         miss = missed_letters(missed, font_size=miss_fs)
         miss.next_to(brd, RIGHT, buff=miss_buff)
+        miss.set_y(brd.get_bottom()[1] + letter_cy)     # align with the letters
         row.add(miss)
     row.brd, row.length = brd, length
     return row
@@ -60,17 +74,21 @@ def common_uses(rows, *, board_left_x=0.0, center_y=0.0, row_pitch=ROW_PITCH,
                 label_buff=LABEL_BUFF, miss_fs=MISS_FS, miss_buff=MISS_BUFF):
     """Build the vertical common-uses list for `rows` (each a spec, top→bottom).
     The board LEFT edges align at `board_left_x` (so lists of different word lengths
-    all start at the same x, no matter how wide the widest row is); the stack is
-    centred vertically on `center_y`. Length label to the left of each; misses to
-    the right in red. Returns a VGroup with `.rows` (top→bottom) and `.labels`."""
+    all start at the same x); rows sit on a common RULE BASELINE (pitch = baseline to
+    baseline), so blank and lettered rows line up and letters grow upward. The length
+    label + any misses align to the LETTER band (not the blanks). Stack centred
+    vertically on `center_y`. Returns a VGroup with `.rows` (top→bottom) + `.labels`."""
+    off = _letter_cy(slot, gap, board_fs)
     built = [_row(s, slot=slot, gap=gap, board_fs=board_fs, miss_fs=miss_fs,
-                  miss_buff=miss_buff) for s in rows]
+                  miss_buff=miss_buff, letter_cy=off) for s in rows]
 
     group, rowgrp, labels = VGroup(), VGroup(), VGroup()
     for i, row in enumerate(built):
-        row.shift([-row.brd.get_left()[0], -i * row_pitch - row.brd.get_center()[1], 0])
+        # anchor by the rule baseline (get_bottom) so rows align regardless of letters
+        row.shift([-row.brd.get_left()[0], -i * row_pitch - row.brd.get_bottom()[1], 0])
         lab = crisp_text(str(row.length), font_size=label_fs, color=BLACK)
         lab.next_to(row.brd, LEFT, buff=label_buff)
+        lab.set_y(row.brd.get_bottom()[1] + off)         # align number with letters
         rowgrp.add(row)
         labels.add(lab)
         group.add(lab, row)
