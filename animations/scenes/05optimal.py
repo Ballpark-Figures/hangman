@@ -63,6 +63,16 @@ def _miss_color(misses):
     return LIGHT_PALETTE[len(LIGHT_PALETTE) - misses]
 
 
+# ── beat d : the 4×7 grid of openers, each sprouting its next level ────────────
+GRID_ROWS, GRID_COLS = 4, 7
+GRID_NODE_R      = 0.16   # parent-node radius (natural; the whole grid is scaled to fit)
+GRID_CHILD_RF    = 0.68   # child radius as a fraction of the parent radius
+GRID_CHILD_DY    = 0.52   # parent → child vertical drop (natural units)
+GRID_CHILD_SPR   = 0.34   # child horizontal half-spread (natural units)
+GRID_W, GRID_H   = 14.0, 6.8       # box the arranged grid is fit into
+GRID_CENTER      = [0, -0.2, 0]
+
+
 class Scene05(HangmanScene):
     """Optimal strategy as a search on the length-2 tree.
 
@@ -70,6 +80,7 @@ class Scene05(HangmanScene):
       greedy_chart  — a: recap greedy avg-misses-by-length chart
       root_node     — b: the root decision node appears at centre
       cycle_letters — c: cycle every letter A–Z through the node
+      grid_spread   — d: 28 → 4×7 grid; each opener sprouts its next level
     """
 
     def setup_scene(self):
@@ -93,6 +104,44 @@ class Scene05(HangmanScene):
             b.save_state()
             b.stretch(1e-3, dim=1, about_edge=DOWN)
         self.play(*[Restore(b) for b in bars], *extra, run_time=run_time)
+
+    # ── grid of openers (beat d) ──────────────────────────────────────────────
+    def _mini_tree(self, option):
+        """One opener's mini-tree: the parent node (its letter) + a downward fan of
+        child nodes, one per situation the guess produces (its partition). The
+        absent ('____') branch is a miss → coloured; the hit branches stay white.
+        Returns VGroup(parent, fan) with `.parent` / `.fan` handles."""
+        r = GRID_NODE_R
+        dot = Dot(ORIGIN, radius=r, color=_miss_color(0))
+        lab = crisp_text(option["letter"].upper(), color=BOARD_NAVY, weight=BOLD)
+        lab.scale_to_fit_height(NODE_LETTER_H * r).move_to(dot)
+        parent = VGroup(dot, lab)
+        fan = VGroup()
+        pats = list(option["subtree"]["branches"].keys())
+        xs = np.linspace(-GRID_CHILD_SPR, GRID_CHILD_SPR, len(pats)) if len(pats) > 1 \
+            else [0.0]
+        cr = r * GRID_CHILD_RF
+        for pat, x in zip(pats, xs):
+            miss = 1 if set(pat) == {"_"} else 0        # all-blank branch = a miss
+            cpos = np.array([x, -GRID_CHILD_DY, 0.0])
+            cdot = Dot(cpos, radius=cr, color=_miss_color(miss))
+            d = normalize(cpos - dot.get_center())
+            fan.add(Line(dot.get_center() + d * r, cpos - d * cr,
+                         color=_miss_color(miss), stroke_width=2.0), cdot)
+        mt = VGroup(parent, fan)
+        mt.parent, mt.fan = parent, fan
+        return mt
+
+    def _setup_grid(self):
+        opts = sorted(DATA["tree"]["options"], key=lambda o: o["letter"])   # A–Z
+        cells = VGroup(*[self._mini_tree(o) for o in opts])
+        cells.arrange_in_grid(rows=GRID_ROWS, cols=GRID_COLS, flow_order="rd",
+                              buff=(0.5, 0.7))
+        cells.scale_to_fit_width(GRID_W)
+        if cells.height > GRID_H:
+            cells.scale_to_fit_height(GRID_H)
+        cells.move_to(GRID_CENTER)
+        self.grid = cells
 
     # ── a : recap the greedy avg-misses-by-length chart (from scene 04) ────────
     @subscene
@@ -127,6 +176,26 @@ class Scene05(HangmanScene):
         for ch in "bcdefghijklmnopqrstuvwxyza":
             self.play(Transform(self.node_letter, self._node_letter(ch, self.node)),
                       run_time=0.09)
+
+    # ── d : spread 28 copies into a 4×7 grid, then each opener sprouts its next
+    #        level (try every first letter, see every situation) ─────────────────
+    @subscene
+    def grid_spread(self):
+        self._setup_grid()
+        center = VGroup(self.node, self.node_letter)
+        parents = [mt.parent for mt in self.grid]
+        # phase 1: the single node multiplies — copies fly out to each grid cell
+        self.play(LaggedStart(*[TransformFromCopy(center, p) for p in parents],
+                              lag_ratio=0.04), run_time=2.2)
+        self.remove(self.node, self.node_letter)
+        self.node = self.node_letter = None
+        # phase 2: each opener sprouts its next level (its partition into situations)
+        grows = []
+        for mt in self.grid:
+            edges = VGroup(*[m for m in mt.fan if isinstance(m, Line)])
+            dots = VGroup(*[m for m in mt.fan if isinstance(m, Dot)])
+            grows.append(AnimationGroup(Create(edges), FadeIn(dots)))
+        self.play(LaggedStart(*grows, lag_ratio=0.03), run_time=2.2)
 
     # ── components ─────────────────────────────────────────────────────────────
     def _greedy_chart(self):
