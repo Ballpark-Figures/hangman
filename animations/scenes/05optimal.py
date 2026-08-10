@@ -190,8 +190,11 @@ class Scene05(HangmanScene):
             # each child is a BRANCH sub-group [0]=edge [1]=dot [2]=blanks [3]=miss letter,
             # so a later beat can recolour / drop a single branch by index
             branch = VGroup(edge, cdot, blanks)
-            if miss:                                     # the running missed-letter tally, red
-                row = self._miss_row((missed or []) + [option["letter"].upper()])
+            # the running missed-letter tally (red) under EVERY blank below a miss: the
+            # path misses so far (e.g. A), plus this letter if THIS branch also missed
+            tally = (missed or []) + ([option["letter"].upper()] if miss else [])
+            if tally:
+                row = self._miss_row(tally)
                 row.next_to(blanks, DOWN, buff=0.09).set_x(blanks.get_x())
                 branch.add(row)
             branch.edge, branch.dot, branch.blanks = edge, cdot, blanks
@@ -391,10 +394,10 @@ class Scene05(HangmanScene):
                       key=lambda o: (-_greedy_score(o), o["letter"]))
         cells = [self._diag_cell(1, o) for o in opts]
         grid = self._tile(cells, cols=GRID_COLS)
-        # grow each adjusted tree OUT OF the actual A tree we already have
-        self.play(*[TransformFromCopy(self.a_tree, c) for c in grid], run_time=run_time)
-        self.remove(self.a_tree)
+        # fade the old A tree out FIRST, then grow the adjusted trees into their slots
+        self.play(FadeOut(self.a_tree), run_time=run_time * 0.35)
         self.a_tree = None
+        self.play(*[GrowFromCenter(c) for c in grid], run_time=run_time * 0.65)
         self.grid = grid
 
     # ── f : keep drilling — expand the top-left (greedy pick O) tree's all-miss leaf
@@ -406,13 +409,9 @@ class Scene05(HangmanScene):
                       key=lambda o: (-_greedy_score(o), o["letter"]))
         cells = [self._diag_cell(2, o) for o in opts]
         grid = self._tile(cells, cols=GRID_COLS)
-        src = self.grid[0]                               # the top-left (A→O) tree from e
-        others = [self.grid[i] for i in range(1, len(self.grid))]
-        # grow OUT OF the top-left tree — its O part shrinks into the path as it goes;
-        # the rest of e's grid dissolves
-        self.play(*[TransformFromCopy(src, c) for c in grid],
-                  *[FadeOut(m) for m in others], run_time=2.0)
-        self.remove(*self.grid)
+        # fade e's grid out FIRST, then grow the deeper trees into their slots
+        self.play(FadeOut(self.grid), run_time=0.7)
+        self.play(*[GrowFromCenter(c) for c in grid], run_time=1.4)
         self.grid = grid
 
     # ── components ─────────────────────────────────────────────────────────────
