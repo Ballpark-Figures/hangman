@@ -49,12 +49,14 @@ TIER_COLORS = [LIGHT_RED, LIGHT_ORANGE, LIGHT_YELLOW,
 # ABOVE and the ↓ tier slightly toward the group BELOW — but only by `_LEAN`, so
 # the two tiers of one word stay visibly CLOSER to each other than to the adjacent
 # tier (a grouped palette, NOT a continuous gradient).
+# Anchors reuse the ORIGINAL rainbow's hues (the S-tier LIGHT_* palette) so the
+# named colours match its brightness; only the small ±_LEAN pulls each pair apart.
 _TOP_RED    = LIGHT_RED
-_ORANGE     = ManimColor("#F2831E")
-_YELLOW     = ManimColor("#F5C518")
-_GREEN      = ManimColor("#43A85C")
-_DEEP_GREEN = ManimColor("#2E7D4E")   # notional "below LOW" anchor for LOW ↓
-_LEAN = 0.22                          # small: keep same-word tiers grouped
+_ORANGE     = LIGHT_ORANGE
+_YELLOW     = LIGHT_YELLOW
+_GREEN      = LIGHT_GREEN
+_DEEP_GREEN = ManimColor("#2E9E56")   # notional "below LOW" anchor for LOW ↓
+_LEAN = 0.1                          # small: keep same-word tiers grouped
 
 NAME_TIER_COLORS = [
     _TOP_RED,                                   # TOP
