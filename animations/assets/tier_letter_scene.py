@@ -123,11 +123,36 @@ class TierLetterScene(HangmanScene):
         self.remove(c)
         self.corner = self.corner_home = None
 
-    def advance_letter(self, i, run_time_return, run_time_down):
-        """Later letters: remove the views, return the corner copy AS tile `i` fades
-        in, then send tile `i`'s copy ↙."""
-        self.clear_views()
+    def switch_letter(self, i, run_time_return, run_time_down):
+        """Letter switch WITHOUT touching the views: return the corner copy AS tile
+        `i` fades into the tier, then send tile `i`'s copy ↙."""
         self._return_next(i, run_time_return)
+        self._send_copy_down(self.tier_tiles[i], run_time_down)
+
+    def advance_letter(self, i, run_time_return, run_time_down):
+        """Later letters (normal): remove the current views, THEN switch to tile `i`."""
+        self.clear_views()
+        self.switch_letter(i, run_time_return, run_time_down)
+
+    def rapid_letter(self, i, ch, run_time_switch, run_time_down):
+        """Rapid-succession switch for a group of similar letters shown back-to-back:
+        in ONE play the corner copy returns AS tile `i` fades in AND the heatmap MORPHS
+        + the n-gram CROSSFADES to `ch` (the views are not removed and rebuilt); then
+        tile `i`'s copy moves ↙. Titles persist. Requires the views to be up already."""
+        new_heat = letter_heatmaps(ch, center=HEAT_CENTER)
+        top_y = self.heat.heatmaps[0].get_top()[1]
+        bot_y = self.heat.heatmaps[-1].get_bottom()[1]
+        new_ng = letter_ngrams(ch, center_x=NG_X, top_y=top_y, bottom_y=bot_y)
+        c, tile = self.corner, self.corner_home
+        self.play(c.animate.scale_to_fit_height(tile.height)
+                  .move_to(tile.get_center()).set_color(tl.LETTER_COLOR),
+                  self.tier_tiles[i].animate.set_opacity(1),
+                  ReplacementTransform(self.heat, new_heat),
+                  FadeOut(self.ngram), FadeIn(new_ng),
+                  run_time=run_time_switch)
+        self.remove(c)
+        self.heat, self.ngram = new_heat, new_ng
+        self.corner = self.corner_home = None
         self._send_copy_down(self.tier_tiles[i], run_time_down)
 
     def recenter_board(self, run_time):
