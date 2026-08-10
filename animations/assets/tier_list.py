@@ -38,6 +38,10 @@ NAME_LABELS   = [("TOP",  None),      # tier 0
                  ("LOW",  "up"),      # tier 5
                  ("LOW",  "down")]    # tier 6
 
+# The letter → tier assignments, in within-tier DISPLAY order — SOURCED from the
+# user (the product; not derived here). One string per tier, top → bottom.
+TIER_LETTERS = ["EIA", "SR", "TNO", "LDC", "PUGMBH", "FYVKW", "XZJQ"]
+
 # Classic S-tier rainbow (LIGHT_PALETTE ramp + a neutral grey for the last tier) —
 # used while the labels are the S,A,B,… GRADES.
 TIER_GREY   = ManimColor("#9AA0A6")
@@ -63,7 +67,7 @@ _A_HIGH      = _rainbow(1 / 3)                      # evenly between red and blu
 _A_MID       = _rainbow(2 / 3)
 _A_LOW       = _rainbow(1.0)                        # blue
 _A_BELOW_LOW = ManimColor("#2B6CB0")               # deeper blue, notional below LOW
-_LEAN = 0.125                                         # small: keep same-word tiers grouped
+_LEAN = 0.15                                         # small: keep same-word tiers grouped
 
 NAME_TIER_COLORS = [
     _A_TOP,                                     # TOP
@@ -78,6 +82,7 @@ NAME_TIER_COLORS = [
 PANEL_FILL   = ManimColor("#2B2B2B")   # dark charcoal content row (letters pop on it)
 PANEL_STROKE = ManimColor("#15151A")
 LABEL_COLOR  = BLACK                   # reads on every bright cell + the grey
+LETTER_COLOR = WHITE                   # tier letters, on the dark charcoal panel
 DIM_OPACITY  = 0.28                    # a tier's muted / un-emphasised look
 
 
@@ -178,6 +183,32 @@ def get_tier_list(labels="letter", *, center=ORIGIN, panel_width=10.2,
     tl.row_cys = [(top_cy - i * pitch) + center[1] for i in range(n)]
     tl.n = n
     return tl
+
+
+# ── filling a tier with its letters ───────────────────────────────────────────
+def letter_tile(ch, *, height=0.5, color=LETTER_COLOR):
+    """One tier letter, drawn on the dark panel."""
+    return crisp_text(ch.upper(), font_size=FONT_SIZE_LG, color=color,
+                      weight=BOLD).set_height(height)
+
+
+def fill_tier(tl, i, letters=None, *, height=0.5, buff=0.4, pitch=0.72):
+    """Lay tier `i`'s `letters` (default: the sourced TIER_LETTERS[i]) left→right
+    in its panel — each centred in a fixed `pitch`-wide slot so they stay evenly
+    spaced regardless of glyph width — and add them to the tier's `.contents` (so
+    later emphasis dims them with the row). Returns the VGroup of new tiles."""
+    if letters is None:
+        letters = TIER_LETTERS[i]
+    cy = tl.row_cys[i]
+    x0 = tl.panel_left_x + buff
+    tiles = VGroup(*[letter_tile(ch, height=height).move_to(
+                        [x0 + pitch / 2 + k * pitch, cy, 0])
+                     for k, ch in enumerate(letters)])
+    tl.contents[i].add(*tiles)
+    return tiles
+
+
+# ── emphasis (resting state is FULL; emphasise by DIMMING THE REST) ────────────
 
 
 # ── emphasis (resting state is FULL; emphasise by DIMMING THE REST) ────────────

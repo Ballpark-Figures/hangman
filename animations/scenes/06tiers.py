@@ -13,8 +13,11 @@ Script row 06, split on '—' → 6 beats a–f (voiceover ↔ animation zip 1:1
   d cascade   — un-dim one more tier at a time until all 7 are lit again
   e numbers   — swap every grade for its numerical alphabet position (S→19…) — a joke
   f names     — swap to named tiers: TOP / HIGH↑ / HIGH↓ / MID↑ / MID↓ / LOW↑ / LOW↓
+  g fill      — drop the sourced letters into each tier (EIA/SR/TNO/LDC/PUGMBH/…)
+                — a PREVIEW of the populated list (letters are normally filled in
+                the later scenes 13-21, not here)
 
-Render:  render 06a --fast   (…06f)   /   render 06 sub  for the whole scene
+Render:  render 06a --fast   (…06g)   /   render 06 sub  for the whole scene
 
 TIMING KNOBS LEFT AT A GUESS (feel — judge from the video): every fade / pulse /
 emphasise / label-morph run_time and the inter-tier cascade pacing.
@@ -38,6 +41,7 @@ class Scene06(HangmanScene):
       cascade   — un-dim one more tier at a time until all lit again
       numbers   — grades → alphabet-position numbers (joke)
       names     — numbers → named tiers with arrows
+      fill      — preview: drop the sourced letters into each tier
     """
 
     def setup_scene(self):
@@ -112,3 +116,10 @@ class Scene06(HangmanScene):
         recolor = [self.tl.cells[i].animate.set_fill(tl.NAME_TIER_COLORS[i])
                    for i in range(self.tl.n)]
         self._swap_labels(tl.name_label, 1.0, extra_anims=recolor)
+
+    # g : PREVIEW — drop the sourced letters into every tier, a quick cascade
+    @subscene
+    def fill(self):
+        tiles = [t for i in range(self.tl.n) for t in tl.fill_tier(self.tl, i)]
+        self.play(LaggedStart(*[FadeIn(t, shift=0.12 * UP) for t in tiles],
+                              lag_ratio=0.03), run_time=1.6)
