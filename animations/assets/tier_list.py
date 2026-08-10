@@ -1,0 +1,159 @@
+"""Tier list — the alphabet ranked into 7 tiers, the recurring graphic for the
+tier-list arc (scenes 06, 13-21, and the re-weighting scenes that shuffle it).
+
+Lives on the BRAND light-blue background (crisp_text labels, dark charcoal
+content panels, classic S-tier rainbow label cells) — the same visual world as
+the letter heatmap / ngram assets it pairs with in the letter scenes, NOT the
+chalkboard.
+
+Stateless builder: `get_tier_list(labels)` returns a VGroup with handles
+    .rows[i]      VGroup(cell, panel, label, contents) for tier i, top→bottom
+    .cells / .panels / .labels / .contents   parallel lists
+plus geometry (`.panel_left_x`, `.row_cy`) so a later scene can drop letters
+into a tier's `.contents`. The label is swappable per beat via the module
+factories `letter_label` / `number_label` / `name_label` (Transform the old
+into the new). `dim_row` / `emphasize` handle the muted-vs-lit emphasis state.
+
+Scene 06 shows the list BLANK (labels only); the letter→tier assignments are
+SOURCED from the script and filled in the later scenes (never invented here).
+"""
+import numpy as np
+from manim import *
+
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).resolve().parent.parent))
+from config import *   # crisp_text, style colours, LIGHT_* palette
+
+
+# ── tier vocabulary ───────────────────────────────────────────────────────────
+# Default 7 tier labels (classic S-tier grades) and their eventual NAMES.
+LETTER_LABELS = ["S", "A", "B", "C", "D", "E", "F"]
+NAME_LABELS   = [("TOP",  None),      # tier 0
+                 ("HIGH", "up"),      # tier 1
+                 ("HIGH", "down"),    # tier 2
+                 ("MID",  "up"),      # tier 3
+                 ("MID",  "down"),    # tier 4
+                 ("LOW",  "up"),      # tier 5
+                 ("LOW",  "down")]    # tier 6
+
+# Classic S-tier rainbow (LIGHT_PALETTE ramp + a neutral grey for the last tier).
+TIER_GREY   = ManimColor("#9AA0A6")
+TIER_COLORS = [LIGHT_RED, LIGHT_ORANGE, LIGHT_YELLOW,
+               LIGHT_GREEN, LIGHT_BLUE, LIGHT_PURPLE, TIER_GREY]
+
+PANEL_FILL   = ManimColor("#2B2B2B")   # dark charcoal content row (letters pop on it)
+PANEL_STROKE = ManimColor("#15151A")
+LABEL_COLOR  = BLACK                   # reads on every bright cell + the grey
+DIM_OPACITY  = 0.28                    # a tier's muted / un-emphasised look
+
+
+# ── label factories (Transform one state into the next across beats) ───────────
+def letter_label(i, *, height=0.44, color=LABEL_COLOR):
+    """The grade label for tier `i` (S, A, B, …)."""
+    lab = crisp_text(LETTER_LABELS[i], font_size=FONT_SIZE_LG, color=color,
+                     weight=BOLD)
+    return lab.set_height(height)
+
+
+def number_label(i, *, height=0.44, color=LABEL_COLOR):
+    """The grade letter's numerical position in the alphabet (S→19, A→1, …) —
+    the deliberately-absurd beat before the tiers get real names."""
+    n = ord(LETTER_LABELS[i].upper()) - 64
+    lab = crisp_text(str(n), font_size=FONT_SIZE_LG, color=color, weight=BOLD)
+    return lab.set_height(height)
+
+
+def name_label(i, *, height=0.30, color=LABEL_COLOR):
+    """The named tier label: a word (TOP/HIGH/MID/LOW) with an optional up/down
+    arrow stacked beneath it. `height` is the WORD's cap height."""
+    word, arrow = NAME_LABELS[i]
+    txt = crisp_text(word, font_size=FONT_SIZE_LG, color=color, weight=BOLD)
+    txt.set_height(height)
+    if arrow is None:
+        return VGroup(txt)
+    tri = Triangle(fill_color=color, fill_opacity=1.0, stroke_width=0)
+    tri.set_height(height * 0.75)
+    if arrow == "down":
+        tri.rotate(PI)
+    tri.next_to(txt, DOWN, buff=height * 0.30)
+    return VGroup(txt, tri).move_to(ORIGIN)
+
+
+# ── the tier list ─────────────────────────────────────────────────────────────
+def get_tier_list(labels="letter", *, center=ORIGIN, panel_width=10.4,
+                  cell_width=1.5, row_height=0.82, row_gap=0.10,
+                  cell_gap=0.08, colors=TIER_COLORS, dimmed=False):
+    """A 7-row tier list: a coloured grade CELL on the left + a dark content
+    PANEL on the right, per tier, top (best) → bottom (worst).
+
+    labels : "letter" | "number" | "name" — which label state to build.
+    dimmed : start every row muted (for the beat-06 emphasis build-up).
+
+    Returns VGroup(*rows) with `.rows` (list of VGroup(cell, panel, label,
+    contents)), parallel `.cells/.panels/.labels/.contents`, and geometry
+    `.panel_left_x` / `.row_cy(i)` for placing letters later.
+    """
+    n = len(LETTER_LABELS)
+    pitch = row_height + row_gap
+    total_h = n * row_height + (n - 1) * row_gap
+    top_cy = total_h / 2 - row_height / 2
+    full_w = cell_width + cell_gap + panel_width
+    left = -full_w / 2
+    cell_cx = left + cell_width / 2
+    panel_cx = left + cell_width + cell_gap + panel_width / 2
+    panel_left = left + cell_width + cell_gap
+
+    label_fn = {"letter": letter_label, "number": number_label,
+                "name": name_label}[labels]
+
+    rows, cells, panels, labs, contents = [], [], [], [], []
+    for i in range(n):
+        cy = top_cy - i * pitch
+        cell = RoundedRectangle(width=cell_width, height=row_height,
+                                corner_radius=0.06)
+        cell.set_fill(colors[i], opacity=1.0).set_stroke(PANEL_STROKE, width=2)
+        cell.move_to([cell_cx, cy, 0])
+
+        panel = RoundedRectangle(width=panel_width, height=row_height,
+                                 corner_radius=0.06)
+        panel.set_fill(PANEL_FILL, opacity=1.0).set_stroke(PANEL_STROKE, width=2)
+        panel.move_to([panel_cx, cy, 0])
+
+        lab = label_fn(i)
+        lab.move_to([cell_cx, cy, 0])
+
+        cont = VGroup()   # letters get dropped in here by later scenes
+        row = VGroup(cell, panel, lab, cont)
+        if dimmed:
+            row.set_opacity(DIM_OPACITY)
+        rows.append(row)
+        cells.append(cell); panels.append(panel); labs.append(lab)
+        contents.append(cont)
+
+    tl = VGroup(*rows).shift(center)
+    tl.rows = rows
+    tl.cells = cells
+    tl.panels = panels
+    tl.labels = labs
+    tl.contents = contents
+    tl.panel_left_x = panel_left + center[0]
+    tl.row_cys = [(top_cy - i * pitch) + center[1] for i in range(n)]
+    tl.n = n
+    return tl
+
+
+# ── emphasis state (muted vs lit) ─────────────────────────────────────────────
+def dim_row(tl, i):
+    """Set tier `i` to its muted resting state (no animation)."""
+    tl.rows[i].set_opacity(DIM_OPACITY)
+
+
+def emphasize(tl, i):
+    """Animation: brighten tier `i` to full and HOLD it lit."""
+    return tl.rows[i].animate.set_opacity(1.0)
+
+
+def unemphasize(tl, i):
+    """Animation: return tier `i` to the muted resting state."""
+    return tl.rows[i].animate.set_opacity(DIM_OPACITY)
