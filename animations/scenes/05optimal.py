@@ -178,23 +178,30 @@ class Scene05(HangmanScene):
         mt.parent, mt.fan = parent, fan
         return mt
 
+    def _grid_of(self, options, *, rows=None, cols=None):
+        """Tile one mini-tree per option across the full frame at ONE uniform scale
+        (every node the same size), row-major. rows/cols default to a ~16:9 layout."""
+        if cols is None:
+            cols = max(1, int(round((len(options) * GRID_W / GRID_H) ** 0.5)))
+        if rows is None:
+            rows = (len(options) + cols - 1) // cols
+        cells = [self._mini_tree(o) for o in options]
+        cw, ch = GRID_W / cols, GRID_H / rows
+        scale = min(cw * 0.92 / max(c.width for c in cells),
+                    ch * 0.88 / max(c.height for c in cells))
+        for idx, mt in enumerate(cells):
+            r_i, c_i = divmod(idx, cols)
+            mt.scale(scale)
+            mt.move_to([GRID_CENTER[0] - GRID_W / 2 + (c_i + 0.5) * cw,
+                        GRID_CENTER[1] + GRID_H / 2 - (r_i + 0.5) * ch, 0])
+        return VGroup(*cells)
+
     def _setup_grid(self):
         # only the letters that actually SPLIT (appear in some 2-letter word); the 6
         # always-miss letters (c/j/k/q/v/z) are dropped → 20 openers, a clean 4×5.
         opts = sorted((o for o in DATA["tree"]["options"] if o["splits"]),
                       key=lambda o: o["letter"])
-        cells = [self._mini_tree(o) for o in opts]
-        # tile the cells across the full frame: one uniform scale (so every node is the
-        # same size), then drop each mini-tree at its cell centre (row-major).
-        cw, ch = GRID_W / GRID_COLS, GRID_H / GRID_ROWS
-        scale = min(cw * 0.92 / max(c.width for c in cells),
-                    ch * 0.88 / max(c.height for c in cells))
-        for idx, mt in enumerate(cells):
-            r_i, c_i = divmod(idx, GRID_COLS)
-            mt.scale(scale)
-            mt.move_to([GRID_CENTER[0] - GRID_W / 2 + (c_i + 0.5) * cw,
-                        GRID_CENTER[1] + GRID_H / 2 - (r_i + 0.5) * ch, 0])
-        self.grid = VGroup(*cells)
+        self.grid = self._grid_of(opts, rows=GRID_ROWS, cols=GRID_COLS)
 
     # ── a : recap the greedy avg-misses-by-length chart (from scene 04) ────────
     @subscene
@@ -257,6 +264,7 @@ class Scene05(HangmanScene):
         self._e_isolate_a(1.2)
         self._e_walk_children(2.4)      # total for the walk (split across the children)
         self._e_focus_leftmost(0.6)
+        self._e_option_grid(2.6)        # grid of every next-letter option from A-miss
 
     def _e_isolate_a(self, run_time):
         a = self.grid[0]                                 # 'A' — sorted first, top-left cell
@@ -285,6 +293,20 @@ class Scene05(HangmanScene):
         br = self.a_tree[1][0]
         self.play(br[0].animate.set_color(ACCENT_GOLD),
                   br[1].animate.set_color(ACCENT_GOLD), run_time=run_time)
+
+    def _e_option_grid(self, run_time):
+        # "make a grid of every option for letters to continue from that node": from the
+        # A-miss (A-absent) state, try every next letter → a grid of the resulting trees,
+        # best average first (top-left = optimal, so the later dive drills the optimal path).
+        opts = sorted((o for o in DATA["tree"]["children"]["__"]["options"] if o["splits"]),
+                      key=lambda o: (o["avg"], o["letter"]))
+        grid = self._grid_of(opts)
+        self.play(FadeOut(self.a_tree), run_time=run_time * 0.32)
+        self.a_tree = None
+        self.play(*[GrowFromCenter(mt[0]) for mt in grid], run_time=run_time * 0.30)
+        self.play(*[GrowFromPoint(mt[1], mt[0].get_center()) for mt in grid],
+                  run_time=run_time * 0.38)
+        self.grid = grid
 
     # ── components ─────────────────────────────────────────────────────────────
     def _greedy_chart(self):
