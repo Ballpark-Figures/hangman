@@ -317,7 +317,8 @@ class Scene05(HangmanScene):
                             "hits": [(sub.kid[p].edge, sub.kid[p].dot) for p in hitpats]}]
         miss = sub.kid["__"]
         extra = [miss.blanks] + ([miss.missrow] if miss.missrow else []) \
-            + [sub.kid[p].blanks for p in hitpats]
+            + [sub.kid[p].blanks for p in hitpats] \
+            + [sub.kid[p].missrow for p in hitpats if sub.kid[p].missrow]
         return levels, miss.dot, miss.edge, extra
 
     def _target_pieces(self, cell):
@@ -347,7 +348,16 @@ class Scene05(HangmanScene):
             move += [xf(a, b) for a, b in pairs]
             fade_in.append(FadeIn(t_dlab))
             grow.append(GrowFromPoint(t_kids, t_ddot.get_center()))
-        self.play(*move, *[FadeOut(x) for x in s_extra], run_time=run_time * 0.6)
+        # the extra text MOVES + SHRINKS with the tree (toward the top-left cell, as if it
+        # were staying) while fading — not a fade-in-place
+        src_A, dst_A = s_levels[0]["dot"], cells[0].path.levels[0]["dot"]
+        s, o = dst_A.width / src_A.width, src_A.get_center()
+        d = dst_A.get_center() - o
+        extra = []
+        for x in s_extra:
+            ghost = x.copy().scale(s, about_point=o).shift(d).set_opacity(0)
+            extra.append(Transform(x, ghost))
+        self.play(*move, *extra, run_time=run_time * 0.6)
         self.play(*fade_in, *grow, run_time=run_time * 0.4)
         self.clear()                                      # drop the transform's stray copies…
         self.add(*cells)                                  # …and re-track clean cell groups
