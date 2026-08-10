@@ -7,10 +7,10 @@ the later letter scenes (13-21). Everything routes through the SHARED
 `assets/tier_list.py` builder so those scenes reuse the exact same graphic.
 
 Script row 06, split on '—' → 6 beats a–f (voiceover ↔ animation zip 1:1):
-  a establish — show the blank tier list (S,A,B,C,D,E,F, muted); pulse S then F
-  b top       — emphasise (light up + hold) the S tier
-  c next      — emphasise the A tier, keeping S lit
-  d cascade   — light up one more tier at a time until all 7 are lit
+  a establish — show the blank tier list (S,A,B,C,D,E,F, full); pulse S then F
+  b top       — emphasise the S tier (dim the rest)
+  c next      — emphasise the A tier too, keeping S lit
+  d cascade   — un-dim one more tier at a time until all 7 are lit again
   e numbers   — swap every grade for its numerical alphabet position (S→19…) — a joke
   f names     — swap to named tiers: TOP / HIGH↑ / HIGH↓ / MID↑ / MID↓ / LOW↑ / LOW↓
 
@@ -32,27 +32,29 @@ class Scene06(HangmanScene):
     """The tier list, introduced. See module docstring for the beat map.
 
     BEAT MAP
-      establish — blank muted tier list; pulse S then F
-      top       — light + hold S
-      next      — light + hold A (S stays lit)
-      cascade   — light the remaining tiers one at a time until all lit
+      establish — full tier list; pulse S then F (dim the rest, there-and-back)
+      top       — emphasise S (dim the rest)
+      next      — emphasise S + A
+      cascade   — un-dim one more tier at a time until all lit again
       numbers   — grades → alphabet-position numbers (joke)
-      names     — numbers → named tiers with up/down arrows
+      names     — numbers → named tiers with arrows
     """
 
     def setup_scene(self):
         pass   # nothing on frame 0; the list is owned by `establish`
 
     def _setup_tiers(self):
-        # built MUTED — the emphasis build-up (a–d) lights tiers up from here
-        self.tl = tl.get_tier_list("letter", dimmed=True)
+        # resting state is FULL opacity; emphasis (b–d) DIMS the other tiers
+        self.tl = tl.get_tier_list("letter")
 
     def _pulse(self, i, run_time):
-        """Brighten tier `i` to full and back to muted (a there-and-back peek)."""
-        self.play(self.tl.rows[i].animate.set_opacity(1.0),
+        """Spotlight tier `i` (dim every other tier) and back — a there-and-back
+        peek that returns the whole list to full."""
+        self.play(*[self.tl.rows[j].animate.set_opacity(tl.DIM_OPACITY)
+                    for j in range(self.tl.n) if j != i],
                   rate_func=there_and_back, run_time=run_time)
 
-    # a : show the blank tier list, then pulse the S (top) and F (bottom) tiers
+    # a : show the tier list at full, then peek the S (top) and F (bottom) tiers
     @subscene
     def establish(self):
         self._setup_tiers()
@@ -61,22 +63,22 @@ class Scene06(HangmanScene):
         self._pulse(0, 0.7)                              # S — most useful
         self._pulse(self.tl.n - 1, 0.7)                 # F — least useful
 
-    # b : light up + hold the S tier
+    # b : emphasise the S tier (dim the rest)
     @subscene
     def top(self):
-        self.play(tl.emphasize(self.tl, 0), run_time=0.6)
+        self.play(*tl.emphasize(self.tl, 0), run_time=0.6)
 
-    # c : light up the A tier, keeping S lit
+    # c : emphasise S + A
     @subscene
     def next(self):
-        self.play(tl.emphasize(self.tl, 1), run_time=0.6)
+        self.play(*tl.emphasize(self.tl, {0, 1}), run_time=0.6)
 
-    # d : cascade — one more tier lit at a time until all 7 are lit
+    # d : un-dim one more tier at a time until all 7 are lit again
     @subscene
     def cascade(self):
         step = 0.45                                      # lockstep per-tier reveal
         for i in range(2, self.tl.n):
-            self.play(tl.emphasize(self.tl, i), run_time=step)
+            self.play(*tl.emphasize(self.tl, range(i + 1)), run_time=step)
 
     # e : swap every grade for its numerical position in the alphabet (S→19, A→1…)
     @subscene

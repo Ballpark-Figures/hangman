@@ -12,7 +12,8 @@ Stateless builder: `get_tier_list(labels)` returns a VGroup with handles
 plus geometry (`.panel_left_x`, `.row_cy`) so a later scene can drop letters
 into a tier's `.contents`. The label is swappable per beat via the module
 factories `letter_label` / `number_label` / `name_label` (Transform the old
-into the new). `dim_row` / `emphasize` handle the muted-vs-lit emphasis state.
+into the new). Resting state is FULL opacity; `emphasize(tiers)` spotlights by
+DIMMING every other tier, `reset` clears it.
 
 Scene 06 shows the list BLANK (labels only); the letter→tier assignments are
 SOURCED from the script and filled in the later scenes (never invented here).
@@ -64,25 +65,25 @@ def number_label(i, *, height=0.44, color=LABEL_COLOR):
     return lab.set_height(height)
 
 
-def name_label(i, *, height=0.30, color=LABEL_COLOR):
+def name_label(i, *, height=0.34, color=LABEL_COLOR):
     """The named tier label: a word (TOP/HIGH/MID/LOW) with an optional up/down
-    arrow stacked beneath it. `height` is the WORD's cap height."""
+    arrow to its RIGHT. `height` is the word's cap height."""
     word, arrow = NAME_LABELS[i]
     txt = crisp_text(word, font_size=FONT_SIZE_LG, color=color, weight=BOLD)
     txt.set_height(height)
     if arrow is None:
-        return VGroup(txt)
+        return VGroup(txt).move_to(ORIGIN)
     tri = Triangle(fill_color=color, fill_opacity=1.0, stroke_width=0)
-    tri.set_height(height * 0.75)
+    tri.set_height(height * 0.62)
     if arrow == "down":
         tri.rotate(PI)
-    tri.next_to(txt, DOWN, buff=height * 0.30)
+    tri.next_to(txt, RIGHT, buff=height * 0.32)
     return VGroup(txt, tri).move_to(ORIGIN)
 
 
 # ── the tier list ─────────────────────────────────────────────────────────────
-def get_tier_list(labels="letter", *, center=ORIGIN, panel_width=10.4,
-                  cell_width=1.5, row_height=0.82, row_gap=0.10,
+def get_tier_list(labels="letter", *, center=ORIGIN, panel_width=10.2,
+                  cell_width=1.75, row_height=0.82, row_gap=0.10,
                   cell_gap=0.08, colors=TIER_COLORS, dimmed=False):
     """A 7-row tier list: a coloured grade CELL on the left + a dark content
     PANEL on the right, per tier, top (best) → bottom (worst).
@@ -143,17 +144,19 @@ def get_tier_list(labels="letter", *, center=ORIGIN, panel_width=10.4,
     return tl
 
 
-# ── emphasis state (muted vs lit) ─────────────────────────────────────────────
-def dim_row(tl, i):
-    """Set tier `i` to its muted resting state (no animation)."""
-    tl.rows[i].set_opacity(DIM_OPACITY)
+# ── emphasis (resting state is FULL; emphasise by DIMMING THE REST) ────────────
+def emphasize(tl, tiers):
+    """Animations that emphasise tier(s) `tiers` (an int or an iterable of ints)
+    by fading EVERY OTHER tier down to `DIM_OPACITY` while the emphasised ones
+    stay at full. Passing all tiers (or the resting call `reset`) clears the dim.
+    Returns a flat list — unpack into `self.play(*emphasize(tl, {0, 1}))`. Idempo-
+    tent: a tier already in the right state animates in place (no visible change),
+    so beats can pass a GROWING set to accumulate emphasis."""
+    idx = {tiers} if isinstance(tiers, int) else set(tiers)
+    return [tl.rows[i].animate.set_opacity(1.0 if i in idx else DIM_OPACITY)
+            for i in range(tl.n)]
 
 
-def emphasize(tl, i):
-    """Animation: brighten tier `i` to full and HOLD it lit."""
-    return tl.rows[i].animate.set_opacity(1.0)
-
-
-def unemphasize(tl, i):
-    """Animation: return tier `i` to the muted resting state."""
-    return tl.rows[i].animate.set_opacity(DIM_OPACITY)
+def reset(tl):
+    """Animations returning every tier to the full (un-dimmed) resting state."""
+    return [row.animate.set_opacity(1.0) for row in tl.rows]
