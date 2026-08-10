@@ -22,6 +22,7 @@ Script row 13, split on '—' -> 10 beats a–j (voiceover ↔ animation zip 1:1
   h I ngram     add the n-gram view
   i A intro+cu  I's copy returns AS A fades in, then a copy of A → ↙; common-uses 1–4
   j A heat+ng   heatmaps, then add the n-gram view
+  k close       fade everything out — ends on a blank screen for the next scene
 
 Each view carries a title (single-line "Common Uses"; two-line "Location/Frequencies"
 and "Top/N-grams", 96's style) and enters with 96's row-by-row upward rise. Common-
@@ -244,3 +245,10 @@ class Scene07(HangmanScene):
     def a_heat(self):
         self._swap_common_to_heat("a", 1.0)
         self._add_ngram("a", 0.8)
+
+    # k : clear the whole screen for the next scene (ends blank)
+    @subscene
+    def close(self):
+        outs = [self.tl] + [v for v in (self.corner, self.heat, self.loc_title,
+                                        self.ngram, self.ng_title) if v]
+        self.play(*[FadeOut(m) for m in outs], run_time=0.8)
