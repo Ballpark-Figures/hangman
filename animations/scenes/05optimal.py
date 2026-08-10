@@ -73,6 +73,18 @@ def _miss_color(miss):
     return LIGHT_RED if miss else CHALK
 
 
+def _n_of(node):
+    return node.get("n", 1 if "word" in node else 0)
+
+
+def _greedy_score(option):
+    """Greedy's selection metric for an option: how many remaining words CONTAIN its
+    letter (= the sum of its HIT-branch word counts). Sorting options by this DESC gives
+    the greedy order — greedy's own pick lands first (top-left)."""
+    return sum(_n_of(ch) for pat, ch in option["subtree"]["branches"].items()
+               if set(pat) != {"_"})
+
+
 # ── beat d : the 4×5 grid of (splitting) openers, each sprouting its next level.
 #    The 6 letters absent from every 2-letter word (c/j/k/q/v/z — a single miss
 #    child) are dropped, leaving 20. ─────────────────────────────────────────────
@@ -340,10 +352,11 @@ class Scene05(HangmanScene):
     def _e_option_grid(self, run_time):
         # "make a grid of every option for letters to continue from that node": from the
         # A-miss state, try every next letter → a grid of A-ROOTED trees (each = the A
-        # tree, top shrunk, with that option grafted on the miss branch), ALPHABETICAL,
-        # same column count as beat d.
+        # tree, top shrunk, with that option grafted on the miss branch), in GREEDY order
+        # (most words containing the letter first → greedy's pick top-left), same column
+        # count as beat d.
         opts = sorted((o for o in DATA["tree"]["children"]["__"]["options"] if o["splits"]),
-                      key=lambda o: o["letter"])
+                      key=lambda o: (-_greedy_score(o), o["letter"]))
         cells = [self._a_rooted_tree(o) for o in opts]
         grid = self._tile(cells, cols=GRID_COLS)
         self.play(FadeOut(self.a_tree), run_time=run_time * 0.35)
