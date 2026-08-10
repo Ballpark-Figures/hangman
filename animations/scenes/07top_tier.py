@@ -16,11 +16,11 @@ Script row 13, split on '—' -> 10 beats a–j (voiceover ↔ animation zip 1:1
   b E common    common-uses view — blank first-guess words, lengths 5–11
   c E heatmap   swap common-uses out for the position-frequency heatmaps
   d E ngram     add the n-gram view
-  e I intro     send E's copy back; I appears in the tier; copy of I → ↙
+  e I intro     E's copy returns AS I fades in (together), then a copy of I → ↙
   f I common    common-uses view — blank first-guess words, lengths 12–20
   g I heatmap   swap to the heatmaps
   h I ngram     add the n-gram view
-  i A intro+cu  send I's copy back; A appears; copy of A → ↙; common-uses 1–4
+  i A intro+cu  I's copy returns AS A fades in, then a copy of A → ↙; common-uses 1–4
   j A heat+ng   heatmaps, then add the n-gram view
 
 Each view carries a title (single-line "Common Uses"; two-line "Location/Frequencies"
@@ -105,15 +105,18 @@ class Scene07(HangmanScene):
                   run_time=run_time)
         self.corner, self.corner_home = copy, tile
 
-    def _send_corner_back(self, run_time):
-        """Move the current big ↙ copy back onto its tier slot (recolouring white),
-        then drop it — the original tier tile remains."""
+    def _return_next(self, i, run_time):
+        """One play: the current big ↙ copy moves back onto its tier slot (recolouring
+        white) WHILE the next letter (tile `i`) fades into the tier — then the copy is
+        dropped (the original tier tile remains). Followed by `_send_copy_down`."""
+        reveal = self.tier_tiles[i].animate.set_opacity(1)
         if self.corner is None:
+            self.play(reveal, run_time=run_time)
             return
         c, tile = self.corner, self.corner_home
         self.play(c.animate.scale_to_fit_height(tile.height)
                   .move_to(tile.get_center()).set_color(tl.LETTER_COLOR),
-                  run_time=run_time)
+                  reveal, run_time=run_time)
         self.remove(c)
         self.corner = self.corner_home = None
 
@@ -205,12 +208,11 @@ class Scene07(HangmanScene):
         self._add_ngram("e", 0.8)
 
     # ── I ─────────────────────────────────────────────────────────────────────
-    # e : send E's copy back, I appears in the tier, send a copy of I ↙
+    # e : E's copy returns AS I fades in (together), then a copy of I moves ↙
     @subscene
     def i_intro(self):
         self._clear_views()
-        self._send_corner_back(0.8)
-        self.play(self.tier_tiles[1].animate.set_opacity(1), run_time=0.6)
+        self._return_next(1, 0.9)
         self._send_copy_down(self.tier_tiles[1], 1.0)
 
     # f : common-uses view — blank first-guess words, lengths 12–20
@@ -229,12 +231,11 @@ class Scene07(HangmanScene):
         self._add_ngram("i", 0.8)
 
     # ── A ─────────────────────────────────────────────────────────────────────
-    # i : send I's copy back, A appears, send a copy of A ↙, then common-uses 1–4
+    # i : I's copy returns AS A fades in (together), a copy of A moves ↙, then CU 1–4
     @subscene
     def a_intro(self):
         self._clear_views()
-        self._send_corner_back(0.8)
-        self.play(self.tier_tiles[2].animate.set_opacity(1), run_time=0.6)
+        self._return_next(2, 0.9)
         self._send_copy_down(self.tier_tiles[2], 1.0)
         self._show_common(TOP[2][1], 0.9)
 
