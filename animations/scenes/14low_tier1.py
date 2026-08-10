@@ -6,14 +6,16 @@ the LOW↑ tier (TIER_LETTERS[5] = "FYVKW") with heatmap + n-gram views per lett
 common-uses, like 96), and recenters at the end for scene 15.
 
 PRESENTATION ORDER = F, Y, V, W, K — following the row-21 narration (which discusses W
-alongside V, before K), NOT the tier/slot order FYVKW. So W (slot 4) is revealed before
-K (slot 3): the row reads "F Y V _ W" until K fills the gap (cf. scene 13's PUGMBH).
+alongside V, before K), NOT the tier/slot order FYVKW. V→W is a RAPID crossfade (they
+share a profile; the narration lumps them), like scene 13's P/M/B. W (slot 4) is
+revealed before K (slot 3): the row reads "F Y V _ W" until K fills the gap.
 
 START-MODE ASSUMPTION (flag): continuation of 13 (centred). If a talking head / the
 row-20 "bottom-tier shoutout" clears the screen before this, flip to a blank start:
 `build_board(on_screen=False)` + an `establish` beat (`self.enter_centered(0.8)`).
 
-Beats a–p: F/Y/V/W/K each as intro → heatmap → n-gram, then recenter.
+Beats a–n: F, Y, V each intro → heatmap → n-gram; V→W a rapid crossfade (w_rapid);
+K normal (intro → heatmap → n-gram); then recenter.
 
 TIMING KNOBS LEFT AT A GUESS (feel — judge from the video): every run_time below.
 
@@ -89,39 +91,30 @@ class Scene14(TierLetterScene):
         self.add_ngram("v", 0.8)
 
     # ── W ───────────────────────────────────────────────────────────────────────
-    # j : W's turn (slot 4 — revealed before K, following the narration; leaves a
-    #     one-slot gap at K's slot 3, which K fills next)
+    # j : rapid crossfade-switch V→W (slot 4) — heatmap morphs, n-gram crossfades
+    #     (V + W share a profile; the narration lumps them, cf. scene 13's P/M/B).
+    #     Reveals slot 4 before K's slot 3, leaving a one-slot gap that K fills next.
     @subscene
-    def w_intro(self):
-        self.advance_letter(4, 0.9, 1.0)
-
-    # k : heatmaps for W
-    @subscene
-    def w_heat(self):
-        self.show_heat("w", 1.0)
-
-    # l : add the n-gram view for W
-    @subscene
-    def w_ngram(self):
-        self.add_ngram("w", 0.8)
+    def w_rapid(self):
+        self.rapid_letter(4, "w", 0.7, 0.6)
 
     # ── K ───────────────────────────────────────────────────────────────────────
-    # m : K's turn (slot 3 — fills the gap left after W)
+    # k : K's turn (slot 3 — as normal: remove W's views, then K fills the gap)
     @subscene
     def k_intro(self):
         self.advance_letter(3, 0.9, 1.0)
 
-    # n : heatmaps for K
+    # l : heatmaps for K
     @subscene
     def k_heat(self):
         self.show_heat("k", 1.0)
 
-    # o : add the n-gram view for K
+    # m : add the n-gram view for K
     @subscene
     def k_ngram(self):
         self.add_ngram("k", 0.8)
 
-    # p : clear views + big letter; tier list returns to CENTRE (for scene 15)
+    # n : clear views + big letter; tier list returns to CENTRE (for scene 15)
     @subscene
     def recenter(self):
         self.recenter_board(1.0)
