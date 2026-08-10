@@ -72,9 +72,10 @@ GRID_CHILD_RF    = 0.68   # child radius as a fraction of the parent radius
 GRID_CHILD_DY    = 0.55   # parent → child vertical drop (natural units)
 GRID_CHILD_SPR   = 0.72   # child horizontal half-spread (blanks sit under each child)
 GRID_BLANK_H     = 0.13   # blank-row height under a child (rule + revealed letter)
-GRID_BLANK_DROP  = 0.22   # child centre → blank RULE baseline (fixed, so rules line up)
-GRID_MISS_H      = 0.14   # missed-letter height (red, below the blanks)
-GRID_W, GRID_H   = 15.6, 8.6       # the cells tile this box (≈ the full 16×9 frame)
+GRID_BLANK_DROP  = 0.36   # child centre → blank RULE baseline (fixed → rules line up AND
+                          # the written letter above the rule clears the child dot)
+GRID_MISS_H      = GRID_BLANK_H    # missed letter (red) — SAME size as the blank letters
+GRID_W, GRID_H   = 15.6, 8.0       # the cells tile this box (full width, small top/bottom margin)
 GRID_CENTER      = [0, 0, 0]
 
 
