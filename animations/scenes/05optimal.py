@@ -394,10 +394,11 @@ class Scene05(HangmanScene):
                       key=lambda o: (-_greedy_score(o), o["letter"]))
         cells = [self._diag_cell(1, o) for o in opts]
         grid = self._tile(cells, cols=GRID_COLS)
-        # fade the old A tree out FIRST, then grow the adjusted trees into their slots
-        self.play(FadeOut(self.a_tree), run_time=run_time * 0.35)
+        # grow the adjusted trees OUT OF the actual A tree; the source itself FADES as the
+        # copies emerge, so no leftover copy lingers in the middle
+        self.play(*[TransformFromCopy(self.a_tree, c) for c in grid],
+                  FadeOut(self.a_tree), run_time=run_time)
         self.a_tree = None
-        self.play(*[GrowFromCenter(c) for c in grid], run_time=run_time * 0.65)
         self.grid = grid
 
     # ── f : keep drilling — expand the top-left (greedy pick O) tree's all-miss leaf
@@ -409,9 +410,13 @@ class Scene05(HangmanScene):
                       key=lambda o: (-_greedy_score(o), o["letter"]))
         cells = [self._diag_cell(2, o) for o in opts]
         grid = self._tile(cells, cols=GRID_COLS)
-        # fade e's grid out FIRST, then grow the deeper trees into their slots
-        self.play(FadeOut(self.grid), run_time=0.7)
-        self.play(*[GrowFromCenter(c) for c in grid], run_time=1.4)
+        src = self.grid[0]                               # the top-left (A→O) tree from e
+        others = VGroup(*self.grid[1:])
+        # fade the trees we're REMOVING out first, then grow the deeper trees OUT OF the
+        # top-left (which fades as they emerge — O shrinking into the path)
+        self.play(FadeOut(others), run_time=0.6)
+        self.play(*[TransformFromCopy(src, c) for c in grid],
+                  FadeOut(src), run_time=1.6)
         self.grid = grid
 
     # ── components ─────────────────────────────────────────────────────────────
