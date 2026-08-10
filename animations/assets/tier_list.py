@@ -45,24 +45,25 @@ TIER_COLORS = [LIGHT_RED, LIGHT_ORANGE, LIGHT_YELLOW,
                LIGHT_GREEN, LIGHT_BLUE, LIGHT_PURPLE, TIER_GREY]
 
 # Once the tiers are NAMED, the palette spreads the four name-groups EVENLY across
-# the rainbow — TOP red → LOW purple, with HIGH and MID spaced evenly between (the
-# LIGHT_* ramp). Within a pair the ↑ tier leans slightly toward the group ABOVE and
-# the ↓ tier toward the group BELOW (by ±_LEAN), so the two tiers of one word stay
-# visibly CLOSER to each other than to the adjacent tier (grouped, NOT a gradient).
+# the rainbow — TOP red → LOW blue, with HIGH and MID spaced evenly between (the
+# LIGHT_* ramp, red…blue). Within a pair the ↑ tier leans slightly toward the group
+# ABOVE and the ↓ tier toward the group BELOW (by ±_LEAN), so the two tiers of one
+# word stay visibly CLOSER to each other than to the adjacent tier (grouped, NOT a
+# gradient).
 def _rainbow(t):
-    """Colour at fraction `t` along the LIGHT_* rainbow (0 = red … 1 = purple)."""
-    stops = LIGHT_PALETTE
+    """Colour at fraction `t` along the LIGHT_* rainbow red…blue (0 = red … 1 = blue)."""
+    stops = LIGHT_PALETTE[:5]   # red, orange, yellow, green, blue (drop purple)
     t = min(max(t, 0.0), 1.0)
     seg = t * (len(stops) - 1)
     i = min(int(seg), len(stops) - 2)
     return stops[i].interpolate(stops[i + 1], seg - i)
 
 _A_TOP       = _rainbow(0.0)                        # red
-_A_HIGH      = _rainbow(1 / 3)                      # evenly between red and purple
+_A_HIGH      = _rainbow(1 / 3)                      # evenly between red and blue
 _A_MID       = _rainbow(2 / 3)
-_A_LOW       = _rainbow(1.0)                        # purple
-_A_BELOW_LOW = ManimColor("#7A3FB0")               # deeper purple, notional below LOW
-_LEAN = 0.2                                         # small: keep same-word tiers grouped
+_A_LOW       = _rainbow(1.0)                        # blue
+_A_BELOW_LOW = ManimColor("#2B6CB0")               # deeper blue, notional below LOW
+_LEAN = 0.125                                         # small: keep same-word tiers grouped
 
 NAME_TIER_COLORS = [
     _A_TOP,                                     # TOP
