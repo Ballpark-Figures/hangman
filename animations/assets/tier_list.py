@@ -44,28 +44,34 @@ TIER_GREY   = ManimColor("#9AA0A6")
 TIER_COLORS = [LIGHT_RED, LIGHT_ORANGE, LIGHT_YELLOW,
                LIGHT_GREEN, LIGHT_BLUE, LIGHT_PURPLE, TIER_GREY]
 
-# Once the tiers are NAMED, each name-group shares a hue: TOP red, HIGH orange,
-# MID yellow, LOW green. Within a pair the ↑ tier leans slightly toward the group
-# ABOVE and the ↓ tier slightly toward the group BELOW — but only by `_LEAN`, so
-# the two tiers of one word stay visibly CLOSER to each other than to the adjacent
-# tier (a grouped palette, NOT a continuous gradient).
-# Anchors reuse the ORIGINAL rainbow's hues (the S-tier LIGHT_* palette) so the
-# named colours match its brightness; only the small ±_LEAN pulls each pair apart.
-_TOP_RED    = LIGHT_RED
-_ORANGE     = LIGHT_ORANGE
-_YELLOW     = LIGHT_YELLOW
-_GREEN      = LIGHT_GREEN
-_DEEP_GREEN = ManimColor("#2E9E56")   # notional "below LOW" anchor for LOW ↓
-_LEAN = 0.1                          # small: keep same-word tiers grouped
+# Once the tiers are NAMED, the palette spreads the four name-groups EVENLY across
+# the rainbow — TOP red → LOW purple, with HIGH and MID spaced evenly between (the
+# LIGHT_* ramp). Within a pair the ↑ tier leans slightly toward the group ABOVE and
+# the ↓ tier toward the group BELOW (by ±_LEAN), so the two tiers of one word stay
+# visibly CLOSER to each other than to the adjacent tier (grouped, NOT a gradient).
+def _rainbow(t):
+    """Colour at fraction `t` along the LIGHT_* rainbow (0 = red … 1 = purple)."""
+    stops = LIGHT_PALETTE
+    t = min(max(t, 0.0), 1.0)
+    seg = t * (len(stops) - 1)
+    i = min(int(seg), len(stops) - 2)
+    return stops[i].interpolate(stops[i + 1], seg - i)
+
+_A_TOP       = _rainbow(0.0)                        # red
+_A_HIGH      = _rainbow(1 / 3)                      # evenly between red and purple
+_A_MID       = _rainbow(2 / 3)
+_A_LOW       = _rainbow(1.0)                        # purple
+_A_BELOW_LOW = ManimColor("#7A3FB0")               # deeper purple, notional below LOW
+_LEAN = 0.2                                         # small: keep same-word tiers grouped
 
 NAME_TIER_COLORS = [
-    _TOP_RED,                                   # TOP
-    _ORANGE.interpolate(_TOP_RED, _LEAN),       # HIGH ↑  → toward red   (above)
-    _ORANGE.interpolate(_YELLOW,  _LEAN),       # HIGH ↓  → toward yellow (below)
-    _YELLOW.interpolate(_ORANGE,  _LEAN),       # MID  ↑  → toward orange (above)
-    _YELLOW.interpolate(_GREEN,   _LEAN),       # MID  ↓  → toward green  (below)
-    _GREEN.interpolate(_YELLOW,   _LEAN),       # LOW  ↑  → toward yellow (above)
-    _GREEN.interpolate(_DEEP_GREEN, _LEAN),     # LOW  ↓  → toward deep green (below)
+    _A_TOP,                                     # TOP
+    _A_HIGH.interpolate(_A_TOP, _LEAN),         # HIGH ↑  → toward TOP  (above)
+    _A_HIGH.interpolate(_A_MID, _LEAN),         # HIGH ↓  → toward MID  (below)
+    _A_MID.interpolate(_A_HIGH, _LEAN),         # MID  ↑  → toward HIGH (above)
+    _A_MID.interpolate(_A_LOW, _LEAN),          # MID  ↓  → toward LOW  (below)
+    _A_LOW.interpolate(_A_MID, _LEAN),          # LOW  ↑  → toward MID  (above)
+    _A_LOW.interpolate(_A_BELOW_LOW, _LEAN),    # LOW  ↓  → toward deeper purple (below)
 ]
 
 PANEL_FILL   = ManimColor("#2B2B2B")   # dark charcoal content row (letters pop on it)
