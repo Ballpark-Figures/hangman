@@ -29,9 +29,10 @@ Script row 05, split on '—' (voiceover ↔ animation zip 1:1). BEAT MAP:
   b root_node     — one decision node appears centre (the top of the tree)
   c cycle_letters — cycle every letter A–Z through the node (which opener is best?)
   d grid_spread   — 20 openers into a 4×5 grid; each sprouts its next level (blanks + miss)
-  e a_dive        — bring A to centre; walk-highlight its children (node+edge gold); focus leftmost
+  e a_dive        — bring A to centre; walk-highlight children (gold); grid A-miss's options
+  f f_drill       — breadcrumb the optimal (O), drill its all-miss leaf into the next option grid
   --- next sections (not yet built) ---
-  f … expand the leftmost child into an option grid; count/back-up; dedup + prune; paired chart
+  g … recurse to 'Avg misses: 0'; back up the solved values (green); dedup + prune; paired chart
 
 Render:  render 05a --fast  (…05c)   /   render 05 sub  for the whole scene
 
@@ -178,22 +179,24 @@ class Scene05(HangmanScene):
         mt.parent, mt.fan = parent, fan
         return mt
 
-    def _grid_of(self, options, *, rows=None, cols=None):
-        """Tile one mini-tree per option across the full frame at ONE uniform scale
-        (every node the same size), row-major. rows/cols default to a ~16:9 layout."""
+    def _grid_of(self, options, *, rows=None, cols=None, w=GRID_W, h=GRID_H, center=None):
+        """Tile one mini-tree per option across a ``w``×``h`` box (default the full
+        frame) at ONE uniform scale (every node the same size), row-major. rows/cols
+        default to a layout matching the box aspect."""
+        center = GRID_CENTER if center is None else center
         if cols is None:
-            cols = max(1, int(round((len(options) * GRID_W / GRID_H) ** 0.5)))
+            cols = max(1, int(round((len(options) * w / h) ** 0.5)))
         if rows is None:
             rows = (len(options) + cols - 1) // cols
         cells = [self._mini_tree(o) for o in options]
-        cw, ch = GRID_W / cols, GRID_H / rows
+        cw, ch = w / cols, h / rows
         scale = min(cw * 0.92 / max(c.width for c in cells),
                     ch * 0.88 / max(c.height for c in cells))
         for idx, mt in enumerate(cells):
             r_i, c_i = divmod(idx, cols)
             mt.scale(scale)
-            mt.move_to([GRID_CENTER[0] - GRID_W / 2 + (c_i + 0.5) * cw,
-                        GRID_CENTER[1] + GRID_H / 2 - (r_i + 0.5) * ch, 0])
+            mt.move_to([center[0] - w / 2 + (c_i + 0.5) * cw,
+                        center[1] + h / 2 - (r_i + 0.5) * ch, 0])
         return VGroup(*cells)
 
     def _setup_grid(self):
@@ -306,6 +309,25 @@ class Scene05(HangmanScene):
         self.play(*[GrowFromCenter(mt[0]) for mt in grid], run_time=run_time * 0.30)
         self.play(*[GrowFromPoint(mt[1], mt[0].get_center()) for mt in grid],
                   run_time=run_time * 0.38)
+        self.grid = grid
+
+    # ── f : keep drilling — fade all but the optimal (top-left) tree, keep it as a
+    #        breadcrumb top-left, and expand its leftmost (all-miss) leaf into the next
+    #        option grid below. (One level roughed; recurse to 'Avg misses: 0' next.)
+    @subscene
+    def f_drill(self):
+        top = self.grid[0]                       # O — optimal, sorted first
+        self.play(FadeOut(VGroup(*self.grid[1:])), run_time=0.6)
+        self.play(top.animate.scale(0.5).to_corner(UL, buff=0.5), run_time=0.6)
+        self.breadcrumbs = VGroup(top)
+        # A-miss → O-miss (the all-miss path); grid its next-letter options below
+        node = DATA["tree"]["children"]["__"]["children"]["__"]
+        opts = sorted((o for o in node["options"] if o["splits"]),
+                      key=lambda o: (o["avg"], o["letter"]))
+        grid = self._grid_of(opts, h=6.6, center=[0, -0.9, 0])
+        self.play(*[GrowFromCenter(mt[0]) for mt in grid], run_time=0.7)
+        self.play(*[GrowFromPoint(mt[1], mt[0].get_center()) for mt in grid],
+                  run_time=1.0)
         self.grid = grid
 
     # ── components ─────────────────────────────────────────────────────────────
