@@ -394,11 +394,14 @@ class Scene05(HangmanScene):
                       key=lambda o: (-_greedy_score(o), o["letter"]))
         cells = [self._diag_cell(1, o) for o in opts]
         grid = self._tile(cells, cols=GRID_COLS)
-        # grow the adjusted trees OUT OF the actual A tree; the source itself FADES as the
-        # copies emerge, so no leftover copy lingers in the middle
-        self.play(*[TransformFromCopy(self.a_tree, c) for c in grid],
-                  FadeOut(self.a_tree), run_time=run_time)
+        # d-style, two phases. (1) MOVE the A tree into every cell's slot — it shrinks to
+        # the small path top as it goes (the source fades so nothing lingers). (2) GROW
+        # the next level (the option subtree) out of each, once they're in place.
+        self.play(*[TransformFromCopy(self.a_tree, c[0]) for c in grid],
+                  FadeOut(self.a_tree), run_time=run_time * 0.5)
         self.a_tree = None
+        self.play(*[GrowFromPoint(VGroup(c[1], c[2]), c[1].get_start()) for c in grid],
+                  run_time=run_time * 0.5)
         self.grid = grid
 
     # ── f : keep drilling — expand the top-left (greedy pick O) tree's all-miss leaf
@@ -412,11 +415,14 @@ class Scene05(HangmanScene):
         grid = self._tile(cells, cols=GRID_COLS)
         src = self.grid[0]                               # the top-left (A→O) tree from e
         others = VGroup(*self.grid[1:])
-        # fade the trees we're REMOVING out first, then grow the deeper trees OUT OF the
-        # top-left (which fades as they emerge — O shrinking into the path)
-        self.play(FadeOut(others), run_time=0.6)
-        self.play(*[TransformFromCopy(src, c) for c in grid],
-                  FadeOut(src), run_time=1.6)
+        # fade the trees we're removing, then d-style: (1) MOVE the top-left tree into
+        # every slot — its full O level shrinks into the A→O path as it goes; (2) GROW
+        # the next option subtree out of each, once in place.
+        self.play(FadeOut(others), run_time=0.5)
+        self.play(*[TransformFromCopy(src, c[0]) for c in grid],
+                  FadeOut(src), run_time=1.2)
+        self.play(*[GrowFromPoint(VGroup(c[1], c[2]), c[1].get_start()) for c in grid],
+                  run_time=1.2)
         self.grid = grid
 
     # ── components ─────────────────────────────────────────────────────────────
