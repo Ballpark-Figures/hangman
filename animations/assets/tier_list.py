@@ -46,7 +46,7 @@ TIER_LETTERS = ["EIA", "SR", "TNO", "LDC", "PUGMBH", "FYVKW", "XZJQ"]
 # width is sized so the FULLEST tier (most letters) sits with EQUAL left/right
 # margins (the letters fill a symmetric block; shorter tiers stay left-aligned).
 LETTER_PITCH = 0.82
-LETTER_BUFF  = 0.40
+LETTER_BUFF  = 0.26
 _DEFAULT_PANEL_W = 2 * LETTER_BUFF + max(len(t) for t in TIER_LETTERS) * LETTER_PITCH
 
 # Classic S-tier rainbow (LIGHT_PALETTE ramp + a neutral grey for the last tier) —
