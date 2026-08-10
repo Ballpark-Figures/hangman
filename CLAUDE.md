@@ -128,6 +128,13 @@ greedy, greedy_word, best_opener, best_opener_word):
   camera-dive) — currently inlined/copied in `01`, so a shared `tree_view` extraction is a
   promote-candidate (ASK first). Do NOT use `tree_view.guess_node`'s solid `ACCENT_FILL`
   circle + white letter for these scenes — that's the *other* tree style (95/98's walk).
+  - **`05optimal` overrides the colouring to BINARY: a MISS edge/node is RED, a HIT
+    edge/node (and any guess node) is WHITE** — not the graduated per-miss-count palette
+    (`_miss_color` there returns `LIGHT_RED`/`CHALK`). Scene `01` keeps the graduated scheme.
+  - **Blanks are a LEAF annotation** in `05optimal`: the partially-filled word (+ the red
+    missed letter under the miss child) sits only under the CURRENT frontier nodes.
+    Expanding a node REMOVES its blanks and adds them under its new children; un-expanded
+    siblings keep theirs.
 - **Win/loss recolour tints the WHOLE board** — revealed letters, the blanks, the miss
   row, AND the gallows (`self.hang` includes it) → green on a win, red on a loss.
 

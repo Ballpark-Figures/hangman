@@ -16,12 +16,20 @@ All numbers are SOURCED from `assets/tree2_data.py` (committed `tree2_cache.json
 the annotated length-2 optimal tree from `optimal.annotated_tree`) and, for the
 recap chart, `assets/greedy_data.py`. The render reads only the caches.
 
+TREE CONVENTIONS (this scene):
+  - MISS edge/node = RED, HIT edge/node (and a guess node) = WHITE. Binary — NOT the
+    intro's graduated per-miss-count palette (`_miss_color`).
+  - A node's blanks (partially-filled word + a red missed letter under the miss child)
+    are a LEAF annotation: only the current frontier nodes carry them. EXPANDING a node
+    REMOVES that node's blanks (it's no longer a leaf) and ADDS blanks under its new
+    children; the node's un-expanded SIBLINGS keep theirs.
+
 Script row 05, split on '—' (voiceover ↔ animation zip 1:1). BEAT MAP:
   a greedy_chart  — recap: greedy avg misses by word length (the scene-04 chart)
   b root_node     — one decision node appears centre (the top of the tree)
   c cycle_letters — cycle every letter A–Z through the node (which opener is best?)
+  d grid_spread   — 20 openers into a 4×5 grid; each sprouts its next level (blanks + miss)
   --- next sections (not yet built) ---
-  d grid_spread   — 28 nodes into a 4×7 grid; each sprouts its next level (try every opener)
   e … the A-case dive, back-up/solve, dedup + prune, paired greedy-vs-optimal chart
 
 Render:  render 05a --fast  (…05c)   /   render 05 sub  for the whole scene
@@ -55,12 +63,12 @@ NODE_R_ROOT   = 0.5       # lone root node at full frame (≈ the intro's on-scr
 NODE_LETTER_H = 1.3       # guess-letter height as a multiple of node radius (intro)
 
 
-def _miss_color(misses):
-    """Node/edge colour by miss-count: 0 = CHALK (white), then 1→purple … 6→red
-    (LIGHT_PALETTE reversed). Mirrors 92wintree_test._miss_color."""
-    if misses <= 0:
-        return CHALK
-    return LIGHT_PALETTE[len(LIGHT_PALETTE) - misses]
+def _miss_color(miss):
+    """Binary tree colour for scene 05: a MISS edge/node is RED, a HIT edge/node (and
+    the guess node itself) is white. Simpler than the intro's graduated per-miss-count
+    palette — for this scene, miss = red, hit = white. ``miss`` is truthy for the
+    absent (miss) branch."""
+    return LIGHT_RED if miss else CHALK
 
 
 # ── beat d : the 4×5 grid of (splitting) openers, each sprouting its next level.
