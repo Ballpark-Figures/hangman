@@ -69,8 +69,8 @@ GRID_NODE_R      = 0.16   # parent-node radius (natural; the whole grid is scale
 GRID_CHILD_RF    = 0.68   # child radius as a fraction of the parent radius
 GRID_CHILD_DY    = 0.52   # parent → child vertical drop (natural units)
 GRID_CHILD_SPR   = 0.34   # child horizontal half-spread (natural units)
-GRID_W, GRID_H   = 14.0, 6.8       # box the arranged grid is fit into
-GRID_CENTER      = [0, -0.2, 0]
+GRID_W, GRID_H   = 15.4, 8.4       # box the arranged grid is fit into (near full frame)
+GRID_CENTER      = [0, 0, 0]
 
 
 class Scene05(HangmanScene):
@@ -182,20 +182,20 @@ class Scene05(HangmanScene):
     @subscene
     def grid_spread(self):
         self._setup_grid()
-        center = VGroup(self.node, self.node_letter)
-        parents = [mt.parent for mt in self.grid]
-        # phase 1: the single node multiplies — copies fly out to each grid cell
-        self.play(LaggedStart(*[TransformFromCopy(center, p) for p in parents],
-                              lag_ratio=0.04), run_time=2.2)
-        self.remove(self.node, self.node_letter)
+        parents = [mt.parent for mt in self.grid]        # 'A'..'Z' at their grid cells
+        # phase 1 (like yahtzee's one_die): every opener starts stacked at the centre
+        # at the big root-node size, then ALL fan out SIMULTANEOUSLY, shrinking to the
+        # grid — the lone centre node becomes the grid, nothing lingers in the middle.
+        for p in parents:
+            p.save_state()                               # remember its grid pose
+            p.scale((2 * NODE_R_ROOT) / p[0].width).move_to(ORIGIN)
+        self.remove(self.node, self.node_letter)         # swap the identical big 'A' in
         self.node = self.node_letter = None
-        # phase 2: each opener sprouts its next level (its partition into situations)
-        grows = []
-        for mt in self.grid:
-            edges = VGroup(*[m for m in mt.fan if isinstance(m, Line)])
-            dots = VGroup(*[m for m in mt.fan if isinstance(m, Dot)])
-            grows.append(AnimationGroup(Create(edges), FadeIn(dots)))
-        self.play(LaggedStart(*grows, lag_ratio=0.03), run_time=2.2)
+        self.add(*parents[1:], parents[0])               # 'A' on top of the stack
+        self.play(*[Restore(p) for p in parents], run_time=1.5)
+        # phase 2: every opener sprouts its next level at once (its partition)
+        self.play(*[GrowFromPoint(mt.fan, mt.parent.get_center()) for mt in self.grid],
+                  run_time=1.4)
 
     # ── components ─────────────────────────────────────────────────────────────
     def _greedy_chart(self):
