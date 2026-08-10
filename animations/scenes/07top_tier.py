@@ -48,8 +48,9 @@ from assets.letter_ngrams import letter_ngrams
 # top-tier letters, in order, and the best-first-guess length ranges they own
 TOP = [("e", range(5, 12)), ("i", range(12, 21)), ("a", range(1, 5))]
 
-# tier-list tuck + big-letter geometry (matches 96's LetterGrid.choose)
-TL_SHRINK   = 0.8
+# tier-list tuck + big-letter geometry (mirrors 96's LetterGrid.choose; a touch
+# smaller than 96's 0.8 to leave more room above the big letter)
+TL_SHRINK   = 0.7
 TL_TOP_BUFF = 0.5
 CORNER_BUFF = 1.0
 BIG_GROW    = 5.5                                  # big letter = grid-base × 5.5
@@ -58,9 +59,9 @@ BIG_COLOR   = ACCENT_FILL                          # tier white → brand blue o
 # view region (right of the tucked tier list)
 HEAT_CENTER = np.array([1.6, -0.4, 0.0])
 NG_X        = 6.0
-CU_LEFT     = 0.3                                  # common-uses board left edge
-CU_Y        = 0.0
-TITLE_Y     = 3.2
+CU_CENTER_X = 3.0                                  # common-uses list centred here
+CU_Y        = 0.0                                  # (so the wide len-20 I list isn't
+TITLE_Y     = 3.2                                  #  crunched against the right edge)
 
 
 class Scene07(HangmanScene):
@@ -120,8 +121,8 @@ class Scene07(HangmanScene):
                                alignment="center").move_to([x, TITLE_Y, 0])
 
     def _show_common(self, length_range, run_time):
-        self.common = common_uses([L for L in length_range], board_left_x=CU_LEFT,
-                                  center_y=CU_Y)
+        self.common = common_uses([L for L in length_range], center_y=CU_Y)
+        self.common.set_x(CU_CENTER_X)             # centre each list (widths vary)
         self.cu_title = self._title("Common", "Uses", self.common.get_center()[0])
         self.play(FadeIn(self.common), FadeIn(self.cu_title), run_time=run_time)
 
