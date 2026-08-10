@@ -358,9 +358,10 @@ class Scene05(HangmanScene):
 
     def _e_isolate_a(self, run_time):
         a = self.grid[0]                                 # 'A' — sorted first, top-left cell
-        self.play(FadeOut(VGroup(*self.grid[1:])),
-                  a.animate.scale_to_fit_height(4.2).move_to(ORIGIN),
-                  run_time=run_time)
+        # fade everything else out FIRST, then bring the A tree to the centre
+        self.play(FadeOut(VGroup(*self.grid[1:])), run_time=run_time * 0.5)
+        self.play(a.animate.scale_to_fit_height(4.2).move_to(ORIGIN),
+                  run_time=run_time * 0.5)
         self.a_tree = a
         self.grid = None
 
@@ -394,7 +395,11 @@ class Scene05(HangmanScene):
                       key=lambda o: (-_greedy_score(o), o["letter"]))
         cells = [self._diag_cell(1, o) for o in opts]
         grid = self._tile(cells, cols=GRID_COLS)
-        self._spread_and_grow(cells, self.a_tree, run_time)
+        # TRANSFORM the A tree into the cells: the original becomes the top-left one,
+        # copies of it become the rest — reused, not switched out or left behind.
+        self.play(ReplacementTransform(self.a_tree, cells[0]),
+                  *[TransformFromCopy(self.a_tree, cells[i])
+                    for i in range(1, len(cells))], run_time=run_time)
         self.a_tree = None
         self.grid = grid
 
@@ -408,29 +413,13 @@ class Scene05(HangmanScene):
         cells = [self._diag_cell(2, o) for o in opts]
         grid = self._tile(cells, cols=GRID_COLS)
         src = self.grid[0]                               # the top-left (A→O) tree from e
-        # fade EVERYTHING ELSE out first, then expand the top-left tree out in place
+        # fade EVERYTHING ELSE out first, then TRANSFORM the top-left tree into the cells
+        # (it becomes the top-left one, copies become the rest — reused, no leftover)
         self.play(FadeOut(VGroup(*self.grid[1:])), run_time=0.6)
-        self._spread_and_grow(cells, src, 2.2)
+        self.play(ReplacementTransform(src, cells[0]),
+                  *[TransformFromCopy(src, cells[i])
+                    for i in range(1, len(cells))], run_time=2.0)
         self.grid = grid
-
-    def _spread_and_grow(self, cells, source, run_time):
-        """d-style reveal, reusing the source tree. Each cell's TOP part (the tree so far
-        — identical to the source except the letter at the drilled node) is stacked onto
-        ``source``, then all spread OUT to their grid slots (the source is one of them, so
-        it MOVES, never fades); then the drilled node's children GROW. No morph, no delete-
-        and-re-add. tops = path + miss edge + drilled node; fans = that node's children."""
-        tops = [VGroup(c[0], c[1], c[2][0]) for c in cells]
-        fans = [c[2][1] for c in cells]
-        src_A = source[0][0]                             # the source's root (A) dot
-        for t in tops:
-            t.save_state()
-            t.scale(src_A.width / t[0][0].width)         # match the source's scale…
-            t.shift(src_A.get_center() - t[0][0].get_center())   # …and stack on it
-        self.remove(source)
-        self.add(*tops[:0:-1], tops[0])                  # greedy pick on top of the stack
-        self.play(*[Restore(t) for t in tops], run_time=run_time * 0.55)
-        self.play(*[GrowFromPoint(f, c[2][0].get_center()) for f, c in zip(fans, cells)],
-                  run_time=run_time * 0.45)
 
     # ── components ─────────────────────────────────────────────────────────────
     def _greedy_chart(self):
