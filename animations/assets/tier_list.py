@@ -44,13 +44,26 @@ TIER_GREY   = ManimColor("#9AA0A6")
 TIER_COLORS = [LIGHT_RED, LIGHT_ORANGE, LIGHT_YELLOW,
                LIGHT_GREEN, LIGHT_BLUE, LIGHT_PURPLE, TIER_GREY]
 
-# Once the tiers are NAMED, each name-group shares a hue (two shades apart, the ↑
-# tier the deeper of the pair): TOP red, HIGH orange, MID yellow, LOW green.
+# Once the tiers are NAMED, each name-group shares a hue: TOP red, HIGH orange,
+# MID yellow, LOW green. Within a pair the ↑ tier leans slightly toward the group
+# ABOVE and the ↓ tier slightly toward the group BELOW — but only by `_LEAN`, so
+# the two tiers of one word stay visibly CLOSER to each other than to the adjacent
+# tier (a grouped palette, NOT a continuous gradient).
+_TOP_RED    = LIGHT_RED
+_ORANGE     = ManimColor("#F2831E")
+_YELLOW     = ManimColor("#F5C518")
+_GREEN      = ManimColor("#43A85C")
+_DEEP_GREEN = ManimColor("#2E7D4E")   # notional "below LOW" anchor for LOW ↓
+_LEAN = 0.22                          # small: keep same-word tiers grouped
+
 NAME_TIER_COLORS = [
-    LIGHT_RED,                                          # TOP
-    ManimColor("#EF7D22"), ManimColor("#F79A4A"),      # HIGH ↑ / ↓  (orange)
-    ManimColor("#F0C51E"), ManimColor("#F7D95A"),      # MID  ↑ / ↓  (yellow)
-    ManimColor("#45A85E"), ManimColor("#6FCB84"),      # LOW  ↑ / ↓  (green)
+    _TOP_RED,                                   # TOP
+    _ORANGE.interpolate(_TOP_RED, _LEAN),       # HIGH ↑  → toward red   (above)
+    _ORANGE.interpolate(_YELLOW,  _LEAN),       # HIGH ↓  → toward yellow (below)
+    _YELLOW.interpolate(_ORANGE,  _LEAN),       # MID  ↑  → toward orange (above)
+    _YELLOW.interpolate(_GREEN,   _LEAN),       # MID  ↓  → toward green  (below)
+    _GREEN.interpolate(_YELLOW,   _LEAN),       # LOW  ↑  → toward yellow (above)
+    _GREEN.interpolate(_DEEP_GREEN, _LEAN),     # LOW  ↓  → toward deep green (below)
 ]
 
 PANEL_FILL   = ManimColor("#2B2B2B")   # dark charcoal content row (letters pop on it)
