@@ -86,19 +86,35 @@ class Scene05(HangmanScene):
         lab.set_z_index(3)
         return lab
 
+    def _grow_up(self, bars, *extra, run_time=1.0):
+        """Height-only grow: each bar rises from the axis (x fixed). ``extra`` plays
+        alongside. The normal filled-bar reveal (mirrors yahtzee 07's `_grow_up`)."""
+        for b in bars:
+            b.save_state()
+            b.stretch(1e-3, dim=1, about_edge=DOWN)
+        self.play(*[Restore(b) for b in bars], *extra, run_time=run_time)
+
     # ── a : recap the greedy avg-misses-by-length chart (from scene 04) ────────
     @subscene
     def greedy_chart(self):
         self.chart = self._greedy_chart()
-        self.play(FadeIn(self.chart.axes), FadeIn(self.chart.labels),
-                  FadeIn(self.chart.yticks),
-                  *[Create(b) for b in self.chart.bars], run_time=1.8)
+        # title kept to ONE line: crisp_text supersamples to a 240pt cap, at which a
+        # long string wraps in pango — so build it small (low underlying pt) and
+        # scale up to the on-screen width.
+        self.chart_title = crisp_text("Average Misses by Word Length",
+                                      font_size=10, color=WHITE, weight=BOLD)
+        self.chart_title.scale_to_fit_width(6.5).next_to(self.chart, UP, buff=0.4)
+        rest = VGroup(self.chart.axes, self.chart.labels, self.chart.yticks,
+                      self.chart_title)
+        # the normal filled-bar reveal: bars grow UP from the axis (not the chalk
+        # line-trace) while the axes/labels/title fade in
+        self._grow_up(self.chart.bars, FadeIn(rest), run_time=1.6)
 
     # ── b : the root decision node appears centre (the top of the tree) ────────
     @subscene
     def root_node(self):
-        self.play(FadeOut(self.chart), run_time=0.6)
-        self.chart = None
+        self.play(FadeOut(self.chart), FadeOut(self.chart_title), run_time=0.6)
+        self.chart = self.chart_title = None
         self.node = self._node_dot(ORIGIN)
         self.node_letter = self._node_letter("a", self.node)
         self.play(GrowFromCenter(self.node), run_time=0.7)
