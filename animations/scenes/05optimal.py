@@ -99,8 +99,9 @@ GRID_BLANK_DROP  = 0.36   # child centre → blank RULE baseline (fixed → rule
 GRID_MISS_H      = GRID_BLANK_H    # missed letter (red) — SAME size as the blank letters
 GRID_W, GRID_H   = 15.6, 8.0       # the cells tile this box (full width, small top/bottom margin)
 GRID_CENTER      = [0, 0, 0]
-A_HEADER_SCALE   = 0.55    # shrink the A-tree "top" so the new subtree dominates each cell
-A_HEADER_GAP     = 0.20    # gap from the A header down to the option subtree
+A_HEADER_SCALE   = 0.55    # shrink the path "top" so the new subtree dominates each cell
+A_HEADER_GAP     = 0.20    # gap from the path header down to the option subtree
+CHAIN_GAP        = 0.12    # gap between successive guess levels in the path header
 
 
 class Scene05(HangmanScene):
@@ -216,38 +217,71 @@ class Scene05(HangmanScene):
     def _grid_of(self, options, **kw):
         return self._tile([self._mini_tree(o) for o in options], **kw)
 
-    # ── A-rooted cell for beat e (the top of the A tree + one grafted option) ──
-    def _a_context(self):
-        """The shrunk TOP of the A tree: the A node + its two HIT leaves (a_/_a with
-        blanks). The MISS branch is left open for the caller to graft an option onto.
-        `.A` = the A node (the miss-edge anchor)."""
+    # ── path-rooted cells (the shrunk A→…→ miss-path top + one grafted option) ──
+    def _n_miss_node(self, depth):
+        """The node reached by ``depth`` all-miss guesses down the optimal path
+        (depth 1 = A-miss, 2 = A-miss→O-miss, …)."""
+        node = DATA["tree"]
+        for _ in range(depth):
+            node = node["children"]["__"]
+        return node
+
+    def _guess_ctx(self, node, *, miss):
+        """One level of the shrunk path header: the guess node (``node``'s optimal
+        letter) + its HIT-branch leaves (with blanks); the MISS branch is left open.
+        `.G` = the guess node (miss-edge anchor)."""
+        letter = node["optimal_letter"]
         r = GRID_NODE_R
-        A = Dot(ORIGIN, radius=r, color=_miss_color(0))
-        lab = crisp_text("A", color=BOARD_NAVY, weight=BOLD)
-        lab.scale_to_fit_height(NODE_LETTER_H * r).move_to(A)
-        grp = VGroup(A, lab)
-        for pat, x in (("a_", -GRID_CHILD_SPR), ("_a", GRID_CHILD_SPR)):
+        G = Dot(ORIGIN, radius=r, color=_miss_color(miss))
+        lab = crisp_text(letter.upper(), color=BOARD_NAVY, weight=BOLD)
+        lab.scale_to_fit_height(NODE_LETTER_H * r).move_to(G)
+        grp = VGroup(G, lab)
+        hits = [(pat, ch) for pat, ch in node.get("children", {}).items()
+                if set(pat) != {"_"}]
+        xs = (np.linspace(-GRID_CHILD_SPR, GRID_CHILD_SPR, len(hits))
+              if len(hits) > 1 else [0.0] * len(hits))
+        for (pat, ch), x in zip(hits, xs):
             cpos = np.array([x, -GRID_CHILD_DY, 0.0])
             cdot = Dot(cpos, radius=r * GRID_CHILD_RF, color=_miss_color(0))
-            dn = normalize(cpos - A.get_center())
-            edge = Line(A.get_center() + dn * r, cpos - dn * r * GRID_CHILD_RF,
+            dn = normalize(cpos - G.get_center())
+            edge = Line(G.get_center() + dn * r, cpos - dn * r * GRID_CHILD_RF,
                         color=CHALK, stroke_width=2.0)
             blanks = self._blanks(pat).set_x(x)
             blanks.shift([0, (cpos[1] - GRID_BLANK_DROP) - blanks.get_bottom()[1], 0])
             grp.add(edge, cdot, blanks)
-        grp.A = A
+        grp.G = G
         return grp
 
-    def _a_rooted_tree(self, option):
-        """A beat-e cell: the A tree with its top SHRUNK, and the option letter's
-        subtree (the guess at the A-miss state, red root) grafted onto A's miss branch
-        — so each cell shows the tree from A down to and including the new branch."""
-        sub = self._mini_tree(option, parent_miss=1)          # option subtree, red root
-        L = sub[0]                                             # the option (root) node
-        header = self._a_context().scale(A_HEADER_SCALE)
+    def _chain_header(self, depth):
+        """The shrunk top: the all-miss path (A → O → …) for ``depth`` guesses, each a
+        `_guess_ctx` chained down the MISS branch. `.G_last` = the graft anchor."""
+        node = DATA["tree"]
+        header = VGroup()
+        prevG = prev = None
+        for i in range(depth):
+            ctx = self._guess_ctx(node, miss=(0 if i == 0 else 1))
+            if prev is not None:
+                ctx.next_to([prevG.get_center()[0], prev.get_bottom()[1], 0], DOWN,
+                            buff=CHAIN_GAP)
+                ctx.shift([prevG.get_center()[0] - ctx.G.get_center()[0], 0, 0])
+                header.add(Line(prevG.get_bottom(), ctx.G.get_top(),
+                                color=LIGHT_RED, stroke_width=2.0))
+            header.add(ctx)
+            prevG, prev = ctx.G, ctx
+            node = node["children"]["__"]
+        header.G_last = prevG
+        return header
+
+    def _path_rooted_tree(self, depth, option):
+        """A grid cell: the shrunk all-miss path header (``depth`` guesses) with the
+        option letter's subtree (red root) grafted onto the final miss branch — so the
+        cell shows the whole tree from A down to and including the new branch."""
+        sub = self._mini_tree(option, parent_miss=1)
+        L = sub[0]
+        header = self._chain_header(depth).scale(A_HEADER_SCALE)
         header.next_to(sub, UP, buff=A_HEADER_GAP)
-        header.shift([L.get_center()[0] - header.A.get_center()[0], 0, 0])   # A over L
-        edge = Line(header.A.get_bottom(), L[0].get_top(), color=LIGHT_RED,
+        header.shift([L.get_center()[0] - header.G_last.get_center()[0], 0, 0])
+        edge = Line(header.G_last.get_bottom(), L[0].get_top(), color=LIGHT_RED,
                     stroke_width=2.0)
         return VGroup(header, edge, sub)
 
@@ -355,32 +389,26 @@ class Scene05(HangmanScene):
         # tree, top shrunk, with that option grafted on the miss branch), in GREEDY order
         # (most words containing the letter first → greedy's pick top-left), same column
         # count as beat d.
-        opts = sorted((o for o in DATA["tree"]["children"]["__"]["options"] if o["splits"]),
+        opts = sorted((o for o in self._n_miss_node(1)["options"] if o["splits"]),
                       key=lambda o: (-_greedy_score(o), o["letter"]))
-        cells = [self._a_rooted_tree(o) for o in opts]
+        cells = [self._path_rooted_tree(1, o) for o in opts]
         grid = self._tile(cells, cols=GRID_COLS)
         self.play(FadeOut(self.a_tree), run_time=run_time * 0.35)
         self.a_tree = None
         self.play(*[GrowFromCenter(c) for c in grid], run_time=run_time * 0.65)
         self.grid = grid
 
-    # ── f : keep drilling — fade all but the optimal (top-left) tree, keep it as a
-    #        breadcrumb top-left, and expand its leftmost (all-miss) leaf into the next
-    #        option grid below. (One level roughed; recurse to 'Avg misses: 0' next.)
+    # ── f : keep drilling — expand the top-left (greedy pick O) tree's all-miss leaf
+    #        into the next grid, each cell now rooted along the path A→O (depth 2),
+    #        greedy-sorted, drilling the top-left again. ───────────────────────────────
     @subscene
     def f_drill(self):
-        top = self.grid[0]                       # O — optimal, sorted first
-        self.play(FadeOut(VGroup(*self.grid[1:])), run_time=0.6)
-        self.play(top.animate.scale(0.5).to_corner(UL, buff=0.5), run_time=0.6)
-        self.breadcrumbs = VGroup(top)
-        # A-miss → O-miss (the all-miss path); grid its next-letter options below
-        node = DATA["tree"]["children"]["__"]["children"]["__"]
-        opts = sorted((o for o in node["options"] if o["splits"]),
-                      key=lambda o: (o["avg"], o["letter"]))
-        grid = self._grid_of(opts, h=6.6, center=[0, -0.9, 0])
-        self.play(*[GrowFromCenter(mt[0]) for mt in grid], run_time=0.7)
-        self.play(*[GrowFromPoint(mt[1], mt[0].get_center()) for mt in grid],
-                  run_time=1.0)
+        self.play(FadeOut(self.grid), run_time=0.7)          # e's depth-1 grid
+        opts = sorted((o for o in self._n_miss_node(2)["options"] if o["splits"]),
+                      key=lambda o: (-_greedy_score(o), o["letter"]))
+        cells = [self._path_rooted_tree(2, o) for o in opts]
+        grid = self._tile(cells, cols=GRID_COLS)
+        self.play(*[GrowFromCenter(c) for c in grid], run_time=1.4)
         self.grid = grid
 
     # ── components ─────────────────────────────────────────────────────────────
