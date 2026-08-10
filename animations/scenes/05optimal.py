@@ -70,10 +70,11 @@ GRID_ROWS, GRID_COLS = 4, 5
 GRID_NODE_R      = 0.16   # parent-node radius (natural; the whole grid is scaled to fit)
 GRID_CHILD_RF    = 0.68   # child radius as a fraction of the parent radius
 GRID_CHILD_DY    = 0.55   # parent → child vertical drop (natural units)
-GRID_CHILD_SPR   = 0.52   # child horizontal half-spread (blanks sit under each child)
+GRID_CHILD_SPR   = 0.72   # child horizontal half-spread (blanks sit under each child)
 GRID_BLANK_H     = 0.13   # blank-row height under a child (rule + revealed letter)
+GRID_BLANK_DROP  = 0.22   # child centre → blank RULE baseline (fixed, so rules line up)
 GRID_MISS_H      = 0.14   # missed-letter height (red, below the blanks)
-GRID_W, GRID_H   = 15.4, 8.4       # box the arranged grid is fit into (near full frame)
+GRID_W, GRID_H   = 15.6, 8.6       # the cells tile this box (≈ the full 16×9 frame)
 GRID_CENTER      = [0, 0, 0]
 
 
@@ -150,11 +151,14 @@ class Scene05(HangmanScene):
             d = normalize(cpos - dot.get_center())
             fan.add(Line(dot.get_center() + d * r, cpos - d * cr,
                          color=_miss_color(miss), stroke_width=2.0), cdot)
-            blanks = self._blanks(pat).next_to(cdot, DOWN, buff=0.10)
+            # align by the RULE baseline (blanks' bottom), so filled and empty blanks
+            # sit at the SAME height whether or not a letter is written above them
+            blanks = self._blanks(pat).set_x(cpos[0])
+            blanks.shift([0, (cpos[1] - GRID_BLANK_DROP) - blanks.get_bottom()[1], 0])
             fan.add(blanks)
             if miss:                                     # the missed opener letter, in red
                 ml = crisp_text(option["letter"].upper(), color=LIGHT_RED, weight=BOLD)
-                ml.scale_to_fit_height(GRID_MISS_H).next_to(blanks, DOWN, buff=0.08)
+                ml.scale_to_fit_height(GRID_MISS_H).next_to(blanks, DOWN, buff=0.09)
                 fan.add(ml)
         mt = VGroup(parent, fan)
         mt.parent, mt.fan = parent, fan
@@ -165,14 +169,18 @@ class Scene05(HangmanScene):
         # always-miss letters (c/j/k/q/v/z) are dropped → 20 openers, a clean 4×5.
         opts = sorted((o for o in DATA["tree"]["options"] if o["splits"]),
                       key=lambda o: o["letter"])
-        cells = VGroup(*[self._mini_tree(o) for o in opts])
-        cells.arrange_in_grid(rows=GRID_ROWS, cols=GRID_COLS, flow_order="rd",
-                              buff=(0.5, 0.7))
-        cells.scale_to_fit_width(GRID_W)
-        if cells.height > GRID_H:
-            cells.scale_to_fit_height(GRID_H)
-        cells.move_to(GRID_CENTER)
-        self.grid = cells
+        cells = [self._mini_tree(o) for o in opts]
+        # tile the cells across the full frame: one uniform scale (so every node is the
+        # same size), then drop each mini-tree at its cell centre (row-major).
+        cw, ch = GRID_W / GRID_COLS, GRID_H / GRID_ROWS
+        scale = min(cw * 0.92 / max(c.width for c in cells),
+                    ch * 0.88 / max(c.height for c in cells))
+        for idx, mt in enumerate(cells):
+            r_i, c_i = divmod(idx, GRID_COLS)
+            mt.scale(scale)
+            mt.move_to([GRID_CENTER[0] - GRID_W / 2 + (c_i + 0.5) * cw,
+                        GRID_CENTER[1] + GRID_H / 2 - (r_i + 0.5) * ch, 0])
+        self.grid = VGroup(*cells)
 
     # ── a : recap the greedy avg-misses-by-length chart (from scene 04) ────────
     @subscene
