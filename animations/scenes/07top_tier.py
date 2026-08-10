@@ -23,10 +23,11 @@ Script row 13, split on '—' -> 10 beats a–j (voiceover ↔ animation zip 1:1
   i A intro+cu  send I's copy back; A appears; copy of A → ↙; common-uses 1–4
   j A heat+ng   heatmaps, then add the n-gram view
 
-Each view carries a two-line title in 96's style (Common/Uses · Location/Frequencies
-· Top/N-grams). Common-uses content is BLANK first-guess boards (the sourced best-
-first-guess length ranges — see hangman CLAUDE.md "Common uses view"); heatmap/ngram
-numbers come from the committed caches as in 96.
+Each view carries a title (single-line "Common Uses"; two-line "Location/Frequencies"
+and "Top/N-grams", 96's style) and enters with 96's row-by-row upward rise. Common-
+uses content is BLANK first-guess boards (the sourced best-first-guess length ranges
+— see hangman CLAUDE.md "Common uses view"); heatmap/ngram numbers come from the
+committed caches as in 96.
 
 TIMING KNOBS LEFT AT A GUESS (feel — judge from the video): every fade / move /
 view-swap run_time.
@@ -52,16 +53,16 @@ TOP = [("e", range(5, 12)), ("i", range(12, 21)), ("a", range(1, 5))]
 # smaller than 96's 0.8 to leave more room above the big letter)
 TL_SHRINK   = 0.7
 TL_TOP_BUFF = 0.5
-CORNER_BUFF = 1.0
 BIG_GROW    = 5.5                                  # big letter = grid-base × 5.5
 BIG_COLOR   = ACCENT_FILL                          # tier white → brand blue on the move
 
 # view region (right of the tucked tier list)
 HEAT_CENTER = np.array([1.6, -0.4, 0.0])
 NG_X        = 6.0
-CU_CENTER_X = 3.0                                  # common-uses list centred here
-CU_Y        = 0.0                                  # (so the wide len-20 I list isn't
-TITLE_Y     = 3.2                                  #  crunched against the right edge)
+CU_CENTER_X = 3.0                                  # common-uses list centred here (so
+                                                   # the wide len-20 I list isn't
+                                                   # crunched against the right edge)
+TITLE_Y     = 3.2
 
 
 class Scene07(HangmanScene):
@@ -77,6 +78,7 @@ class Scene07(HangmanScene):
             t.set_opacity(0)
         self.add(self.tl)
         self._tl_full_h = self.tl.height
+        self._tl_full_w = self.tl.width
         self._big_h = crisp_text("A", font_size=48).height * BIG_GROW
         self.corner = self.corner_home = None                  # the big ↙ copy
         self.common = self.cu_title = None
@@ -85,13 +87,13 @@ class Scene07(HangmanScene):
 
     # ── letter mechanic (copy detaches from the tier and moves ↙, recolouring) ──
     def _corner_target(self, tile):
-        """The bottom-left rest pose for the big letter copy — 96's `choose` math:
-        left-anchored, vertically centred in the gap below the tucked tier list."""
+        """The bottom-left rest pose for the big letter copy: horizontally CENTRED
+        under the tucked tier list, and vertically centred in the gap below it."""
         fx, fy = config.frame_x_radius, config.frame_y_radius
-        tw = tile.width * self._big_h / tile.height
+        tier_cx = -fx + TL_TOP_BUFF + (self._tl_full_w * TL_SHRINK) / 2
         final_bottom = (fy - TL_TOP_BUFF) - self._tl_full_h * TL_SHRINK
         cy = (final_bottom + -fy) / 2
-        return [(-fx + CORNER_BUFF) + tw / 2, cy, 0]
+        return [tier_cx, cy, 0]
 
     def _send_copy_down(self, tile, run_time):
         """A COPY of `tile` detaches and moves ↙, growing + recolouring to brand blue.
@@ -115,22 +117,46 @@ class Scene07(HangmanScene):
         self.remove(c)
         self.corner = self.corner_home = None
 
-    # ── view management (each view carries its own two-line title) ──────────────
+    # ── view management (each view carries its own title + 96's row-by-row rise) ─
     def _title(self, l1, l2, x):
+        """A two-line view title (Location/Frequencies · Top/N-grams), 96's style."""
         return crisp_paragraph(l1, l2, font_size=30, color=BLACK,
                                alignment="center").move_to([x, TITLE_Y, 0])
 
+    def _title1(self, text, x):
+        """A single-line view title (Common Uses)."""
+        return crisp_text(text, font_size=30, color=BLACK).move_to([x, TITLE_Y, 0])
+
+    def _rise(self, parent, rows, *, lag_ratio=0.14, shift=0.28):
+        """96's entrance: reveal `parent`'s `rows` one at a time with overlapping
+        upward fades. Add the whole group, preset each row a touch low + transparent,
+        then lag each up into place. Returns the LaggedStart (self.play sets run_time)."""
+        for row in rows:
+            row.shift(DOWN * shift).set_opacity(0)
+        self.add(parent)
+        return LaggedStart(*[row.animate.shift(UP * shift).set_opacity(1)
+                             for row in rows], lag_ratio=lag_ratio)
+
+    def _heat_rows(self, heat):
+        return [VGroup(lab, hm) for lab, hm in zip(heat.labels, heat.heatmaps)]
+
+    def _cu_rows(self, cu):
+        return [VGroup(lab, row) for lab, row in zip(cu.labels, cu.rows)]
+
     def _show_common(self, length_range, run_time):
-        self.common = common_uses([L for L in length_range], center_y=CU_Y)
+        self.common = common_uses([L for L in length_range])
         self.common.set_x(CU_CENTER_X)             # centre each list (widths vary)
-        self.cu_title = self._title("Common", "Uses", self.common.get_center()[0])
-        self.play(FadeIn(self.common), FadeIn(self.cu_title), run_time=run_time)
+        self.cu_title = self._title1("Common Uses", CU_CENTER_X)
+        # vertically centre the list between the title and the bottom of the screen
+        self.common.set_y((self.cu_title.get_bottom()[1] + -config.frame_y_radius) / 2)
+        self.play(FadeIn(self.cu_title),
+                  self._rise(self.common, self._cu_rows(self.common)), run_time=run_time)
 
     def _swap_common_to_heat(self, ch, run_time):
         self.heat = letter_heatmaps(ch, center=HEAT_CENTER)
         self.loc_title = self._title("Location", "Frequencies", HEAT_CENTER[0])
-        self.play(FadeOut(self.common), FadeOut(self.cu_title),
-                  FadeIn(self.heat), FadeIn(self.loc_title), run_time=run_time)
+        self.play(FadeOut(self.common), FadeOut(self.cu_title), FadeIn(self.loc_title),
+                  self._rise(self.heat, self._heat_rows(self.heat)), run_time=run_time)
         self.common = self.cu_title = None
 
     def _add_ngram(self, ch, run_time):
@@ -138,7 +164,8 @@ class Scene07(HangmanScene):
         bot_y = self.heat.heatmaps[-1].get_bottom()[1]
         self.ngram = letter_ngrams(ch, center_x=NG_X, top_y=top_y, bottom_y=bot_y)
         self.ng_title = self._title("Top", "N-grams", NG_X)
-        self.play(FadeIn(self.ngram), FadeIn(self.ng_title), run_time=run_time)
+        self.play(FadeIn(self.ng_title),
+                  self._rise(self.ngram, self.ngram.rows), run_time=run_time)
 
     def _clear_views(self, run_time=0.6):
         outs = [FadeOut(v) for v in (self.common, self.cu_title, self.heat,
