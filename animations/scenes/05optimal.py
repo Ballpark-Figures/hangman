@@ -715,14 +715,27 @@ class Scene05(HangmanScene):
     @subscene
     def i_backup(self):
         sub = self.grid.sub
+        blab, mlab = sub.node_letters[1], sub.node_letters[2]
+        _, by_blk, _ = sub.leaves["by"]
+        _, my_blk, _ = sub.leaves["my"]
         b_val = f"{self._n_miss_node(5)['avg']:g}"        # 0.5 — sourced {by,my} position value
         # (a) back up B: label it with its value; drop the children's 'Avg misses: 0'
         self.avg_b = self._avg_label(sub.discs["b"], value=b_val, direction=LEFT)
         self.play(FadeIn(self.avg_b), FadeOut(self.avg0), FadeOut(self.avg0_by),
                   run_time=0.9)
-        # (b) [cycle to the M option — added once the end-frame is locked]
-        # (c) choose B: fill B and its subtree green (its children are already green from h),
-        # lock in the value
+        # (b) try the OTHER letter that could go in this node — M. Its optimal continuation
+        # MIRRORS B's (M→MY hit / B→BY miss), same avg 0.5, descendants already green: swap
+        # the labels in place (guess B↔M, and the BY/MY leaves swap branches).
+        m_guess = mlab.copy().move_to(blab)               # "M" in the guess node
+        m_miss = blab.copy().move_to(mlab)                # "B" in the miss node
+        m_hit = my_blk.copy().move_to(by_blk)             # "MY" on the hit leaf (right)
+        m_leaf = by_blk.copy().move_to(my_blk)            # "BY" on the miss leaf (below)
+        b_parts, m_parts = VGroup(blab, mlab, by_blk, my_blk), VGroup(m_guess, m_miss, m_hit, m_leaf)
+        self.play(FadeOut(b_parts), FadeIn(m_parts), run_time=0.7)
+        self.wait(0.5)                                    # hold on the M option (also 0.5)
+        # (c) CHOOSE B: swap back, then fill B and its subtree green, locking in the value
+        self.play(FadeOut(m_parts), FadeIn(b_parts), run_time=0.7)
+        self.remove(m_parts)
         green = VGroup(sub.discs["b"], sub.edges["bby"], sub.edges["bm"], self.avg_b)
         self.play(green.animate.set_color(LIGHT_GREEN), run_time=1.0)
 
