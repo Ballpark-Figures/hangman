@@ -220,7 +220,10 @@ class Scene11(HangmanScene):
             cell = chalk_phrase(w.upper(), height=GRID_H)
             self.word_cells[w] = cell
             cells.add(cell)
-        cells.arrange_in_grid(cols=GRID_COLS, buff=(0.7, 0.30))
+        rows = (len(words) + GRID_COLS - 1) // GRID_COLS
+        # flow_order="dr" fills DOWN each column then right, so the A→Z order reads
+        # down the columns (alphabetical BY COLUMN, not by row)
+        cells.arrange_in_grid(rows=rows, cols=GRID_COLS, buff=(0.7, 0.30), flow_order="dr")
         board_left = -(gb.BOARD_W / 2 - 0.34)
         board_top = gb.BOARD_H / 2 - 0.34
         gallows_left = self.hang.get_left()[0]
@@ -230,6 +233,12 @@ class Scene11(HangmanScene):
         cells.scale(min(box_w / cells.width, box_h / cells.height, 1.0))
         cells.move_to([(board_left + gallows_left) / 2, (figures_top + board_top) / 2, 0])
         return cells
+
+    def _box_word(self, word, run_time):
+        """Green box around `word` in the grid — drawn when it's uniquely determined."""
+        box = SurroundingRectangle(self.word_cells[word], color=ACCENT_GREEN,
+                                   buff=0.12, stroke_width=4).set_z_index(2)
+        self.play(Create(box), run_time=run_time)
 
     def _cross_off(self, words, run_time):
         """Strike through each of `words` in the grid — a RED line, one at a time."""
@@ -297,11 +306,14 @@ class Scene11(HangmanScene):
         steps = self.data["figures"]["steps"]
         remaining = sorted(steps[self.i_cut - 1]["words"])        # the words after the I (A→Z)
         self.play(FadeIn(self._word_grid(remaining)), run_time=0.9)   # bulk display, not drawn
-        prev = set(remaining)
+        prev, boxed = set(remaining), False
         for st in steps[self.i_cut:]:                             # p, t, g, f, u, r
             self._guess(st["letter"], st["hit"], 1.0)
             cur = set(st["words"])
             self._cross_off([w for w in remaining if w in prev and w not in cur], 0.9)
+            if len(cur) == 1 and not boxed:                       # uniquely determined
+                self._box_word(next(iter(cur)), 0.6)
+                boxed = True
             prev = cur
 
     # h : remove the chalkboard — ends on a blank frame (next scene is animated)
