@@ -607,13 +607,13 @@ class Scene05(HangmanScene):
         cell.path, cell.drilled_edge, cell.sub, cell.mdot = path, drilled_edge, sub, mdot
         return cell, mdot
 
-    def _avg0_label(self, node_dot, height=0.34, direction=LEFT):
-        """The base-case annotation: 'Avg misses: 0' beside a determined node from which
-        every remaining guess is a guaranteed HIT (0 more misses). Sourced: the n=1
-        node's avg == 0 in the cache."""
+    def _avg_label(self, node_dot, value="0", height=0.34, direction=LEFT):
+        """The 'Avg misses: <value>' annotation beside a node — its backed-up optimal value.
+        ``value`` is a pre-formatted string SOURCED from the tree data (0 for a determined
+        leaf; e.g. 0.5 / 1 / 2 / 3.88 for a backed-up position)."""
         # build small (crisp_text supersamples to a 240pt cap where a longer string
         # WRAPS in pango — see hangman/bpkfigures CLAUDE.md) then scale to a readable height
-        lab = crisp_text("Avg misses: 0", font_size=12, color=WHITE, weight=BOLD)
+        lab = crisp_text(f"Avg misses: {value}", font_size=12, color=WHITE, weight=BOLD)
         lab.scale_to_fit_height(height).next_to(node_dot, direction, buff=height * 0.6)
         return lab
 
@@ -684,8 +684,8 @@ class Scene05(HangmanScene):
         self.play(GrowFromPoint(l2, spine.sub.bdot.get_center()), run_time=run_time * 0.11)
         self.play(GrowFromPoint(l3, spine.sub.mdot.get_center()), run_time=run_time * 0.10)
         # both determined leaves are done with 0 further misses: label M (left) AND BY (right)
-        self.avg0 = self._avg0_label(spine.mdot)
-        self.avg0_by = self._avg0_label(spine.sub.leaves["by"][0], direction=RIGHT)
+        self.avg0 = self._avg_label(spine.mdot)
+        self.avg0_by = self._avg_label(spine.sub.leaves["by"][0], direction=RIGHT)
         self.play(FadeIn(self.avg0), FadeIn(self.avg0_by), run_time=run_time * 0.10)
         self.clear()                                      # re-track clean groups (post copy-reveal)
         self.add(spine, self.avg0, self.avg0_by)
@@ -707,6 +707,24 @@ class Scene05(HangmanScene):
                        by_dot, by_blk, self.avg0_by)
         self.play(green.animate.set_color(LIGHT_GREEN),
                   FadeOut(my_tally), FadeOut(by_tally), run_time=1.2)
+
+    # ── i : back up the B node (the split guess at the {by,my} '_Y' position). Try each
+    #        letter that could go there (B, M) with its optimal continuation + avg misses
+    #        (both 0.5), then CHOOSE B — fill its subtree green, lock the value. Later beats
+    #        do the other nodes (Y, then up the diagonal). ───────────────────────────────
+    @subscene
+    def i_backup(self):
+        sub = self.grid.sub
+        b_val = f"{self._n_miss_node(5)['avg']:g}"        # 0.5 — sourced {by,my} position value
+        # (a) back up B: label it with its value; drop the children's 'Avg misses: 0'
+        self.avg_b = self._avg_label(sub.discs["b"], value=b_val, direction=LEFT)
+        self.play(FadeIn(self.avg_b), FadeOut(self.avg0), FadeOut(self.avg0_by),
+                  run_time=0.9)
+        # (b) [cycle to the M option — added once the end-frame is locked]
+        # (c) choose B: fill B and its subtree green (its children are already green from h),
+        # lock in the value
+        green = VGroup(sub.discs["b"], sub.edges["bby"], sub.edges["bm"], self.avg_b)
+        self.play(green.animate.set_color(LIGHT_GREEN), run_time=1.0)
 
     # ── components ─────────────────────────────────────────────────────────────
     def _greedy_chart(self):
