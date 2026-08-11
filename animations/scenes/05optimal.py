@@ -612,7 +612,7 @@ class Scene05(HangmanScene):
         opts = sorted((o for o in self._n_miss_node(2)["options"] if o["splits"]),
                       key=lambda o: (-_greedy_score(o), o["letter"]))
         cells = [self._diag_cell(2, o) for o in opts]
-        self._tile(cells, cols=GRID_COLS)
+        self._tile(cells, cols=4)                         # 16 splitting options → 4×4
         src = self.grid[0]                               # the top-left (A→O) tree from e
         # fade everything else out first, then piece-by-piece transform the top-left tree
         # into the cells (O shrinks into the path, O-miss becomes each new drilled node)
