@@ -1,0 +1,24 @@
+{
+  "letters": "AEINORST",
+  "weighting": "unweighted",
+  "min_zipf": 2.5,
+  "total_words": 34483,
+  "only_tier": 725,
+  "single_option": 23113,
+  "miss_dist": {
+    "0": 28245,
+    "1": 3518,
+    "2": 1367,
+    "3": 674,
+    "4": 343,
+    "5": 178,
+    "6": 87,
+    "7": 43,
+    "8": 19,
+    "9": 7,
+    "10": 2
+  },
+  "rest_zero_miss": 4407,
+  "max_misses": 10,
+  "avg_additional_misses": 0.33622364643447494
+}

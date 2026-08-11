@@ -100,10 +100,13 @@ class Scene11(HangmanScene):
             raise RuntimeError("scene11_cache.json missing — run `python3 "
                                "math/tier_backbone.py` to source the pie numbers.")
         vals, colors = self._sector_values(dist)
+        # label only the readable slices (67/13/10/4%); the sub-3% miss tail is a spray
+        # of slivers whose % would pile up unreadably — the narration covers those, and
+        # the escalating warm wedges carry the "more misses, fewer words" point visually.
         self.pie = get_pie_chart(vals, colors=colors, radius=PIE_R, center=PIE_CENTER,
                                  label_mode="inside", label_font_size=20,
                                  inner_frac=0.62, inner_frac_spread=0.5,
-                                 stroke_color=WHITE)
+                                 min_label_frac=0.03, stroke_color=WHITE)
         self.pie.hide_all()                        # incremental build across b/c/d
         self.add(self.pie)
 
