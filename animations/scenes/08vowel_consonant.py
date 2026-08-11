@@ -67,7 +67,7 @@ class Scene08(HangmanScene):
         return get_pie_chart([dist["vowel"], dist["consonant"]],
                              colors=[VOWEL_C, CONS_C], radius=ROW_PIE_R, center=center,
                              label_mode="inside", label_font_size=15, inner_frac=0.5,
-                             stroke_color=WHITE)
+                             inner_frac_spread=0.35, stroke_color=WHITE)
 
     def _adjacency_row(self, name, adj, y, word_color):
         """`name` (VOWEL red / CONSONANT blue) centred at height y, a before-pie to its
