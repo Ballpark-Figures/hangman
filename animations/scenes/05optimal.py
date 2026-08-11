@@ -357,14 +357,14 @@ class Scene05(HangmanScene):
         return (cell.path.levels, cell.drilled_edge, cell.sub.gdot, cell.sub.glab,
                 cell.sub.fan)
 
-    def _transform_move(self, source, cells, run_time, extra_fades=()):
+    def _transform_move(self, source, cells, run_time, extra_anims=()):
         """PHASE 1 of the drill transform: move each node/edge of ``source`` to its
         counterpart in every ``cells`` cell (the original → the top-left one via
         ReplacementTransform, copies → the rest), fading the extra text out (moving +
-        shrinking WITH the tree) during the move. Each drilled node's NEW LETTER fades in
-        DURING this move (so it develops as the node splits into place, not after), along
-        with any ``extra_fades``. Returns ``grows`` = ``[(kids, dot)]`` for phase 2 so the
-        caller decides how to grow the subtree (all at once, or one level at a time)."""
+        shrinking WITH the tree) during the move. Each drilled node's NEW LETTER RIDES its
+        node into place (develops on top of the node as it moves, not after). Any
+        ``extra_anims`` play alongside the move. Returns ``grows`` = ``[(kids, dot)]`` for
+        phase 2 so the caller grows the subtree (all at once, or one level at a time)."""
         s_levels, s_fdot, s_fedge, s_extra = self._source_pieces(source)
         move, grows = [], []
         for k, cell in enumerate(cells):
@@ -395,8 +395,8 @@ class Scene05(HangmanScene):
         for x in s_extra:
             ghost = x.copy().scale(s, about_point=o).shift(d).set_opacity(0)
             extra.append(Transform(x, ghost))
-        # the new letters ride their nodes into place (in `move`); extra_fades fade in place
-        self.play(*move, *extra, *[FadeIn(x) for x in extra_fades], run_time=run_time)
+        # the new letters ride their nodes into place (in `move`); extra_anims play alongside
+        self.play(*move, *extra, *extra_anims, run_time=run_time)
         return grows
 
     def _transform_into(self, source, cells, run_time):
@@ -653,10 +653,18 @@ class Scene05(HangmanScene):
         spine, _ = self._ymy_cell()
         spine.scale_to_fit_height(7.2).move_to([0.4, -0.1, 0])   # room for the left avg-0 label
         self.play(FadeOut(VGroup(*self.grid[1:])), run_time=run_time * 0.14)
-        # phase 1: centre the diagonal + turn the U-miss leaf into Y — Y's letter fades in
-        # DURING this move, and the decluttered hit-sibling leaf text comes back with it
+        # the recapped hit-sibling leaf text RIDES the diagonal in (moving WITH the nodes):
+        # start it at the source-diagonal-equivalent pose (small, where the depth-4 cell is),
+        # transparent, then Restore to its target pose so it travels in with the centring.
+        src_A, dst_A = self.grid[0].path.levels[0]["dot"], spine.path.levels[0]["dot"]
+        o = dst_A.get_center()
+        lt = spine.path.leaf_text
+        lt.save_state()
+        lt.scale(src_A.width / dst_A.width, about_point=o).shift(src_A.get_center() - o)
+        lt.set_opacity(0)
+        # phase 1: centre the diagonal + turn the U-miss leaf into Y (Y's letter rides in too)
         self._transform_move(self.grid[0], [spine], run_time * 0.44,
-                             extra_fades=[spine.path.leaf_text])
+                             extra_anims=[Restore(lt)])
         # grow the Y-subtree ONE LEVEL AT A TIME (from Y, then B, then M)
         l1, l2, l3 = spine.sub.fan_levels
         self.play(GrowFromPoint(l1, spine.sub.gdot.get_center()), run_time=run_time * 0.11)
