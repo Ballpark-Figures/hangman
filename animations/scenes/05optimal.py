@@ -239,18 +239,23 @@ class Scene05(HangmanScene):
             node = node["children"]["__"]
         return node
 
-    def _path_diag(self, depth):
+    def _path_diag(self, depth, leaf_text=False):
         """The SHRUNK drilled-past path A→O→… for ``depth`` guesses, as a diagonal going
         down-LEFT (the miss branch is the left child). Each guess node keeps its HIT
-        siblings as bare dots (NO blanks — the non-active nodes are decluttered).
+        siblings as bare dots. During the drill they are DECLUTTERED (no blanks); pass
+        ``leaf_text=True`` to also build each hit-sibling's board-state annotation (the
+        revealed-letter blanks + the accumulated red miss tally), collected on
+        ``grp.leaf_text`` so a caller can bring it back once the tree is centred.
         Returns (group, anchor, last_dot): where the active subtree attaches, and the
         deepest guess node it hangs from."""
         r = GRID_NODE_R
         node = DATA["tree"]
         grp = VGroup()
         levels = []                                       # role handles, one per guess
+        leaf_grp = VGroup()                               # hit-sibling annotations (leaf_text)
         A_pos = pos = np.array([0.0, 0.0, 0.0])
         prev_dot = last_dot = None
+        missed = []                                       # miss letters accumulated down the path
         for i in range(depth):
             dot = Dot(pos, radius=r, color=_miss_color(0 if i == 0 else 1))
             lab = crisp_text(node["optimal_letter"].upper(), color=BOARD_NAVY, weight=BOLD)
@@ -262,9 +267,9 @@ class Scene05(HangmanScene):
                 in_edge = Line(prev_dot.get_center() + dn * r, pos - dn * r,
                                color=LIGHT_RED, stroke_width=2.0)
                 grp.add(in_edge)
-            hitpats = [p for p in node["children"] if set(p) != {"_"}]  # hit siblings, no blanks
+            hitpats = [p for p in node["children"] if set(p) != {"_"}]  # hit siblings
             hits = []
-            for j, _ in enumerate(hitpats):
+            for j, p in enumerate(hitpats):
                 hpos = pos + np.array([GRID_CHILD_SPR * (j + 1), -GRID_CHILD_DY, 0.0])
                 hdot = Dot(hpos, radius=r * GRID_CHILD_RF, color=_miss_color(0))
                 dn = normalize(hpos - pos)
@@ -272,13 +277,26 @@ class Scene05(HangmanScene):
                              color=CHALK, stroke_width=2.0)
                 grp.add(hedge, hdot)
                 hits.append((hedge, hdot))
+                if leaf_text:                             # this hit branch's board state
+                    blk = self._blanks(p).set_x(hpos[0])
+                    blk.shift([0, (hpos[1] - GRID_BLANK_DROP) - blk.get_bottom()[1], 0])
+                    ann = VGroup(blk)
+                    if missed:
+                        mr = self._miss_row(missed)
+                        mr.next_to(blk, DOWN, buff=0.09).set_x(blk.get_x())
+                        ann.add(mr)
+                    leaf_grp.add(ann)
             levels.append({"dot": dot, "lab": lab, "in_edge": in_edge, "hits": hits})
             prev_dot = last_dot = dot
-            pos = pos + np.array([-GRID_CHILD_SPR, -GRID_CHILD_DY, 0.0])   # miss → down-left
+            missed = missed + [node["optimal_letter"].upper()]   # this guess missed → down-left
+            pos = pos + np.array([-GRID_CHILD_SPR, -GRID_CHILD_DY, 0.0])
             node = node["children"]["__"]
+        if leaf_text:
+            grp.add(leaf_grp)                             # scale + move with the diagonal
         anchor = A_pos + (pos - A_pos) * PATH_SCALE
         grp.scale(PATH_SCALE, about_point=A_pos)
         grp.levels = levels
+        grp.leaf_text = leaf_grp
         return grp, anchor, last_dot
 
     def _diag_cell(self, depth, option):
@@ -327,13 +345,15 @@ class Scene05(HangmanScene):
         return (cell.path.levels, cell.drilled_edge, cell.sub.gdot, cell.sub.glab,
                 cell.sub.fan)
 
-    def _transform_into(self, source, cells, run_time):
-        """Move each node/edge of ``source`` to its counterpart in every ``cells`` grid
-        cell (the original becomes the top-left one; copies become the rest), fading the
-        extra text out DURING the move; THEN grow each drilled node's letter + children.
-        Piece-by-piece, so nothing morphs as a blob or is switched out."""
+    def _transform_move(self, source, cells, run_time):
+        """PHASE 1 of the drill transform: move each node/edge of ``source`` to its
+        counterpart in every ``cells`` cell (the original → the top-left one via
+        ReplacementTransform, copies → the rest), fading the extra text out (moving +
+        shrinking WITH the tree) during the move. Returns ``(fade_in, grows)`` for phase
+        2: ``fade_in`` = the drilled-letter FadeIns, ``grows`` = ``[(kids, dot)]`` so the
+        caller decides how to grow (all at once, or one level at a time)."""
         s_levels, s_fdot, s_fedge, s_extra = self._source_pieces(source)
-        move, fade_in, grow = [], [], []
+        move, fade_in, grows = [], [], []
         for k, cell in enumerate(cells):
             t_levels, t_dedge, t_ddot, t_dlab, t_kids = self._target_pieces(cell)
             pairs = []
@@ -347,7 +367,7 @@ class Scene05(HangmanScene):
             xf = ReplacementTransform if k == 0 else lambda a, b: TransformFromCopy(a, b)
             move += [xf(a, b) for a, b in pairs]
             fade_in.append(FadeIn(t_dlab))
-            grow.append(GrowFromPoint(t_kids, t_ddot.get_center()))
+            grows.append((t_kids, t_ddot))
         # the extra text MOVES + SHRINKS with the tree (toward the top-left cell, as if it
         # were staying) while fading — not a fade-in-place
         src_A, dst_A = s_levels[0]["dot"], cells[0].path.levels[0]["dot"]
@@ -357,8 +377,15 @@ class Scene05(HangmanScene):
         for x in s_extra:
             ghost = x.copy().scale(s, about_point=o).shift(d).set_opacity(0)
             extra.append(Transform(x, ghost))
-        self.play(*move, *extra, run_time=run_time * 0.6)
-        self.play(*fade_in, *grow, run_time=run_time * 0.4)
+        self.play(*move, *extra, run_time=run_time)
+        return fade_in, grows
+
+    def _transform_into(self, source, cells, run_time):
+        """Piece-by-piece drill: move source → cells (phase 1) then grow each drilled
+        node's letter + its whole subtree at once (phase 2). Nothing morphs as a blob."""
+        fade_in, grows = self._transform_move(source, cells, run_time * 0.6)
+        self.play(*fade_in, *[GrowFromPoint(k, d.get_center()) for k, d in grows],
+                  run_time=run_time * 0.4)
         self.clear()                                      # drop the transform's stray copies…
         self.add(*cells)                                  # …and re-track clean cell groups
 
@@ -489,14 +516,15 @@ class Scene05(HangmanScene):
         BARE won-leaves. Returns (cell, m_dot) — m_dot is the ``Avg misses: 0`` node (the
         forced guess right after the B-miss).
 
-        Exposes the SAME role handles as `_diag_cell` (``.path`` with ``.levels``,
-        ``.drilled_edge``, ``.sub.gdot/.glab/.fan``) so the drill's `_transform_into`
-        can grow it from the depth-4 top-left cell exactly like e/f: the U-miss leaf
-        becomes **Y**, and Y's whole subtree (``.fan`` = B → BY / M → MY) grows from it."""
+        Exposes the SAME role handles as `_diag_cell` (``.path`` with ``.levels`` and
+        ``.leaf_text``, ``.drilled_edge``, ``.sub.gdot/.glab/.fan``) so `_transform_move`
+        can grow it from the depth-4 top-left cell like e/f: the U-miss leaf becomes **Y**.
+        Additionally exposes ``sub.fan_levels`` = [Y→B, B→(BY,M), M→MY] and ``sub.bdot`` so
+        the final resolve grows the subtree ONE LEVEL AT A TIME (not the whole fan)."""
         r = GRID_NODE_R
         cr = r * GRID_CHILD_RF
         DY, SPR = GRID_CHILD_DY, GRID_CHILD_SPR
-        path, anchor, last_dot = self._path_diag(5)       # A→O→I→E→U (shrunk diagonal)
+        path, anchor, last_dot = self._path_diag(5, leaf_text=True)   # + hit-sibling blanks
 
         # Y — the forced guaranteed hit at {by,my} (drilled node; reached via U-miss → red)
         ydot = Dot(anchor, radius=r, color=_miss_color(1), z_index=2)
@@ -532,13 +560,16 @@ class Scene05(HangmanScene):
         mdot, mgrp = _guess(mpos, "M", 1)                  # reached via B-miss → red  (avg 0)
         mypos = mpos + np.array([0.0, -DY, 0.0])
         myleaf, mygrp = _leaf(mypos, "my", ["A", "O", "I", "E", "U", "B"])
-        # fan = the whole Y-subtree (grows from Y in the drill); Y itself is NOT in the fan
-        fan = VGroup(_edge(anchor, r, bpos, r, 0), bgrp,          # Y→B  hit
-                     _edge(bpos, r, bypos, cr, 0), bygrp,          # B→BY hit
-                     _edge(bpos, r, mpos, r, 1), mgrp,             # B→M  miss
-                     _edge(mpos, r, mypos, cr, 0), mygrp)          # M→MY hit
+        # fan split into LEVELS so the final resolve grows one at a time (Y itself is NOT
+        # in the fan — it arrives via the transform). l1 from Y, l2 from B, l3 from M.
+        l1 = VGroup(_edge(anchor, r, bpos, r, 0), bgrp)           # Y→B  hit
+        l2 = VGroup(_edge(bpos, r, bypos, cr, 0), bygrp,          # B→BY hit
+                    _edge(bpos, r, mpos, r, 1), mgrp)             # B→M  miss
+        l3 = VGroup(_edge(mpos, r, mypos, cr, 0), mygrp)          # M→MY hit
+        fan = VGroup(l1, l2, l3)
         sub = VGroup(VGroup(ydot, ylab), fan)
         sub.gdot, sub.glab, sub.fan = ydot, ylab, fan
+        sub.bdot, sub.mdot, sub.fan_levels = bdot, mdot, [l1, l2, l3]
         cell = VGroup(path, drilled_edge, sub)
         cell.path, cell.drilled_edge, cell.sub, cell.mdot = path, drilled_edge, sub, mdot
         return cell, mdot
@@ -578,32 +609,43 @@ class Scene05(HangmanScene):
     #        GUESS — see hangman CLAUDE.md. ─────────────────────────────────────────────
     @subscene
     def g_resolve(self):
-        self._g_expand(3, 2.4)                            # depth-2 top-left → depth-3 grid
-        self._g_expand(4, 2.4)                            # depth-3 top-left → depth-4 grid
-        self._g_to_spine(2.8)                             # depth-4 top-left → the resolved spine
+        self._g_expand(3, cols=4, run_time=2.4)           # depth-3 grid: 12 options → 3×4
+        self._g_expand(4, cols=3, run_time=2.4)           # depth-4 grid: 6 options → 2×3
+        self._g_resolve_final(3.4)                        # depth-4 top-left → the Y-first spine
 
-    def _g_expand(self, depth, run_time):
+    def _g_expand(self, depth, cols, run_time):
         """Fade all but the current grid's top-left, then piece-by-piece transform its
         all-miss leaf into the greedy-sorted option grid one level deeper (same move as
         f_drill)."""
         opts = sorted((o for o in self._n_miss_node(depth)["options"] if o["splits"]),
                       key=lambda o: (-_greedy_score(o), o["letter"]))
         cells = [self._diag_cell(depth, o) for o in opts]
-        self._tile(cells, cols=GRID_COLS)
+        self._tile(cells, cols=cols)
         self.play(FadeOut(VGroup(*self.grid[1:])), run_time=run_time * 0.22)
         self._transform_into(self.grid[0], cells, run_time * 0.78)
         self.grid = VGroup(*cells)
 
-    def _g_to_spine(self, run_time):
-        """The final expand: the depth-4 top-left (U) cell transforms into the Y-first
-        resolved spine — the U-miss leaf becomes Y and Y's subtree (B → BY / M → MY)
-        grows from it — then the 'Avg misses: 0' base-case label fades in on M."""
+    def _g_resolve_final(self, run_time):
+        """The final expand: the depth-4 top-left (U) cell moves to the centre and grows
+        into the Y-first spine. Unlike the grid expands, the subtree grows ONE LEVEL AT A
+        TIME (Y, then B, then BY & M, then MY), and the diagonal's decluttered hit-sibling
+        LEAF TEXT is brought back as the big tree centres. Ends with 'Avg misses: 0' on M."""
         spine, _ = self._ymy_cell()
         spine.scale_to_fit_height(7.2).move_to([0.4, -0.1, 0])   # room for the left avg-0 label
-        self.play(FadeOut(VGroup(*self.grid[1:])), run_time=run_time * 0.18)
-        self._transform_into(self.grid[0], [spine], run_time * 0.68)
+        self.play(FadeOut(VGroup(*self.grid[1:])), run_time=run_time * 0.12)
+        # phase 1: centre the diagonal + turn the U-miss leaf into Y (the move)
+        fade_in, _ = self._transform_move(self.grid[0], [spine], run_time * 0.34)
+        # Y's letter arrives + the decluttered hit-sibling leaf text comes back
+        self.play(*fade_in, FadeIn(spine.path.leaf_text), run_time=run_time * 0.12)
+        # grow the Y-subtree ONE LEVEL AT A TIME (from Y, then B, then M)
+        l1, l2, l3 = spine.sub.fan_levels
+        self.play(GrowFromPoint(l1, spine.sub.gdot.get_center()), run_time=run_time * 0.11)
+        self.play(GrowFromPoint(l2, spine.sub.bdot.get_center()), run_time=run_time * 0.11)
+        self.play(GrowFromPoint(l3, spine.sub.mdot.get_center()), run_time=run_time * 0.10)
         self.avg0 = self._avg0_label(spine.mdot)
-        self.play(FadeIn(self.avg0), run_time=run_time * 0.14)
+        self.play(FadeIn(self.avg0), run_time=run_time * 0.10)
+        self.clear()                                      # re-track clean groups (post copy-reveal)
+        self.add(spine, self.avg0)
         self.grid = spine
 
     # ── components ─────────────────────────────────────────────────────────────
