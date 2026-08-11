@@ -97,6 +97,10 @@ GRID_BLANK_H     = 0.13   # blank-row height under a child (rule + revealed lett
 GRID_BLANK_DROP  = 0.36   # child centre → blank RULE baseline (fixed → rules line up AND
                           # the written letter above the rule clears the child dot)
 GRID_MISS_H      = GRID_BLANK_H    # missed letter (red) — SAME size as the blank letters
+# the recapped hit-sibling LEAF TEXT on the shrunk diagonal (beat g's final tree) is
+# SMALLER + pulled up close under its node, so it clears the packed row below it
+GRID_LEAF_H      = GRID_BLANK_H * 0.78
+GRID_LEAF_DROP   = 0.22            # child centre → its (compact) blank baseline (< GRID_BLANK_DROP)
 GRID_W, GRID_H   = 15.6, 8.0       # the cells tile this box (full width, small top/bottom margin)
 GRID_CENTER      = [0, 0, 0]
 PATH_SCALE       = 0.5     # the drilled-past path (A→O→…) is shrunk vs the active subtree
@@ -152,11 +156,11 @@ class Scene05(HangmanScene):
         row.arrange(RIGHT, buff=gap, aligned_edge=DOWN)
         return row
 
-    def _miss_row(self, letters):
+    def _miss_row(self, letters, h=GRID_MISS_H):
         """A row of RED missed letters (the running wrong-guess tally)."""
         row = VGroup(*[crisp_text(c, color=LIGHT_RED, weight=BOLD)
-                       .scale_to_fit_height(GRID_MISS_H) for c in letters])
-        row.arrange(RIGHT, buff=GRID_MISS_H * 0.45)
+                       .scale_to_fit_height(h) for c in letters])
+        row.arrange(RIGHT, buff=h * 0.45)
         return row
 
     def _mini_tree(self, option, *, parent_miss=0, missed=None):
@@ -278,12 +282,13 @@ class Scene05(HangmanScene):
                 grp.add(hedge, hdot)
                 hits.append((hedge, hdot))
                 if leaf_text:                             # this hit branch's board state
-                    blk = self._blanks(p).set_x(hpos[0])
-                    blk.shift([0, (hpos[1] - GRID_BLANK_DROP) - blk.get_bottom()[1], 0])
+                    # SMALLER + pulled up close under the node so it clears the row below
+                    blk = self._blanks(p, h=GRID_LEAF_H).set_x(hpos[0])
+                    blk.shift([0, (hpos[1] - GRID_LEAF_DROP) - blk.get_bottom()[1], 0])
                     ann = VGroup(blk)
                     if missed:
-                        mr = self._miss_row(missed)
-                        mr.next_to(blk, DOWN, buff=0.09).set_x(blk.get_x())
+                        mr = self._miss_row(missed, h=GRID_LEAF_H)
+                        mr.next_to(blk, DOWN, buff=0.05).set_x(blk.get_x())
                         ann.add(mr)
                     leaf_grp.add(ann)
             levels.append({"dot": dot, "lab": lab, "in_edge": in_edge, "hits": hits})
