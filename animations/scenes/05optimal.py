@@ -97,10 +97,9 @@ GRID_BLANK_H     = 0.13   # blank-row height under a child (rule + revealed lett
 GRID_BLANK_DROP  = 0.36   # child centre → blank RULE baseline (fixed → rules line up AND
                           # the written letter above the rule clears the child dot)
 GRID_MISS_H      = GRID_BLANK_H    # missed letter (red) — SAME size as the blank letters
-# the recapped hit-sibling LEAF TEXT on the shrunk diagonal (beat g's final tree) is a
-# touch smaller than the main blanks + pulled up close under its node
-GRID_LEAF_H      = GRID_BLANK_H * 0.85
-GRID_LEAF_DROP   = 0.24            # child centre → its (compact) blank baseline (< GRID_BLANK_DROP)
+# the recapped hit-sibling LEAF TEXT on the shrunk diagonal (beat g's final tree)
+GRID_LEAF_H      = GRID_BLANK_H * 0.95
+GRID_LEAF_DROP   = 0.30            # child centre → its blank baseline
 GRID_W, GRID_H   = 15.6, 8.0       # the cells tile this box (full width, small top/bottom margin)
 GRID_CENTER      = [0, 0, 0]
 PATH_SCALE       = 0.5     # the drilled-past path (A→O→…) is shrunk vs the active subtree
@@ -298,7 +297,11 @@ class Scene05(HangmanScene):
             levels.append({"dot": dot, "lab": lab, "in_edge": in_edge, "hits": hits})
             prev_dot = last_dot = dot
             missed = missed + [node["optimal_letter"].upper()]   # this guess missed → down-left
-            pos = pos + np.array([-GRID_CHILD_SPR, -PATH_DY, 0.0])   # taller step → room below
+            # inter-node steps are TALLER (room for leaf text); the LAST step (to the anchor
+            # where the active subtree attaches) uses the normal drop, so that miss child
+            # lands level with its hit sibling
+            step_dy = GRID_CHILD_DY if i == depth - 1 else PATH_DY
+            pos = pos + np.array([-GRID_CHILD_SPR, -step_dy, 0.0])
             node = node["children"]["__"]
         if leaf_text:
             grp.add(leaf_grp)                             # scale + move with the diagonal
