@@ -33,8 +33,8 @@ Script row 05, split on '—' (voiceover ↔ animation zip 1:1). BEAT MAP:
   f f_drill       — breadcrumb the optimal (O), drill its all-miss leaf into the 4×4 option grid
   g g_resolve     — keep drilling (3×4 → 2×3 grids) to the {by,my} base case; Y-first spine +
                     'Avg misses: 0' on the forced M
-  h h_solved      — we've solved that position: turn the {by,my} base-case subtree GREEN (the
-                    diagonal stays white — greened as we back up in i/j)
+  h h_solved      — we've solved that position: green ONLY the computed part (M→MY, avg 0) and
+                    drop its miss tally; the rest greens as we back the value up in i/j
   --- next sections (not yet built) ---
   i/j … back the values up the tree (green) level by level; dedup + prune; paired chart
 
@@ -570,7 +570,7 @@ class Scene05(HangmanScene):
             blk.shift([0, (pos[1] - GRID_BLANK_DROP) - blk.get_bottom()[1], 0])
             mr = self._miss_row(tally)
             mr.next_to(blk, DOWN, buff=0.09).set_x(blk.get_x())
-            return dot, VGroup(dot, blk, mr)
+            return dot, blk, mr, VGroup(dot, blk, mr)
 
         def _edge(pa, ra, pb, rb, miss):
             d = normalize(pb - pa)
@@ -579,11 +579,11 @@ class Scene05(HangmanScene):
         bpos = anchor + np.array([0.0, -DY, 0.0])
         bdot, bgrp = _guess(bpos, "B", 0)                  # reached via Y-hit → white
         bypos = bpos + np.array([SPR, -DY, 0.0])
-        byleaf, bygrp = _leaf(bypos, "by", ["A", "O", "I", "E", "U"])
+        byleaf, by_blk, by_mr, bygrp = _leaf(bypos, "by", ["A", "O", "I", "E", "U"])
         mpos = bpos + np.array([-SPR, -DY, 0.0])
         mdot, mgrp = _guess(mpos, "M", 1)                  # reached via B-miss → red  (avg 0)
         mypos = mpos + np.array([0.0, -DY, 0.0])
-        myleaf, mygrp = _leaf(mypos, "my", ["A", "O", "I", "E", "U", "B"])
+        myleaf, my_blk, my_mr, mygrp = _leaf(mypos, "my", ["A", "O", "I", "E", "U", "B"])
         # fan split into LEVELS so the final resolve grows one at a time (Y itself is NOT
         # in the fan — it arrives via the transform). l1 from Y, l2 from B, l3 from M.
         e_yb = _edge(anchor, r, bpos, r, 0)                       # Y→B  hit
@@ -597,9 +597,11 @@ class Scene05(HangmanScene):
         sub = VGroup(VGroup(ydot, ylab), fan)
         sub.gdot, sub.glab, sub.fan = ydot, ylab, fan
         sub.bdot, sub.mdot, sub.fan_levels = bdot, mdot, [l1, l2, l3]
-        # for the DP back-up (beat h+): the GREEN-able parts of this solved base case (discs,
-        # edges, leaf annotations) vs the guess-node letters that stay knocked-out navy
-        sub.green_parts = VGroup(ydot, e_yb, bdot, e_bby, bygrp, e_bm, mdot, e_mmy, mygrp)
+        # granular handles for the DP back-up (green one section at a time; each greened
+        # section drops its red miss tally). node letters stay knocked-out navy.
+        sub.discs = {"y": ydot, "b": bdot, "m": mdot}
+        sub.edges = {"yb": e_yb, "bby": e_bby, "bm": e_bm, "mmy": e_mmy}
+        sub.leaves = {"by": (byleaf, by_blk, by_mr), "my": (myleaf, my_blk, my_mr)}
         sub.node_letters = VGroup(ylab, bgrp[1], mgrp[1])
         cell = VGroup(path, drilled_edge, sub)
         cell.path, cell.drilled_edge, cell.sub, cell.mdot = path, drilled_edge, sub, mdot
@@ -687,15 +689,17 @@ class Scene05(HangmanScene):
         self.add(spine, self.avg0)
         self.grid = spine
 
-    # ── h : we've SOLVED that position — turn the solved base case GREEN (the start of
-    #        backing values up the tree). The whole drill tree stays on screen; only the
-    #        {by,my} subtree (Y→B→BY / M→MY + the 0) greens — the diagonal stays white and
-    #        greens as we back up in i/j. Guess-node letters stay knocked-out navy. ───────
+    # ── h : we've SOLVED that position — turn the ACTUALLY-solved part GREEN. Only the
+    #        M-down piece has a computed value (Avg misses: 0): the M node, the M→MY edge and
+    #        the MY leaf. Green those + the '0' label; the rest of the tree (B, Y, the
+    #        diagonal) stays white and greens as we back the value up in i/j. Greening a
+    #        section DROPS its red miss tally. Guess-node letters stay knocked-out navy. ───
     @subscene
     def h_solved(self):
         sub = self.grid.sub
-        green = VGroup(sub.green_parts, self.avg0)
-        self.play(green.animate.set_color(LIGHT_GREEN), run_time=1.2)
+        my_dot, my_blk, my_tally = sub.leaves["my"]
+        green = VGroup(sub.discs["m"], sub.edges["mmy"], my_dot, my_blk, self.avg0)
+        self.play(green.animate.set_color(LIGHT_GREEN), FadeOut(my_tally), run_time=1.2)
 
     # ── components ─────────────────────────────────────────────────────────────
     def _greedy_chart(self):
