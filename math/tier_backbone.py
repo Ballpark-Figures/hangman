@@ -29,9 +29,19 @@ guesses (and counts misses) on the remaining 18 letters. That means:
     additional misses for a word  =  optimal misses to resolve its group
 
 with uniform weights -- exactly ``optimal.py``'s objective (minimise the average /
-total misses) restricted to that group. We call the identical ``_V``/``_move``
-recursion, then walk the resulting optimal tree once per word to read off its
-miss count (the same walk as ``OptimalSolver.trace``, counting misses).
+total misses) restricted to that group. We call the identical ``_V`` recursion for
+the exact VALUES, then walk once per word to read off its miss count.
+
+WHY WE RE-DERIVE THE MOVE (not ``_move``/``best_letter``). ``optimal.py``'s DP
+*value* is exact, but its serialized *tree* policy is known to be slightly
+suboptimal (~0.3-1%; see ``optimal_discrepancy_report.md``): walking ``_move``'s
+stored ``best_letter`` at every node realises a tree whose per-word misses do NOT
+sum back to the exact optimum. Since we need a per-word DISTRIBUTION, we instead
+pick each node's move by the VALUE-CONSISTENT rule -- the letter minimising
+``W_absent(c) + sum of exact child V*`` (child values via the same ``_V``). That
+is the correct move reconstruction: the chosen letter's cost EQUALS ``V*(S)`` by
+definition, so following it (and recursing the same way) yields a single optimal
+tree whose per-word misses provably sum to the optimum.
 
 CAVEAT on the DISTRIBUTION. Minimising the average (= total, since uniform) misses
 pins the AVERAGE additional misses exactly, but NOT the per-word split across
@@ -123,15 +133,57 @@ def _groups(game: GreedyGame):
     return grps
 
 
-def _walk_misses(solver: OptimalSolver, root: np.ndarray, i: int) -> int:
-    """ADDITIONAL misses for word ``i`` when its group ``root`` is resolved by the
-    optimal (uncapped) tree. Same walk as ``OptimalSolver.trace`` -- follow word
-    ``i``'s branch of the stored optimal move at each node -- counting only misses
-    (an absent letter). Uncapped, so the budget ``r`` stays ``None`` throughout."""
+def _opt_value(solver: OptimalSolver, S: np.ndarray) -> float:
+    """Exact uncapped optimal V(S) via ``optimal.py``'s own ``_V`` (its fast B&B),
+    mirroring its base cases (|S|<=1 -> 0, |S|==2 -> ``_sep_two``)."""
+    n = int(S.shape[0])
+    if n <= 1:
+        return 0.0
+    if n == 2:
+        return float(solver._sep_two(int(S[0]), int(S[1]))[0])
+    return solver._V(S, None, INF, 99)
+
+
+def _opt_move(solver: OptimalSolver, S: np.ndarray, cache: dict) -> int:
+    """Value-consistent optimal first letter for ``S``: the splitting letter c
+    minimising ``W_absent(c) + sum of exact child V*`` (uniform -> W_absent = number
+    of words absent for c). Its cost equals V*(S) by definition, so following it
+    reconstructs a single faithful optimal tree (unlike ``_move``'s best_letter --
+    see the module docstring). Deterministic (first argmin), so every word in the
+    group walks the SAME tree. Memoised per state in ``cache``."""
+    key = S.tobytes()
+    hit = cache.get(key)
+    if hit is not None:
+        return hit
+    MS = solver.masks[S]
+    splits = MS.min(0) != MS.max(0)
+    best_c, best_cost = -1, INF
+    for c in range(26):
+        if not splits[c]:
+            continue
+        pats = MS[:, c]
+        cost = 0.0
+        for pv in np.unique(pats):
+            grp = S[pats == pv]
+            if pv == 0:
+                cost += int(grp.shape[0])        # uniform: one miss per absent word
+            cost += _opt_value(solver, grp)
+            if cost >= best_cost:
+                break
+        if cost < best_cost:
+            best_cost, best_c = cost, c
+    cache[key] = best_c
+    return best_c
+
+
+def _walk_misses(solver: OptimalSolver, root: np.ndarray, i: int, cache: dict) -> int:
+    """ADDITIONAL misses for word ``i`` resolving its group ``root`` under the
+    value-consistent optimal tree -- follow word ``i``'s branch at each node,
+    counting only misses (an absent letter). Uncapped throughout."""
     S = root
     misses = 0
     while S.shape[0] > 1:
-        c = solver._move(S, None)
+        c = _opt_move(solver, S, cache)
         if c < 0:
             break
         if solver.masks[i, c] == 0:              # letter absent -> a miss
@@ -168,6 +220,7 @@ def analyse_length(length: int, *, verify: bool = False, verbose: bool = True):
     total_misses = 0
     t0 = last_beat = time.perf_counter()
     words_done = 0
+    move_cache: dict = {}
     for gi, grp in enumerate(grps):
         grp = grp.astype(idt)
         if grp.shape[0] == 1:
@@ -178,9 +231,9 @@ def analyse_length(length: int, *, verify: bool = False, verbose: bool = True):
             else:
                 single_option += 1                # beat c: uniquely pinned, 0 misses
         else:
-            val = solver._V(grp, None, INF, 2)    # optimal TOTAL additional misses
-            per = [_walk_misses(solver, grp, int(i)) for i in grp]
-            assert sum(per) == round(val), (      # tree walk must match the DP value
+            val = _opt_value(solver, grp)         # exact optimal TOTAL additional misses
+            per = [_walk_misses(solver, grp, int(i), move_cache) for i in grp]
+            assert sum(per) == round(val), (      # faithful tree walk must match V*
                 f"len {length}: group sum {sum(per)} != V {val}")
             if verify and grp.shape[0] <= VERIFY_MAX:
                 syn = GreedyGame(length, words=[game.words[int(i)] for i in grp])
