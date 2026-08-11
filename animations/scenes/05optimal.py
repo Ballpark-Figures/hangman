@@ -941,121 +941,103 @@ class Scene05(HangmanScene):
         self.play(VGroup(sub.discs["y"], sub.edges["yb"], avg_y).animate.set_color(LIGHT_GREEN),
                   run_time=0.9)
 
-    # ── (next) : back up the U position. FIRST solve U's OTHER child {up,us}: shrink the
-    #        solved Y subtree toward U to make room while {up,us} expands into its own
-    #        subtree. (Rough first pass — layout only, candidate cycle + counter to follow.)
+    # ── k : start backing up U. Build U's FULL subtree as one tidy _ctree (the same builder
+    #        the candidates use): slide the solved green {by,my} spine EXACTLY onto U's miss
+    #        slot (identical _ctree layout → exact overlay, just scaled to the uniform node
+    #        size), morph the diagonal U into the tidy root, and GROW U's other child {up,us}
+    #        (unsolved). No hand spread, no reformat later — tidy from here up. ───────────────
     @subscene
     def backup_u(self):
         path = self.grid.path
-        sub = self.grid.sub
-        u_dot = path.levels[4]["dot"]
-        uc, ur = u_dot.get_center(), u_dot.width / 2      # U centre + radius
-        scale = sub.gdot.width / (2 * GRID_NODE_R)
-        yr = GRID_NODE_R * scale * 0.55                   # child-root radius after the shrink
-        DY_U, SPREAD = 1.0, 1.3                           # spread U's two children apart (a bit)
-        y_root = uc + np.array([-SPREAD, -DY_U, 0.0])     # Y (miss) LEFT
-        ups_root = uc + np.array([SPREAD, -DY_U, 0.0])    # {up,us} (hit) RIGHT
-        g0 = sub.gdot.get_center()
-        # {up,us} subtree (P-first): P → {UP hit, S→US miss}; reached via U-HIT → white root
-        spec = {"g": "p", "hit": {"leaf": "up"}, "miss": {"g": "s", "hit": {"leaf": "us"}}}
-        ups = self._ctree(spec, root_miss=0).scale(scale * 0.55, about_point=ORIGIN)
-        ups.shift(ups_root)
-        # new full-length edges out of U (NOT shrunk): U→Y miss (red), U→{up,us} hit (white)
-        dny, dnu = normalize(y_root - uc), normalize(ups_root - uc)
-        yedge = Line(uc + dny * ur, y_root - dny * yr, color=_miss_color(1), stroke_width=2.0)
-        uedge = Line(uc + dnu * ur, ups_root - dnu * yr, color=_miss_color(0), stroke_width=2.0)
-        by_dot, by_blk, _ = sub.leaves["by"]
-        my_dot, my_blk, _ = sub.leaves["my"]
-        # scale ONLY the visible spine parts — NOT the whole `sub` (which still nests the
-        # hidden-in-h leaf tallies; scaling the group resurrects them). Tallies stay put,
-        # hidden, and never reappear.
-        y_vis = VGroup(sub.gdot, sub.glab, sub.edges["yb"], sub.discs["b"],
-                       sub.node_letters[1], sub.edges["bby"], by_dot, by_blk,
-                       sub.edges["bm"], sub.discs["m"], sub.node_letters[2],
-                       sub.edges["mmy"], my_dot, my_blk)
-        # shrink Y's subtree about ITS OWN root (edge kept full), slide Y to the spread pos,
-        # redraw both edges out of U, grow {up,us}, fade the old 'U_' leaf, DROP the {by,my}
-        # value on Y
-        self.play(y_vis.animate.scale(0.55, about_point=g0).shift(y_root - g0),
-                  FadeOut(self.avg_b),
-                  Transform(self.grid.drilled_edge, yedge),          # U→Y (redrawn full)
-                  Transform(path.levels[4]["hits"][0][0], uedge),    # old 'U_' edge → U→{up,us}
-                  FadeOut(path.levels[4]["hits"][0][1]),             # old bare 'U_' dot
-                  FadeOut(path.leaf_text[-1]),                       # old 'U_ AOIE' annotation
-                  GrowFromPoint(ups, uc),
-                  run_time=1.3)
-        # the {up,us} value now sits on P (white — being computed)
+        spine = self.grid.sub                              # the tidy green {by,my} _ctree
+        u_dot, u_lab = path.levels[4]["dot"], path.levels[4]["lab"]
+        uc = u_dot.get_center()
+        # U's full tidy subtree (unsolved): U → {up,us} (hit), {by,my} (miss). Keyed so we can
+        # address the root, {up,us}, and its edges; the {by,my} half is drawn by the green
+        # spine we slide in, so u_ref's own {by,my} pieces are never added to the scene.
+        u_spec = {"g": "u", "key": "u",
+                  "hit": {"g": "p", "key": "p", "hit": {"leaf": "up", "key": "up"},
+                          "miss": {"g": "s", "key": "s", "hit": {"leaf": "us", "key": "us"}}},
+                  "miss": {"g": "y", "key": "y",
+                           "hit": {"g": "b", "key": "b", "hit": {"leaf": "by"},
+                                   "miss": {"g": "m", "key": "m", "hit": {"leaf": "my"}}}}}
+        u_ref = self._ctree(u_spec, root_miss=1, solved=False)   # LAYOUT + U node + U's edges
+        scale_c = (uc[1] + 4.0) / u_ref.height             # fit below U (same as the candidates)
+        u_ref.scale(scale_c, about_point=ORIGIN).shift(uc - u_ref.root.get_center())
+        uh, yh, ph = u_ref.node["u"], u_ref.node["y"], u_ref.node["p"]
+        # {up,us} drawn SOLVED (green subtree, white P root — the approved look) at u_ref's hit
+        # slot; u_ref's own (unsolved) {up,us}/{by,my} pieces are never added to the scene.
+        ups_spec = {"g": "p", "hit": {"leaf": "up"}, "miss": {"g": "s", "hit": {"leaf": "us"}}}
+        ups = self._ctree(ups_spec, root_miss=0, solved=True)
+        ups.scale(scale_c, about_point=ORIGIN).shift(ph.dot.get_center() - ups.root.get_center())
+        # slide the green spine onto u_ref's {by,my} slot (exact overlay — same _ctree layout)
+        sfac = yh.dot.width / spine.gdot.width
+        y0, ty = spine.gdot.get_center(), yh.dot.get_center()
+        self.play(
+            spine.animate.scale(sfac, about_point=y0).shift(ty - y0),
+            FadeOut(self.avg_b),                                       # drop the {by,my} value
+            ReplacementTransform(VGroup(u_dot, u_lab), VGroup(uh.dot, uh.lab)),  # diagonal U → tidy U
+            Transform(self.grid.drilled_edge, yh.in_edge),            # U→Y (miss) redrawn tidy
+            FadeOut(path.levels[4]["hits"][0][0]),                    # old bare 'u_' edge
+            FadeOut(path.levels[4]["hits"][0][1]),                    # old bare 'u_' dot
+            FadeOut(path.leaf_text[-1]),                              # old 'U_ AOIE' annotation
+            GrowFromPoint(VGroup(ph.in_edge, ups), uc),               # grow {up,us} + its U→P edge
+            run_time=1.3)
         self.avg_p = self._avg_label(ups.root, value="0.5", direction=RIGHT)
         self.play(FadeIn(self.avg_p), run_time=0.4)
-        self.ups = ups
+        self.u_ref, self.u_spine, self.ups = u_ref, spine, ups
+        self.u_pedge = ph.in_edge                          # U→P edge (greens when U is chosen)
 
-    # ── (next) : solve U's other child {up,us} — cycle its candidates P and S (mirror
-    #        complete green subtrees, both 0.5), then CHOOSE P and lock it green. ───────────
+    # ── l : solve U's other child {up,us} — cycle its candidates P and S (mirror complete
+    #        green subtrees, both 0.5), then CHOOSE P and lock it green. ────────────────────
     @subscene
     def solve_ups(self):
         ups = self.ups
-        s_scale = ups.root.width / (2 * GRID_NODE_R)      # match the on-screen {up,us} tree
+        pc = ups.root.get_center()
+        s_scale = ups.root.width / (2 * GRID_NODE_R)       # match the on-screen {up,us} tree
         # the S candidate (mirror of P): S → {US hit, P→UP miss}
         spec_s = {"g": "s", "hit": {"leaf": "us"}, "miss": {"g": "p", "hit": {"leaf": "up"}}}
         s_ct = self._ctree(spec_s, root_miss=0).scale(s_scale, about_point=ORIGIN)
-        s_ct.shift(ups.root.get_center())
-        # cycle P (current) → S → P (the value stays put)
+        s_ct.shift(pc - s_ct.root.get_center())
+        # cycle P (current) → S → P (the value stays put); the U→P edge stays put
         self.play(FadeOut(ups), FadeIn(s_ct), run_time=0.6)
         self.wait(0.4)
         self.play(FadeOut(s_ct), FadeIn(ups), run_time=0.6)
         self.remove(s_ct)
-        # choose P: green its root + outgoing edges (subtree already green) and lock the value
+        # choose P: green its root + outgoing edges (subtree already green) and the value
         self.play(VGroup(ups.root, ups.root_edges, self.avg_p).animate.set_color(LIGHT_GREEN),
                   run_time=0.9)
 
-    # ── m : back up the U position ({by,my,up,us}) — both children are solved. The hand-built
-    #        subtree first REFORMATS into the uniform tidy auto-layout (fade old→new), so the U
-    #        candidate matches the alternatives; the child value goes away and a rolling 'Avg
-    #        misses' COUNTER appears on U. Cycle the first-guess candidates U/Y/B/M/P/S, each a
-    #        COMPLETE optimal subtree (green subtree, original-colour root — every candidate a
-    #        TIDY _ctree, SOURCED from the cache): U/Y = 1.0, B/M/P/S = 1.25, the counter rolling
-    #        as we pass each. Then CHOOSE U (the min) and lock its node + edges + value green. ──
+    # ── m : back up the U position ({by,my,up,us}) — both children are solved and the U-subtree
+    #        is ALREADY tidy (built as a _ctree in k/l), so it IS the U candidate — no reformat.
+    #        The child value goes away and a rolling 'Avg misses' COUNTER appears on U. Cycle the
+    #        first-guess candidates U/Y/B/M/P/S, each a COMPLETE optimal subtree (green subtree,
+    #        original-colour root — a TIDY _ctree, SOURCED from the cache): U/Y = 1.0, B/M/P/S =
+    #        1.25, the counter rolling as we pass each. CHOOSE U (the min), lock node+edges+value. ─
     @subscene
     def choose_u(self):
-        path, sub, ups = self.grid.path, self.grid.sub, self.ups
-        u_dot, u_lab = path.levels[4]["dot"], path.levels[4]["lab"]
+        uh = self.u_ref.node["u"]
+        u_dot, u_lab = uh.dot, uh.lab
         uc = u_dot.get_center()
-        yedge = self.grid.drilled_edge            # U→Y   (miss, red)
-        uedge = path.levels[4]["hits"][0][0]      # U→{up,us} (hit, white)
-        by_dot, by_blk, _ = sub.leaves["by"]
-        my_dot, my_blk, _ = sub.leaves["my"]
-        y_sub = VGroup(sub.gdot, sub.glab, sub.edges["yb"], sub.discs["b"],
-                       sub.node_letters[1], sub.edges["bby"], by_dot, by_blk,
-                       sub.edges["bm"], sub.discs["m"], sub.node_letters[2],
-                       sub.edges["mmy"], my_dot, my_blk)
-        old_u = VGroup(u_dot, u_lab, yedge, uedge, y_sub, ups)   # hand-built subtree, retired
-        # every first-guess candidate at {by,my,up,us} as a TIDY _ctree — ONE builder + ONE
-        # scale, so the U candidate matches the alternatives (and E/I/O/A later). SOURCED from
-        # the cache; the U candidate keeps the Y-first {by,my} spine chosen for the base case.
+        yedge = self.grid.drilled_edge            # U→Y (miss, red)
+        uedge = self.u_pedge                      # U→P (hit, white)
+        # the persistent U-subtree (already tidy from k/l) IS the U candidate — no reformat
+        cur = VGroup(u_dot, u_lab, yedge, uedge, self.u_spine, self.ups)
+        scale_c = u_dot.width / (2 * GRID_NODE_R)  # match the persistent tree's node size
         node = self._n_miss_node(4)
         opts = {o["letter"]: o for o in node["options"] if o["splits"]}
-        specs = {"u": {"g": "u",
-                       "hit": self._subtree_spec(opts["u"]["subtree"]["branches"]["u_"], "u"),
-                       "miss": {"g": "y", "hit": {"g": "b", "hit": {"leaf": "by"},
-                                                   "miss": {"g": "m", "hit": {"leaf": "my"}}}}}}
-        for c in ("y", "b", "m", "p", "s"):
-            specs[c] = self._subtree_spec(opts[c]["subtree"])
-        raws = {c: self._ctree(sp, root_miss=1) for c, sp in specs.items()}
-        scale_c = (uc[1] + 4.0) / max(ct.height for ct in raws.values())   # fit deepest below U
         cand = {}
-        for c, ct in raws.items():
-            ct.scale(scale_c, about_point=ORIGIN).shift(uc - ct.root.get_center())   # root at U
+        for c in ("y", "b", "m", "p", "s"):        # the alternative candidates (SOURCED)
+            ct = self._ctree(self._subtree_spec(opts[c]["subtree"]), root_miss=1)
+            ct.scale(scale_c, about_point=ORIGIN).shift(uc - ct.root.get_center())
             cand[c] = ct
-        tidy_u = cand["u"]
         u_avg = opts["u"]["avg"]                    # 1.0 (== node['avg'])
         uval = ValueTracker(u_avg)
-        counter = self._counter_label(uval, tidy_u.root, direction=LEFT)
-        # reformat: the hand-built subtree tidies into the uniform auto-layout; the child value
-        # goes away; the rolling counter appears on U (we start ON the U candidate)
-        self.play(FadeOut(old_u), FadeIn(tidy_u), FadeOut(self.avg_p), FadeIn(counter),
-                  run_time=0.8)
+        counter = self._counter_label(uval, u_dot, direction=LEFT)
+        # fade the {up,us} child value; the rolling counter appears on U (we start ON U)
+        self.play(FadeOut(self.avg_p), FadeIn(counter), run_time=0.6)
         self.avg_p = None
-        self._active = tidy_u
+        self._active = cur
         self.wait(0.4)                             # hold on the U candidate before cycling
 
         def swap_to(tree, val):                    # cross-fade the subtree; counter rolls
@@ -1066,15 +1048,15 @@ class Scene05(HangmanScene):
 
         for c in ("y", "b", "m", "p", "s"):        # U → Y → B → M → P → S
             swap_to(cand[c], opts[c]["avg"])
-        swap_to(tidy_u, u_avg)                      # settle back on U (the minimum, 1.0)
+        swap_to(cur, u_avg)                         # settle back on U (the minimum, 1.0)
         self.remove(*(cand[c] for c in ("y", "b", "m", "p", "s")))
         # choose U: freeze the counter (drop the updater + its closure attr so the scene can
         # still pickle), then lock U's node + both outgoing edges + the value green
         counter.remove_updater(counter._upd)
         del counter._upd
-        self.play(VGroup(tidy_u.root, tidy_u.root_edges, counter).animate.set_color(LIGHT_GREEN),
+        self.play(VGroup(u_dot, yedge, uedge, counter).animate.set_color(LIGHT_GREEN),
                   run_time=1.0)
-        self.u_subtree = tidy_u                     # hand off U's solved subtree to backing up E
+        self.u_subtree = cur                        # hand off U's solved subtree to backing up E
         self.ups = None
 
     # ── components ─────────────────────────────────────────────────────────────
