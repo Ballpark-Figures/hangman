@@ -98,7 +98,9 @@ DIM_OPACITY  = 0.28                    # a tier's muted / un-emphasised look
 VOWELS = set("aeiouy")                 # Y always a vowel (matches scene 08)
 VOWEL_TILE_COLOR = LIGHT_RED           # vowel letter on a dark tier panel
 CONS_TILE_COLOR  = LIGHT_BLUE          # consonant letter on a dark tier panel
-VOWEL_INK_COLOR  = ACCENT_RED          # vowel big-letter / ngram anchor (light bg)
+# The SAME LIGHT_RED works for a vowel on the light bg too (coral reads fine on cyan);
+# consonants need the darker ACCENT_FILL because the bright LIGHT_BLUE washes out there.
+VOWEL_INK_COLOR  = LIGHT_RED           # vowel big-letter / ngram anchor / heatmap
 CONS_INK_COLOR   = ACCENT_FILL         # consonant ditto — the existing blue
 
 
