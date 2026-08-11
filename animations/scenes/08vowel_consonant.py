@@ -10,7 +10,7 @@ vowels = A E I O U Y (Y always a vowel). Pies use the pie asset's `fan_all`
 Script row 08, split on '—' → 6 beats (voiceover ↔ animation zip 1:1):
   a to_navy        turn the background navy
   b letters_pie    pie: % of all letters that are vowels vs consonants
-  c freq           the vowel/consonant position-frequency grid + start/end/2nd callouts
+  c freq           the vowel/consonant position-frequency grid, titled (stats NARRATED)
   d vowel_row      VOWEL (⅓ down): before-pie ← VOWEL → after-pie (letters adjacent)
   e consonant_row  CONSONANT (⅔ down): before-pie ← CONSONANT → after-pie
   f to_light       clear + turn the background back to light blue
@@ -45,7 +45,7 @@ class Scene08(HangmanScene):
         self.d = vcd.get()                          # cached stats (no compute at render)
         self.navy_rect = None
         self.pie = None
-        self.view = self.callouts = None
+        self.view = self.view_title = None
 
     def _navy(self):
         r = Rectangle(width=config.frame_width, height=config.frame_height,
@@ -54,10 +54,11 @@ class Scene08(HangmanScene):
         return r
 
     def _class_pie(self, dist, center):
-        """A small [vowel, consonant] pie (no labels) at `center`."""
+        """A small [vowel, consonant] pie at `center`, each slice labelled with its %."""
         return get_pie_chart([dist["vowel"], dist["consonant"]],
                              colors=[VOWEL_C, CONS_C], radius=ROW_PIE_R,
-                             center=center, labels=None, stroke_color=WHITE)
+                             center=center, labels=["", ""], show_percent=True,
+                             label_font_size=22, stroke_color=WHITE)
 
     def _adjacency_row(self, name, adj, y):
         """`name` (VOWEL/CONSONANT) centred at height y, a before-pie to its LEFT and
@@ -90,34 +91,23 @@ class Scene08(HangmanScene):
                                  stroke_color=WHITE)
         self.pie.fan_all(self, 1.6)
 
-    # c : the vowel/consonant position-frequency grid + start/end/2nd-position callouts
+    # c : the vowel/consonant position-frequency grid, titled like the letter views
+    #     (the start/end/2nd-position stats are NARRATED, not captioned — see column 2)
     @subscene
     def freq(self):
         self.play(FadeOut(self.pie), run_time=0.5)
         self.pie = None
-        self.view = vowel_consonant_heatmaps(center=[0.4, -0.2, 0])
-
-        def pct(x):
-            return f"{round(100 * x)}%"
-        # rough callout placement — refine against the grid columns
-        start = crisp_text(f"{pct(self.d['pct_start_consonant'])} of words\nstart with a"
-                           " consonant", font_size=24, color=CONS_C)
-        end = crisp_text(f"{pct(self.d['pct_end_consonant'])}\nend with one",
-                         font_size=24, color=CONS_C)
-        pos2 = crisp_text(f"the 2nd letter is a vowel {pct(self.d['pct_pos2_vowel'])}"
-                          " of the time", font_size=24, color=VOWEL_C)
-        start.next_to(self.view, LEFT, buff=0.5)
-        end.next_to(self.view, RIGHT, buff=0.5)
-        pos2.next_to(self.view, UP, buff=0.5)
-        self.callouts = VGroup(start, end, pos2)
-        self.play(FadeIn(self.view), run_time=1.0)
-        self.play(LaggedStartMap(FadeIn, self.callouts, lag_ratio=0.4), run_time=1.2)
+        self.view = vowel_consonant_heatmaps(center=[0.0, -0.4, 0])
+        self.view_title = crisp_paragraph("Location", "Frequencies", font_size=30,
+                                          color=WHITE, alignment="center")
+        self.view_title.next_to(self.view, UP, buff=0.5)
+        self.play(FadeIn(self.view_title), FadeIn(self.view), run_time=1.0)
 
     # d : VOWEL (⅓ down) with before ← VOWEL → after adjacency pies
     @subscene
     def vowel_row(self):
-        self.play(FadeOut(self.view), FadeOut(self.callouts), run_time=0.5)
-        self.view = self.callouts = None
+        self.play(FadeOut(self.view), FadeOut(self.view_title), run_time=0.5)
+        self.view = self.view_title = None
         self._adjacency_row("VOWEL", self.d["adjacency"]["vowel"], 1.5)
 
     # e : CONSONANT (⅔ down) with before ← CONSONANT → after adjacency pies
@@ -125,7 +115,9 @@ class Scene08(HangmanScene):
     def consonant_row(self):
         self._adjacency_row("CONSONANT", self.d["adjacency"]["consonant"], -1.5)
 
-    # f : clear + turn the background back to light blue
+    # f : remove the content FIRST, THEN turn the background back to light blue
     @subscene
     def to_light(self):
-        self.play(*[FadeOut(m) for m in self.mobjects], run_time=0.8)
+        content = [m for m in self.mobjects if m is not self.navy_rect]
+        self.play(*[FadeOut(m) for m in content], run_time=0.6)
+        self.play(FadeOut(self.navy_rect), run_time=0.6)
