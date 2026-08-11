@@ -30,13 +30,16 @@ Script row 05, split on '—' (voiceover ↔ animation zip 1:1). BEAT MAP:
   c cycle_letters — cycle every letter A–Z through the node (which opener is best?)
   d grid_spread   — 20 openers into a 4×5 grid; each sprouts its next level (blanks + miss)
   e a_dive        — bring A to centre; walk-highlight children (gold); grid A-miss's options
-  f f_drill       — breadcrumb the optimal (O), drill its all-miss leaf into the 4×4 option grid
-  g g_resolve     — keep drilling (3×4 → 2×3 grids) to the {by,my} base case; Y-first spine +
+  f drill         — breadcrumb the optimal (O), drill its all-miss leaf into the 4×4 option grid
+  g resolve       — keep drilling (3×4 → 2×3 grids) to the {by,my} base case; Y-first spine +
                     'Avg misses: 0' on the forced M
-  h h_solved      — we've solved that position: green ONLY the computed part (M→MY, avg 0) and
-                    drop its miss tally; the rest greens as we back the value up in i/j
+  h solve_base    — we've solved that position: green ONLY the computed part (M→MY, avg 0) and
+                    drop its miss tally; the rest greens as we back the value up
+  i backup_b      — back up the B node: try B/M candidates (complete green subtrees), choose B,
+                    'Avg misses: 0.5'
+  j backup_y      — back up the Y node: fade B's value, cycle Y/B/M candidate subtrees, choose Y
   --- next sections (not yet built) ---
-  i/j … back the values up the tree (green) level by level; dedup + prune; paired chart
+  … back the values up the diagonal (U→A) level by level; dedup + prune; paired chart
 
 Render:  render 05a --fast  (…05c)   /   render 05 sub  for the whole scene
 
@@ -621,7 +624,7 @@ class Scene05(HangmanScene):
     #        into the next grid, each cell now rooted along the path A→O (depth 2),
     #        greedy-sorted, drilling the top-left again. ───────────────────────────────
     @subscene
-    def f_drill(self):
+    def drill(self):
         opts = sorted((o for o in self._n_miss_node(2)["options"] if o["splits"]),
                       key=lambda o: (-_greedy_score(o), o["letter"]))
         cells = [self._diag_cell(2, o) for o in opts]
@@ -641,7 +644,7 @@ class Scene05(HangmanScene):
     #        B-miss (the recursion base case we back up from in h). "Leaf" = the FINAL
     #        GUESS — see hangman CLAUDE.md. ─────────────────────────────────────────────
     @subscene
-    def g_resolve(self):
+    def resolve(self):
         self._g_expand(3, cols=4, run_time=2.4)           # depth-3 grid: 12 options → 3×4
         self._g_expand(4, cols=3, run_time=2.4)           # depth-4 grid: 6 options → 2×3
         self._g_resolve_final(3.4)                        # depth-4 top-left → the Y-first spine
@@ -649,7 +652,7 @@ class Scene05(HangmanScene):
     def _g_expand(self, depth, cols, run_time):
         """Fade all but the current grid's top-left, then piece-by-piece transform its
         all-miss leaf into the greedy-sorted option grid one level deeper (same move as
-        f_drill)."""
+        drill)."""
         opts = sorted((o for o in self._n_miss_node(depth)["options"] if o["splits"]),
                       key=lambda o: (-_greedy_score(o), o["letter"]))
         cells = [self._diag_cell(depth, o) for o in opts]
@@ -697,7 +700,7 @@ class Scene05(HangmanScene):
     #        diagonal) stays white and greens as we back the value up in i/j. Greening a
     #        section DROPS its red miss tally. Guess-node letters stay knocked-out navy. ───
     @subscene
-    def h_solved(self):
+    def solve_base(self):
         sub = self.grid.sub
         my_dot, my_blk, my_tally = sub.leaves["my"]
         by_dot, by_blk, by_tally = sub.leaves["by"]
@@ -713,7 +716,7 @@ class Scene05(HangmanScene):
     #        (both 0.5), then CHOOSE B — fill its subtree green, lock the value. Later beats
     #        do the other nodes (Y, then up the diagonal). ───────────────────────────────
     @subscene
-    def i_backup(self):
+    def backup_b(self):
         sub = self.grid.sub
         blab, mlab = sub.node_letters[1], sub.node_letters[2]
         _, by_blk, _ = sub.leaves["by"]
@@ -781,7 +784,7 @@ class Scene05(HangmanScene):
     #        COMPLETE optimal subtree (fully played out, all green) with its own avg misses;
     #        then CHOOSE Y and lock the value green. ────────────────────────────────────────
     @subscene
-    def j_backup(self):
+    def backup_y(self):
         sub = self.grid.sub
         scale = sub.gdot.width / (2 * GRID_NODE_R)        # match the (fit-scaled) spine nodes
         anchor = sub.gdot.get_center()
@@ -799,7 +802,9 @@ class Scene05(HangmanScene):
         self.play(FadeOut(self.avg_b), run_time=0.4)
         self.play(FadeIn(avg_y), run_time=0.4)
         self.avg_b = avg_y
-        # 2) cycle Y → B → M, each a COMPLETE green subtree; the white 0.5 flashes with each
+        # 2) cycle Y → B → M, each a COMPLETE green subtree. The avg-misses value STAYS on
+        #    screen (no flashing) and will roll via a counter where candidates differ; here
+        #    all three are 0.5, so it just reads 0.5 throughout.
         BY, MY = {"leaf": "by"}, {"leaf": "my"}
         specs = {
             "b": {"g": "b", "hit": {"g": "y", "hit": BY},
@@ -815,17 +820,15 @@ class Scene05(HangmanScene):
 
         b_ct, m_ct = ctree("b"), ctree("m")
 
-        def flash_to(tree):                               # swap the subtree, re-flash the value
-            self.play(FadeOut(avg_y), run_time=0.2)
+        def swap_to(tree):                                # swap the subtree; value stays put
             self.play(FadeOut(self._active), FadeIn(tree), run_time=0.6)
-            self.play(FadeIn(avg_y), run_time=0.2)
             self.wait(0.3)
             self._active = tree
 
         self._active = cur
-        flash_to(b_ct)
-        flash_to(m_ct)
-        flash_to(cur)                                     # settle back on Y
+        swap_to(b_ct)
+        swap_to(m_ct)
+        swap_to(cur)                                      # settle back on Y
         self.remove(b_ct, m_ct)
         # 3) choose Y: lock it — Y node + edge + value turn green
         self.play(VGroup(sub.discs["y"], sub.edges["yb"], avg_y).animate.set_color(LIGHT_GREEN),
