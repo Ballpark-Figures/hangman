@@ -739,46 +739,92 @@ class Scene05(HangmanScene):
         green = VGroup(sub.discs["b"], sub.edges["bby"], sub.edges["bm"], self.avg_b)
         self.play(green.animate.set_color(LIGHT_GREEN), run_time=1.0)
 
-    # ── j : back up the Y node (the {by,my} position). Move the value up from B to Y, then
-    #        CYCLE the first guess through Y (current spine), B and M — each candidate's
-    #        optimal subtree with its avg misses (all 0.5) — then CHOOSE Y and green it.
-    #        (Rough first pass; refine the cycle with the user.) ──────────────────────────
+    def _ctree(self, spec):
+        """A COMPLETE optimal subtree, fully played out, all GREEN. Recursive: a guess node
+        (letter, knocked-out navy) with a HIT child (right) and, if it splits, a MISS child
+        (left); a forced-hit guess has a single child straight down; a leaf is the fully
+        revealed word. Built at natural GRID sizes rooted at ORIGIN (caller scales/places).
+        spec = {'g': letter, 'hit': child, 'miss': child?}  or  {'leaf': word}."""
+        r, cr = GRID_NODE_R, GRID_NODE_R * GRID_CHILD_RF
+        DY, SPR = GRID_CHILD_DY, GRID_CHILD_SPR
+        g = VGroup()
+
+        def build(spec, pos):
+            if "leaf" in spec:
+                dot = Dot(pos, radius=cr, color=LIGHT_GREEN, z_index=2)
+                blk = self._blanks(spec["leaf"]).set_x(pos[0]).set_color(LIGHT_GREEN)
+                blk.shift([0, (pos[1] - GRID_BLANK_DROP) - blk.get_bottom()[1], 0])
+                g.add(dot, blk)
+                return dot, cr
+            dot = Dot(pos, radius=r, color=LIGHT_GREEN, z_index=2)
+            lab = crisp_text(spec["g"].upper(), color=BOARD_NAVY, weight=BOLD)
+            lab.scale_to_fit_height(NODE_LETTER_H * r).move_to(dot).set_z_index(3)
+            g.add(dot, lab)
+            kids = ([(spec["hit"], pos + np.array([SPR, -DY, 0.0])),
+                     (spec["miss"], pos + np.array([-SPR, -DY, 0.0]))] if "miss" in spec
+                    else [(spec["hit"], pos + np.array([0.0, -DY, 0.0]))])
+            for cspec, cpos in kids:
+                cdot, crad = build(cspec, cpos)
+                dn = normalize(cpos - pos)
+                g.add(Line(pos + dn * r, cpos - dn * crad, color=LIGHT_GREEN, stroke_width=2.0))
+            return dot, r
+
+        g.root = build(spec, ORIGIN)[0]
+        return g
+
+    # ── j : back up the Y node (the {by,my} position). B's value fades out; a fresh WHITE
+    #        value appears next to Y. The first guess then cycles Y → B → M, each shown as its
+    #        COMPLETE optimal subtree (fully played out, all green) with its own avg misses;
+    #        then CHOOSE Y and lock the value green. ────────────────────────────────────────
     @subscene
     def j_backup(self):
         sub = self.grid.sub
         scale = sub.gdot.width / (2 * GRID_NODE_R)        # match the (fit-scaled) spine nodes
         anchor = sub.gdot.get_center()
-        # 1) the value moves up from B to Y (top of the solved {by,my} subtree)
-        avg_y = self._avg_label(sub.discs["y"], value="0.5", direction=LEFT)
-        avg_y.set_color(LIGHT_GREEN)
-        self.play(ReplacementTransform(self.avg_b, avg_y), run_time=0.8)
-        self.avg_b = avg_y
-        # 2) cycle the {by,my} first guess: Y (the current spine) → B → M, each its optimal
-        #    subtree, all avg 0.5 (the '0.5' label stays put)
-        opts = {o["letter"]: o for o in self._n_miss_node(5)["options"] if o["splits"]}
         by_dot, by_blk, _ = sub.leaves["by"]
         my_dot, my_blk, _ = sub.leaves["my"]
-        # the Y-first spine subtree WITHOUT the leaf tallies (dropped in h — don't resurrect
-        # them when we fade the spine back in)
+        # the Y-first spine subtree WITHOUT the leaf tallies (dropped in h) — this IS the Y
+        # candidate; fade it out/in as we compare, so its handles survive for later beats
         cur = VGroup(sub.gdot, sub.glab, sub.edges["yb"],
                      sub.discs["b"], sub.node_letters[1], sub.edges["bby"], by_dot, by_blk,
                      sub.edges["bm"], sub.discs["m"], sub.node_letters[2],
                      sub.edges["mmy"], my_dot, my_blk)
+        # 1) B's value goes away; a FRESH white value appears next to Y (this position, being
+        #    computed — not the same as B's, just coincidentally equal)
+        avg_y = self._avg_label(sub.discs["y"], value="0.5", direction=LEFT)   # white
+        self.play(FadeOut(self.avg_b), run_time=0.4)
+        self.play(FadeIn(avg_y), run_time=0.4)
+        self.avg_b = avg_y
+        # 2) cycle Y → B → M, each a COMPLETE green subtree; the white 0.5 flashes with each
+        BY, MY = {"leaf": "by"}, {"leaf": "my"}
+        specs = {
+            "b": {"g": "b", "hit": {"g": "y", "hit": BY},
+                  "miss": {"g": "m", "hit": {"g": "y", "hit": MY}}},
+            "m": {"g": "m", "hit": {"g": "y", "hit": MY},
+                  "miss": {"g": "b", "hit": {"g": "y", "hit": BY}}},
+        }
 
-        def cand(letter):                                  # a B- or M-first candidate subtree
-            mt = self._mini_tree(opts[letter], parent_miss=1, missed=["A", "O", "I", "E", "U"])
-            mt.scale(scale).shift(anchor - mt[0][0].get_center())
-            return mt
+        def ctree(letter):
+            ct = self._ctree(specs[letter])
+            ct.scale(scale, about_point=ORIGIN).shift(anchor)
+            return ct
 
-        b_tree, m_tree = cand("b"), cand("m")
-        self.play(FadeOut(cur), FadeIn(b_tree), run_time=0.7)
-        self.wait(0.4)
-        self.play(FadeOut(b_tree), FadeIn(m_tree), run_time=0.7)
-        self.wait(0.4)
-        self.play(FadeOut(m_tree), FadeIn(cur), run_time=0.7)
-        self.remove(b_tree, m_tree)
-        # 3) choose Y: green it (completing the {by,my} subtree)
-        self.play(VGroup(sub.discs["y"], sub.edges["yb"]).animate.set_color(LIGHT_GREEN),
+        b_ct, m_ct = ctree("b"), ctree("m")
+
+        def flash_to(tree):                               # swap the subtree, re-flash the value
+            self.play(FadeOut(avg_y), run_time=0.2)
+            self.play(FadeOut(self._active), FadeIn(tree), run_time=0.6)
+            self.play(FadeIn(avg_y), run_time=0.2)
+            self.wait(0.3)
+            self._active = tree
+
+        self._active = cur
+        flash_to(b_ct)
+        flash_to(m_ct)
+        flash_to(cur)                                     # settle back on Y
+        self.remove(b_ct, m_ct)
+        # 3) choose Y: lock it — Y node + edge + value turn green
+        self.play(VGroup(sub.discs["y"], sub.edges["yb"], avg_y).animate.set_color(LIGHT_GREEN),
                   run_time=0.9)
 
     # ── components ─────────────────────────────────────────────────────────────
