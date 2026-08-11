@@ -7,13 +7,15 @@ CONSONANT. Every number is SOURCED from the committed cache (`vowel_consonant_da
 vowels = A E I O U Y (Y always a vowel). Pies use the pie asset's `fan_all`
 (continuous clockwise sweep). Standalone — does NOT use the tier-list machinery.
 
-Script row 08, split on '—' → 6 beats (voiceover ↔ animation zip 1:1):
+Script row 08, split on '—' → beats (voiceover ↔ animation zip 1:1):
   a to_navy        turn the background navy
-  b letters_pie    pie: % of all letters that are vowels vs consonants
-  c freq           the vowel/consonant position-frequency grid, titled (stats NARRATED)
-  d vowel_row      VOWEL (⅓ down): before-pie ← VOWEL → after-pie (letters adjacent)
-  e consonant_row  CONSONANT (⅔ down): before-pie ← CONSONANT → after-pie
-  f to_light       clear + turn the background back to light blue
+  b alphabet_grid  the 26 letters in 13 rows of 2 (every vowel is at an ODD position)
+  c color_letters  turn the vowels red, the consonants blue
+  d letters_pie    pie: % of all letters that are vowels vs consonants (clears the grid)
+  e freq           the vowel/consonant position-frequency grid, titled (stats NARRATED)
+  f vowel_row      VOWEL (⅓ down): before-pie ← VOWEL → after-pie (letters adjacent)
+  g consonant_row  CONSONANT (⅔ down): before-pie ← CONSONANT → after-pie
+  h to_light       clear + turn the background back to light blue
 
 ROUGH first pass — LAYOUT + TIMING are guesses (the beat-c callout placement and the
 pie sizes/positions especially). Judge from the video; tune freely.
@@ -45,6 +47,7 @@ class Scene08(HangmanScene):
     def setup_scene(self):
         self.d = vcd.get()                          # cached stats (no compute at render)
         self.navy_rect = None
+        self.alpha = None
         self.pie = None
         self.view = self.view_title = None
 
@@ -53,6 +56,24 @@ class Scene08(HangmanScene):
                       fill_color=BOARD_NAVY, fill_opacity=1.0, stroke_width=0)
         r.set_z_index(-10)
         return r
+
+    def _alphabet_grid(self):
+        """The 26 letters in 13 rows × 2 columns — left column the ODD alphabet
+        positions (A C E … Y), right column the even (B D … Z). Every vowel is odd, so
+        A E I O U Y all land in the left column. `.by_letter` maps char → mobject."""
+        alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        grid, by_letter = VGroup(), {}
+        col_x, pitch = (-0.6, 0.6), 0.6
+        top = (13 - 1) / 2 * pitch
+        for i in range(13):
+            for c in range(2):
+                ch = alphabet[2 * i + c]
+                t = crisp_text(ch, font_size=34, color=WHITE, weight=BOLD)
+                t.move_to([col_x[c], top - i * pitch, 0])
+                grid.add(t)
+                by_letter[ch] = t
+        grid.by_letter = by_letter
+        return grid
 
     def _rise(self, parent, rows, *, lag_ratio=0.14, shift=0.28):
         """The letter/tier views' row-by-row rise-in (see TierLetterScene._rise)."""
@@ -94,9 +115,23 @@ class Scene08(HangmanScene):
         self.navy_rect = self._navy()
         self.play(FadeIn(self.navy_rect), run_time=0.8)
 
-    # b : pie — % of all letters that are vowels vs consonants
+    # b : the alphabet in 13 rows of 2 (every vowel is at an ODD position → left column)
+    @subscene
+    def alphabet_grid(self):
+        self.alpha = self._alphabet_grid()
+        self.play(LaggedStartMap(FadeIn, self.alpha, lag_ratio=0.03), run_time=1.2)
+
+    # c : colour the vowels red, the consonants blue
+    @subscene
+    def color_letters(self):
+        self.play(*[t.animate.set_color(VOWEL_C if ch in "AEIOUY" else CONS_C)
+                    for ch, t in self.alpha.by_letter.items()], run_time=1.0)
+
+    # d : pie — % of all letters that are vowels vs consonants (clears the grid first)
     @subscene
     def letters_pie(self):
+        self.play(FadeOut(self.alpha), run_time=0.5)
+        self.alpha = None
         v = self.d["pct_vowel_letters"]
         self.pie = get_pie_chart([v, 1 - v], colors=[VOWEL_C, CONS_C],
                                  labels=["VOWELS", "CONSONANTS"], radius=BIG_PIE_R,
