@@ -9,12 +9,13 @@ Two halves on a NAVY background:
     `math/tier_backbone.py` — an OPTIMAL-strategy computation).
   • beats e–h: the wooden CHALKBOARD slides back in (the REVERSE of scene 04/01's
     board→navy dissolve — its navy slate == this scene's navy bg, so it just contracts
-    out of the full frame while the frame slides in), with 7 blanks near the BOTTOM, a
-    gallows, and "WORDS REMAINING: 5541" across the top. FIGURES is played out (sourced
+    out of the full frame while the frame slides in), with 7 blanks on the lower LEFT, a
+    gallows, and a "WORDS REMAINING:" COLUMN top-left. FIGURES is played out (sourced
     trace: e·s·i hit, p·t miss, g·f·u·r hit — 2 misses): first up to & incl. the I with
-    the count ticking down (5541→1166→231→21), then the count is erased, the 21 remaining
-    words are written out, and the rest of the game crosses them off. Then the chalkboard
-    is removed to a blank frame.
+    the count ticking down (5541→1166→231→21, stacked), then the count is erased, the 21
+    remaining words FADE IN as a grid (centred between the slate's left/top and the
+    gallows/word FIGURES, like scene 04's 156 combos), and the rest of the game crosses
+    them off in RED until only FIGURES stands. Then the chalkboard is removed to blank.
 
 Reuse: `assets.game_board` (gb) for the board/blanks/gallows/guessing (canonical
 gameplay layout, as 02/04/94); `bpkfigures.pie_chart` for the fanning pie; the navy
@@ -29,9 +30,9 @@ BEAT MAP
   b only_tier   — title + "Word Finished" section (only backbone letters)
   c single_opt  — "Word Known" section (narrowed to a single option)
   d miss_dist   — "No more misses", then "1 more miss" + "2+ more misses" (fan_group)
-  e chalk_in    — chalkboard reverse-in; blanks (bottom); gallows; WORDS REMAINING: 5541
-  f figures     — play FIGURES up to & incl. the I (e·s·i); count ticks 5541→1166→231→21
-  g figures_words — erase count; write the 21 remaining words; play the rest crossing off
+  e chalk_in    — chalkboard reverse-in; blanks (lower-left); gallows; WORDS REMAINING: col
+  f figures     — play FIGURES up to & incl. the I (e·s·i); count column 5541/1166/231/21
+  g figures_words — erase count; FADE IN the 21 words (centred); rest crosses off in RED
   h chalk_out   — remove the chalkboard (ends blank, next scene is animated)
 
 STATUS — ROUGH first pass, TIMING + PIE LAYOUT are guesses (judge from the video):
@@ -62,14 +63,13 @@ PIE_CENTER = [0.0, -0.35, 0.0]  # nudged down so the title clears the top slice'
 SCALE_UP = 5.0                  # chalkboard scale at which its slate fills the frame
 
 # ── chalkboard-game layout (beats e–h) ───────────────────────────────────────
-BLANK_BOTTOM_Y = -3.0           # the 7 blanks sit near the BOTTOM, centred
-COUNT_Y = 3.35                  # "WORDS REMAINING:" row across the top
-COUNT_X0 = -7.1                 # left edge of the count label
-COUNT_H = 0.40                  # chalk height of the count text/numbers
-GRID_CENTER = [-1.3, 0.35, 0]   # centre of the remaining-words grid (left of the gallows)
-GRID_COLS = 3
-GRID_CW, GRID_RH = 2.7, 0.62    # grid column / row spacing
-GRID_H = 0.32                   # chalk height of a grid word
+BLANK_Y = -2.6                  # 7 blanks on the LEFT (default cx), lowered from mid-board
+COUNT_X = -6.4                  # top-left "WORDS REMAINING:" column
+COUNT_TOP = 3.45                # the label's y (the numbers stack DOWN below it)
+COUNT_H = 0.38                  # chalk height of the count text/numbers
+GRID_COLS = 3                   # remaining-words grid columns
+GRID_H = 0.34                   # chalk height of a grid word (before scale-to-fit)
+GRID_MARGIN = 0.45              # inset of the grid from its bounding box
                                 # (matches scene 04's board→navy dissolve, reversed)
 
 # Sector colours: a good→bad sequence. The three 0-miss sub-sections are green
@@ -146,7 +146,7 @@ class Scene11(HangmanScene):
         if fig is None:
             raise RuntimeError("scene11_figures_cache.json missing — run "
                                "`python3 assets/scene11_data.py`.")
-        self.rules = gb.build_rules(len(fig["word"]), cx=0.0, y=BLANK_BOTTOM_Y)
+        self.rules = gb.build_rules(len(fig["word"]), y=BLANK_Y)  # default cx (LEFT), lowered
         self.hang, self.hang_parts = gb.build_gallows()
         misses = "".join(g["letter"] for g in fig["guesses"] if not g["hit"])
         self.miss_slots_x = gb.miss_slots(self.hang, misses)
@@ -187,50 +187,58 @@ class Scene11(HangmanScene):
         self.play(FadeOut(bub), run_time=0.3 * r)
 
     def _draw_count(self, run_time):
-        """'WORDS REMAINING:' + the initial count (# of 7-letter words) across the top."""
+        """'WORDS REMAINING:' (top-left) with the initial count below it; the successive
+        counts stack DOWN as a column."""
         label = chalk_phrase("WORDS REMAINING:", height=COUNT_H)
-        label.move_to([COUNT_X0, COUNT_Y, 0], aligned_edge=LEFT)
+        label.move_to([COUNT_X, COUNT_TOP, 0], aligned_edge=LEFT)
         n0 = chalk_number(self.data["figures"]["total"], height=COUNT_H)
-        n0.next_to(label, RIGHT, buff=0.45)
+        n0.next_to(label, DOWN, buff=0.30, aligned_edge=LEFT)
         self.count_nums = [n0]
         self.count_group.add(label, n0)
         self._write(VGroup(label, n0), run_time)
 
     def _update_count(self, new_count, run_time):
-        """Strike the current count and write the new one to its RIGHT — the countdown
-        trail 5541 → 1166 → 231 → 21."""
+        """Strike the current count and write the new one BELOW it — the countdown
+        column 5541 / 1166 / 231 / 21."""
         cur = self.count_nums[-1]
         strike = Line(cur.get_left(), cur.get_right(), color=CHALK,
                       stroke_width=4).set_z_index(1)
-        new = chalk_number(new_count, height=COUNT_H).next_to(cur, RIGHT, buff=0.5)
+        new = chalk_number(new_count, height=COUNT_H)
+        new.next_to(cur, DOWN, buff=0.22, aligned_edge=LEFT)
         self.count_nums.append(new)
         self.count_group.add(strike, new)
         self.play(Create(strike), run_time=0.4 * run_time)
         self._write(new, 0.6 * run_time)
 
     def _word_grid(self, words):
-        """Lay the remaining `words` into a chalk grid left of the gallows; fills
-        `self.word_cells` (word → mobject) for the cross-offs. Returns the VGroup."""
-        cols, n = GRID_COLS, len(words)
-        rows = (n + cols - 1) // cols
-        x0 = GRID_CENTER[0] - (cols - 1) / 2 * GRID_CW
-        y0 = GRID_CENTER[1] + (rows - 1) / 2 * GRID_RH
-        grid = VGroup()
-        for k, w in enumerate(words):
-            r_, c_ = divmod(k, cols)
+        """The remaining `words` as a chalk grid, sized + centred in the box bounded by
+        the LEFT of the navy slate ↔ the gallows and the TOP of the slate ↔ the TOP of
+        the revealed word (like scene 04's 156 E-combos). Fills `self.word_cells`; a
+        DISPLAY, so the caller FadeIns it as a group (not stroke-by-stroke)."""
+        cells = VGroup()
+        for w in words:
             cell = chalk_phrase(w.upper(), height=GRID_H)
-            cell.move_to([x0 + c_ * GRID_CW, y0 - r_ * GRID_RH, 0])
             self.word_cells[w] = cell
-            grid.add(cell)
-        return grid
+            cells.add(cell)
+        cells.arrange_in_grid(cols=GRID_COLS, buff=(0.7, 0.30))
+        board_left = -(gb.BOARD_W / 2 - 0.34)
+        board_top = gb.BOARD_H / 2 - 0.34
+        gallows_left = self.hang.get_left()[0]
+        figures_top = self.rules[0].get_center()[1] + gb.LETTER_BUFF + gb.LETTER_H
+        box_w = (gallows_left - board_left) - 2 * GRID_MARGIN
+        box_h = (board_top - figures_top) - 2 * GRID_MARGIN
+        cells.scale(min(box_w / cells.width, box_h / cells.height, 1.0))
+        cells.move_to([(board_left + gallows_left) / 2, (figures_top + board_top) / 2, 0])
+        return cells
 
     def _cross_off(self, words, run_time):
-        """Strike through each of `words` in the grid (a chalk line, one at a time)."""
-        strikes = VGroup(*[Line(self.word_cells[w].get_left(), self.word_cells[w].get_right(),
-                                color=CHALK, stroke_width=3).set_z_index(1)
+        """Strike through each of `words` in the grid — a RED line, one at a time."""
+        strikes = VGroup(*[Line(self.word_cells[w].get_left() + LEFT * 0.08,
+                                self.word_cells[w].get_right() + RIGHT * 0.08,
+                                color=ACCENT_RED, stroke_width=4).set_z_index(1)
                            for w in words if w in self.word_cells])
         if len(strikes):
-            self.play(LaggedStartMap(Create, strikes, lag_ratio=1.0), run_time=run_time)
+            self.play(LaggedStartMap(Create, strikes, lag_ratio=0.3), run_time=run_time)
 
     # ── beats ─────────────────────────────────────────────────────────────────
     # a : turn the background navy
@@ -288,7 +296,7 @@ class Scene11(HangmanScene):
         self.play(FadeOut(self.count_group), run_time=0.5)
         steps = self.data["figures"]["steps"]
         remaining = steps[self.i_cut - 1]["words"]                # the words after the I
-        self._write(self._word_grid(remaining), 2.6)
+        self.play(FadeIn(self._word_grid(remaining)), run_time=0.9)   # bulk display, not drawn
         prev = set(remaining)
         for st in steps[self.i_cut:]:                             # p, t, g, f, u, r
             self._guess(st["letter"], st["hit"], 1.0)

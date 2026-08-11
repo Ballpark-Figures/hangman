@@ -156,16 +156,21 @@ greedy, greedy_word, best_opener, best_opener_word):
   not `FadeIn`.** To write several letters, flatten their strokes into one VGroup and
   `LaggedStartMap(Create, strokes)` (Create over a whole multi-stroke letter inside a
   LaggedStart throws `int * VMobject`; Create over single strokes is fine).
-- **EVERYTHING chalk is drawn SEQUENTIALLY, ONE MARK AT A TIME — it simulates a SINGLE
-  hand writing on the board, so nothing is ever drawn all-at-once or with a partial
-  overlap.** This includes the BLANKS/rules (draw them left→right, one underscore fully
-  before the next), a multi-letter word, a row of misses, the "Words Remaining" text —
-  any chalk group. Use `LaggedStartMap(Create, strokes, lag_ratio=1.0)` (lag 1.0 = a
-  stroke finishes before the next begins); do NOT use `lag_ratio < 1` for the blanks (it
-  draws several at once) or a bare `Create(group)` (all at once). A single letter's own
-  strokes may overlap slightly (the miss row uses `lag_ratio=0.5` for one letter), but
-  DISTINCT marks (each blank, each letter of a word) are strictly one-after-another. (Bit
-  us repeatedly on the blanks — they kept getting drawn simultaneously.)
+- **The ACTIVE marks of the game are drawn SEQUENTIALLY, one at a time — a SINGLE hand
+  writing.** The BLANKS/rules (left→right, one underscore fully before the next), a
+  guessed letter written into its blank(s), the running miss row, the "Words Remaining"
+  header/number: draw these with `LaggedStartMap(Create, strokes, lag_ratio=1.0)` (lag
+  1.0 = a stroke finishes before the next begins) — NOT `lag_ratio < 1` (draws several
+  at once) or a bare `Create(group)`. A single letter's own strokes may overlap slightly
+  (the miss row uses `lag_ratio=0.5` for one letter), but DISTINCT active marks (each
+  blank, each guessed letter) are strictly one-after-another. (Bit us repeatedly on the
+  blanks getting drawn simultaneously.)
+- **EXCEPTION — a BULK reference LIST/GRID (many words shown at once, not "written" as
+  gameplay) FADES IN as a group, it is NOT drawn stroke-by-stroke.** e.g. scene 11's ~21
+  remaining-words grid and scene 04's 156 E-combos: build the items, `arrange_in_grid`,
+  scale-to-fit the region, and `FadeIn` the whole VGroup (see 04 `e_combos`). Sequential
+  hand-drawing is for the game's own live marks; a big enumerated set is a display, so
+  `FadeIn`. (Crossing such a list off can still be per-item.)
 - **"Written font" = the hand-drawn `chalk_letter` strokes (chalkboard.py), NOT the
   Inter `crisp_text`.** When the script says a word is "in written font," render it with
   chalk strokes (see scene 04's `_word_grid`, which monospaces them to equal width).
