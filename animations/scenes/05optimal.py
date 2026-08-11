@@ -834,6 +834,30 @@ class Scene05(HangmanScene):
         self.play(VGroup(sub.discs["y"], sub.edges["yb"], avg_y).animate.set_color(LIGHT_GREEN),
                   run_time=0.9)
 
+    # ── (next) : back up the U position. FIRST solve U's OTHER child {up,us}: shrink the
+    #        solved Y subtree toward U to make room while {up,us} expands into its own
+    #        subtree. (Rough first pass — layout only, candidate cycle + counter to follow.)
+    @subscene
+    def backup_u(self):
+        path = self.grid.path
+        uc = path.levels[4]["dot"].get_center()           # U (last diagonal node)
+        u_hit = path.levels[4]["hits"][0][1].get_center() # U's hit child ({up,us}, the 'U_' leaf)
+        scale = self.grid.sub.gdot.width / (2 * GRID_NODE_R)
+        # {up,us} subtree (P-first): P → {UP hit, S→US miss}; reached via U-HIT so its root is
+        # white (a hit), edges original, subtree green
+        spec = {"g": "p", "hit": {"leaf": "up"}, "miss": {"g": "s", "hit": {"leaf": "us"}}}
+        ups = self._ctree(spec, root_miss=0)
+        ups.scale(scale * 0.55, about_point=ORIGIN).shift(u_hit)
+        # shrink the solved Y subtree toward U (its handles ride along); grow {up,us} out and
+        # fade the old bare 'U_' leaf (dot + its board-state annotation) it replaces
+        y_grp = VGroup(self.grid.sub, self.grid.drilled_edge, self.avg_b)
+        self.play(y_grp.animate.scale(0.55, about_point=uc),
+                  GrowFromPoint(ups, u_hit),
+                  FadeOut(path.levels[4]["hits"][0][1]),   # the bare 'U_' dot
+                  FadeOut(path.leaf_text[-1]),             # its 'U_ AOIE' annotation
+                  run_time=1.3)
+        self.ups = ups
+
     # ── components ─────────────────────────────────────────────────────────────
     def _greedy_chart(self):
         """Greedy avg misses by word length. Non-chalkboard scene → crisp labels +
