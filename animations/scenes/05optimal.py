@@ -739,6 +739,16 @@ class Scene05(HangmanScene):
         green = VGroup(sub.discs["b"], sub.edges["bby"], sub.edges["bm"], self.avg_b)
         self.play(green.animate.set_color(LIGHT_GREEN), run_time=1.0)
 
+    # ── j : keep backing up the tree. FIRST the Y node — the forced guaranteed-hit entry
+    #        into the {by,my} position (it inherits B's 0.5, no real candidate choice), so
+    #        just green it to complete that subtree. Then (talking through first) the
+    #        diagonal nodes U→A each get the candidate cycle + backed-up value. ────────────
+    @subscene
+    def j_backup(self):
+        sub = self.grid.sub
+        self.play(VGroup(sub.discs["y"], sub.edges["yb"]).animate.set_color(LIGHT_GREEN),
+                  run_time=0.9)
+
     # ── components ─────────────────────────────────────────────────────────────
     def _greedy_chart(self):
         """Greedy avg misses by word length. Non-chalkboard scene → crisp labels +
