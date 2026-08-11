@@ -60,8 +60,9 @@ live in the scene file (render tooling AST-scans it), so the base holds only hel
   (`tier_tiles[slot]`), so a scene can reveal them in a PRESENTATION order that follows the
   narration; filling non-contiguous slots leaves visible gaps until the rest fill in. Use
   `rapid_letter` for letters the script GROUPS by shared profile, `advance_letter`
-  otherwise. Done in 13 (present P/M/B rapid then U/G/H; tier lists PUGMBH) and 14 (present
-  F/Y/V/W/K with V→W rapid; tier lists FYVKW).
+  otherwise. Done in 13 (present P/M/B rapid then U/G/H; tier lists PUGMBH). (Scene 14 was
+  briefly built this way for V→W but is now a straight F/Y/V/W/K — the tier lists FYVWK, W
+  above K, so no reorder is needed.)
 - **Views** = the position heatmap ("Location Frequencies") + top n-grams ("Top N-grams"),
   each entering with 96's row-by-row rise, titles persisting; numbers come from the
   committed caches (`letter_heat_data` / `letter_ngram_data`). A row with no common-uses

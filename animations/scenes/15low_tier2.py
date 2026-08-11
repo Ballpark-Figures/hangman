@@ -33,7 +33,7 @@ class Scene15(TierLetterScene):
     TIER_IDX = 6
     LETTERS  = ["x", "z", "j", "q"]                  # = TIER_LETTERS[6]
     FILLED   = [(0, "EIA"), (1, "SR"), (2, "TNO"), (3, "LDC"),
-                (4, "PUGMBH"), (5, "FYVKW")]         # from scenes 07–14
+                (4, "PUGMBH"), (5, "FYVWK")]         # from scenes 07–14
 
     def setup_scene(self):
         self.build_board(on_screen=True)            # continuation of 14 (centred)
