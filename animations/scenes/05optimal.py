@@ -769,14 +769,22 @@ class Scene05(HangmanScene):
         # subtree's right edge (bit us on the Y candidate in choose_u); a per-leaf column can't.
         slot = [0]
 
+        def kids_of(sp):
+            """A node's children as [(is_miss, childspec), …], miss-first (LEFT). Accepts the
+            N-ary {'g','kids':[(is_miss,spec),…]} form (a guess can hit at pos 1, pos 2, or
+            both → several hit children) OR the binary {'g','hit','miss'?} form."""
+            if "kids" in sp:
+                return sp["kids"]
+            ks = [(True, sp["miss"])] if "miss" in sp else []
+            return ks + [(False, sp["hit"])]
+
         def layout(sp, depth):
             node = {"spec": sp, "y": -depth * DY}
             if "leaf" in sp:
                 node["x"], node["kids"] = slot[0] * COL, []
                 slot[0] += 1
                 return node
-            kids = [(role, layout(sp[role], depth + 1))
-                    for role in ("miss", "hit") if role in sp]   # miss LEFT, hit RIGHT
+            kids = [(is_miss, layout(cs, depth + 1)) for is_miss, cs in kids_of(sp)]
             node["kids"] = kids
             node["x"] = sum(k[1]["x"] for k in kids) / len(kids)  # centre over children
             return node
@@ -799,9 +807,9 @@ class Scene05(HangmanScene):
             lab = crisp_text(sp["g"].upper(), color=BOARD_NAVY, weight=BOLD)
             lab.scale_to_fit_height(NODE_LETTER_H * r).move_to(dot).set_z_index(3)
             g.add(dot, lab)
-            for role, child in node["kids"]:
+            for is_miss, child in node["kids"]:
                 cdot, crad = build(child, False)
-                miss = 1 if role == "miss" else 0
+                miss = 1 if is_miss else 0
                 ecolor = _miss_color(miss) if is_root else LIGHT_GREEN   # only root edges original
                 dn = normalize(cdot.get_center() - pos)
                 edge = Line(pos + dn * r, cdot.get_center() - dn * crad,
@@ -822,7 +830,8 @@ class Scene05(HangmanScene):
         `{word}` leaf becomes a chain of forced-hit guess nodes (its still-unrevealed letters,
         first-appearance order) ending in the bare won-leaf. ``revealed`` = the HIT letters
         guessed so far down this branch. Keeps every candidate subtree SOURCED (not
-        hand-written). Length-2 positions split into one hit pattern + the '__' miss."""
+        hand-written). Emits the N-ary 'kids' form — a guess can split into several hit
+        patterns (pos 1 / pos 2 / both) plus the '__' miss (e.g. E on {…} gives e_, _e, __)."""
         if "word" in tree:
             word = tree["word"]
             remaining = []
@@ -835,30 +844,35 @@ class Scene05(HangmanScene):
             return spec
         g = tree["guess"]
         br = tree["branches"]
-        miss_pat = "_" * len(next(iter(br)))
-        hit_pat = next((p for p in br if p != miss_pat), None)
-        spec = {"g": g}
-        if hit_pat is not None:
-            spec["hit"] = self._subtree_spec(br[hit_pat], revealed + g)
-        if miss_pat in br:
-            spec["miss"] = self._subtree_spec(br[miss_pat], revealed)
-        return spec
+        # every branch becomes a child: the all-'_' branch is the MISS (letter absent → left);
+        # any other pattern is a HIT (letter present). Length-2 lets a letter hit at pos 1,
+        # pos 2, or both, so a node can have SEVERAL hit children — hence the N-ary 'kids' form
+        # (a HIT reveals g; a miss reveals nothing). Order miss-first so it stays on the left.
+        items = sorted(br.items(), key=lambda kv: 0 if set(kv[0]) == {"_"} else 1)
+        kids = [(set(pat) == {"_"},
+                 self._subtree_spec(child, revealed if set(pat) == {"_"} else revealed + g))
+                for pat, child in items]
+        return {"g": g, "kids": kids}
 
     def _counter_label(self, tracker, node_dot, direction=LEFT, height=0.34):
-        """A live 'Avg misses: N.NN' label whose number ROLLS with ``tracker`` — the
+        """A live 'Avg misses: N.N' label whose number ROLLS with ``tracker`` — the
         candidate-cycle counter (stays on screen, counting as the value changes, rather than
         flashing a fresh label per candidate). Same look as `_avg_label`, animated. The whole
-        string is ONE mobject rebuilt on each 2-decimal tick (constant width → re-renders
-        centred in place). The caller removes ``lab._upd`` before greening/locking it."""
+        string is ONE mobject rebuilt on each 1-decimal tick (constant width → re-renders
+        centred in place). Numbers ROUND HALF UP (1.25 → 1.3), not Python's default
+        round-half-to-even. The caller removes ``lab._upd`` before greening/locking it."""
+        def fmt(v):
+            return f"{int(v * 10 + 0.5) / 10:.1f}"      # round half up (values are positive)
+
         def mk(v, color):
-            return crisp_text(f"Avg misses: {v:.2f}", font_size=12, color=color, weight=BOLD)
+            return crisp_text(f"Avg misses: {fmt(v)}", font_size=12, color=color, weight=BOLD)
         lab = mk(tracker.get_value(), WHITE)
         lab.scale_to_fit_height(height).next_to(node_dot, direction, buff=height * 0.6)
         center, h = lab.get_center(), lab.height
-        st = {"s": f"{tracker.get_value():.2f}", "color": WHITE}
+        st = {"s": fmt(tracker.get_value()), "color": WHITE}
 
         def upd(m):
-            s = f"{tracker.get_value():.2f}"
+            s = fmt(tracker.get_value())
             if s == st["s"]:
                 return
             st["s"] = s
