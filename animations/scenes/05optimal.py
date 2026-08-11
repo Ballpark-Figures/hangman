@@ -683,10 +683,12 @@ class Scene05(HangmanScene):
         self.play(GrowFromPoint(l1, spine.sub.gdot.get_center()), run_time=run_time * 0.11)
         self.play(GrowFromPoint(l2, spine.sub.bdot.get_center()), run_time=run_time * 0.11)
         self.play(GrowFromPoint(l3, spine.sub.mdot.get_center()), run_time=run_time * 0.10)
+        # both determined leaves are done with 0 further misses: label M (left) AND BY (right)
         self.avg0 = self._avg0_label(spine.mdot)
-        self.play(FadeIn(self.avg0), run_time=run_time * 0.10)
+        self.avg0_by = self._avg0_label(spine.sub.leaves["by"][0], direction=RIGHT)
+        self.play(FadeIn(self.avg0), FadeIn(self.avg0_by), run_time=run_time * 0.10)
         self.clear()                                      # re-track clean groups (post copy-reveal)
-        self.add(spine, self.avg0)
+        self.add(spine, self.avg0, self.avg0_by)
         self.grid = spine
 
     # ── h : we've SOLVED that position — turn the ACTUALLY-solved part GREEN. Only the
@@ -698,8 +700,13 @@ class Scene05(HangmanScene):
     def h_solved(self):
         sub = self.grid.sub
         my_dot, my_blk, my_tally = sub.leaves["my"]
-        green = VGroup(sub.discs["m"], sub.edges["mmy"], my_dot, my_blk, self.avg0)
-        self.play(green.animate.set_color(LIGHT_GREEN), FadeOut(my_tally), run_time=1.2)
+        by_dot, by_blk, by_tally = sub.leaves["by"]
+        # both done-with-0 leaves green (M node + M→MY edge + MY leaf; and the BY leaf), each
+        # dropping its red miss tally; B, Y and the diagonal stay white until they back up
+        green = VGroup(sub.discs["m"], sub.edges["mmy"], my_dot, my_blk, self.avg0,
+                       by_dot, by_blk, self.avg0_by)
+        self.play(green.animate.set_color(LIGHT_GREEN),
+                  FadeOut(my_tally), FadeOut(by_tally), run_time=1.2)
 
     # ── components ─────────────────────────────────────────────────────────────
     def _greedy_chart(self):
