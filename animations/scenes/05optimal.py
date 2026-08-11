@@ -861,12 +861,20 @@ class Scene05(HangmanScene):
         dny, dnu = normalize(y_root - uc), normalize(ups_root - uc)
         yedge = Line(uc + dny * ur, y_root - dny * yr, color=_miss_color(1), stroke_width=2.0)
         uedge = Line(uc + dnu * ur, ups_root - dnu * yr, color=_miss_color(0), stroke_width=2.0)
-        by_mr, my_mr = sub.leaves["by"][2], sub.leaves["my"][2]   # the dropped-in-h tallies
+        by_dot, by_blk, _ = sub.leaves["by"]
+        my_dot, my_blk, _ = sub.leaves["my"]
+        # scale ONLY the visible spine parts — NOT the whole `sub` (which still nests the
+        # hidden-in-h leaf tallies; scaling the group resurrects them). Tallies stay put,
+        # hidden, and never reappear.
+        y_vis = VGroup(sub.gdot, sub.glab, sub.edges["yb"], sub.discs["b"],
+                       sub.node_letters[1], sub.edges["bby"], by_dot, by_blk,
+                       sub.edges["bm"], sub.discs["m"], sub.node_letters[2],
+                       sub.edges["mmy"], my_dot, my_blk)
         # shrink Y's subtree about ITS OWN root (edge kept full), slide Y to the spread pos,
         # redraw both edges out of U, grow {up,us}, fade the old 'U_' leaf, DROP the {by,my}
-        # value on Y (and keep the leaf tallies gone)
-        self.play(sub.animate.scale(0.55, about_point=g0).shift(y_root - g0),
-                  FadeOut(self.avg_b), FadeOut(by_mr), FadeOut(my_mr),
+        # value on Y
+        self.play(y_vis.animate.scale(0.55, about_point=g0).shift(y_root - g0),
+                  FadeOut(self.avg_b),
                   Transform(self.grid.drilled_edge, yedge),          # U→Y (redrawn full)
                   Transform(path.levels[4]["hits"][0][0], uedge),    # old 'U_' edge → U→{up,us}
                   FadeOut(path.levels[4]["hits"][0][1]),             # old bare 'U_' dot
