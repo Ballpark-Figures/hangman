@@ -36,6 +36,7 @@ VOWEL_C = LIGHT_RED        # vowels red, consonants blue — throughout the scen
 CONS_C  = LIGHT_BLUE
 ROW_PIE_R = 0.95           # small before/after pies
 BIG_PIE_R = 2.0
+ROW_Y     = 2.2            # VOWEL row at +ROW_Y, CONSONANT row at -ROW_Y
 
 
 class Scene08(HangmanScene):
@@ -53,19 +54,27 @@ class Scene08(HangmanScene):
         r.set_z_index(-10)
         return r
 
+    def _rise(self, parent, rows, *, lag_ratio=0.14, shift=0.28):
+        """The letter/tier views' row-by-row rise-in (see TierLetterScene._rise)."""
+        for row in rows:
+            row.shift(DOWN * shift).set_opacity(0)
+        self.add(parent)
+        return LaggedStart(*[row.animate.shift(UP * shift).set_opacity(1)
+                             for row in rows], lag_ratio=lag_ratio)
+
     def _class_pie(self, dist, center):
-        """A small [vowel, consonant] pie at `center`, each slice labelled with its %."""
+        """A small [vowel, consonant] pie at `center`, each slice labelled name + %."""
         return get_pie_chart([dist["vowel"], dist["consonant"]],
                              colors=[VOWEL_C, CONS_C], radius=ROW_PIE_R,
-                             center=center, labels=["", ""], show_percent=True,
-                             label_font_size=22, stroke_color=WHITE)
+                             center=center, labels=["VOWEL", "CONSONANT"],
+                             show_percent=True, label_font_size=18, stroke_color=WHITE)
 
     def _adjacency_row(self, name, adj, y):
         """`name` (VOWEL/CONSONANT) centred at height y, a before-pie to its LEFT and
         an after-pie to its RIGHT, each linked by a short line."""
         word = crisp_text(name, font_size=FONT_SIZE_LG, color=WHITE).move_to([0, y, 0])
-        after = self._class_pie(adj["after"], [4.7, y, 0])
-        before = self._class_pie(adj["before"], [-4.7, y, 0])
+        after = self._class_pie(adj["after"], [4.2, y, 0])
+        before = self._class_pie(adj["before"], [-4.2, y, 0])
         line_r = Line(word.get_right() + RIGHT * 0.25,
                       after.get_center() + LEFT * (ROW_PIE_R + 0.2),
                       color=WHITE, stroke_width=3)
@@ -101,19 +110,21 @@ class Scene08(HangmanScene):
         self.view_title = crisp_paragraph("Location", "Frequencies", font_size=30,
                                           color=WHITE, alignment="center")
         self.view_title.next_to(self.view, UP, buff=0.5)
-        self.play(FadeIn(self.view_title), FadeIn(self.view), run_time=1.0)
+        rows = [VGroup(lab, hm)
+                for lab, hm in zip(self.view.labels, self.view.heatmaps)]
+        self.play(FadeIn(self.view_title), self._rise(self.view, rows), run_time=1.2)
 
     # d : VOWEL (⅓ down) with before ← VOWEL → after adjacency pies
     @subscene
     def vowel_row(self):
         self.play(FadeOut(self.view), FadeOut(self.view_title), run_time=0.5)
         self.view = self.view_title = None
-        self._adjacency_row("VOWEL", self.d["adjacency"]["vowel"], 1.5)
+        self._adjacency_row("VOWEL", self.d["adjacency"]["vowel"], ROW_Y)
 
     # e : CONSONANT (⅔ down) with before ← CONSONANT → after adjacency pies
     @subscene
     def consonant_row(self):
-        self._adjacency_row("CONSONANT", self.d["adjacency"]["consonant"], -1.5)
+        self._adjacency_row("CONSONANT", self.d["adjacency"]["consonant"], -ROW_Y)
 
     # f : remove the content FIRST, THEN turn the background back to light blue
     @subscene

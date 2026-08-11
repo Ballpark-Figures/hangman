@@ -19,10 +19,16 @@ def vowel_consonant_heatmaps(*, cell_size=0.42, row_gap=0.14, label_buff=0.3,
     data = vcd.get()
     grid, lengths = data["grid"], data["grid_lengths"]
 
+    # stretch the scale to the DATA's range so the most consonant-dominated cell
+    # (min vowel fraction) is fully blue and the most vowel-dominated (max) fully red,
+    # shared across every length like the letter heatmaps
+    all_vals = [v for L in lengths for v in grid[L]]
+    vmin, vmax = min(all_vals), max(all_vals)
+
     heatmaps, labels = VGroup(), VGroup()
     pitch = cell_size + row_gap
     for i, L in enumerate(lengths):
-        hm = get_heatmap(grid[L], cell_size=cell_size, vmin=0.0, vmax=1.0,
+        hm = get_heatmap(grid[L], cell_size=cell_size, vmin=vmin, vmax=vmax,
                          low_color=consonant_color, high_color=vowel_color,
                          stroke_width=1.0)
         hm.move_to([hm.width / 2, -i * pitch, 0])          # left edge at x = 0
