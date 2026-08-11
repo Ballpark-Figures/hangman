@@ -20,18 +20,62 @@ loading" for the full cross-machine debugging history.
   the next body part), not a contradiction. (Bit us on scene 02: read the miss "fill
   in"s as blank-fills and misread the whole win/loss structure — the markdown DID encode
   it. Word there is BALLPARK; the non-ballpark letters e/i/o/t/n/d are the losing misses.)
-- **"Common uses" view (scenes 07 + the tier scenes 13-21) = a list of GAME STATES in
-  which the strategy's NEXT guess is the letter in question** — each row is a blanked
-  word + a gallows (body parts = misses so far) + the missed-letter tally below it,
-  representing the board at the moment that letter gets guessed. For a letter that is a
-  BEST FIRST GUESS (E len 5-11, I len 12-20, A len 1-4 — the top tier), the state is a
-  fresh game, so the row is LITERALLY a blank word (all underscores of that length) + an
-  EMPTY gallows (no body parts, no misses). A consonant guessed only AFTER misses shows a
-  partially-revealed board + hung body parts + a miss row. The example WORD behind a blank
-  row is invisible (a blank board of length N is just N underscores); the sourced fact is
-  the LENGTH RANGE each top-tier letter owns as the best first guess (partitions 1-20),
-  cross-checked against `letter_analysis.ipynb`'s first-guess-by-length. Built via
-  `assets/hangman_board.py` (brand-bg / ACCENT_FILL board — NOT the chalk `game_board.py`).
+- **"Common uses" view (`assets/common_uses.py`) = a list of GAME STATES in which the
+  strategy's NEXT guess is the letter in question** — each row is a blanked word with any
+  letters MISSED so far listed to its RIGHT in red. (NO gallows — an earlier gallows +
+  body-parts design was dropped; the misses moved from below to the right.) For a letter
+  that is a BEST FIRST GUESS (E len 5-11, I len 12-20, A len 1-4 — the top tier) the state
+  is a fresh game, so the row is LITERALLY a blank word (all underscores of that length)
+  with no misses; a consonant guessed only AFTER misses shows a partially-revealed board +
+  its red misses. Rows sit on a common rule BASELINE and the length label + misses align to
+  the LETTER band (where a revealed letter sits), so blank and lettered rows line up. The
+  example WORD behind a blank row is invisible (a blank board of length N is just N
+  underscores); the sourced fact is the LENGTH RANGE each top-tier letter owns as the best
+  first guess (partitions 1-20), cross-checked against `letter_analysis.ipynb`'s
+  first-guess-by-length. Built on `assets/hangman_board.py` (brand-bg / ACCENT_FILL board —
+  NOT the chalk `game_board.py`). Appears ONLY where the SCRIPT names a common-uses beat —
+  so far scene 07 ONLY; 09-15 have none (heatmap + n-gram only, like test scene 96). NB the
+  partial-board / red-misses path is BUILT but not yet exercised with real data (07 uses
+  only blank boards) — expect to shake it out when a later scene first feeds it game states.
+
+## Tier-list letter scenes (07 top · 09/10 high · 12/13 mid · 14/15 low · re-weighting …)
+Every scene that walks ONE tier's letters shares `assets/tier_letter_scene.py`
+(`TierLetterScene`, a `HangmanScene` subclass). The recurring visual per letter: fill the
+letter into its tier row → the tier list tucks ×0.7 to the top-left → a big COPY of the
+letter slides ↙ recolouring white→brand-blue → heatmap + n-gram views (+ common-uses only
+where the script names it). A scene = its config + `@subscene` beats; @subscene beats MUST
+live in the scene file (render tooling AST-scans it), so the base holds only helpers.
+- **Config (class attrs):** `TIER_IDX` (0=TOP … 6=LOW↓) · `LETTERS` (that tier's letters,
+  lowercase, in SLOT / tier-list order = `tier_list.TIER_LETTERS[TIER_IDX]`) · `FILLED`
+  (`[(idx,"EIA"), …]` — the tiers ABOVE, shown filled from frame 0). `setup_scene` calls
+  `self.build_board(on_screen=…)`: `True` = continuation (list centred on screen from frame
+  0), `False` = blank start (an `establish` beat fades it in centred).
+- **Beat helpers:** `enter_centered` · `intro_letter(i)` (first letter: fill+tuck+copy↙) ·
+  `advance_letter(i)` (normal: clear views, return corner AS next fades in, copy↙) ·
+  `rapid_letter(i, ch)` (a GROUP shown back-to-back: ONE-play crossfade — heatmap MORPHS +
+  n-gram crossfades, views stay up) · `show_heat`/`add_ngram`/`show_common` (the two `show_`
+  SWAP in over any current view in one play) · `clear_views` · `recenter_board`
+  (tuck→centre, hand off to the next tier scene) / `close_all` (fade all → blank).
+- **Reveal order is INDEPENDENT of slot order:** tiles live at fixed slots
+  (`tier_tiles[slot]`), so a scene can reveal them in a PRESENTATION order that follows the
+  narration; filling non-contiguous slots leaves visible gaps until the rest fill in. Use
+  `rapid_letter` for letters the script GROUPS by shared profile, `advance_letter`
+  otherwise. Done in 13 (present P/M/B rapid then U/G/H; tier lists PUGMBH) and 14 (present
+  F/Y/V/W/K with V→W rapid; tier lists FYVKW).
+- **Views** = the position heatmap ("Location Frequencies") + top n-grams ("Top N-grams"),
+  each entering with 96's row-by-row rise, titles persisting; numbers come from the
+  committed caches (`letter_heat_data` / `letter_ngram_data`). A row with no common-uses
+  beat in the script → treat the scene exactly like test scene 96 (heatmap + n-gram only).
+- **OPEN TODO — re-verify the START/END modes once scenes 08 and 11 exist.** The chain was
+  built ASSUMING 08 (vowel/consonant discussion) and 11 (end-of-high-tier summary) are
+  talking-head / non-tier-list scenes: 07 ends BLANK (`close_all`) → 08 → 09 blank-start
+  (`establish`) → 10 continues centred → 10 recenters → 11 → 12 blank-start → 13/14/15
+  continue centred, each recentring; 15 leaves the COMPLETE list centred for the "how to
+  use it" scene. If 11 (or whatever precedes 14) actually LEAVES the tier list centred on
+  screen, flip that scene's first line to `build_board(on_screen=True)` and delete its
+  `establish` beat (reverse to go blank). So: **re-check 12's and 14's `on_screen=` when
+  08/11 are built.** Also unresolved: all run_times are first-guess placeholders (a timing
+  pass is owed), and the big letter for I / W reads as an ambiguous bar/shape.
 
 ## Math / data
 - `math/data/wordlist_master.txt` — the curated frequency wordlist
