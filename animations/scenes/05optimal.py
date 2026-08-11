@@ -751,11 +751,14 @@ class Scene05(HangmanScene):
         green = VGroup(sub.discs["b"], sub.edges["bby"], sub.edges["bm"], self.avg_b)
         self.play(green.animate.set_color(LIGHT_GREEN), run_time=1.0)
 
-    def _ctree(self, spec, root_miss=1):
-        """A COMPLETE optimal subtree, fully played out. The SUBTREE is solved (GREEN), but
-        the ROOT node and its OUTGOING edges keep their ORIGINAL colours (the candidate isn't
-        chosen yet — the caller greens them on lock): root node = ``_miss_color(root_miss)``,
-        its hit edge white / miss edge red. Recursive: a guess node (letter, knocked-out
+    def _ctree(self, spec, root_miss=1, solved=True):
+        """A COMPLETE optimal subtree, fully played out. In SOLVED mode (default — a candidate)
+        the SUBTREE is GREEN, but the ROOT node and its OUTGOING edges keep their ORIGINAL
+        colours (the candidate isn't chosen yet — the caller greens them on lock): root node =
+        ``_miss_color(root_miss)``, its hit edge white / miss edge red. In UNSOLVED mode
+        (``solved=False`` — the persistent tree being worked) EVERY node/edge is coloured by how
+        it's reached (miss = red, hit = white), like the diagonal, and the back-up beats green
+        it piece by piece. Recursive: a guess node (letter, knocked-out
         navy) with a HIT child (right) and, if it splits, a MISS child (left); a forced-hit
         guess has one child straight down; a leaf is the fully revealed word. Built at natural
         GRID sizes rooted at ORIGIN. spec = {'g', 'hit', 'miss'?} (binary), {'g', 'kids':
@@ -803,29 +806,35 @@ class Scene05(HangmanScene):
         # spec are collected on g.node[key] / g.leaf[key] so back-up beats can address them.
         g.node, g.leaf = {}, {}
 
-        def build(node, is_root):
+        def build(node, is_root, in_miss):
+            # SOLVED mode (candidate): the subtree is GREEN, only the root node + its edges keep
+            # their original hit/miss colour. UNSOLVED mode (the persistent tree being worked):
+            # EVERY node/edge is coloured by how it's reached (miss = red, hit = white), like the
+            # diagonal — the back-up beats then green it piece by piece.
             pos = np.array([node["x"] - x0, node["y"], 0.0])
             sp = node["spec"]
-            h = SimpleNamespace(spec=sp, in_edge=None, is_miss=False,
+            h = SimpleNamespace(spec=sp, in_edge=None, is_miss=bool(in_miss),
                                 out_edges=VGroup(), kids=[])
+            leaf_color = LIGHT_GREEN if solved else _miss_color(in_miss)
             if "leaf" in sp:
-                dot = Dot(pos, radius=cr, color=LIGHT_GREEN, z_index=2)
-                blk = self._blanks(sp["leaf"]).set_x(pos[0]).set_color(LIGHT_GREEN)
+                dot = Dot(pos, radius=cr, color=leaf_color, z_index=2)
+                blk = self._blanks(sp["leaf"]).set_x(pos[0]).set_color(leaf_color)
                 blk.shift([0, (pos[1] - GRID_BLANK_DROP) - blk.get_bottom()[1], 0])
                 g.add(dot, blk)
                 h.dot, h.blk, h.radius, h.is_leaf, h.all = dot, blk, cr, True, VGroup(dot, blk)
                 if "key" in sp:
                     g.leaf[sp["key"]] = h
                 return h
-            dot = Dot(pos, radius=r, color=_miss_color(root_miss) if is_root else LIGHT_GREEN,
-                      z_index=2)
+            node_color = _miss_color(in_miss) if not solved else \
+                (_miss_color(root_miss) if is_root else LIGHT_GREEN)
+            dot = Dot(pos, radius=r, color=node_color, z_index=2)
             lab = crisp_text(sp["g"].upper(), color=BOARD_NAVY, weight=BOLD)
             lab.scale_to_fit_height(NODE_LETTER_H * r).move_to(dot).set_z_index(3)
             g.add(dot, lab)
             h.dot, h.lab, h.radius, h.is_leaf, h.all = dot, lab, r, False, VGroup(dot, lab)
             for is_miss, child in node["kids"]:
-                ch = build(child, False)
-                ecolor = _miss_color(1 if is_miss else 0) if is_root else LIGHT_GREEN
+                ch = build(child, False, 1 if is_miss else 0)
+                ecolor = _miss_color(1 if is_miss else 0) if (not solved or is_root) else LIGHT_GREEN
                 dn = normalize(ch.dot.get_center() - pos)
                 edge = Line(pos + dn * r, ch.dot.get_center() - dn * ch.radius,
                             color=ecolor, stroke_width=2.0)
@@ -840,7 +849,7 @@ class Scene05(HangmanScene):
                 g.node[sp["key"]] = h
             return h
 
-        g.root_h = build(root, True)
+        g.root_h = build(root, True, root_miss)
         g.root = g.root_h.dot
         return g
 
