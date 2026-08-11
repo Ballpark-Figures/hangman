@@ -479,41 +479,57 @@ class Scene05(HangmanScene):
         self.a_tree = None
         self.grid = VGroup(*cells)
 
-    def _hit_tail(self, br, word):
-        """Extend a DETERMINED child (its ``word`` is now fixed) with the remaining
-        GUARANTEED-HIT guesses — one white hit node per forced guess (its letter inside),
-        straight down — ending in the leaf whose blanks show the fully-revealed word. A
-        'leaf' is the FINAL GUESS (we keep guessing till every letter is up), so the child
-        becomes an interior node: its frontier annotation (blanks + red miss tally) MOVES
-        down to the final leaf. Returns the tail VGroup. Build BEFORE tiling (scales with
-        the cell)."""
-        start = br.dot
-        r = start.radius
-        revealed = set(c for c in br.pat if c != "_")
-        forced = []
-        for c in word:                                    # remaining letters, first-appearance
-            if c not in revealed and c not in forced:
-                forced.append(c)
-        tail = VGroup()
-        prev = start
-        for g in forced:
-            pos = prev.get_center() + np.array([0, -GRID_CHILD_DY, 0])
-            dot = Dot(pos, radius=r, color=CHALK)         # guaranteed hit → white
-            lab = crisp_text(g.upper(), color=BOARD_NAVY, weight=BOLD)
-            lab.scale_to_fit_height(NODE_LETTER_H * r).move_to(dot)
-            edge = Line(prev.get_center() + DOWN * prev.radius, pos + UP * r,
-                        color=CHALK, stroke_width=2.0)
-            tail.add(edge, dot, lab)
-            prev = dot
-        # frontier annotation relocates to the final leaf (fully-revealed word + the tally)
-        br.blanks.set_opacity(0)                          # child is no longer the frontier
-        leaf_blanks = self._blanks(word).set_x(prev.get_center()[0])
-        leaf_blanks.shift([0, (prev.get_center()[1] - GRID_BLANK_DROP)
-                           - leaf_blanks.get_bottom()[1], 0])
-        tail.add(leaf_blanks)
-        if br.missrow is not None:
-            br.missrow.next_to(leaf_blanks, DOWN, buff=0.09).set_x(leaf_blanks.get_x())
-        return tail
+    def _ymy_cell(self):
+        """The RESOLVED base-case cell (greedy-among-optimal tiebreak): at ``{by, my}`` the
+        shared letter **Y** is guessed FIRST — a guaranteed hit on both (both end in Y →
+        '_Y', 0 misses) — then **B** splits them (hit finishes BY, miss → my), then **M**
+        finishes MY. Expected misses are unchanged (0.5 at the position, 0 at M); this only
+        chooses which equally-optimal guess ORDER to draw, so the bushy bottom becomes a
+        clean spine. Intro grammar: every DECISION node is lettered; completed words are
+        BARE won-leaves. Returns (cell, m_dot) — m_dot is the ``Avg misses: 0`` node (the
+        forced guess right after the B-miss)."""
+        r = GRID_NODE_R
+        cr = r * GRID_CHILD_RF
+        DY, SPR = GRID_CHILD_DY, GRID_CHILD_SPR
+        path, anchor, last_dot = self._path_diag(5)       # A→O→I→E→U (shrunk diagonal)
+        cell = VGroup(path)
+
+        def _guess(pos, letter, miss):
+            dot = Dot(pos, radius=r, color=_miss_color(miss), z_index=2)
+            lab = crisp_text(letter.upper(), color=BOARD_NAVY, weight=BOLD)
+            lab.scale_to_fit_height(NODE_LETTER_H * r).move_to(dot).set_z_index(3)
+            cell.add(VGroup(dot, lab))
+            return dot
+
+        def _leaf(pos, word, tally):                      # bare won-leaf + revealed word + tally
+            dot = Dot(pos, radius=cr, color=CHALK, z_index=2)
+            blk = self._blanks(word).set_x(pos[0])
+            blk.shift([0, (pos[1] - GRID_BLANK_DROP) - blk.get_bottom()[1], 0])
+            mr = self._miss_row(tally)
+            mr.next_to(blk, DOWN, buff=0.09).set_x(blk.get_x())
+            cell.add(dot, blk, mr)
+            return dot
+
+        def _edge(a, b, ra, rb, miss):
+            dn = normalize(b.get_center() - a.get_center())
+            cell.add(Line(a.get_center() + dn * ra, b.get_center() - dn * rb,
+                          color=_miss_color(miss), stroke_width=2.0))
+
+        ydot = _guess(anchor, "Y", 1)                     # reached via U-miss → red
+        bpos = anchor + np.array([0.0, -DY, 0.0])
+        bdot = _guess(bpos, "B", 0)                        # reached via Y-hit → white
+        byleaf = _leaf(bpos + np.array([SPR, -DY, 0.0]), "by", ["A", "O", "I", "E", "U"])
+        mpos = bpos + np.array([-SPR, -DY, 0.0])
+        mdot = _guess(mpos, "M", 1)                        # reached via B-miss → red  (avg 0)
+        myleaf = _leaf(mpos + np.array([0.0, -DY, 0.0]), "my",
+                       ["A", "O", "I", "E", "U", "B"])
+        _edge(last_dot, ydot, r * PATH_SCALE, r, 1)        # U→Y  miss (red)
+        _edge(ydot, bdot, r, r, 0)                          # Y→B  hit  (white)
+        _edge(bdot, byleaf, r, cr, 0)                       # B→BY hit  (white)
+        _edge(bdot, mdot, r, r, 1)                          # B→M  miss (red)
+        _edge(mdot, myleaf, r, cr, 0)                       # M→MY hit  (white)
+        cell.mdot = mdot
+        return cell, mdot
 
     def _avg0_label(self, node_dot, height=0.34, direction=LEFT):
         """The base-case annotation: 'Avg misses: 0' beside a determined node from which
@@ -553,24 +569,10 @@ class Scene05(HangmanScene):
     @subscene
     def g_resolve(self):
         self.clear()
-        opts = sorted((o for o in self._n_miss_node(5)["options"] if o["splits"]),
-                      key=lambda o: (-_greedy_score(o), o["letter"]))
-        cells = [self._diag_cell(5, o) for o in opts]     # 2 cells: B (top-left), M
-        # augment the top-left (B) cell: draw the forced guaranteed-hit tails below its
-        # determined children (BY→Y, MY→M,Y) so each branch is seen going to a leaf.
-        b = cells[0]
-        branches = opts[0]["subtree"]["branches"]
-        for pat, br in b.sub.kid.items():
-            word = branches[pat].get("word")
-            if word:                                      # a determined single word → tail
-                b.sub.add(self._hit_tail(br, word))
-        # only 2 options at this depth → a narrower box (side margins) leaves room for
-        # the base-case label left of the (far-left) MY node
-        self._tile(cells, cols=2, w=11.0)
-        # base-case label on the after-miss determined node (the MY leaf-parent)
-        miss_dot = cells[0].sub.kid["__"].dot
-        self.avg0 = self._avg0_label(miss_dot)
-        self.grid = VGroup(*cells)
+        cell, mdot = self._ymy_cell()                     # the Y-first resolved spine
+        cell.scale_to_fit_height(7.2).move_to([0.4, -0.1, 0])   # room for the left avg-0 label
+        self.avg0 = self._avg0_label(cell.mdot)           # placed after positioning
+        self.grid = cell
         self.add(self.grid, self.avg0)
 
     # ── components ─────────────────────────────────────────────────────────────
