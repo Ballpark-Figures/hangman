@@ -65,7 +65,7 @@ SCALE_UP = 5.0                  # chalkboard scale at which its slate fills the 
 # ── chalkboard-game layout (beats e–h) ───────────────────────────────────────
 BLANK_Y = -2.6                  # 7 blanks on the LEFT (default cx), lowered from mid-board
 COUNT_X = -6.4                  # top-left "WORDS REMAINING:" column
-COUNT_TOP = 3.45                # the label's y (the numbers stack DOWN below it)
+COUNT_TOP = 3.0                 # the label's y (first number after the colon, rest below)
 COUNT_H = 0.38                  # chalk height of the count text/numbers
 GRID_COLS = 3                   # remaining-words grid columns
 GRID_H = 0.34                   # chalk height of a grid word (before scale-to-fit)
@@ -170,7 +170,7 @@ class Scene11(HangmanScene):
         """Canonical guess: bubble from the left → WRITE (fill each blank on a HIT / miss
         row + the next gallows part on a MISS) → dismiss the bubble. Scales with run_time."""
         r = run_time
-        bub = gb.bubble(letter, tail="left")
+        bub = gb.bubble(letter, tail="left").set_z_index(20)   # above the strikes/chalk
         self.play(GrowFromPoint(bub, bub.tip_dot.get_center()), run_time=0.5 * r)
         if hit:
             word = self.data["figures"]["word"]
@@ -187,12 +187,12 @@ class Scene11(HangmanScene):
         self.play(FadeOut(bub), run_time=0.3 * r)
 
     def _draw_count(self, run_time):
-        """'WORDS REMAINING:' (top-left) with the initial count below it; the successive
-        counts stack DOWN as a column."""
+        """'WORDS REMAINING:' (top-left) with the FIRST count after the colon; the
+        successive counts stack DOWN under it as a column."""
         label = chalk_phrase("WORDS REMAINING:", height=COUNT_H)
         label.move_to([COUNT_X, COUNT_TOP, 0], aligned_edge=LEFT)
         n0 = chalk_number(self.data["figures"]["total"], height=COUNT_H)
-        n0.next_to(label, DOWN, buff=0.30, aligned_edge=LEFT)
+        n0.next_to(label, RIGHT, buff=0.45)                   # first number after the colon
         self.count_nums = [n0]
         self.count_group.add(label, n0)
         self._write(VGroup(label, n0), run_time)
@@ -201,10 +201,10 @@ class Scene11(HangmanScene):
         """Strike the current count and write the new one BELOW it — the countdown
         column 5541 / 1166 / 231 / 21."""
         cur = self.count_nums[-1]
-        strike = Line(cur.get_left(), cur.get_right(), color=CHALK,
+        strike = Line(cur.get_left(), cur.get_right(), color=ACCENT_RED,
                       stroke_width=4).set_z_index(1)
         new = chalk_number(new_count, height=COUNT_H)
-        new.next_to(cur, DOWN, buff=0.22, aligned_edge=LEFT)
+        new.next_to(cur, DOWN, buff=0.22, aligned_edge=LEFT)  # under the FIRST number
         self.count_nums.append(new)
         self.count_group.add(strike, new)
         self.play(Create(strike), run_time=0.4 * run_time)
@@ -295,7 +295,7 @@ class Scene11(HangmanScene):
     def figures_words(self):
         self.play(FadeOut(self.count_group), run_time=0.5)
         steps = self.data["figures"]["steps"]
-        remaining = steps[self.i_cut - 1]["words"]                # the words after the I
+        remaining = sorted(steps[self.i_cut - 1]["words"])        # the words after the I (A→Z)
         self.play(FadeIn(self._word_grid(remaining)), run_time=0.9)   # bulk display, not drawn
         prev = set(remaining)
         for st in steps[self.i_cut:]:                             # p, t, g, f, u, r
