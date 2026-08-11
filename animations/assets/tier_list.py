@@ -103,7 +103,7 @@ CONS_TILE_COLOR  = LIGHT_BLUE          # consonant letter on a dark tier panel
 # Yahtzee/Total-row red); the position-frequency heatmap keeps the pure heatmap red.
 VOWEL_INK_COLOR  = CRIMSON             # vowel big-letter + ngram anchor
 CONS_INK_COLOR   = ACCENT_FILL
-VOWEL_HEAT_COLOR = PURE_RED            # vowel heatmap high end (original heatmap red)
+VOWEL_HEAT_COLOR = CRIMSON             # vowel heatmap high end (match the corner/ngram)
 CONS_HEAT_COLOR  = ACCENT_FILL
 
 
