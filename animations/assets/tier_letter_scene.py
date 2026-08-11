@@ -141,7 +141,7 @@ class TierLetterScene(HangmanScene):
         in ONE play the corner copy returns AS tile `i` fades in AND the heatmap MORPHS
         + the n-gram CROSSFADES to `ch` (the views are not removed and rebuilt); then
         tile `i`'s copy moves ↙. Titles persist. Requires the views to be up already."""
-        new_heat = letter_heatmaps(ch, center=HEAT_CENTER, high_color=tl.ink_color(ch))
+        new_heat = letter_heatmaps(ch, center=HEAT_CENTER, high_color=tl.heat_color(ch))
         top_y = self.heat.heatmaps[0].get_top()[1]
         bot_y = self.heat.heatmaps[-1].get_bottom()[1]
         new_ng = letter_ngrams(ch, center_x=NG_X, top_y=top_y, bottom_y=bot_y,
@@ -212,7 +212,7 @@ class TierLetterScene(HangmanScene):
         """Rise the heatmap in, fading whatever's currently up out in the SAME play
         (so a common-uses view swaps straight into the heatmap; a no-op fade when the
         views were already cleared)."""
-        new = letter_heatmaps(ch, center=HEAT_CENTER, high_color=tl.ink_color(ch))
+        new = letter_heatmaps(ch, center=HEAT_CENTER, high_color=tl.heat_color(ch))
         title = self._title("Location", "Frequencies", HEAT_CENTER[0])
         fades = self._fade_current()
         self.play(*fades, FadeIn(title),

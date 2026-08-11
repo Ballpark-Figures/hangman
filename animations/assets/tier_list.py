@@ -98,10 +98,13 @@ DIM_OPACITY  = 0.28                    # a tier's muted / un-emphasised look
 VOWELS = set("aeiouy")                 # Y always a vowel (matches scene 08)
 VOWEL_TILE_COLOR = LIGHT_RED           # vowel letter on a dark tier panel
 CONS_TILE_COLOR  = LIGHT_BLUE          # consonant letter on a dark tier panel
-# On the light bg (big corner letter / ngram anchor / heatmap): the heatmap red for
-# vowels; consonants keep the existing ACCENT_FILL blue (LIGHT_BLUE would wash out).
-VOWEL_INK_COLOR  = PURE_RED            # vowel big-letter / ngram anchor / heatmap
-CONS_INK_COLOR   = ACCENT_FILL         # consonant ditto — the existing blue
+# On the light bg, consonants keep the existing ACCENT_FILL blue (LIGHT_BLUE would wash
+# out). Vowels: the big corner letter + ngram anchor use CRIMSON (the yahtzee scorecard
+# Yahtzee/Total-row red); the position-frequency heatmap keeps the pure heatmap red.
+VOWEL_INK_COLOR  = CRIMSON             # vowel big-letter + ngram anchor
+CONS_INK_COLOR   = ACCENT_FILL
+VOWEL_HEAT_COLOR = PURE_RED            # vowel heatmap high end (original heatmap red)
+CONS_HEAT_COLOR  = ACCENT_FILL
 
 
 def tile_color(ch):
@@ -110,9 +113,14 @@ def tile_color(ch):
 
 
 def ink_color(ch):
-    """Dark light-bg colour for `ch` (the big corner letter + the ngram anchor):
-    vowel dark-red / consonant blue."""
+    """Big corner letter + ngram anchor colour for `ch` on the light bg:
+    vowel CRIMSON / consonant blue."""
     return VOWEL_INK_COLOR if ch.lower() in VOWELS else CONS_INK_COLOR
+
+
+def heat_color(ch):
+    """Position-frequency heatmap high-end colour for `ch`: vowel red / consonant blue."""
+    return VOWEL_HEAT_COLOR if ch.lower() in VOWELS else CONS_HEAT_COLOR
 
 
 # ── label factories (Transform one state into the next across beats) ───────────
