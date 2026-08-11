@@ -739,13 +739,45 @@ class Scene05(HangmanScene):
         green = VGroup(sub.discs["b"], sub.edges["bby"], sub.edges["bm"], self.avg_b)
         self.play(green.animate.set_color(LIGHT_GREEN), run_time=1.0)
 
-    # ── j : keep backing up the tree. FIRST the Y node — the forced guaranteed-hit entry
-    #        into the {by,my} position (it inherits B's 0.5, no real candidate choice), so
-    #        just green it to complete that subtree. Then (talking through first) the
-    #        diagonal nodes U→A each get the candidate cycle + backed-up value. ────────────
+    # ── j : back up the Y node (the {by,my} position). Move the value up from B to Y, then
+    #        CYCLE the first guess through Y (current spine), B and M — each candidate's
+    #        optimal subtree with its avg misses (all 0.5) — then CHOOSE Y and green it.
+    #        (Rough first pass; refine the cycle with the user.) ──────────────────────────
     @subscene
     def j_backup(self):
         sub = self.grid.sub
+        scale = sub.gdot.width / (2 * GRID_NODE_R)        # match the (fit-scaled) spine nodes
+        anchor = sub.gdot.get_center()
+        # 1) the value moves up from B to Y (top of the solved {by,my} subtree)
+        avg_y = self._avg_label(sub.discs["y"], value="0.5", direction=LEFT)
+        avg_y.set_color(LIGHT_GREEN)
+        self.play(ReplacementTransform(self.avg_b, avg_y), run_time=0.8)
+        self.avg_b = avg_y
+        # 2) cycle the {by,my} first guess: Y (the current spine) → B → M, each its optimal
+        #    subtree, all avg 0.5 (the '0.5' label stays put)
+        opts = {o["letter"]: o for o in self._n_miss_node(5)["options"] if o["splits"]}
+        by_dot, by_blk, _ = sub.leaves["by"]
+        my_dot, my_blk, _ = sub.leaves["my"]
+        # the Y-first spine subtree WITHOUT the leaf tallies (dropped in h — don't resurrect
+        # them when we fade the spine back in)
+        cur = VGroup(sub.gdot, sub.glab, sub.edges["yb"],
+                     sub.discs["b"], sub.node_letters[1], sub.edges["bby"], by_dot, by_blk,
+                     sub.edges["bm"], sub.discs["m"], sub.node_letters[2],
+                     sub.edges["mmy"], my_dot, my_blk)
+
+        def cand(letter):                                  # a B- or M-first candidate subtree
+            mt = self._mini_tree(opts[letter], parent_miss=1, missed=["A", "O", "I", "E", "U"])
+            mt.scale(scale).shift(anchor - mt[0][0].get_center())
+            return mt
+
+        b_tree, m_tree = cand("b"), cand("m")
+        self.play(FadeOut(cur), FadeIn(b_tree), run_time=0.7)
+        self.wait(0.4)
+        self.play(FadeOut(b_tree), FadeIn(m_tree), run_time=0.7)
+        self.wait(0.4)
+        self.play(FadeOut(m_tree), FadeIn(cur), run_time=0.7)
+        self.remove(b_tree, m_tree)
+        # 3) choose Y: green it (completing the {by,my} subtree)
         self.play(VGroup(sub.discs["y"], sub.edges["yb"]).animate.set_color(LIGHT_GREEN),
                   run_time=0.9)
 
