@@ -990,17 +990,18 @@ class Scene05(HangmanScene):
         self.play(VGroup(ups.root, ups.root_edges, self.avg_p).animate.set_color(LIGHT_GREEN),
                   run_time=0.9)
 
-    # ── m : back up the U position ({by,my,up,us}) — both children are solved. Fade the
-    #        child value; a rolling 'Avg misses' COUNTER appears on U. Cycle the first-guess
-    #        candidates U/Y/B/M/P/S, each shown as its COMPLETE optimal subtree (green subtree,
-    #        original-colour root — SOURCED from the cache via _subtree_spec): U/Y = 1.0,
-    #        B/M/P/S = 1.25, the counter rolling as we pass each. Then CHOOSE U (the min) and
-    #        lock its node + edges + value green. U itself is the CURRENT tree (`cur`). ───────
+    # ── m : back up the U position ({by,my,up,us}) — both children are solved. The hand-built
+    #        subtree first REFORMATS into the uniform tidy auto-layout (fade old→new), so the U
+    #        candidate matches the alternatives; the child value goes away and a rolling 'Avg
+    #        misses' COUNTER appears on U. Cycle the first-guess candidates U/Y/B/M/P/S, each a
+    #        COMPLETE optimal subtree (green subtree, original-colour root — every candidate a
+    #        TIDY _ctree, SOURCED from the cache): U/Y = 1.0, B/M/P/S = 1.25, the counter rolling
+    #        as we pass each. Then CHOOSE U (the min) and lock its node + edges + value green. ──
     @subscene
     def choose_u(self):
         path, sub, ups = self.grid.path, self.grid.sub, self.ups
         u_dot, u_lab = path.levels[4]["dot"], path.levels[4]["lab"]
-        uc, ur = u_dot.get_center(), u_dot.width / 2
+        uc = u_dot.get_center()
         yedge = self.grid.drilled_edge            # U→Y   (miss, red)
         uedge = path.levels[4]["hits"][0][0]      # U→{up,us} (hit, white)
         by_dot, by_blk, _ = sub.leaves["by"]
@@ -1009,28 +1010,35 @@ class Scene05(HangmanScene):
                        sub.node_letters[1], sub.edges["bby"], by_dot, by_blk,
                        sub.edges["bm"], sub.discs["m"], sub.node_letters[2],
                        sub.edges["mmy"], my_dot, my_blk)
-        cur = VGroup(u_dot, u_lab, yedge, uedge, y_sub, ups)   # the U candidate (on screen)
-        # the OTHER candidate first-guesses at {by,my,up,us}: each a complete optimal subtree,
-        # SOURCED from the cache (option subtree → _subtree_spec → _ctree). Uniform scale so
-        # node sizes match across candidates; fit the deepest to U's current subtree height.
+        old_u = VGroup(u_dot, u_lab, yedge, uedge, y_sub, ups)   # hand-built subtree, retired
+        # every first-guess candidate at {by,my,up,us} as a TIDY _ctree — ONE builder + ONE
+        # scale, so the U candidate matches the alternatives (and E/I/O/A later). SOURCED from
+        # the cache; the U candidate keeps the Y-first {by,my} spine chosen for the base case.
         node = self._n_miss_node(4)
         opts = {o["letter"]: o for o in node["options"] if o["splits"]}
-        order = ["y", "b", "m", "p", "s"]         # U is `cur`; shown first and (on choose) last
-        raw = {c: self._ctree(self._subtree_spec(opts[c]["subtree"]), root_miss=1)
-               for c in order}
-        scale_c = cur.height / max(ct.height for ct in raw.values())
+        specs = {"u": {"g": "u",
+                       "hit": self._subtree_spec(opts["u"]["subtree"]["branches"]["u_"], "u"),
+                       "miss": {"g": "y", "hit": {"g": "b", "hit": {"leaf": "by"},
+                                                   "miss": {"g": "m", "hit": {"leaf": "my"}}}}}}
+        for c in ("y", "b", "m", "p", "s"):
+            specs[c] = self._subtree_spec(opts[c]["subtree"])
+        raws = {c: self._ctree(sp, root_miss=1) for c, sp in specs.items()}
+        scale_c = (uc[1] + 4.0) / max(ct.height for ct in raws.values())   # fit deepest below U
         cand = {}
-        for c in order:
-            ct = raw[c].scale(scale_c, about_point=ORIGIN)
-            ct.shift(uc - ct.root.get_center())   # root at U's position
+        for c, ct in raws.items():
+            ct.scale(scale_c, about_point=ORIGIN).shift(uc - ct.root.get_center())   # root at U
             cand[c] = ct
-        u_avg = opts["u"]["avg"]                   # 1.0 (== node['avg'])
+        tidy_u = cand["u"]
+        u_avg = opts["u"]["avg"]                    # 1.0 (== node['avg'])
         uval = ValueTracker(u_avg)
-        counter = self._counter_label(uval, u_dot, direction=LEFT)
-        # fade the {up,us} child value; the rolling counter appears on U (we start ON U)
-        self.play(FadeOut(self.avg_p), FadeIn(counter), run_time=0.6)
+        counter = self._counter_label(uval, tidy_u.root, direction=LEFT)
+        # reformat: the hand-built subtree tidies into the uniform auto-layout; the child value
+        # goes away; the rolling counter appears on U (we start ON the U candidate)
+        self.play(FadeOut(old_u), FadeIn(tidy_u), FadeOut(self.avg_p), FadeIn(counter),
+                  run_time=0.8)
         self.avg_p = None
-        self._active = cur
+        self._active = tidy_u
+        self.wait(0.4)                             # hold on the U candidate before cycling
 
         def swap_to(tree, val):                    # cross-fade the subtree; counter rolls
             self.play(FadeOut(self._active), FadeIn(tree),
@@ -1038,16 +1046,17 @@ class Scene05(HangmanScene):
             self.wait(0.3)
             self._active = tree
 
-        for c in order:                            # U → Y → B → M → P → S
+        for c in ("y", "b", "m", "p", "s"):        # U → Y → B → M → P → S
             swap_to(cand[c], opts[c]["avg"])
-        swap_to(cur, u_avg)                         # settle back on U (the minimum, 1.0)
-        self.remove(*cand.values())
-        # choose U: freeze the counter (drop the updater AND its closure attr so the scene
-        # can still pickle for the snapshot), then lock U's node + edges + value green
+        swap_to(tidy_u, u_avg)                      # settle back on U (the minimum, 1.0)
+        self.remove(*(cand[c] for c in ("y", "b", "m", "p", "s")))
+        # choose U: freeze the counter (drop the updater + its closure attr so the scene can
+        # still pickle), then lock U's node + both outgoing edges + the value green
         counter.remove_updater(counter._upd)
         del counter._upd
-        self.play(VGroup(u_dot, yedge, uedge, counter).animate.set_color(LIGHT_GREEN),
+        self.play(VGroup(tidy_u.root, tidy_u.root_edges, counter).animate.set_color(LIGHT_GREEN),
                   run_time=1.0)
+        self.u_subtree = tidy_u                     # hand off U's solved subtree to backing up E
         self.ups = None
 
     # ── components ─────────────────────────────────────────────────────────────
