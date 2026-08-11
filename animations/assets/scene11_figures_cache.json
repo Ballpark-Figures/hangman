@@ -1,0 +1,43 @@
+{
+  "word": "figures",
+  "guesses": [
+    {
+      "letter": "e",
+      "hit": true
+    },
+    {
+      "letter": "s",
+      "hit": true
+    },
+    {
+      "letter": "i",
+      "hit": true
+    },
+    {
+      "letter": "p",
+      "hit": false
+    },
+    {
+      "letter": "t",
+      "hit": false
+    },
+    {
+      "letter": "g",
+      "hit": true
+    },
+    {
+      "letter": "f",
+      "hit": true
+    },
+    {
+      "letter": "u",
+      "hit": true
+    },
+    {
+      "letter": "r",
+      "hit": true
+    }
+  ],
+  "n_misses": 2,
+  "source": "strategy_view.make_strategy('optimal', 7, 'uniform').trace \u2014 committed len07_uniform tree (see L7 caveat in module docstring)"
+}
