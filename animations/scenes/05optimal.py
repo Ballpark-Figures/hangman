@@ -487,19 +487,30 @@ class Scene05(HangmanScene):
         chooses which equally-optimal guess ORDER to draw, so the bushy bottom becomes a
         clean spine. Intro grammar: every DECISION node is lettered; completed words are
         BARE won-leaves. Returns (cell, m_dot) — m_dot is the ``Avg misses: 0`` node (the
-        forced guess right after the B-miss)."""
+        forced guess right after the B-miss).
+
+        Exposes the SAME role handles as `_diag_cell` (``.path`` with ``.levels``,
+        ``.drilled_edge``, ``.sub.gdot/.glab/.fan``) so the drill's `_transform_into`
+        can grow it from the depth-4 top-left cell exactly like e/f: the U-miss leaf
+        becomes **Y**, and Y's whole subtree (``.fan`` = B → BY / M → MY) grows from it."""
         r = GRID_NODE_R
         cr = r * GRID_CHILD_RF
         DY, SPR = GRID_CHILD_DY, GRID_CHILD_SPR
         path, anchor, last_dot = self._path_diag(5)       # A→O→I→E→U (shrunk diagonal)
-        cell = VGroup(path)
+
+        # Y — the forced guaranteed hit at {by,my} (drilled node; reached via U-miss → red)
+        ydot = Dot(anchor, radius=r, color=_miss_color(1), z_index=2)
+        ylab = crisp_text("Y", color=BOARD_NAVY, weight=BOLD)
+        ylab.scale_to_fit_height(NODE_LETTER_H * r).move_to(ydot).set_z_index(3)
+        dn = normalize(anchor - last_dot.get_center())
+        drilled_edge = Line(last_dot.get_center() + dn * (r * PATH_SCALE),
+                            anchor - dn * r, color=_miss_color(1), stroke_width=2.0)
 
         def _guess(pos, letter, miss):
             dot = Dot(pos, radius=r, color=_miss_color(miss), z_index=2)
             lab = crisp_text(letter.upper(), color=BOARD_NAVY, weight=BOLD)
             lab.scale_to_fit_height(NODE_LETTER_H * r).move_to(dot).set_z_index(3)
-            cell.add(VGroup(dot, lab))
-            return dot
+            return dot, VGroup(dot, lab)
 
         def _leaf(pos, word, tally):                      # bare won-leaf + revealed word + tally
             dot = Dot(pos, radius=cr, color=CHALK, z_index=2)
@@ -507,28 +518,29 @@ class Scene05(HangmanScene):
             blk.shift([0, (pos[1] - GRID_BLANK_DROP) - blk.get_bottom()[1], 0])
             mr = self._miss_row(tally)
             mr.next_to(blk, DOWN, buff=0.09).set_x(blk.get_x())
-            cell.add(dot, blk, mr)
-            return dot
+            return dot, VGroup(dot, blk, mr)
 
-        def _edge(a, b, ra, rb, miss):
-            dn = normalize(b.get_center() - a.get_center())
-            cell.add(Line(a.get_center() + dn * ra, b.get_center() - dn * rb,
-                          color=_miss_color(miss), stroke_width=2.0))
+        def _edge(pa, ra, pb, rb, miss):
+            d = normalize(pb - pa)
+            return Line(pa + d * ra, pb - d * rb, color=_miss_color(miss), stroke_width=2.0)
 
-        ydot = _guess(anchor, "Y", 1)                     # reached via U-miss → red
         bpos = anchor + np.array([0.0, -DY, 0.0])
-        bdot = _guess(bpos, "B", 0)                        # reached via Y-hit → white
-        byleaf = _leaf(bpos + np.array([SPR, -DY, 0.0]), "by", ["A", "O", "I", "E", "U"])
+        bdot, bgrp = _guess(bpos, "B", 0)                  # reached via Y-hit → white
+        bypos = bpos + np.array([SPR, -DY, 0.0])
+        byleaf, bygrp = _leaf(bypos, "by", ["A", "O", "I", "E", "U"])
         mpos = bpos + np.array([-SPR, -DY, 0.0])
-        mdot = _guess(mpos, "M", 1)                        # reached via B-miss → red  (avg 0)
-        myleaf = _leaf(mpos + np.array([0.0, -DY, 0.0]), "my",
-                       ["A", "O", "I", "E", "U", "B"])
-        _edge(last_dot, ydot, r * PATH_SCALE, r, 1)        # U→Y  miss (red)
-        _edge(ydot, bdot, r, r, 0)                          # Y→B  hit  (white)
-        _edge(bdot, byleaf, r, cr, 0)                       # B→BY hit  (white)
-        _edge(bdot, mdot, r, r, 1)                          # B→M  miss (red)
-        _edge(mdot, myleaf, r, cr, 0)                       # M→MY hit  (white)
-        cell.mdot = mdot
+        mdot, mgrp = _guess(mpos, "M", 1)                  # reached via B-miss → red  (avg 0)
+        mypos = mpos + np.array([0.0, -DY, 0.0])
+        myleaf, mygrp = _leaf(mypos, "my", ["A", "O", "I", "E", "U", "B"])
+        # fan = the whole Y-subtree (grows from Y in the drill); Y itself is NOT in the fan
+        fan = VGroup(_edge(anchor, r, bpos, r, 0), bgrp,          # Y→B  hit
+                     _edge(bpos, r, bypos, cr, 0), bygrp,          # B→BY hit
+                     _edge(bpos, r, mpos, r, 1), mgrp,             # B→M  miss
+                     _edge(mpos, r, mypos, cr, 0), mygrp)          # M→MY hit
+        sub = VGroup(VGroup(ydot, ylab), fan)
+        sub.gdot, sub.glab, sub.fan = ydot, ylab, fan
+        cell = VGroup(path, drilled_edge, sub)
+        cell.path, cell.drilled_edge, cell.sub, cell.mdot = path, drilled_edge, sub, mdot
         return cell, mdot
 
     def _avg0_label(self, node_dot, height=0.34, direction=LEFT):
@@ -557,23 +569,42 @@ class Scene05(HangmanScene):
         self._transform_into(src, cells, 2.2)
         self.grid = VGroup(*cells)
 
-    # ── g : keep drilling to the BASE CASE. Following the all-miss diagonal
-    #        A→O→I→E→U the surviving set shrinks to {BY, MY}; guessing B (top-left,
-    #        greedy) splits them into a HIT (BY) and a MISS (MY). The MY node is now
-    #        DETERMINED with only a guaranteed-hit guess left → 'Avg misses: 0' (the
-    #        recursion's base case we back up from in h). A "leaf" is the FINAL GUESS,
-    #        not the point the word is known — see hangman CLAUDE.md. ───────────────────
-    #  NOTE: STATIC END-FRAME ONLY for now (per the lock-the-still-first rule) — the
-    #        drill animation (full option-grid each level, depth 2→5) comes after this
-    #        composition is approved.
+    # ── g : keep drilling to the BASE CASE. Repeat f's expand (fade all but the top-left,
+    #        transform its all-miss leaf into the next option grid) down the all-miss
+    #        diagonal — depth 2 → 3 (after A,O,I) → 4 (after A,O,I,E) — until the surviving
+    #        set is {BY, MY}. There we play the forced Y (guaranteed hit both) and resolve
+    #        into the Y-first spine, dropping 'Avg misses: 0' on the forced M after the
+    #        B-miss (the recursion base case we back up from in h). "Leaf" = the FINAL
+    #        GUESS — see hangman CLAUDE.md. ─────────────────────────────────────────────
     @subscene
     def g_resolve(self):
-        self.clear()
-        cell, mdot = self._ymy_cell()                     # the Y-first resolved spine
-        cell.scale_to_fit_height(7.2).move_to([0.4, -0.1, 0])   # room for the left avg-0 label
-        self.avg0 = self._avg0_label(cell.mdot)           # placed after positioning
-        self.grid = cell
-        self.add(self.grid, self.avg0)
+        self._g_expand(3, 2.4)                            # depth-2 top-left → depth-3 grid
+        self._g_expand(4, 2.4)                            # depth-3 top-left → depth-4 grid
+        self._g_to_spine(2.8)                             # depth-4 top-left → the resolved spine
+
+    def _g_expand(self, depth, run_time):
+        """Fade all but the current grid's top-left, then piece-by-piece transform its
+        all-miss leaf into the greedy-sorted option grid one level deeper (same move as
+        f_drill)."""
+        opts = sorted((o for o in self._n_miss_node(depth)["options"] if o["splits"]),
+                      key=lambda o: (-_greedy_score(o), o["letter"]))
+        cells = [self._diag_cell(depth, o) for o in opts]
+        self._tile(cells, cols=GRID_COLS)
+        self.play(FadeOut(VGroup(*self.grid[1:])), run_time=run_time * 0.22)
+        self._transform_into(self.grid[0], cells, run_time * 0.78)
+        self.grid = VGroup(*cells)
+
+    def _g_to_spine(self, run_time):
+        """The final expand: the depth-4 top-left (U) cell transforms into the Y-first
+        resolved spine — the U-miss leaf becomes Y and Y's subtree (B → BY / M → MY)
+        grows from it — then the 'Avg misses: 0' base-case label fades in on M."""
+        spine, _ = self._ymy_cell()
+        spine.scale_to_fit_height(7.2).move_to([0.4, -0.1, 0])   # room for the left avg-0 label
+        self.play(FadeOut(VGroup(*self.grid[1:])), run_time=run_time * 0.18)
+        self._transform_into(self.grid[0], [spine], run_time * 0.68)
+        self.avg0 = self._avg0_label(spine.mdot)
+        self.play(FadeIn(self.avg0), run_time=run_time * 0.14)
+        self.grid = spine
 
     # ── components ─────────────────────────────────────────────────────────────
     def _greedy_chart(self):
