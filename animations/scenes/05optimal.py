@@ -840,21 +840,32 @@ class Scene05(HangmanScene):
     @subscene
     def backup_u(self):
         path = self.grid.path
-        uc = path.levels[4]["dot"].get_center()           # U (last diagonal node)
-        u_hit = path.levels[4]["hits"][0][1].get_center() # U's hit child ({up,us}, the 'U_' leaf)
-        scale = self.grid.sub.gdot.width / (2 * GRID_NODE_R)
-        # {up,us} subtree (P-first): P → {UP hit, S→US miss}; reached via U-HIT so its root is
-        # white (a hit), edges original, subtree green
+        sub = self.grid.sub
+        u_dot = path.levels[4]["dot"]
+        uc, ur = u_dot.get_center(), u_dot.width / 2      # U centre + radius
+        scale = sub.gdot.width / (2 * GRID_NODE_R)
+        yr = GRID_NODE_R * scale * 0.55                   # child-root radius after the shrink
+        DY_U, SPREAD = 1.0, 1.7                           # spread U's two children further apart
+        y_root = uc + np.array([-SPREAD, -DY_U, 0.0])     # Y (miss) further LEFT
+        ups_root = uc + np.array([SPREAD, -DY_U, 0.0])    # {up,us} (hit) further RIGHT
+        g0 = sub.gdot.get_center()
+        # {up,us} subtree (P-first): P → {UP hit, S→US miss}; reached via U-HIT → white root
         spec = {"g": "p", "hit": {"leaf": "up"}, "miss": {"g": "s", "hit": {"leaf": "us"}}}
-        ups = self._ctree(spec, root_miss=0)
-        ups.scale(scale * 0.55, about_point=ORIGIN).shift(u_hit)
-        # shrink the solved Y subtree toward U (its handles ride along); grow {up,us} out and
-        # fade the old bare 'U_' leaf (dot + its board-state annotation) it replaces
-        y_grp = VGroup(self.grid.sub, self.grid.drilled_edge, self.avg_b)
-        self.play(y_grp.animate.scale(0.55, about_point=uc),
-                  GrowFromPoint(ups, u_hit),
-                  FadeOut(path.levels[4]["hits"][0][1]),   # the bare 'U_' dot
-                  FadeOut(path.leaf_text[-1]),             # its 'U_ AOIE' annotation
+        ups = self._ctree(spec, root_miss=0).scale(scale * 0.55, about_point=ORIGIN)
+        ups.shift(ups_root)
+        # new full-length edges out of U (NOT shrunk): U→Y miss (red), U→{up,us} hit (white)
+        dny, dnu = normalize(y_root - uc), normalize(ups_root - uc)
+        yedge = Line(uc + dny * ur, y_root - dny * yr, color=_miss_color(1), stroke_width=2.0)
+        uedge = Line(uc + dnu * ur, ups_root - dnu * yr, color=_miss_color(0), stroke_width=2.0)
+        # shrink Y's subtree about ITS OWN root (edge kept full), slide Y to the spread pos,
+        # redraw both edges out of U, grow {up,us}, fade the old bare 'U_' leaf
+        self.play(sub.animate.scale(0.55, about_point=g0).shift(y_root - g0),
+                  self.avg_b.animate.shift(y_root - g0),
+                  Transform(self.grid.drilled_edge, yedge),          # U→Y (redrawn full)
+                  Transform(path.levels[4]["hits"][0][0], uedge),    # old 'U_' edge → U→{up,us}
+                  FadeOut(path.levels[4]["hits"][0][1]),             # old bare 'U_' dot
+                  FadeOut(path.leaf_text[-1]),                       # old 'U_ AOIE' annotation
+                  GrowFromPoint(ups, uc),
                   run_time=1.3)
         self.ups = ups
 
