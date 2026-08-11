@@ -739,37 +739,41 @@ class Scene05(HangmanScene):
         green = VGroup(sub.discs["b"], sub.edges["bby"], sub.edges["bm"], self.avg_b)
         self.play(green.animate.set_color(LIGHT_GREEN), run_time=1.0)
 
-    def _ctree(self, spec):
-        """A COMPLETE optimal subtree, fully played out, all GREEN. Recursive: a guess node
-        (letter, knocked-out navy) with a HIT child (right) and, if it splits, a MISS child
-        (left); a forced-hit guess has a single child straight down; a leaf is the fully
-        revealed word. Built at natural GRID sizes rooted at ORIGIN (caller scales/places).
-        spec = {'g': letter, 'hit': child, 'miss': child?}  or  {'leaf': word}."""
+    def _ctree(self, spec, root_miss=1):
+        """A COMPLETE optimal subtree, fully played out. The SUBTREE is solved (GREEN), but
+        the ROOT node and its OUTGOING edges keep their ORIGINAL colours (the candidate isn't
+        chosen yet — the caller greens them on lock): root node = ``_miss_color(root_miss)``,
+        its hit edge white / miss edge red. Recursive: a guess node (letter, knocked-out
+        navy) with a HIT child (right) and, if it splits, a MISS child (left); a forced-hit
+        guess has one child straight down; a leaf is the fully revealed word. Built at natural
+        GRID sizes rooted at ORIGIN. spec = {'g', 'hit', 'miss'?} or {'leaf': word}."""
         r, cr = GRID_NODE_R, GRID_NODE_R * GRID_CHILD_RF
         DY, SPR = GRID_CHILD_DY, GRID_CHILD_SPR
         g = VGroup()
 
-        def build(spec, pos):
+        def build(spec, pos, is_root):
             if "leaf" in spec:
                 dot = Dot(pos, radius=cr, color=LIGHT_GREEN, z_index=2)
                 blk = self._blanks(spec["leaf"]).set_x(pos[0]).set_color(LIGHT_GREEN)
                 blk.shift([0, (pos[1] - GRID_BLANK_DROP) - blk.get_bottom()[1], 0])
                 g.add(dot, blk)
                 return dot, cr
-            dot = Dot(pos, radius=r, color=LIGHT_GREEN, z_index=2)
+            dot = Dot(pos, radius=r, color=_miss_color(root_miss) if is_root else LIGHT_GREEN,
+                      z_index=2)
             lab = crisp_text(spec["g"].upper(), color=BOARD_NAVY, weight=BOLD)
             lab.scale_to_fit_height(NODE_LETTER_H * r).move_to(dot).set_z_index(3)
             g.add(dot, lab)
-            kids = ([(spec["hit"], pos + np.array([SPR, -DY, 0.0])),
-                     (spec["miss"], pos + np.array([-SPR, -DY, 0.0]))] if "miss" in spec
-                    else [(spec["hit"], pos + np.array([0.0, -DY, 0.0]))])
-            for cspec, cpos in kids:
-                cdot, crad = build(cspec, cpos)
+            kids = ([(spec["hit"], pos + np.array([SPR, -DY, 0.0]), 0),
+                     (spec["miss"], pos + np.array([-SPR, -DY, 0.0]), 1)] if "miss" in spec
+                    else [(spec["hit"], pos + np.array([0.0, -DY, 0.0]), 0)])
+            for cspec, cpos, miss in kids:
+                cdot, crad = build(cspec, cpos, False)
+                ecolor = _miss_color(miss) if is_root else LIGHT_GREEN   # only root edges original
                 dn = normalize(cpos - pos)
-                g.add(Line(pos + dn * r, cpos - dn * crad, color=LIGHT_GREEN, stroke_width=2.0))
+                g.add(Line(pos + dn * r, cpos - dn * crad, color=ecolor, stroke_width=2.0))
             return dot, r
 
-        g.root = build(spec, ORIGIN)[0]
+        g.root = build(spec, ORIGIN, True)[0]
         return g
 
     # ── j : back up the Y node (the {by,my} position). B's value fades out; a fresh WHITE
