@@ -17,11 +17,15 @@ Reuse: `assets.game_board` (gb) for the board/blanks/gallows/guessing (canonical
 gameplay layout, as 02/04/94); `bpkfigures.pie_chart` for the fanning pie; the navy
 bg follows scene 08.
 
+The pie is titled "After High Tier Letters" and split into 5 LABELLED sections (name +
+%), the ≥2-miss tail collapsed into one; sections fan in one at a time (b/c, then "No
+more misses"), then "1 more miss" + "2+ more misses" fan out TOGETHER from one origin.
+
 BEAT MAP
   a to_navy     — turn the background navy (scene-08 `_navy` rect)
-  b only_tier   — pie section 0: % of words using only backbone letters
-  c single_opt  — pie section 1: % narrowed to a single option
-  d miss_dist   — pie section 2 (rest of 0-miss), then the 1/2/3-miss tail all at once
+  b only_tier   — title + "Word Finished" section (only backbone letters)
+  c single_opt  — "Word Known" section (narrowed to a single option)
+  d miss_dist   — "No more misses", then "1 more miss" + "2+ more misses" (fan_group)
   e chalk_in    — chalkboard reverse-in + 7 blanks + gallows
   f figures     — play out the optimal strategy on FIGURES (bubble → write)
   g chalk_out   — remove the chalkboard (ends blank, next scene is animated)
@@ -49,8 +53,8 @@ from assets import game_board as gb
 from assets import scene11_data
 from bpkfigures.pie_chart import get_pie_chart
 
-PIE_R = 2.4                     # big pie, centred
-PIE_CENTER = ORIGIN
+PIE_R = 2.2                     # pie radius (room above for the title, around for labels)
+PIE_CENTER = [0.0, -0.35, 0.0]  # nudged down so the title clears the top slice's label
 SCALE_UP = 5.0                  # chalkboard scale at which its slate fills the frame
                                 # (matches scene 04's board→navy dissolve, reversed)
 
@@ -69,6 +73,7 @@ class Scene11(HangmanScene):
         self.data = scene11_data.get()             # {"dist": …, "figures": …} (cached)
         self.navy_rect = None
         self.pie = None
+        self.pie_title = None
         self.cb = None
         self.rules = self.hang = self.hang_parts = None
         self.miss_slots_x = None
@@ -81,34 +86,40 @@ class Scene11(HangmanScene):
         r.set_z_index(-10)
         return r
 
-    def _sector_values(self, dist):
-        """(values, colours) for the pie sectors, in reveal order:
-        only_tier, single_option, rest-of-0-miss, then 1-miss, 2-miss, … (the tail)."""
+    def _sections(self, dist):
+        """The 5 pie sections (values, colours, headings) in reveal order. The whole
+        ≥2-miss tail is collapsed into one "2+ more misses" section so the pie reads as
+        five labelled categories that sum to 100%:
+          Word Finished  — the word uses ONLY backbone letters (revealed outright)
+          Word Known     — uniquely pinned by the backbone pattern (0 more misses)
+          No more misses — solvable with 0 additional misses, not yet known
+          1 more miss    — exactly one additional miss
+          2+ more misses — two or more additional misses (the tail)."""
         md = dist["miss_dist"]
-        vals = [dist["only_tier"], dist["single_option"], dist["rest_zero_miss"]]
-        colors = list(ZERO_MISS_GREENS)
         maxm = dist["max_misses"]
-        for k in range(1, maxm + 1):
-            vals.append(int(md[str(k)]))
-            t = (k - 1) / max(maxm - 1, 1)         # 0 at 1 miss → 1 at max misses
-            colors.append(interpolate_color(ACCENT_GOLD, ACCENT_RED, t))
-        return vals, colors
+        two_plus = sum(int(md[str(k)]) for k in range(2, maxm + 1))
+        headings = ["Word Finished", "Word Known", "No more misses",
+                    "1 more miss", "2+ more misses"]
+        values = [dist["only_tier"], dist["single_option"], dist["rest_zero_miss"],
+                  int(md["1"]), two_plus]
+        colors = [*ZERO_MISS_GREENS, ACCENT_GOLD, ACCENT_RED]
+        return values, colors, headings
 
     def _setup_pie(self):
         dist = self.data["dist"]
         if dist is None:
             raise RuntimeError("scene11_cache.json missing — run `python3 "
                                "math/tier_backbone.py` to source the pie numbers.")
-        vals, colors = self._sector_values(dist)
-        # label only the readable slices (67/13/10/4%); the sub-3% miss tail is a spray
-        # of slivers whose % would pile up unreadably — the narration covers those, and
-        # the escalating warm wedges carry the "more misses, fewer words" point visually.
-        self.pie = get_pie_chart(vals, colors=colors, radius=PIE_R, center=PIE_CENTER,
-                                 label_mode="inside", label_font_size=20,
-                                 inner_frac=0.62, inner_frac_spread=0.5,
-                                 min_label_frac=0.03, stroke_color=WHITE)
+        values, colors, headings = self._sections(dist)
+        self.pie = get_pie_chart(values, colors=colors, labels=headings,
+                                 radius=PIE_R, center=PIE_CENTER, label_mode="callout",
+                                 show_percent=True, label_color=WHITE,
+                                 label_font_size=22, label_buff=0.25, stroke_color=WHITE)
         self.pie.hide_all()                        # incremental build across b/c/d
         self.add(self.pie)
+        self.pie_title = crisp_text("After High Tier Letters", font_size=34,
+                                    color=WHITE, weight=BOLD)
+        self.pie_title.move_to([PIE_CENTER[0], PIE_CENTER[1] + PIE_R + 1.4, 0])
 
     def _setup_board(self):
         """Build the chalkboard SCALED UP so its navy slate fills the frame (visually ==
@@ -153,29 +164,30 @@ class Scene11(HangmanScene):
         self.navy_rect = self._navy()
         self.play(FadeIn(self.navy_rect), run_time=0.8)
 
-    # b : pie section — % of words using ONLY backbone (top-3-tier) letters
+    # b : title + "Word Finished" — words using ONLY backbone (top-3-tier) letters
     @subscene
     def only_tier(self):
         self._setup_pie()
+        self.play(FadeIn(self.pie_title), run_time=0.6)
         self.pie.fan_sectors(self, [0], 0.9)
 
-    # c : pie section — % narrowed to a SINGLE option using only those letters
+    # c : "Word Known" — narrowed to a single option using only those letters
     @subscene
     def single_opt(self):
         self.pie.fan_sectors(self, [1], 0.9)
 
-    # d : the rest of the 0-additional-miss words, THEN the 1/2/3-miss tail all at once
+    # d : "No more misses", THEN 1-more-miss + 2+-more-misses fanning out from one point
     @subscene
     def miss_dist(self):
-        self.pie.fan_sectors(self, [2], 0.9)                       # rest of 0-miss
-        tail = list(range(3, len(self.pie.sectors)))
-        self.pie.fan_sectors(self, tail, 1.2)                      # 1,2,3-miss together
+        self.pie.fan_sectors(self, [2], 0.9)                       # No more misses
+        self.pie.fan_group(self, [3, 4], 1.2)                      # 1 + 2+ from one origin
 
     # e : the chalkboard slides back in (reverse of the board→navy dissolve) + blanks + gallows
     @subscene
     def chalk_in(self):
-        self.play(FadeOut(self.pie), run_time=0.5)
+        self.play(FadeOut(self.pie), FadeOut(self.pie_title), run_time=0.5)
         self.pie = None
+        self.pie_title = None
         self._setup_board()
         self.add(self.cb)                                          # navy slate covers the frame
         self.remove(self.navy_rect)                               # (hidden behind the slate)
