@@ -63,7 +63,7 @@ class Scene08(HangmanScene):
         A E I O U Y all land in the left column. `.by_letter` maps char → mobject."""
         alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
         grid, by_letter = VGroup(), {}
-        col_x, pitch = (-0.4, 0.4), 0.6
+        col_x, pitch = (-0.3, 0.3), 0.6      # column gap ≈ row pitch (square-ish grid)
         top = (13 - 1) / 2 * pitch
         for i in range(13):
             for c in range(2):
