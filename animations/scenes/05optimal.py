@@ -281,7 +281,9 @@ class Scene05(HangmanScene):
             hitpats = [p for p in node["children"] if set(p) != {"_"}]  # hit siblings
             hits = []
             for j, p in enumerate(hitpats):
-                hpos = pos + np.array([GRID_CHILD_SPR * (j + 1), -GRID_CHILD_DY, 0.0])
+                # hit siblings drop the SAME amount as the miss child (PATH_DY) → every
+                # node's children sit on ONE horizontal level
+                hpos = pos + np.array([GRID_CHILD_SPR * (j + 1), -PATH_DY, 0.0])
                 hdot = Dot(hpos, radius=r * GRID_CHILD_RF, color=_miss_color(0))
                 dn = normalize(hpos - pos)
                 hedge = Line(pos + dn * r, hpos - dn * r * GRID_CHILD_RF,
@@ -301,11 +303,9 @@ class Scene05(HangmanScene):
             levels.append({"dot": dot, "lab": lab, "in_edge": in_edge, "hits": hits})
             prev_dot = last_dot = dot
             missed = missed + [node["optimal_letter"].upper()]   # this guess missed → down-left
-            # inter-node steps are TALLER (room for leaf text); the LAST step (to the anchor
-            # where the active subtree attaches) uses the normal drop, so that miss child
-            # lands level with its hit sibling
-            step_dy = GRID_CHILD_DY if i == depth - 1 else PATH_DY
-            pos = pos + np.array([-GRID_CHILD_SPR, -step_dy, 0.0])
+            # miss child drops the SAME (PATH_DY) as the hit siblings, so all of a node's
+            # children are level; PATH_DY is tall enough to keep room for the leaf text
+            pos = pos + np.array([-GRID_CHILD_SPR, -PATH_DY, 0.0])
             node = node["children"]["__"]
         if leaf_text:
             grp.add(leaf_grp)                             # scale + move with the diagonal
