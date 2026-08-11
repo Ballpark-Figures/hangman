@@ -773,9 +773,13 @@ class Scene05(HangmanScene):
                 cdot, crad = build(cspec, cpos, False)
                 ecolor = _miss_color(miss) if is_root else LIGHT_GREEN   # only root edges original
                 dn = normalize(cpos - pos)
-                g.add(Line(pos + dn * r, cpos - dn * crad, color=ecolor, stroke_width=2.0))
+                edge = Line(pos + dn * r, cpos - dn * crad, color=ecolor, stroke_width=2.0)
+                g.add(edge)
+                if is_root:
+                    g.root_edges.add(edge)                # for the caller to green on lock
             return dot, r
 
+        g.root_edges = VGroup()
         g.root = build(spec, ORIGIN, True)[0]
         return g
 
@@ -873,6 +877,25 @@ class Scene05(HangmanScene):
         self.avg_p = self._avg_label(ups.root, value="0.5", direction=RIGHT)
         self.play(FadeIn(self.avg_p), run_time=0.4)
         self.ups = ups
+
+    # ── (next) : solve U's other child {up,us} — cycle its candidates P and S (mirror
+    #        complete green subtrees, both 0.5), then CHOOSE P and lock it green. ───────────
+    @subscene
+    def solve_ups(self):
+        ups = self.ups
+        s_scale = ups.root.width / (2 * GRID_NODE_R)      # match the on-screen {up,us} tree
+        # the S candidate (mirror of P): S → {US hit, P→UP miss}
+        spec_s = {"g": "s", "hit": {"leaf": "us"}, "miss": {"g": "p", "hit": {"leaf": "up"}}}
+        s_ct = self._ctree(spec_s, root_miss=0).scale(s_scale, about_point=ORIGIN)
+        s_ct.shift(ups.root.get_center())
+        # cycle P (current) → S → P (the value stays put)
+        self.play(FadeOut(ups), FadeIn(s_ct), run_time=0.6)
+        self.wait(0.4)
+        self.play(FadeOut(s_ct), FadeIn(ups), run_time=0.6)
+        self.remove(s_ct)
+        # choose P: green its root + outgoing edges (subtree already green) and lock the value
+        self.play(VGroup(ups.root, ups.root_edges, self.avg_p).animate.set_color(LIGHT_GREEN),
+                  run_time=0.9)
 
     # ── components ─────────────────────────────────────────────────────────────
     def _greedy_chart(self):
