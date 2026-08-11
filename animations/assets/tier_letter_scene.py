@@ -36,7 +36,6 @@ from assets.letter_ngrams import letter_ngrams
 TL_SHRINK   = 0.7
 TL_TOP_BUFF = 0.5
 BIG_GROW    = 5.5                                  # big letter = grid-base × 5.5
-BIG_COLOR   = ACCENT_FILL                          # tier white → brand blue on the move
 
 # view region (right of the tucked tier list)
 HEAT_CENTER = np.array([1.6, -0.4, 0.0])
@@ -72,6 +71,7 @@ class TierLetterScene(HangmanScene):
         self._tl_full_w = self.tl.width
         self._big_h = crisp_text("A", font_size=48).height * BIG_GROW
         self.corner = self.corner_home = None                  # the big ↙ copy
+        self.corner_char = None                                # its letter (→ ink/tile)
         self.common = self.cu_title = None
         self.heat = self.loc_title = None
         self.ngram = self.ng_title = None
@@ -91,34 +91,36 @@ class TierLetterScene(HangmanScene):
         return [tier_cx, cy, 0]
 
     def intro_letter(self, i, run_time):
-        """First letter of the tier: fill tile `i`, tuck the list ↖, send a copy ↙."""
+        """First letter of the tier: fill tile `i`, tuck the list ↖, send a copy ↙
+        recoloured to its dark ink colour (vowel dark-red / consonant blue)."""
         self.play(self.tier_tiles[i].animate.set_opacity(1), run_time=0.6)
         copy = self.tier_tiles[i].copy()
         self.add(copy)
+        ch = self.LETTERS[i]
         self.play(self.tl.animate.scale(TL_SHRINK).to_corner(UL, buff=TL_TOP_BUFF),
                   copy.animate.scale_to_fit_height(self._big_h)
-                  .move_to(self._corner_target(copy)).set_color(BIG_COLOR),
+                  .move_to(self._corner_target(copy)).set_color(tl.ink_color(ch)),
                   run_time=run_time)
-        self.corner, self.corner_home = copy, self.tier_tiles[i]
+        self.corner, self.corner_home, self.corner_char = copy, self.tier_tiles[i], ch
 
-    def _send_copy_down(self, tile, run_time):
+    def _send_copy_down(self, tile, ch, run_time):
         copy = tile.copy()
         self.add(copy)
         self.play(copy.animate.scale_to_fit_height(self._big_h)
-                  .move_to(self._corner_target(copy)).set_color(BIG_COLOR),
+                  .move_to(self._corner_target(copy)).set_color(tl.ink_color(ch)),
                   run_time=run_time)
-        self.corner, self.corner_home = copy, tile
+        self.corner, self.corner_home, self.corner_char = copy, tile, ch
 
     def _return_next(self, i, run_time):
-        """One play: the corner copy returns to its tier slot (recolouring white)
-        WHILE the next tile fades into the tier; then the copy is dropped."""
+        """One play: the corner copy returns to its tier slot (recolouring to its bright
+        TILE colour) WHILE the next tile fades into the tier; then the copy is dropped."""
         reveal = self.tier_tiles[i].animate.set_opacity(1)
         if self.corner is None:
             self.play(reveal, run_time=run_time)
             return
         c, tile = self.corner, self.corner_home
-        self.play(c.animate.scale_to_fit_height(tile.height)
-                  .move_to(tile.get_center()).set_color(tl.LETTER_COLOR),
+        self.play(c.animate.scale_to_fit_height(tile.height).move_to(tile.get_center())
+                  .set_color(tl.tile_color(self.corner_char)),
                   reveal, run_time=run_time)
         self.remove(c)
         self.corner = self.corner_home = None
@@ -127,7 +129,7 @@ class TierLetterScene(HangmanScene):
         """Letter switch WITHOUT touching the views: return the corner copy AS tile
         `i` fades into the tier, then send tile `i`'s copy ↙."""
         self._return_next(i, run_time_return)
-        self._send_copy_down(self.tier_tiles[i], run_time_down)
+        self._send_copy_down(self.tier_tiles[i], self.LETTERS[i], run_time_down)
 
     def advance_letter(self, i, run_time_return, run_time_down):
         """Later letters (normal): remove the current views, THEN switch to tile `i`."""
@@ -139,13 +141,14 @@ class TierLetterScene(HangmanScene):
         in ONE play the corner copy returns AS tile `i` fades in AND the heatmap MORPHS
         + the n-gram CROSSFADES to `ch` (the views are not removed and rebuilt); then
         tile `i`'s copy moves ↙. Titles persist. Requires the views to be up already."""
-        new_heat = letter_heatmaps(ch, center=HEAT_CENTER)
+        new_heat = letter_heatmaps(ch, center=HEAT_CENTER, high_color=tl.ink_color(ch))
         top_y = self.heat.heatmaps[0].get_top()[1]
         bot_y = self.heat.heatmaps[-1].get_bottom()[1]
-        new_ng = letter_ngrams(ch, center_x=NG_X, top_y=top_y, bottom_y=bot_y)
+        new_ng = letter_ngrams(ch, center_x=NG_X, top_y=top_y, bottom_y=bot_y,
+                               letter_color=tl.ink_color(ch))
         c, tile = self.corner, self.corner_home
-        self.play(c.animate.scale_to_fit_height(tile.height)
-                  .move_to(tile.get_center()).set_color(tl.LETTER_COLOR),
+        self.play(c.animate.scale_to_fit_height(tile.height).move_to(tile.get_center())
+                  .set_color(tl.tile_color(self.corner_char)),
                   self.tier_tiles[i].animate.set_opacity(1),
                   ReplacementTransform(self.heat, new_heat),
                   FadeOut(self.ngram), FadeIn(new_ng),
@@ -153,7 +156,7 @@ class TierLetterScene(HangmanScene):
         self.remove(c)
         self.heat, self.ngram = new_heat, new_ng
         self.corner = self.corner_home = None
-        self._send_copy_down(self.tier_tiles[i], run_time_down)
+        self._send_copy_down(self.tier_tiles[i], ch, run_time_down)
 
     def recenter_board(self, run_time):
         """Clear the views + big letter and send the tier list back to CENTRE (hand
@@ -209,7 +212,7 @@ class TierLetterScene(HangmanScene):
         """Rise the heatmap in, fading whatever's currently up out in the SAME play
         (so a common-uses view swaps straight into the heatmap; a no-op fade when the
         views were already cleared)."""
-        new = letter_heatmaps(ch, center=HEAT_CENTER)
+        new = letter_heatmaps(ch, center=HEAT_CENTER, high_color=tl.ink_color(ch))
         title = self._title("Location", "Frequencies", HEAT_CENTER[0])
         fades = self._fade_current()
         self.play(*fades, FadeIn(title),
@@ -220,7 +223,8 @@ class TierLetterScene(HangmanScene):
         """ADD the n-gram view beside the heatmap (additive — does not touch it)."""
         top_y = self.heat.heatmaps[0].get_top()[1]
         bot_y = self.heat.heatmaps[-1].get_bottom()[1]
-        self.ngram = letter_ngrams(ch, center_x=NG_X, top_y=top_y, bottom_y=bot_y)
+        self.ngram = letter_ngrams(ch, center_x=NG_X, top_y=top_y, bottom_y=bot_y,
+                                   letter_color=tl.ink_color(ch))
         self.ng_title = self._title("Top", "N-grams", NG_X)
         self.play(FadeIn(self.ng_title),
                   self._rise(self.ngram, self.ngram.rows), run_time=run_time)

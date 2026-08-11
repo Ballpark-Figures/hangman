@@ -89,8 +89,28 @@ NAME_TIER_COLORS = [
 PANEL_FILL   = ManimColor("#2B2B2B")   # dark charcoal content row (letters pop on it)
 PANEL_STROKE = ManimColor("#15151A")
 LABEL_COLOR  = BLACK                   # reads on every bright cell + the grey
-LETTER_COLOR = WHITE                   # tier letters, on the dark charcoal panel
+LETTER_COLOR = WHITE                   # (legacy) neutral tier letter colour
 DIM_OPACITY  = 0.28                    # a tier's muted / un-emphasised look
+
+# Vowel/consonant colouring of the letters (the vowel/consonant arc, scene 08 on):
+# BRIGHT on the dark tier panels; DARK on the light bg (the big corner letter + the
+# ngram anchor). Consonants keep the existing blue (ACCENT_FILL) on the light bg.
+VOWELS = set("aeiouy")                 # Y always a vowel (matches scene 08)
+VOWEL_TILE_COLOR = LIGHT_RED           # vowel letter on a dark tier panel
+CONS_TILE_COLOR  = LIGHT_BLUE          # consonant letter on a dark tier panel
+VOWEL_INK_COLOR  = ACCENT_RED          # vowel big-letter / ngram anchor (light bg)
+CONS_INK_COLOR   = ACCENT_FILL         # consonant ditto — the existing blue
+
+
+def tile_color(ch):
+    """Bright tier-panel colour for `ch`: vowel red / consonant blue."""
+    return VOWEL_TILE_COLOR if ch.lower() in VOWELS else CONS_TILE_COLOR
+
+
+def ink_color(ch):
+    """Dark light-bg colour for `ch` (the big corner letter + the ngram anchor):
+    vowel dark-red / consonant blue."""
+    return VOWEL_INK_COLOR if ch.lower() in VOWELS else CONS_INK_COLOR
 
 
 # ── label factories (Transform one state into the next across beats) ───────────
@@ -193,8 +213,11 @@ def get_tier_list(labels="letter", *, center=ORIGIN, panel_width=_DEFAULT_PANEL_
 
 
 # ── filling a tier with its letters ───────────────────────────────────────────
-def letter_tile(ch, *, height=0.5, color=LETTER_COLOR):
-    """One tier letter, drawn on the dark panel."""
+def letter_tile(ch, *, height=0.5, color=None):
+    """One tier letter, drawn on the dark panel — coloured vowel-red / consonant-blue
+    by default (`tile_color`); pass `color` to override."""
+    if color is None:
+        color = tile_color(ch)
     return crisp_text(ch.upper(), font_size=FONT_SIZE_LG, color=color,
                       weight=BOLD).set_height(height)
 
