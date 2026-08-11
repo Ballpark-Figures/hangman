@@ -558,66 +558,40 @@ class Scene05(HangmanScene):
         Additionally exposes ``sub.fan_levels`` = [Y→B, B→(BY,M), M→MY] and ``sub.bdot`` so
         the final resolve grows the subtree ONE LEVEL AT A TIME (not the whole fan)."""
         r = GRID_NODE_R
-        cr = r * GRID_CHILD_RF
-        DY, SPR = GRID_CHILD_DY, GRID_CHILD_SPR
         path, anchor, last_dot = self._path_diag(5, leaf_text=True)   # + hit-sibling blanks
 
-        # Y — the forced guaranteed hit at {by,my} (drilled node; reached via U-miss → red)
-        ydot = Dot(anchor, radius=r, color=_miss_color(1), z_index=2)
-        ylab = crisp_text("Y", color=BOARD_NAVY, weight=BOLD)
-        ylab.scale_to_fit_height(NODE_LETTER_H * r).move_to(ydot).set_z_index(3)
+        # the {by,my} base case as a TIDY _ctree (UNSOLVED colours — per-miss, greened later),
+        # rooted at the U-miss anchor: Y (forced hit on both) → B splits → {BY, M → MY}. This
+        # is the SAME tidy builder every candidate uses, so the persistent tree and the
+        # candidates match exactly (no wider hand-built spacing).
+        spec = {"g": "y", "key": "y",
+                "hit": {"g": "b", "key": "b",
+                        "hit": {"leaf": "by", "key": "by"},
+                        "miss": {"g": "m", "key": "m", "hit": {"leaf": "my", "key": "my"}}}}
+        sub = self._ctree(spec, root_miss=1, solved=False)
+        sub.shift(anchor - sub.root.get_center())          # Y (root) sits at the anchor
         dn = normalize(anchor - last_dot.get_center())
         drilled_edge = Line(last_dot.get_center() + dn * (r * PATH_SCALE),
                             anchor - dn * r, color=_miss_color(1), stroke_width=2.0)
 
-        def _guess(pos, letter, miss):
-            dot = Dot(pos, radius=r, color=_miss_color(miss), z_index=2)
-            lab = crisp_text(letter.upper(), color=BOARD_NAVY, weight=BOLD)
-            lab.scale_to_fit_height(NODE_LETTER_H * r).move_to(dot).set_z_index(3)
-            return dot, VGroup(dot, lab)
-
-        def _leaf(pos, word, tally):                      # bare won-leaf + revealed word + tally
-            dot = Dot(pos, radius=cr, color=CHALK, z_index=2)
-            blk = self._blanks(word).set_x(pos[0])
-            blk.shift([0, (pos[1] - GRID_BLANK_DROP) - blk.get_bottom()[1], 0])
-            mr = self._miss_row(tally)
-            mr.next_to(blk, DOWN, buff=0.09).set_x(blk.get_x())
-            return dot, blk, mr, VGroup(dot, blk, mr)
-
-        def _edge(pa, ra, pb, rb, miss):
-            d = normalize(pb - pa)
-            return Line(pa + d * ra, pb - d * rb, color=_miss_color(miss), stroke_width=2.0)
-
-        bpos = anchor + np.array([0.0, -DY, 0.0])
-        bdot, bgrp = _guess(bpos, "B", 0)                  # reached via Y-hit → white
-        bypos = bpos + np.array([SPR, -DY, 0.0])
-        byleaf, by_blk, by_mr, bygrp = _leaf(bypos, "by", ["A", "O", "I", "E", "U"])
-        mpos = bpos + np.array([-SPR, -DY, 0.0])
-        mdot, mgrp = _guess(mpos, "M", 1)                  # reached via B-miss → red  (avg 0)
-        mypos = mpos + np.array([0.0, -DY, 0.0])
-        myleaf, my_blk, my_mr, mygrp = _leaf(mypos, "my", ["A", "O", "I", "E", "U", "B"])
-        # fan split into LEVELS so the final resolve grows one at a time (Y itself is NOT
-        # in the fan — it arrives via the transform). l1 from Y, l2 from B, l3 from M.
-        e_yb = _edge(anchor, r, bpos, r, 0)                       # Y→B  hit
-        e_bby = _edge(bpos, r, bypos, cr, 0)                      # B→BY hit
-        e_bm = _edge(bpos, r, mpos, r, 1)                         # B→M  miss
-        e_mmy = _edge(mpos, r, mypos, cr, 0)                      # M→MY hit
-        l1 = VGroup(e_yb, bgrp)
-        l2 = VGroup(e_bby, bygrp, e_bm, mgrp)
-        l3 = VGroup(e_mmy, mygrp)
-        fan = VGroup(l1, l2, l3)
-        sub = VGroup(VGroup(ydot, ylab), fan)
-        sub.gdot, sub.glab, sub.fan = ydot, ylab, fan
-        sub.bdot, sub.mdot, sub.fan_levels = bdot, mdot, [l1, l2, l3]
-        # granular handles for the DP back-up (green one section at a time; each greened
-        # section drops its red miss tally). node letters stay knocked-out navy.
-        sub.discs = {"y": ydot, "b": bdot, "m": mdot}
-        sub.edges = {"yb": e_yb, "bby": e_bby, "bm": e_bm, "mmy": e_mmy}
-        sub.leaves = {"by": (byleaf, by_blk, by_mr), "my": (myleaf, my_blk, my_mr)}
-        sub.node_letters = VGroup(ylab, bgrp[1], mgrp[1])
+        ny, nb, nm = sub.node["y"], sub.node["b"], sub.node["m"]
+        lby, lmy = sub.leaf["by"], sub.leaf["my"]
+        # _transform_move / grow handles (Y arrives via the transform; the fan grows after)
+        sub.gdot, sub.glab, sub.bdot, sub.mdot = ny.dot, ny.lab, nb.dot, nm.dot
+        l1 = VGroup(nb.in_edge, nb.dot, nb.lab)                   # Y→B
+        l2 = VGroup(lby.in_edge, lby.dot, lby.blk, nm.in_edge, nm.dot, nm.lab)   # B→BY, B→M
+        l3 = VGroup(lmy.in_edge, lmy.dot, lmy.blk)               # M→MY
+        sub.fan = VGroup(l1, l2, l3)
+        sub.fan_levels = [l1, l2, l3]
+        # granular handles for the DP back-up (green one section at a time). Leaves carry NO
+        # miss tally now (the diagonal shows the misses) → the tally slot is None.
+        sub.discs = {"y": ny.dot, "b": nb.dot, "m": nm.dot}
+        sub.edges = {"yb": nb.in_edge, "bby": lby.in_edge, "bm": nm.in_edge, "mmy": lmy.in_edge}
+        sub.leaves = {"by": (lby.dot, lby.blk, None), "my": (lmy.dot, lmy.blk, None)}
+        sub.node_letters = VGroup(ny.lab, nb.lab, nm.lab)
         cell = VGroup(path, drilled_edge, sub)
-        cell.path, cell.drilled_edge, cell.sub, cell.mdot = path, drilled_edge, sub, mdot
-        return cell, mdot
+        cell.path, cell.drilled_edge, cell.sub, cell.mdot = path, drilled_edge, sub, nm.dot
+        return cell, nm.dot
 
     def _avg_label(self, node_dot, value="0", height=0.34, direction=LEFT):
         """The 'Avg misses: <value>' annotation beside a node — its backed-up optimal value.
@@ -711,14 +685,13 @@ class Scene05(HangmanScene):
     @subscene
     def solve_base(self):
         sub = self.grid.sub
-        my_dot, my_blk, my_tally = sub.leaves["my"]
-        by_dot, by_blk, by_tally = sub.leaves["by"]
-        # both done-with-0 leaves green (M node + M→MY edge + MY leaf; and the BY leaf), each
-        # dropping its red miss tally; B, Y and the diagonal stay white until they back up
+        my_dot, my_blk, _ = sub.leaves["my"]
+        by_dot, by_blk, _ = sub.leaves["by"]
+        # both done-with-0 leaves green (M node + M→MY edge + MY leaf; and the BY leaf); B, Y
+        # and the diagonal stay white until they back up (the misses live on the red diagonal)
         green = VGroup(sub.discs["m"], sub.edges["mmy"], my_dot, my_blk, self.avg0,
                        by_dot, by_blk, self.avg0_by)
-        self.play(green.animate.set_color(LIGHT_GREEN),
-                  FadeOut(my_tally), FadeOut(by_tally), run_time=1.2)
+        self.play(green.animate.set_color(LIGHT_GREEN), run_time=1.2)
 
     # ── i : back up the B node (the split guess at the {by,my} '_Y' position). Try each
     #        letter that could go there (B, M) with its optimal continuation + avg misses
