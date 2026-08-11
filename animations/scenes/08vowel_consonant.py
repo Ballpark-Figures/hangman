@@ -75,11 +75,13 @@ class Scene08(HangmanScene):
         word = crisp_text(name, font_size=FONT_SIZE_LG, color=WHITE).move_to([0, y, 0])
         after = self._class_pie(adj["after"], [4.2, y, 0])
         before = self._class_pie(adj["before"], [-4.2, y, 0])
+        # connect to each pie's true geometric centre (.pie_center), NOT the VGroup
+        # bbox centre — the labels stick out asymmetrically and would skew the lines
         line_r = Line(word.get_right() + RIGHT * 0.25,
-                      after.get_center() + LEFT * (ROW_PIE_R + 0.2),
+                      after.pie_center + LEFT * (ROW_PIE_R + 0.2),
                       color=WHITE, stroke_width=3)
         line_l = Line(word.get_left() + LEFT * 0.25,
-                      before.get_center() + RIGHT * (ROW_PIE_R + 0.2),
+                      before.pie_center + RIGHT * (ROW_PIE_R + 0.2),
                       color=WHITE, stroke_width=3)
         self.play(FadeIn(word), Create(line_l), Create(line_r), run_time=0.8)
         after.fan_all(self, 1.0)
