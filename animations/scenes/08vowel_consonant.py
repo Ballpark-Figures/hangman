@@ -1,0 +1,131 @@
+"""SCENE 08 — vowels vs consonants (a data interlude after the top tier).
+
+On a NAVY background (transitions in from / back out to the light-blue world): a pie
+of the vowel/consonant letter split, the vowel/consonant position-frequency grid
+(red = vowel, blue = consonant), then before/after adjacency pies for VOWEL and
+CONSONANT. Every number is SOURCED from the committed cache (`vowel_consonant_data`);
+vowels = A E I O U Y (Y always a vowel). Pies use the pie asset's `fan_all`
+(continuous clockwise sweep). Standalone — does NOT use the tier-list machinery.
+
+Script row 08, split on '—' → 6 beats (voiceover ↔ animation zip 1:1):
+  a to_navy        turn the background navy
+  b letters_pie    pie: % of all letters that are vowels vs consonants
+  c freq           the vowel/consonant position-frequency grid + start/end/2nd callouts
+  d vowel_row      VOWEL (⅓ down): before-pie ← VOWEL → after-pie (letters adjacent)
+  e consonant_row  CONSONANT (⅔ down): before-pie ← CONSONANT → after-pie
+  f to_light       clear + turn the background back to light blue
+
+ROUGH first pass — LAYOUT + TIMING are guesses (the beat-c callout placement and the
+pie sizes/positions especially). Judge from the video; tune freely.
+
+Render:  render 08a --fast  (…08f)  /  render 08 sub  for the whole scene
+"""
+from pathlib import Path
+import sys
+
+sys.path.append(str(Path(__file__).resolve().parent.parent))
+sys.path.append(str(Path(__file__).resolve().parent.parent.parent.parent))
+
+from config import *
+from assets.chalkboard import BOARD_NAVY
+from assets import vowel_consonant_data as vcd
+from assets.vowel_consonant_view import vowel_consonant_heatmaps
+from bpkfigures.pie_chart import get_pie_chart
+
+VOWEL_C = LIGHT_RED        # vowels red, consonants blue — throughout the scene
+CONS_C  = LIGHT_BLUE
+ROW_PIE_R = 0.95           # small before/after pies
+BIG_PIE_R = 2.0
+
+
+class Scene08(HangmanScene):
+    """Vowels vs consonants. See the module docstring for the beat map."""
+
+    def setup_scene(self):
+        self.d = vcd.get()                          # cached stats (no compute at render)
+        self.navy_rect = None
+        self.pie = None
+        self.view = self.callouts = None
+
+    def _navy(self):
+        r = Rectangle(width=config.frame_width, height=config.frame_height,
+                      fill_color=BOARD_NAVY, fill_opacity=1.0, stroke_width=0)
+        r.set_z_index(-10)
+        return r
+
+    def _class_pie(self, dist, center):
+        """A small [vowel, consonant] pie (no labels) at `center`."""
+        return get_pie_chart([dist["vowel"], dist["consonant"]],
+                             colors=[VOWEL_C, CONS_C], radius=ROW_PIE_R,
+                             center=center, labels=None, stroke_color=WHITE)
+
+    def _adjacency_row(self, name, adj, y):
+        """`name` (VOWEL/CONSONANT) centred at height y, a before-pie to its LEFT and
+        an after-pie to its RIGHT, each linked by a short line."""
+        word = crisp_text(name, font_size=FONT_SIZE_LG, color=WHITE).move_to([0, y, 0])
+        after = self._class_pie(adj["after"], [4.7, y, 0])
+        before = self._class_pie(adj["before"], [-4.7, y, 0])
+        line_r = Line(word.get_right() + RIGHT * 0.25,
+                      after.get_center() + LEFT * (ROW_PIE_R + 0.2),
+                      color=WHITE, stroke_width=3)
+        line_l = Line(word.get_left() + LEFT * 0.25,
+                      before.get_center() + RIGHT * (ROW_PIE_R + 0.2),
+                      color=WHITE, stroke_width=3)
+        self.play(FadeIn(word), Create(line_l), Create(line_r), run_time=0.8)
+        after.fan_all(self, 1.0)
+        before.fan_all(self, 1.0)
+
+    # a : turn the background navy
+    @subscene
+    def to_navy(self):
+        self.navy_rect = self._navy()
+        self.play(FadeIn(self.navy_rect), run_time=0.8)
+
+    # b : pie — % of all letters that are vowels vs consonants
+    @subscene
+    def letters_pie(self):
+        v = self.d["pct_vowel_letters"]
+        self.pie = get_pie_chart([v, 1 - v], colors=[VOWEL_C, CONS_C],
+                                 labels=["VOWELS", "CONSONANTS"], radius=BIG_PIE_R,
+                                 stroke_color=WHITE)
+        self.pie.fan_all(self, 1.6)
+
+    # c : the vowel/consonant position-frequency grid + start/end/2nd-position callouts
+    @subscene
+    def freq(self):
+        self.play(FadeOut(self.pie), run_time=0.5)
+        self.pie = None
+        self.view = vowel_consonant_heatmaps(center=[0.4, -0.2, 0])
+
+        def pct(x):
+            return f"{round(100 * x)}%"
+        # rough callout placement — refine against the grid columns
+        start = crisp_text(f"{pct(self.d['pct_start_consonant'])} of words\nstart with a"
+                           " consonant", font_size=24, color=CONS_C)
+        end = crisp_text(f"{pct(self.d['pct_end_consonant'])}\nend with one",
+                         font_size=24, color=CONS_C)
+        pos2 = crisp_text(f"the 2nd letter is a vowel {pct(self.d['pct_pos2_vowel'])}"
+                          " of the time", font_size=24, color=VOWEL_C)
+        start.next_to(self.view, LEFT, buff=0.5)
+        end.next_to(self.view, RIGHT, buff=0.5)
+        pos2.next_to(self.view, UP, buff=0.5)
+        self.callouts = VGroup(start, end, pos2)
+        self.play(FadeIn(self.view), run_time=1.0)
+        self.play(LaggedStartMap(FadeIn, self.callouts, lag_ratio=0.4), run_time=1.2)
+
+    # d : VOWEL (⅓ down) with before ← VOWEL → after adjacency pies
+    @subscene
+    def vowel_row(self):
+        self.play(FadeOut(self.view), FadeOut(self.callouts), run_time=0.5)
+        self.view = self.callouts = None
+        self._adjacency_row("VOWEL", self.d["adjacency"]["vowel"], 1.5)
+
+    # e : CONSONANT (⅔ down) with before ← CONSONANT → after adjacency pies
+    @subscene
+    def consonant_row(self):
+        self._adjacency_row("CONSONANT", self.d["adjacency"]["consonant"], -1.5)
+
+    # f : clear + turn the background back to light blue
+    @subscene
+    def to_light(self):
+        self.play(*[FadeOut(m) for m in self.mobjects], run_time=0.8)
