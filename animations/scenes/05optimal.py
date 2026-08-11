@@ -51,6 +51,7 @@ TIMING KNOBS LEFT AT A GUESS (feel — judge from the video): every fade/grow
 run_time; the letter-cycle per-step run_time (0.09).
 """
 from pathlib import Path
+from types import SimpleNamespace
 import sys
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
@@ -757,7 +758,10 @@ class Scene05(HangmanScene):
         its hit edge white / miss edge red. Recursive: a guess node (letter, knocked-out
         navy) with a HIT child (right) and, if it splits, a MISS child (left); a forced-hit
         guess has one child straight down; a leaf is the fully revealed word. Built at natural
-        GRID sizes rooted at ORIGIN. spec = {'g', 'hit', 'miss'?} or {'leaf': word}."""
+        GRID sizes rooted at ORIGIN. spec = {'g', 'hit', 'miss'?} (binary), {'g', 'kids':
+        [(is_miss, spec), …]} (N-ary), or {'leaf': word}; any node may carry a 'key' →
+        addressable later via g.node[key] / g.leaf[key] (each a handle: .dot, .lab/.blk,
+        .in_edge, .out_edges, .kids, .all). g.root / g.root_edges / g.root_h expose the root."""
         r, cr = GRID_NODE_R, GRID_NODE_R * GRID_CHILD_RF
         DY, COL = GRID_CHILD_DY, GRID_CHILD_SPR   # COL = leaf column width
         g = VGroup()
@@ -792,34 +796,52 @@ class Scene05(HangmanScene):
         root = layout(spec, 0)
         x0 = root["x"]                             # re-centre the whole tree on x = 0
 
-        # pass 2 — build mobjects at the laid-out positions
+        # pass 2 — build mobjects at the laid-out positions. Each node returns a HANDLE
+        # (SimpleNamespace): .dot, .lab/.blk, .radius, .is_miss, .in_edge (from parent),
+        # .out_edges (to children), .kids (child handles), .all (VGroup of this node + its
+        # whole subtree — for greening/moving as a block). Handles tagged with 'key' in the
+        # spec are collected on g.node[key] / g.leaf[key] so back-up beats can address them.
+        g.node, g.leaf = {}, {}
+
         def build(node, is_root):
             pos = np.array([node["x"] - x0, node["y"], 0.0])
             sp = node["spec"]
+            h = SimpleNamespace(spec=sp, in_edge=None, is_miss=False,
+                                out_edges=VGroup(), kids=[])
             if "leaf" in sp:
                 dot = Dot(pos, radius=cr, color=LIGHT_GREEN, z_index=2)
                 blk = self._blanks(sp["leaf"]).set_x(pos[0]).set_color(LIGHT_GREEN)
                 blk.shift([0, (pos[1] - GRID_BLANK_DROP) - blk.get_bottom()[1], 0])
                 g.add(dot, blk)
-                return dot, cr
+                h.dot, h.blk, h.radius, h.is_leaf, h.all = dot, blk, cr, True, VGroup(dot, blk)
+                if "key" in sp:
+                    g.leaf[sp["key"]] = h
+                return h
             dot = Dot(pos, radius=r, color=_miss_color(root_miss) if is_root else LIGHT_GREEN,
                       z_index=2)
             lab = crisp_text(sp["g"].upper(), color=BOARD_NAVY, weight=BOLD)
             lab.scale_to_fit_height(NODE_LETTER_H * r).move_to(dot).set_z_index(3)
             g.add(dot, lab)
+            h.dot, h.lab, h.radius, h.is_leaf, h.all = dot, lab, r, False, VGroup(dot, lab)
             for is_miss, child in node["kids"]:
-                cdot, crad = build(child, False)
-                miss = 1 if is_miss else 0
-                ecolor = _miss_color(miss) if is_root else LIGHT_GREEN   # only root edges original
-                dn = normalize(cdot.get_center() - pos)
-                edge = Line(pos + dn * r, cdot.get_center() - dn * crad,
+                ch = build(child, False)
+                ecolor = _miss_color(1 if is_miss else 0) if is_root else LIGHT_GREEN
+                dn = normalize(ch.dot.get_center() - pos)
+                edge = Line(pos + dn * r, ch.dot.get_center() - dn * ch.radius,
                             color=ecolor, stroke_width=2.0)
                 g.add(edge)
+                ch.in_edge, ch.is_miss = edge, bool(is_miss)
+                h.out_edges.add(edge)
+                h.kids.append(ch)
+                h.all.add(edge, ch.all)
                 if is_root:
                     g.root_edges.add(edge)                # for the caller to green on lock
-            return dot, r
+            if "key" in sp:
+                g.node[sp["key"]] = h
+            return h
 
-        g.root = build(root, True)[0]
+        g.root_h = build(root, True)
+        g.root = g.root_h.dot
         return g
 
     def _subtree_spec(self, tree, revealed=""):
