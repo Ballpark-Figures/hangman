@@ -845,9 +845,9 @@ class Scene05(HangmanScene):
         uc, ur = u_dot.get_center(), u_dot.width / 2      # U centre + radius
         scale = sub.gdot.width / (2 * GRID_NODE_R)
         yr = GRID_NODE_R * scale * 0.55                   # child-root radius after the shrink
-        DY_U, SPREAD = 1.0, 1.7                           # spread U's two children further apart
-        y_root = uc + np.array([-SPREAD, -DY_U, 0.0])     # Y (miss) further LEFT
-        ups_root = uc + np.array([SPREAD, -DY_U, 0.0])    # {up,us} (hit) further RIGHT
+        DY_U, SPREAD = 1.0, 1.3                           # spread U's two children apart (a bit)
+        y_root = uc + np.array([-SPREAD, -DY_U, 0.0])     # Y (miss) LEFT
+        ups_root = uc + np.array([SPREAD, -DY_U, 0.0])    # {up,us} (hit) RIGHT
         g0 = sub.gdot.get_center()
         # {up,us} subtree (P-first): P → {UP hit, S→US miss}; reached via U-HIT → white root
         spec = {"g": "p", "hit": {"leaf": "up"}, "miss": {"g": "s", "hit": {"leaf": "us"}}}
@@ -857,16 +857,21 @@ class Scene05(HangmanScene):
         dny, dnu = normalize(y_root - uc), normalize(ups_root - uc)
         yedge = Line(uc + dny * ur, y_root - dny * yr, color=_miss_color(1), stroke_width=2.0)
         uedge = Line(uc + dnu * ur, ups_root - dnu * yr, color=_miss_color(0), stroke_width=2.0)
+        by_mr, my_mr = sub.leaves["by"][2], sub.leaves["my"][2]   # the dropped-in-h tallies
         # shrink Y's subtree about ITS OWN root (edge kept full), slide Y to the spread pos,
-        # redraw both edges out of U, grow {up,us}, fade the old bare 'U_' leaf
+        # redraw both edges out of U, grow {up,us}, fade the old 'U_' leaf, DROP the {by,my}
+        # value on Y (and keep the leaf tallies gone)
         self.play(sub.animate.scale(0.55, about_point=g0).shift(y_root - g0),
-                  self.avg_b.animate.shift(y_root - g0),
+                  FadeOut(self.avg_b), FadeOut(by_mr), FadeOut(my_mr),
                   Transform(self.grid.drilled_edge, yedge),          # U→Y (redrawn full)
                   Transform(path.levels[4]["hits"][0][0], uedge),    # old 'U_' edge → U→{up,us}
                   FadeOut(path.levels[4]["hits"][0][1]),             # old bare 'U_' dot
                   FadeOut(path.leaf_text[-1]),                       # old 'U_ AOIE' annotation
                   GrowFromPoint(ups, uc),
                   run_time=1.3)
+        # the {up,us} value now sits on P (white — being computed)
+        self.avg_p = self._avg_label(ups.root, value="0.5", direction=RIGHT)
+        self.play(FadeIn(self.avg_p), run_time=0.4)
         self.ups = ups
 
     # ── components ─────────────────────────────────────────────────────────────
