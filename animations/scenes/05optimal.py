@@ -98,7 +98,7 @@ GRID_BLANK_DROP  = 0.36   # child centre → blank RULE baseline (fixed → rule
                           # the written letter above the rule clears the child dot)
 GRID_MISS_H      = GRID_BLANK_H    # missed letter (red) — SAME size as the blank letters
 # the recapped hit-sibling LEAF TEXT on the shrunk diagonal (beat g's final tree)
-GRID_LEAF_H      = GRID_BLANK_H * 0.95
+GRID_LEAF_H      = GRID_BLANK_H * 1.08
 GRID_LEAF_DROP   = 0.30            # child centre → its blank baseline
 GRID_W, GRID_H   = 15.6, 8.0       # the cells tile this box (full width, small top/bottom margin)
 GRID_CENTER      = [0, 0, 0]
@@ -357,13 +357,14 @@ class Scene05(HangmanScene):
         return (cell.path.levels, cell.drilled_edge, cell.sub.gdot, cell.sub.glab,
                 cell.sub.fan)
 
-    def _transform_move(self, source, cells, run_time):
+    def _transform_move(self, source, cells, run_time, extra_fades=()):
         """PHASE 1 of the drill transform: move each node/edge of ``source`` to its
         counterpart in every ``cells`` cell (the original → the top-left one via
         ReplacementTransform, copies → the rest), fading the extra text out (moving +
-        shrinking WITH the tree) during the move. Returns ``(fade_in, grows)`` for phase
-        2: ``fade_in`` = the drilled-letter FadeIns, ``grows`` = ``[(kids, dot)]`` so the
-        caller decides how to grow (all at once, or one level at a time)."""
+        shrinking WITH the tree) during the move. Each drilled node's NEW LETTER fades in
+        DURING this move (so it develops as the node splits into place, not after), along
+        with any ``extra_fades``. Returns ``grows`` = ``[(kids, dot)]`` for phase 2 so the
+        caller decides how to grow the subtree (all at once, or one level at a time)."""
         s_levels, s_fdot, s_fedge, s_extra = self._source_pieces(source)
         move, fade_in, grows = [], [], []
         for k, cell in enumerate(cells):
@@ -389,14 +390,17 @@ class Scene05(HangmanScene):
         for x in s_extra:
             ghost = x.copy().scale(s, about_point=o).shift(d).set_opacity(0)
             extra.append(Transform(x, ghost))
-        self.play(*move, *extra, run_time=run_time)
-        return fade_in, grows
+        # the new letters fade in AS the nodes split into place (during the move), not after
+        self.play(*move, *extra, *fade_in, *[FadeIn(x) for x in extra_fades],
+                  run_time=run_time)
+        return grows
 
     def _transform_into(self, source, cells, run_time):
-        """Piece-by-piece drill: move source → cells (phase 1) then grow each drilled
-        node's letter + its whole subtree at once (phase 2). Nothing morphs as a blob."""
-        fade_in, grows = self._transform_move(source, cells, run_time * 0.6)
-        self.play(*fade_in, *[GrowFromPoint(k, d.get_center()) for k, d in grows],
+        """Piece-by-piece drill: move source → cells with each drilled letter fading in
+        DURING the move (phase 1), then grow each drilled node's whole subtree (phase 2).
+        Nothing morphs as a blob."""
+        grows = self._transform_move(source, cells, run_time * 0.6)
+        self.play(*[GrowFromPoint(k, d.get_center()) for k, d in grows],
                   run_time=run_time * 0.4)
         self.clear()                                      # drop the transform's stray copies…
         self.add(*cells)                                  # …and re-track clean cell groups
@@ -644,11 +648,11 @@ class Scene05(HangmanScene):
         LEAF TEXT is brought back as the big tree centres. Ends with 'Avg misses: 0' on M."""
         spine, _ = self._ymy_cell()
         spine.scale_to_fit_height(7.2).move_to([0.4, -0.1, 0])   # room for the left avg-0 label
-        self.play(FadeOut(VGroup(*self.grid[1:])), run_time=run_time * 0.12)
-        # phase 1: centre the diagonal + turn the U-miss leaf into Y (the move)
-        fade_in, _ = self._transform_move(self.grid[0], [spine], run_time * 0.34)
-        # Y's letter arrives + the decluttered hit-sibling leaf text comes back
-        self.play(*fade_in, FadeIn(spine.path.leaf_text), run_time=run_time * 0.12)
+        self.play(FadeOut(VGroup(*self.grid[1:])), run_time=run_time * 0.14)
+        # phase 1: centre the diagonal + turn the U-miss leaf into Y — Y's letter fades in
+        # DURING this move, and the decluttered hit-sibling leaf text comes back with it
+        self._transform_move(self.grid[0], [spine], run_time * 0.44,
+                             extra_fades=[spine.path.leaf_text])
         # grow the Y-subtree ONE LEVEL AT A TIME (from Y, then B, then M)
         l1, l2, l3 = spine.sub.fan_levels
         self.play(GrowFromPoint(l1, spine.sub.gdot.get_center()), run_time=run_time * 0.11)
