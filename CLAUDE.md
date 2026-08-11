@@ -156,6 +156,16 @@ greedy, greedy_word, best_opener, best_opener_word):
   not `FadeIn`.** To write several letters, flatten their strokes into one VGroup and
   `LaggedStartMap(Create, strokes)` (Create over a whole multi-stroke letter inside a
   LaggedStart throws `int * VMobject`; Create over single strokes is fine).
+- **EVERYTHING chalk is drawn SEQUENTIALLY, ONE MARK AT A TIME — it simulates a SINGLE
+  hand writing on the board, so nothing is ever drawn all-at-once or with a partial
+  overlap.** This includes the BLANKS/rules (draw them left→right, one underscore fully
+  before the next), a multi-letter word, a row of misses, the "Words Remaining" text —
+  any chalk group. Use `LaggedStartMap(Create, strokes, lag_ratio=1.0)` (lag 1.0 = a
+  stroke finishes before the next begins); do NOT use `lag_ratio < 1` for the blanks (it
+  draws several at once) or a bare `Create(group)` (all at once). A single letter's own
+  strokes may overlap slightly (the miss row uses `lag_ratio=0.5` for one letter), but
+  DISTINCT marks (each blank, each letter of a word) are strictly one-after-another. (Bit
+  us repeatedly on the blanks — they kept getting drawn simultaneously.)
 - **"Written font" = the hand-drawn `chalk_letter` strokes (chalkboard.py), NOT the
   Inter `crisp_text`.** When the script says a word is "in written font," render it with
   chalk strokes (see scene 04's `_word_grid`, which monospaces them to equal width).
