@@ -820,17 +820,15 @@ class Scene05(HangmanScene):
 
         b_ct, m_ct = ctree("b"), ctree("m")
 
-        # swap candidates by SHRINKING the old subtree into the anchor while GROWING the new
-        # out of it (the value stays put). save/Restore the real spine so it isn't mutated.
-        cur.save_state()
-        self.play(cur.animate.scale(0.02, about_point=anchor).set_opacity(0),
-                  GrowFromPoint(b_ct, anchor), run_time=0.7)
-        self.wait(0.3)
-        self.play(b_ct.animate.scale(0.02, about_point=anchor).set_opacity(0),
-                  GrowFromPoint(m_ct, anchor), run_time=0.7)
-        self.wait(0.3)
-        self.play(m_ct.animate.scale(0.02, about_point=anchor).set_opacity(0),
-                  Restore(cur), run_time=0.7)             # settle back on the real Y-spine
+        def swap_to(tree):                                # swap the subtree; value stays put
+            self.play(FadeOut(self._active), FadeIn(tree), run_time=0.6)
+            self.wait(0.3)
+            self._active = tree
+
+        self._active = cur
+        swap_to(b_ct)
+        swap_to(m_ct)
+        swap_to(cur)                                      # settle back on Y
         self.remove(b_ct, m_ct)
         # 3) choose Y: lock it — Y node + edge + value turn green
         self.play(VGroup(sub.discs["y"], sub.edges["yb"], avg_y).animate.set_color(LIGHT_GREEN),
