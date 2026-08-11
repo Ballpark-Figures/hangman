@@ -63,16 +63,16 @@ class Scene08(HangmanScene):
                              for row in rows], lag_ratio=lag_ratio)
 
     def _class_pie(self, dist, center):
-        """A small [vowel, consonant] pie at `center`, each slice labelled name + %."""
+        """A small [vowel, consonant] pie at `center`, % shown INSIDE each slice."""
         return get_pie_chart([dist["vowel"], dist["consonant"]],
-                             colors=[VOWEL_C, CONS_C], radius=ROW_PIE_R,
-                             center=center, labels=["VOWEL", "CONSONANT"],
-                             show_percent=True, label_font_size=18, stroke_color=WHITE)
+                             colors=[VOWEL_C, CONS_C], radius=ROW_PIE_R, center=center,
+                             label_mode="inside", label_font_size=20, stroke_color=WHITE)
 
-    def _adjacency_row(self, name, adj, y):
-        """`name` (VOWEL/CONSONANT) centred at height y, a before-pie to its LEFT and
-        an after-pie to its RIGHT, each linked by a short line."""
-        word = crisp_text(name, font_size=FONT_SIZE_LG, color=WHITE).move_to([0, y, 0])
+    def _adjacency_row(self, name, adj, y, word_color):
+        """`name` (VOWEL red / CONSONANT blue) centred at height y, a before-pie to its
+        LEFT and an after-pie to its RIGHT, each linked by a short line."""
+        word = crisp_text(name, font_size=FONT_SIZE_LG,
+                          color=word_color).move_to([0, y, 0])
         after = self._class_pie(adj["after"], [4.2, y, 0])
         before = self._class_pie(adj["before"], [-4.2, y, 0])
         # connect to each pie's true geometric centre (.pie_center), NOT the VGroup
@@ -121,12 +121,12 @@ class Scene08(HangmanScene):
     def vowel_row(self):
         self.play(FadeOut(self.view), FadeOut(self.view_title), run_time=0.5)
         self.view = self.view_title = None
-        self._adjacency_row("VOWEL", self.d["adjacency"]["vowel"], ROW_Y)
+        self._adjacency_row("VOWEL", self.d["adjacency"]["vowel"], ROW_Y, VOWEL_C)
 
     # e : CONSONANT (⅔ down) with before ← CONSONANT → after adjacency pies
     @subscene
     def consonant_row(self):
-        self._adjacency_row("CONSONANT", self.d["adjacency"]["consonant"], -ROW_Y)
+        self._adjacency_row("CONSONANT", self.d["adjacency"]["consonant"], -ROW_Y, CONS_C)
 
     # f : remove the content FIRST, THEN turn the background back to light blue
     @subscene
