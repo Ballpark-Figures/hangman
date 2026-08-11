@@ -38,8 +38,12 @@ Script row 05, split on '—' (voiceover ↔ animation zip 1:1). BEAT MAP:
   i backup_b      — back up the B node: try B/M candidates (complete green subtrees), choose B,
                     'Avg misses: 0.5'
   j backup_y      — back up the Y node: fade B's value, cycle Y/B/M candidate subtrees, choose Y
+  k backup_u      — start backing up U: solve its OTHER child {up,us} (shrink Y-subtree, grow it)
+  l solve_ups     — solve {up,us}: cycle P/S candidate subtrees, choose P (0.5)
+  m choose_u      — back up U: cycle U/Y/B/M/P/S candidate subtrees w/ a rolling avg counter,
+                    choose U (1.0) and lock its node + edges + value green
   --- next sections (not yet built) ---
-  … back the values up the diagonal (U→A) level by level; dedup + prune; paired chart
+  … back the values up the diagonal (E→A) level by level; dedup + prune; paired chart
 
 Render:  render 05a --fast  (…05c)   /   render 05 sub  for the whole scene
 
@@ -271,9 +275,13 @@ class Scene05(HangmanScene):
         prev_dot = last_dot = None
         missed = []                                       # miss letters accumulated down the path
         for i in range(depth):
-            dot = Dot(pos, radius=r, color=_miss_color(0 if i == 0 else 1))
+            # z-index the dot (2) BELOW its knocked-out letter (3): later beats recolour a
+            # diagonal node (greening it as its value backs up), and recolouring re-adds the
+            # dot to the front of the draw order — without the z-index that would draw the
+            # green dot OVER its navy letter and hide it (bit us greening U in choose_u).
+            dot = Dot(pos, radius=r, color=_miss_color(0 if i == 0 else 1), z_index=2)
             lab = crisp_text(node["optimal_letter"].upper(), color=BOARD_NAVY, weight=BOLD)
-            lab.scale_to_fit_height(NODE_LETTER_H * r).move_to(dot)
+            lab.scale_to_fit_height(NODE_LETTER_H * r).move_to(dot).set_z_index(3)
             grp.add(dot, lab)
             in_edge = None
             if prev_dot is not None:
@@ -783,6 +791,60 @@ class Scene05(HangmanScene):
         g.root = build(spec, ORIGIN, True)[0]
         return g
 
+    def _subtree_spec(self, tree, revealed=""):
+        """Convert a solver option-subtree (nested ``{guess, branches}`` / ``{word}`` from
+        the tree2 cache) into a `_ctree` spec, APPENDING the forced-tail guesses that finish
+        a determined word — the cache stops at determination, but a game keeps guessing every
+        letter until the word is fully up (see hangman CLAUDE.md 'Game / guess-order'). So a
+        `{word}` leaf becomes a chain of forced-hit guess nodes (its still-unrevealed letters,
+        first-appearance order) ending in the bare won-leaf. ``revealed`` = the HIT letters
+        guessed so far down this branch. Keeps every candidate subtree SOURCED (not
+        hand-written). Length-2 positions split into one hit pattern + the '__' miss."""
+        if "word" in tree:
+            word = tree["word"]
+            remaining = []
+            for ch in word:
+                if ch not in revealed and ch not in remaining:
+                    remaining.append(ch)
+            spec = {"leaf": word}
+            for ch in reversed(remaining):
+                spec = {"g": ch, "hit": spec}
+            return spec
+        g = tree["guess"]
+        br = tree["branches"]
+        miss_pat = "_" * len(next(iter(br)))
+        hit_pat = next((p for p in br if p != miss_pat), None)
+        spec = {"g": g}
+        if hit_pat is not None:
+            spec["hit"] = self._subtree_spec(br[hit_pat], revealed + g)
+        if miss_pat in br:
+            spec["miss"] = self._subtree_spec(br[miss_pat], revealed)
+        return spec
+
+    def _counter_label(self, tracker, node_dot, direction=LEFT, height=0.34):
+        """A live 'Avg misses: N.NN' label whose number ROLLS with ``tracker`` — the
+        candidate-cycle counter (stays on screen, counting as the value changes, rather than
+        flashing a fresh label per candidate). Same look as `_avg_label`, animated. The whole
+        string is ONE mobject rebuilt on each 2-decimal tick (constant width → re-renders
+        centred in place). The caller removes ``lab._upd`` before greening/locking it."""
+        def mk(v, color):
+            return crisp_text(f"Avg misses: {v:.2f}", font_size=12, color=color, weight=BOLD)
+        lab = mk(tracker.get_value(), WHITE)
+        lab.scale_to_fit_height(height).next_to(node_dot, direction, buff=height * 0.6)
+        center, h = lab.get_center(), lab.height
+        st = {"s": f"{tracker.get_value():.2f}", "color": WHITE}
+
+        def upd(m):
+            s = f"{tracker.get_value():.2f}"
+            if s == st["s"]:
+                return
+            st["s"] = s
+            m.become(mk(float(s), st["color"]).scale_to_fit_height(h).move_to(center))
+
+        lab.add_updater(upd)
+        lab._upd = upd
+        return lab
+
     # ── j : back up the Y node (the {by,my} position). B's value fades out; a fresh WHITE
     #        value appears next to Y. The first guess then cycles Y → B → M, each shown as its
     #        COMPLETE optimal subtree (fully played out, all green) with its own avg misses;
@@ -904,6 +966,66 @@ class Scene05(HangmanScene):
         # choose P: green its root + outgoing edges (subtree already green) and lock the value
         self.play(VGroup(ups.root, ups.root_edges, self.avg_p).animate.set_color(LIGHT_GREEN),
                   run_time=0.9)
+
+    # ── m : back up the U position ({by,my,up,us}) — both children are solved. Fade the
+    #        child value; a rolling 'Avg misses' COUNTER appears on U. Cycle the first-guess
+    #        candidates U/Y/B/M/P/S, each shown as its COMPLETE optimal subtree (green subtree,
+    #        original-colour root — SOURCED from the cache via _subtree_spec): U/Y = 1.0,
+    #        B/M/P/S = 1.25, the counter rolling as we pass each. Then CHOOSE U (the min) and
+    #        lock its node + edges + value green. U itself is the CURRENT tree (`cur`). ───────
+    @subscene
+    def choose_u(self):
+        path, sub, ups = self.grid.path, self.grid.sub, self.ups
+        u_dot, u_lab = path.levels[4]["dot"], path.levels[4]["lab"]
+        uc, ur = u_dot.get_center(), u_dot.width / 2
+        yedge = self.grid.drilled_edge            # U→Y   (miss, red)
+        uedge = path.levels[4]["hits"][0][0]      # U→{up,us} (hit, white)
+        by_dot, by_blk, _ = sub.leaves["by"]
+        my_dot, my_blk, _ = sub.leaves["my"]
+        y_sub = VGroup(sub.gdot, sub.glab, sub.edges["yb"], sub.discs["b"],
+                       sub.node_letters[1], sub.edges["bby"], by_dot, by_blk,
+                       sub.edges["bm"], sub.discs["m"], sub.node_letters[2],
+                       sub.edges["mmy"], my_dot, my_blk)
+        cur = VGroup(u_dot, u_lab, yedge, uedge, y_sub, ups)   # the U candidate (on screen)
+        # the OTHER candidate first-guesses at {by,my,up,us}: each a complete optimal subtree,
+        # SOURCED from the cache (option subtree → _subtree_spec → _ctree). Uniform scale so
+        # node sizes match across candidates; fit the deepest to U's current subtree height.
+        node = self._n_miss_node(4)
+        opts = {o["letter"]: o for o in node["options"] if o["splits"]}
+        order = ["y", "b", "m", "p", "s"]         # U is `cur`; shown first and (on choose) last
+        raw = {c: self._ctree(self._subtree_spec(opts[c]["subtree"]), root_miss=1)
+               for c in order}
+        scale_c = cur.height / max(ct.height for ct in raw.values())
+        cand = {}
+        for c in order:
+            ct = raw[c].scale(scale_c, about_point=ORIGIN)
+            ct.shift(uc - ct.root.get_center())   # root at U's position
+            cand[c] = ct
+        u_avg = opts["u"]["avg"]                   # 1.0 (== node['avg'])
+        uval = ValueTracker(u_avg)
+        counter = self._counter_label(uval, u_dot, direction=LEFT)
+        # fade the {up,us} child value; the rolling counter appears on U (we start ON U)
+        self.play(FadeOut(self.avg_p), FadeIn(counter), run_time=0.6)
+        self.avg_p = None
+        self._active = cur
+
+        def swap_to(tree, val):                    # cross-fade the subtree; counter rolls
+            self.play(FadeOut(self._active), FadeIn(tree),
+                      uval.animate.set_value(val), run_time=0.7)
+            self.wait(0.3)
+            self._active = tree
+
+        for c in order:                            # U → Y → B → M → P → S
+            swap_to(cand[c], opts[c]["avg"])
+        swap_to(cur, u_avg)                         # settle back on U (the minimum, 1.0)
+        self.remove(*cand.values())
+        # choose U: freeze the counter (drop the updater AND its closure attr so the scene
+        # can still pickle for the snapshot), then lock U's node + edges + value green
+        counter.remove_updater(counter._upd)
+        del counter._upd
+        self.play(VGroup(u_dot, yedge, uedge, counter).animate.set_color(LIGHT_GREEN),
+                  run_time=1.0)
+        self.ups = None
 
     # ── components ─────────────────────────────────────────────────────────────
     def _greedy_chart(self):
