@@ -30,9 +30,13 @@ Script row 05, split on '—' (voiceover ↔ animation zip 1:1). BEAT MAP:
   c cycle_letters — cycle every letter A–Z through the node (which opener is best?)
   d grid_spread   — 20 openers into a 4×5 grid; each sprouts its next level (blanks + miss)
   e a_dive        — bring A to centre; walk-highlight children (gold); grid A-miss's options
-  f f_drill       — breadcrumb the optimal (O), drill its all-miss leaf into the next option grid
+  f f_drill       — breadcrumb the optimal (O), drill its all-miss leaf into the 4×4 option grid
+  g g_resolve     — keep drilling (3×4 → 2×3 grids) to the {by,my} base case; Y-first spine +
+                    'Avg misses: 0' on the forced M
+  h h_solved      — we've solved that position: turn the {by,my} base-case subtree GREEN (the
+                    diagonal stays white — greened as we back up in i/j)
   --- next sections (not yet built) ---
-  g … recurse to 'Avg misses: 0'; back up the solved values (green); dedup + prune; paired chart
+  i/j … back the values up the tree (green) level by level; dedup + prune; paired chart
 
 Render:  render 05a --fast  (…05c)   /   render 05 sub  for the whole scene
 
@@ -582,14 +586,21 @@ class Scene05(HangmanScene):
         myleaf, mygrp = _leaf(mypos, "my", ["A", "O", "I", "E", "U", "B"])
         # fan split into LEVELS so the final resolve grows one at a time (Y itself is NOT
         # in the fan — it arrives via the transform). l1 from Y, l2 from B, l3 from M.
-        l1 = VGroup(_edge(anchor, r, bpos, r, 0), bgrp)           # Y→B  hit
-        l2 = VGroup(_edge(bpos, r, bypos, cr, 0), bygrp,          # B→BY hit
-                    _edge(bpos, r, mpos, r, 1), mgrp)             # B→M  miss
-        l3 = VGroup(_edge(mpos, r, mypos, cr, 0), mygrp)          # M→MY hit
+        e_yb = _edge(anchor, r, bpos, r, 0)                       # Y→B  hit
+        e_bby = _edge(bpos, r, bypos, cr, 0)                      # B→BY hit
+        e_bm = _edge(bpos, r, mpos, r, 1)                         # B→M  miss
+        e_mmy = _edge(mpos, r, mypos, cr, 0)                      # M→MY hit
+        l1 = VGroup(e_yb, bgrp)
+        l2 = VGroup(e_bby, bygrp, e_bm, mgrp)
+        l3 = VGroup(e_mmy, mygrp)
         fan = VGroup(l1, l2, l3)
         sub = VGroup(VGroup(ydot, ylab), fan)
         sub.gdot, sub.glab, sub.fan = ydot, ylab, fan
         sub.bdot, sub.mdot, sub.fan_levels = bdot, mdot, [l1, l2, l3]
+        # for the DP back-up (beat h+): the GREEN-able parts of this solved base case (discs,
+        # edges, leaf annotations) vs the guess-node letters that stay knocked-out navy
+        sub.green_parts = VGroup(ydot, e_yb, bdot, e_bby, bygrp, e_bm, mdot, e_mmy, mygrp)
+        sub.node_letters = VGroup(ylab, bgrp[1], mgrp[1])
         cell = VGroup(path, drilled_edge, sub)
         cell.path, cell.drilled_edge, cell.sub, cell.mdot = path, drilled_edge, sub, mdot
         return cell, mdot
@@ -675,6 +686,16 @@ class Scene05(HangmanScene):
         self.clear()                                      # re-track clean groups (post copy-reveal)
         self.add(spine, self.avg0)
         self.grid = spine
+
+    # ── h : we've SOLVED that position — turn the solved base case GREEN (the start of
+    #        backing values up the tree). The whole drill tree stays on screen; only the
+    #        {by,my} subtree (Y→B→BY / M→MY + the 0) greens — the diagonal stays white and
+    #        greens as we back up in i/j. Guess-node letters stay knocked-out navy. ───────
+    @subscene
+    def h_solved(self):
+        sub = self.grid.sub
+        green = VGroup(sub.green_parts, self.avg0)
+        self.play(green.animate.set_color(LIGHT_GREEN), run_time=1.2)
 
     # ── components ─────────────────────────────────────────────────────────────
     def _greedy_chart(self):
