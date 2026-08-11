@@ -759,36 +759,59 @@ class Scene05(HangmanScene):
         guess has one child straight down; a leaf is the fully revealed word. Built at natural
         GRID sizes rooted at ORIGIN. spec = {'g', 'hit', 'miss'?} or {'leaf': word}."""
         r, cr = GRID_NODE_R, GRID_NODE_R * GRID_CHILD_RF
-        DY, SPR = GRID_CHILD_DY, GRID_CHILD_SPR
+        DY, COL = GRID_CHILD_DY, GRID_CHILD_SPR   # COL = leaf column width
         g = VGroup()
+        g.root_edges = VGroup()
 
-        def build(spec, pos, is_root):
-            if "leaf" in spec:
+        # pass 1 — TIDY layout: give every leaf its own column (miss subtree LEFT, hit RIGHT)
+        # and centre each node over its children, so no two subtrees overlap however deep they
+        # run. The old fixed ±SPR spread let a right subtree's left edge collide with a left
+        # subtree's right edge (bit us on the Y candidate in choose_u); a per-leaf column can't.
+        slot = [0]
+
+        def layout(sp, depth):
+            node = {"spec": sp, "y": -depth * DY}
+            if "leaf" in sp:
+                node["x"], node["kids"] = slot[0] * COL, []
+                slot[0] += 1
+                return node
+            kids = [(role, layout(sp[role], depth + 1))
+                    for role in ("miss", "hit") if role in sp]   # miss LEFT, hit RIGHT
+            node["kids"] = kids
+            node["x"] = sum(k[1]["x"] for k in kids) / len(kids)  # centre over children
+            return node
+
+        root = layout(spec, 0)
+        x0 = root["x"]                             # re-centre the whole tree on x = 0
+
+        # pass 2 — build mobjects at the laid-out positions
+        def build(node, is_root):
+            pos = np.array([node["x"] - x0, node["y"], 0.0])
+            sp = node["spec"]
+            if "leaf" in sp:
                 dot = Dot(pos, radius=cr, color=LIGHT_GREEN, z_index=2)
-                blk = self._blanks(spec["leaf"]).set_x(pos[0]).set_color(LIGHT_GREEN)
+                blk = self._blanks(sp["leaf"]).set_x(pos[0]).set_color(LIGHT_GREEN)
                 blk.shift([0, (pos[1] - GRID_BLANK_DROP) - blk.get_bottom()[1], 0])
                 g.add(dot, blk)
                 return dot, cr
             dot = Dot(pos, radius=r, color=_miss_color(root_miss) if is_root else LIGHT_GREEN,
                       z_index=2)
-            lab = crisp_text(spec["g"].upper(), color=BOARD_NAVY, weight=BOLD)
+            lab = crisp_text(sp["g"].upper(), color=BOARD_NAVY, weight=BOLD)
             lab.scale_to_fit_height(NODE_LETTER_H * r).move_to(dot).set_z_index(3)
             g.add(dot, lab)
-            kids = ([(spec["hit"], pos + np.array([SPR, -DY, 0.0]), 0),
-                     (spec["miss"], pos + np.array([-SPR, -DY, 0.0]), 1)] if "miss" in spec
-                    else [(spec["hit"], pos + np.array([0.0, -DY, 0.0]), 0)])
-            for cspec, cpos, miss in kids:
-                cdot, crad = build(cspec, cpos, False)
+            for role, child in node["kids"]:
+                cdot, crad = build(child, False)
+                miss = 1 if role == "miss" else 0
                 ecolor = _miss_color(miss) if is_root else LIGHT_GREEN   # only root edges original
-                dn = normalize(cpos - pos)
-                edge = Line(pos + dn * r, cpos - dn * crad, color=ecolor, stroke_width=2.0)
+                dn = normalize(cdot.get_center() - pos)
+                edge = Line(pos + dn * r, cdot.get_center() - dn * crad,
+                            color=ecolor, stroke_width=2.0)
                 g.add(edge)
                 if is_root:
                     g.root_edges.add(edge)                # for the caller to green on lock
             return dot, r
 
-        g.root_edges = VGroup()
-        g.root = build(spec, ORIGIN, True)[0]
+        g.root = build(root, True)[0]
         return g
 
     def _subtree_spec(self, tree, revealed=""):
