@@ -163,6 +163,25 @@ class Scene18(HangmanScene):
         self._morph_bars(self.word_bars, self.word_base, self.word_vals,
                          state["word_freq"], self.word_ymax, word_rt, flash)
 
+    def _apply_state_at_once(self, state, run_time, flash=None):
+        """Morph combos, words AND the avg counter to a state ALL in one play (used for
+        the reset — cleanup, not a deliberate combo→word→avg step)."""
+        anims = [self._grow_anim(b, by, ROW_H * v0 / self.combo_ymax,
+                                 ROW_H * v1 / self.combo_ymax, flash)
+                 for b, by, v0, v1 in zip(self.combo_bars, self.combo_base,
+                                          self.combo_vals, state["combo_mult"])]
+        anims += [self._grow_anim(b, by, ROW_H * v0 / self.word_ymax,
+                                  ROW_H * v1 / self.word_ymax, flash)
+                  for b, by, v0, v1 in zip(self.word_bars, self.word_base,
+                                           self.word_vals, state["word_freq"])]
+        self.avg_num.add_updater(
+            lambda m: m.become(self._number_text(self.avg_tracker.get_value())))
+        self.play(*anims, self.avg_tracker.animate.set_value(state["avg_misses"]),
+                  run_time=run_time)
+        self.avg_num.clear_updaters()
+        self.combo_vals[:] = list(state["combo_mult"])
+        self.word_vals[:] = list(state["word_freq"])
+
     # ── a : "Words with Most Misses" — blue words, lagged upward rise, 14-miss set ──
     @subscene
     def most_misses(self):
@@ -245,9 +264,9 @@ class Scene18(HangmanScene):
         # undo it: LOWER the e combo back → CRIMSON (direction rule)
         self._apply_state(undo["base"], combo_rt=0.7, word_rt=0.7)
         self._count_to(undo["base"]["avg_misses"], 0.6)
-        # reset the kept beat-d change (lower u) — JUST resetting, so keep it BLUE
-        self._apply_state(undo["reset"], combo_rt=0.9, word_rt=0.9, flash=WORD_BLUE)
-        self._count_to(undo["reset"]["avg_misses"], 0.8)
+        # reset the kept beat-d change (lower u) — JUST resetting: bars + avg together,
+        # in ONE play, kept BLUE
+        self._apply_state_at_once(undo["reset"], run_time=0.9, flash=WORD_BLUE)
 
     # ── f : replay the optimization uniform→final in N_BUCKETS steps ───────────
     @subscene
