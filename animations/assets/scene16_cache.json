@@ -347,14 +347,10 @@
   }
  ],
  "example": {
-  "word": "boards",
+  "word": "players",
   "trace": [
    [
     "e",
-    false
-   ],
-   [
-    "a",
     true
    ],
    [
@@ -362,35 +358,50 @@
     true
    ],
    [
+    "t",
+    false
+   ],
+   [
     "r",
     true
    ],
    [
-    "d",
+    "a",
     true
    ],
    [
-    "o",
+    "l",
     true
    ],
    [
     "b",
+    false
+   ],
+   [
+    "p",
+    true
+   ],
+   [
+    "y",
     true
    ]
   ],
   "boards_after": [
-   "______",
-   "__a___",
-   "__a__s",
-   "__ar_s",
-   "__ards",
-   "_oards",
-   "boards"
+   "____e__",
+   "____e_s",
+   "____e_s",
+   "____ers",
+   "__a_ers",
+   "_la_ers",
+   "_la_ers",
+   "pla_ers",
+   "players"
   ],
-  "n_misses": 1,
+  "n_misses": 2,
   "win": true,
   "misses": [
-   "e"
+   "t",
+   "b"
   ]
  }
 }

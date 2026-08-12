@@ -59,8 +59,13 @@ PLOT_LENGTHS = list(range(1, 21))   # computed/cached for every length …
 # letter_heat_data.LENGTHS = range(2, 11). So the plot shows lengths 2..10.
 DISPLAY_LENGTHS = list(range(2, 11))
 
-# ── FLAG: the beat-j example word (animation column: BOARDS) ────────────────────
-EXAMPLE_WORD = "boards"
+# ── FLAG: the beat-j example word ───────────────────────────────────────────────
+# Chosen for the tier-walk lesson: 6-8 letters, MULTIPLE misses, the optimal/uniform
+# guess order descends the tiers WITHOUT skipping one (and backs up a tier a couple
+# times). "players": E✓ S✓ T✗ R✓ A✓ L✓ B✗ P✓ Y✓ — TOP→H▲→H▼, back to H▲/TOP, then
+# down to LOW▲; 2 misses (T, B). (The script's animation column said BOARDS, but the
+# VO left the word open — "FIND EXAMPLE TO PUT HERE"; picked with the user.)
+EXAMPLE_WORD = "players"
 _MISS_BUDGET = 6            # a game is LOST once misses exceed the 6-part hangman
 
 # SYNC with tier_list.TIER_LETTERS — top tier first, LOW↓ last.
