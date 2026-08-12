@@ -875,15 +875,17 @@ class Scene05(HangmanScene):
                     color=color, stroke_width=2.0)
 
     def _gap_up(self, node_dot, node_lab, parent_dot, in_edge, child_pairs, run_time,
-                also=(), fade_in=(), fade_out=()):
+                also=(), fade_in=(), fade_out=(), siblings=()):
         """Climb the tall gap up one level: the avg-miss value has just backed up INTO ``node``,
         so the tall edge becomes the one COMING IN to it (``in_edge``, parent→node) and the edges
         going OUT of it (``child_pairs`` = [(edge, child_dot), …]) revert to compact. Implemented
         as: ``node`` drops toward its (fixed) children by GRID_ROOT_DY−GRID_CHILD_DY (at the node's
-        scale) — its in-edge lengthens, its out-edges shorten; the subtree below stays put. ``also``
-        = mobjects that shift down WITH the node; ``fade_in`` = the NEW avg label, which fades in
-        WHILE travelling down with the node (appears alongside it as it moves); ``fade_out`` = the
-        old (below) avg labels, which fade out during the same motion."""
+        scale) — its in-edge lengthens, its out-edges shorten; the subtree below stays put. The
+        node's SIBLINGS (the parent's OTHER children — ``siblings`` = [(group, dot, in_edge), …])
+        drop by the SAME delta WITH their whole subtree/annotation so all of the parent's children
+        stay ALIGNED (each sibling's in-edge lengthens too). ``also`` = mobjects that shift down
+        WITH the node; ``fade_in`` = the NEW avg label, which fades in WHILE travelling down with
+        the node; ``fade_out`` = the old (below) avg labels, which fade out in the same motion."""
         delta = DOWN * (GRID_ROOT_DY - GRID_CHILD_DY) * (node_dot.width / (2 * GRID_NODE_R))
         new_c = node_dot.get_center() + delta
         moved = node_dot.copy().move_to(new_c)
@@ -896,6 +898,11 @@ class Scene05(HangmanScene):
             anims.append(m.animate.set_opacity(1).shift(delta))
         for edge, child_dot in child_pairs:
             anims.append(Transform(edge, self._edge_line(moved, child_dot, edge.get_color())))
+        for sib_group, sib_dot, sib_in_edge in siblings:   # other children drop the SAME, stay aligned
+            anims.append(sib_group.animate.shift(delta))
+            anims.append(Transform(sib_in_edge,
+                                   self._edge_line(parent_dot, sib_dot.copy().shift(delta),
+                                                   sib_in_edge.get_color())))
         self.play(*anims, run_time=run_time)
 
     def _subtree_spec(self, tree, revealed=""):
@@ -978,11 +985,14 @@ class Scene05(HangmanScene):
                      sub.edges["mmy"], my_dot, my_blk)
         # 1) the value now sits on Y → the tall gap climbs from Y→B up to U→Y (the diagonal
         #    connection): Y drops below the diagonal's U, Y→B reverts to compact, Y's FRESH '0.5'
-        #    fades in travelling WITH Y, and B's '0.5' fades out (all one motion).
+        #    fades in travelling WITH Y, and B's '0.5' fades out. U's OTHER child ({up,us}, still a
+        #    bare hit-sibling dot + 'U_ AOIE' board) drops WITH Y so U's two children stay aligned.
+        ue, ud = path.levels[4]["hits"][0]                # U→{up,us} edge + bare dot
         avg_y = self._avg_label(sub.discs["y"], value="0.5", direction=LEFT)   # white
         self._gap_up(sub.gdot, sub.glab, path.levels[4]["dot"], self.grid.drilled_edge,
                      [(sub.edges["yb"], sub.discs["b"])], run_time=0.7,
-                     fade_in=[avg_y], fade_out=[self.avg_b])
+                     fade_in=[avg_y], fade_out=[self.avg_b],
+                     siblings=[(VGroup(ud, path.leaf_text[-1]), ud, ue)])
         self.avg_b = avg_y
         anchor = sub.gdot.get_center()                    # Y's NEW (dropped) position — candidates hang here
         # 2) cycle Y → B → M, each a COMPLETE green subtree. The avg-misses value STAYS on
@@ -1129,10 +1139,14 @@ class Scene05(HangmanScene):
         # We are dealing with the U node now → at the START its value backs up, so the tall gap
         # climbs from U→children up to E→U (the diagonal connection): U drops below E, U→Y/P revert
         # to compact, the rolling counter fades in travelling WITH U, {up,us}'s value fades out.
+        # E's OTHER children (its hit-sibling bare dots + boards) drop WITH U so E's children align.
+        n_before = sum(len(path.levels[i]["hits"]) for i in range(3))
+        e_hits, e_anns = path.levels[3]["hits"], path.leaf_text[n_before:]
+        e_sibs = [(VGroup(hd, ann), hd, he) for (he, hd), ann in zip(e_hits, e_anns)]
         counter.remove_updater(counter._upd)        # detach so it can fade + travel with U
         self._gap_up(u_dot, u_lab, path.levels[3]["dot"], path.levels[4]["in_edge"],
                      [(yedge, self.u_spine.gdot), (uedge, self.ups.root)],
-                     run_time=0.7, fade_in=[counter], fade_out=[self.avg_p])
+                     run_time=0.7, fade_in=[counter], fade_out=[self.avg_p], siblings=e_sibs)
         self.avg_p = None
         counter.add_updater(counter._upd)           # re-attach for the rolling cycle (tracks moved U)
         uc = u_dot.get_center()                     # U's NEW (dropped) position — candidates hang here
