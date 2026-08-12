@@ -44,10 +44,13 @@ Script row 05, split on '—' (voiceover ↔ animation zip 1:1). BEAT MAP:
                     choose U (1.0) and lock its node + edges + value green
   n backup_e      — start backing up E (same move as k, one level up): build E's tidy subtree,
                     slide the green U-subtree onto E's miss slot, grow E's hit branches (green)
-  o solve_e_hit   — solve E's two hit children (e_ {EM,EN,EX}=1.0, _e {ME,BE,WE,RE,HE,YE}=2.5):
-                    show avg, cycle a tied alternative, lock M green (l for E, ×2)
+  o solve_e_hit   — solve E's two hit children (e_ {EM,EN,EX}=1.00, _e {ME,BE,WE,RE,HE,YE}=2.50):
+                    cycle ALL tied first-guesses, lock M green (l for E, ×2). o+ : bare numbers,
+                    2 dp, ONE on screen at a time (see the convention change)
+  p choose_e      — back up E: cycle E's candidates (e=2.00 min …), roll the bare counter, choose E,
+                    lock node+edges+value green, climb the gap to I→E (E + I's siblings drop together)
   --- next sections (not yet built) ---
-  … choose_e (m for E); repeat up the diagonal (I→A); dedup + prune; paired chart
+  … repeat up the diagonal (I→A); dedup + prune; paired chart
 
 Render:  render 05a --fast  (…05c)   /   render 05 sub  for the whole scene
 
@@ -940,21 +943,23 @@ class Scene05(HangmanScene):
                 for pat, child in items]
         return {"g": g, "kids": kids}
 
-    def _counter_label(self, tracker, node_dot, direction=LEFT, height=0.34):
-        """A live 'Avg misses: N.N' label whose number ROLLS with ``tracker`` — the
-        candidate-cycle counter (stays on screen, counting as the value changes, rather than
-        flashing a fresh label per candidate). Same look as `_avg_label`, animated. The whole
-        string is ONE mobject rebuilt on each 1-decimal tick (constant width → re-renders
-        centred in place). Numbers ROUND HALF UP (1.25 → 1.3), not Python's default
-        round-half-to-even. The caller removes ``lab._upd`` before greening/locking it."""
+    def _counter_label(self, tracker, node_dot, direction=LEFT, height=0.34, bare=False, dp=1):
+        """A live value label whose number ROLLS with ``tracker`` — the candidate-cycle counter
+        (stays on screen, counting as the value changes, rather than flashing a fresh label per
+        candidate). Rebuilt on each tick and re-placed relative to ``node_dot`` (so it follows a
+        moving node). Numbers ROUND HALF UP (1.25 → 1.3). Beats g–n show 'Avg misses: N.N'; from
+        scene o on ``bare=True`` shows just the number and ``dp`` sets the decimals (2 there). The
+        caller removes ``lab._upd`` before greening/locking it."""
         def fmt(v):
-            return f"{int(v * 10 + 0.5) / 10:.1f}"      # round half up (values are positive)
+            f = 10 ** dp
+            return f"{int(v * f + 0.5) / f:.{dp}f}"     # round half up (values are positive)
+
+        def mk(v, color):
+            s = fmt(v)
+            return crisp_text(s if bare else f"Avg misses: {s}", font_size=12, color=color, weight=BOLD)
 
         def place(v):
             return mk(v, WHITE).scale_to_fit_height(height).next_to(node_dot, direction, buff=height * 0.6)
-
-        def mk(v, color):
-            return crisp_text(f"Avg misses: {fmt(v)}", font_size=12, color=color, weight=BOLD)
         lab = place(tracker.get_value())
         st = {"s": fmt(tracker.get_value())}
 
@@ -1258,6 +1263,7 @@ class Scene05(HangmanScene):
         self.play(*[GrowFromPoint(kids, dot.get_center()) for kids, dot in grows], run_time=0.6)
         self.e_ref, self.eu_edge = e_ref, eu_edge
         self.e_hit_trees = hit_trees                 # [(handle, green subtree), …] for solving
+        self.e_hit_edges = [be for be, bd in hits]   # the ACTUAL on-screen E→M edges (transformed be)
         self.avg_u = None
 
     # ── solve E's HIT children — each grown green with a WHITE root in n. For each position
@@ -1292,6 +1298,62 @@ class Scene05(HangmanScene):
             self.play(VGroup(ct.root, ct.root_edges, avg).animate.set_color(LIGHT_GREEN), run_time=0.7)
             prev = avg
         self.e_hit_avg = prev             # the last number on screen (_e's 2.50) — choose_e fades it
+
+    # ── p : back up E — the value now sits on E. Cycle E's first-guess candidates (e=2.00 the min;
+    #    m/y=2.08, b=2.31, h/r/u/w=2.54, p/s=2.69, n/x=2.77 — ALL sourced), the bare 2dp counter
+    #    rolling on E; choose E, lock node + all edges + value green. Then the value backs up so the
+    #    tall gap climbs to I→E: E drops below I and I's OTHER children drop with it (sibling rule). ─
+    @subscene
+    def choose_e(self):
+        path = self.grid.path
+        eh = self.e_ref.node["e"]
+        e_dot, e_lab = eh.dot, eh.lab
+        ec = e_dot.get_center()
+        scale_c = e_dot.width / (2 * GRID_NODE_R)
+        hit_cts = [ct for h, ct in self.e_hit_trees]
+        # the persistent E-tree IS the E candidate
+        cur = VGroup(e_dot, e_lab, self.eu_edge, *self.e_hit_edges, self.u_subtree, *hit_cts)
+        opts = {o["letter"]: o for o in self._n_miss_node(3)["options"] if o["splits"]}
+        e_avg = opts["e"]["avg"]                     # 2.0
+        eval_ = ValueTracker(e_avg)
+        counter = self._counter_label(eval_, e_dot, direction=LEFT, bare=True, dp=2)
+        # fade the last hit number (_e's 2.50); the rolling counter appears on E (one at a time)
+        self.play(FadeOut(self.e_hit_avg), FadeIn(counter), run_time=0.6)
+        alts = [c for c in opts if c != "e"]
+        cand = {}
+        for c in alts:                               # full E-subtrees, tall_level=0 like the active tree
+            ct = self._ctree(self._subtree_spec(opts[c]["subtree"]), root_miss=1, tall_level=0)
+            ct.scale(scale_c, about_point=ORIGIN).shift(ec - ct.root.get_center())
+            cand[c] = ct
+        self._active = cur
+        self.wait(0.4)
+
+        def swap_to(tree, val):                      # cross-fade the subtree; counter rolls
+            self.play(FadeOut(self._active), FadeIn(tree),
+                      eval_.animate.set_value(val), run_time=0.6)
+            self.wait(0.25)
+            self._active = tree
+
+        for c in alts:                               # E → every other first guess → back to E
+            swap_to(cand[c], opts[c]["avg"])
+        swap_to(cur, e_avg)                          # settle back on E (the minimum, 2.00)
+        self.remove(*(cand[c] for c in alts))
+        # choose E: freeze the counter, green E node + ALL its outgoing edges + the value
+        counter.remove_updater(counter._upd)
+        del counter._upd
+        e_edges = VGroup(self.eu_edge, *self.e_hit_edges)
+        self.play(VGroup(e_dot, e_edges, counter).animate.set_color(LIGHT_GREEN), run_time=1.0)
+        # the value now sits on E → the tall gap climbs from E→children up to I→E: E drops below I;
+        # I's OTHER children (its hit-sibling bare dots + boards) drop with it (sibling rule).
+        n_before = sum(len(path.levels[i]["hits"]) for i in range(2))
+        i_hits, i_anns = path.levels[2]["hits"], path.leaf_text[n_before:]
+        i_sibs = [(VGroup(hd, ann), hd, he) for (he, hd), ann in zip(i_hits, i_anns)]
+        child_pairs = [(self.eu_edge, self.u_ref.node["u"].dot)] + \
+                      [(e, ct.root) for e, ct in zip(self.e_hit_edges, hit_cts)]
+        self._gap_up(e_dot, e_lab, path.levels[2]["dot"], path.levels[3]["in_edge"],
+                     child_pairs, run_time=0.7, also=[counter], siblings=i_sibs)
+        self.e_subtree = cur                         # hand off E's solved subtree to backing up I
+        self.avg_e = counter                         # E's value label (green 2.00)
 
     # ── components ─────────────────────────────────────────────────────────────
     def _greedy_chart(self):
