@@ -607,16 +607,28 @@ class Scene05(HangmanScene):
         cell.path, cell.drilled_edge, cell.sub, cell.mdot = path, drilled_edge, sub, nm.dot
         return cell, nm.dot
 
-    def _avg_label(self, node_dot, value="0", height=0.34, direction=LEFT, bare=False):
-        """A node's backed-up optimal value beside it. ``value`` is a pre-formatted string SOURCED
-        from the tree data. Beats g–n label it 'Avg misses: <value>'; from scene o on, ``bare=True``
-        shows just the number (see the user's convention change at o)."""
-        # build small (crisp_text supersamples to a 240pt cap where a longer string
-        # WRAPS in pango — see hangman/bpkfigures CLAUDE.md) then scale to a readable height
-        lab = crisp_text(value if bare else f"Avg misses: {value}",
-                         font_size=12, color=WHITE, weight=BOLD)
-        lab.scale_to_fit_height(height).next_to(node_dot, direction, buff=height * 0.6)
-        return lab
+    # ── ONE place that formats + builds every avg-miss value on screen (see _fmt / _value_label).
+    #    _avg_label (static) and _counter_label (rolling) both route through them, so "2 dp",
+    #    "round half up", the bare-vs-worded look, and the shared glyph size live in exactly one
+    #    spot each — change the convention once, everywhere follows.
+    @staticmethod
+    def _fmt(v):
+        """The canonical avg-miss value string: 2 decimals, rounded HALF UP (1.245 → 1.25)."""
+        return f"{int(v * 100 + 0.5) / 100:.2f}"
+
+    def _value_label(self, v, height=0.34, bare=False, color=WHITE):
+        """The value glyphs at the shared size: the full 'Avg misses: N.NN' scaled to ``height``;
+        a ``bare`` number scaled by that SAME factor (so the digits match), not fit to its own box.
+        crisp_text supersamples to a 240pt cap; a longer string WRAPS in pango — build small."""
+        full = crisp_text(f"Avg misses: {self._fmt(v)}", font_size=12, color=color, weight=BOLD)
+        if not bare:
+            return full.scale_to_fit_height(height)
+        return crisp_text(self._fmt(v), font_size=12, color=color, weight=BOLD).scale(height / full.height)
+
+    def _avg_label(self, node_dot, value=0.0, height=0.34, direction=LEFT, bare=False):
+        """A node's backed-up optimal value beside it — ``value`` is the raw SOURCED number. Beats
+        g–n label it 'Avg misses: N.NN'; from scene o on ``bare=True`` shows just the number."""
+        return self._value_label(value, height, bare).next_to(node_dot, direction, buff=height * 0.6)
 
     # ── f : keep drilling — expand the top-left (greedy pick O) tree's all-miss leaf
     #        into the next grid, each cell now rooted along the path A→O (depth 2),
@@ -718,7 +730,7 @@ class Scene05(HangmanScene):
         blab, mlab = sub.node_letters[1], sub.node_letters[2]
         by_dot, by_blk, _ = sub.leaves["by"]
         _, my_blk, _ = sub.leaves["my"]
-        b_val = f"{self._n_miss_node(5)['avg']:g}"        # 0.5 — sourced {by,my} position value
+        b_val = self._n_miss_node(5)["avg"]               # 0.5 — sourced {by,my} position value
         # (a) back up B: the value now sits on B, so the tall gap CLIMBS from B→leaves up to Y→B —
         #     B drops toward its children, its '0.5' fades in travelling WITH it, the base-leaf '0's
         #     fade out (all one motion).
@@ -943,34 +955,16 @@ class Scene05(HangmanScene):
                 for pat, child in items]
         return {"g": g, "kids": kids}
 
-    def _counter_label(self, tracker, node_dot, direction=LEFT, height=0.34, bare=False, dp=1):
-        """A live value label whose number ROLLS with ``tracker`` — the candidate-cycle counter
-        (stays on screen, counting as the value changes, rather than flashing a fresh label per
-        candidate). Rebuilt on each tick and re-placed relative to ``node_dot`` (so it follows a
-        moving node). Numbers ROUND HALF UP (1.25 → 1.3). Beats g–n show 'Avg misses: N.N'; from
-        scene o on ``bare=True`` shows just the number and ``dp`` sets the decimals (2 there). The
-        caller removes ``lab._upd`` before greening/locking it."""
-        def fmt(v):
-            f = 10 ** dp
-            return f"{int(v * f + 0.5) / f:.{dp}f}"     # round half up (values are positive)
-
-        def mk(v, color):
-            s = fmt(v)
-            return crisp_text(s if bare else f"Avg misses: {s}", font_size=12, color=color, weight=BOLD)
-
-        def place(v):
-            return mk(v, WHITE).scale_to_fit_height(height).next_to(node_dot, direction, buff=height * 0.6)
-        lab = place(tracker.get_value())
-        st = {"s": fmt(tracker.get_value())}
-
-        def upd(m):
-            # re-place relative to node_dot every frame so the counter FOLLOWS the node when it
-            # moves (e.g. the _gap_up reflow); rebuild the text only when the rounded value ticks
-            s = fmt(tracker.get_value())
-            st["s"] = s
-            m.become(place(float(s)))
-
-        lab.add_updater(upd)
+    def _counter_label(self, tracker, node_dot, direction=LEFT, height=0.34, bare=False):
+        """The ROLLING version of ``_avg_label``: a value label that follows ``tracker`` (via the
+        shared `_value_label`, so same format/size), re-placed relative to ``node_dot`` each frame
+        so it FOLLOWS a moving node (e.g. the `_gap_up` reflow). The caller removes ``lab._upd``
+        before greening/locking it."""
+        def place():
+            return self._value_label(tracker.get_value(), height, bare).next_to(
+                node_dot, direction, buff=height * 0.6)
+        lab = place()
+        lab.add_updater(upd := (lambda m: m.become(place())))
         lab._upd = upd
         return lab
 
@@ -996,7 +990,7 @@ class Scene05(HangmanScene):
         #    fades in travelling WITH Y, and B's '0.5' fades out. U's OTHER child ({up,us}, still a
         #    bare hit-sibling dot + 'U_ AOIE' board) drops WITH Y so U's two children stay aligned.
         ue, ud = path.levels[4]["hits"][0]                # U→{up,us} edge + bare dot
-        avg_y = self._avg_label(sub.discs["y"], value="0.5", direction=LEFT)   # white
+        avg_y = self._avg_label(sub.discs["y"], value=self._n_miss_node(5)["avg"], direction=LEFT)   # 0.5
         self._gap_up(sub.gdot, sub.glab, path.levels[4]["dot"], self.grid.drilled_edge,
                      [(sub.edges["yb"], sub.discs["b"])], run_time=0.7,
                      fade_in=[avg_y], fade_out=[self.avg_b],
@@ -1096,7 +1090,8 @@ class Scene05(HangmanScene):
             run_time=0.9)
         # phase 2 — the {up,us} children sprout out of the (settled) reused P
         self.play(GrowFromPoint(p_kids, ups.root.get_center()), run_time=0.6)
-        self.avg_p = self._avg_label(ups.root, value="0.5", direction=RIGHT)
+        up_us_avg = self._n_miss_node(4)["children"]["u_"]["avg"]   # {up,us} value (0.5), sourced
+        self.avg_p = self._avg_label(ups.root, value=up_us_avg, direction=RIGHT)
         self.play(FadeIn(self.avg_p), run_time=0.4)
         self.u_ref, self.u_spine, self.ups = u_ref, spine, ups
         self.u_pedge = be              # the ACTUAL on-screen U→P edge is the transformed bare edge
@@ -1278,7 +1273,7 @@ class Scene05(HangmanScene):
         for (h, ct), key, direction in zip(self.e_hit_trees, ("e_", "_e"), (LEFT, RIGHT)):
             child = children[key]
             opts = {o["letter"]: o for o in child["options"] if o["splits"]}
-            avg = self._avg_label(ct.root, value=f"{child['avg']:.2f}", direction=direction, bare=True)
+            avg = self._avg_label(ct.root, value=child["avg"], direction=direction, bare=True)
             self.play(*([FadeOut(prev)] if prev is not None else []),   # one number at a time
                       FadeIn(avg), run_time=0.4)
             # cycle through ALL the other (tied) first-guesses, then settle back on M
@@ -1316,7 +1311,7 @@ class Scene05(HangmanScene):
         opts = {o["letter"]: o for o in self._n_miss_node(3)["options"] if o["splits"]}
         e_avg = opts["e"]["avg"]                     # 2.0
         eval_ = ValueTracker(e_avg)
-        counter = self._counter_label(eval_, e_dot, direction=LEFT, bare=True, dp=2)
+        counter = self._counter_label(eval_, e_dot, direction=LEFT, bare=True)
         # fade the last hit number (_e's 2.50); the rolling counter appears on E (one at a time)
         self.play(FadeOut(self.e_hit_avg), FadeIn(counter), run_time=0.6)
         alts = [c for c in opts if c != "e"]
