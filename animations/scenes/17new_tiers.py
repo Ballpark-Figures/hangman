@@ -35,11 +35,11 @@ from config import *
 from assets import tier_list as tl
 from assets import scene17_data
 from assets import scene17_chart_data
-from bpkfigures.bar_graph import get_bar_chart, morph_bar_chart
+from bpkfigures.bar_graph import get_bar_chart, morph_bar_chart, grow_bars
 
 # beat-d double bar chart (optimal misses, uniform vs zipf)
 UNIFORM_COLOR = ACCENT_FILL        # equal-weighted bars
-ZIPF_COLOR = ACCENT_GREEN          # frequency-weighted bars (softer than the gold)
+ZIPF_COLOR = CRIMSON               # frequency-weighted bars
 
 # ── bar graph (beats a/b) ─────────────────────────────────────────────────────
 BAR_ROWS = 3
@@ -83,8 +83,8 @@ class Scene17(HangmanScene):
         items = [(w["word"].upper(), v) for w, v in zip(slice_, values)]
         return get_bar_chart(items, center=[0, ROW_CYS[r], 0], width=BAR_ROW_W,
                              height=BAR_ROW_H, y_max=self.ymax, n_slots=self._per(),
-                             bar_color=ACCENT_FILL, bar_ratio=0.7, label_buff=0.14,
-                             label_factory=lambda s: crisp_text(s, font_size=18,
+                             bar_color=ACCENT_FILL, bar_ratio=0.7, label_buff=0.16,
+                             label_factory=lambda s: crisp_text(s, font_size=22,
                                                                 color=BAR_INK, weight=BOLD))
 
     def _per(self):
@@ -121,12 +121,14 @@ class Scene17(HangmanScene):
                       stroke_width=6)                          # == the tier-list arrow
         return VGroup(left, arrow, right)
 
-    def _morph_into(self, src, dst, src_letters, dst_letters, row_map, run_time):
+    def _morph_into(self, src, dst, src_letters, dst_letters, row_map, run_time, *,
+                    extra=()):
         """Transform a COPY of tier list `src` into `dst`: per-role structure
         (cell/panel/label of src row i → dst row `row_map[i]`, so two rows can MERGE
         onto one) + per-LETTER moves (each letter slides to its dst tile). `src` stays
-        put; `dst` is left on screen at the end. Piece-by-piece (role handles), never a
-        blob morph — see bpkfigures CLAUDE.md."""
+        put; `dst` is left on screen at the end. `extra` plays ALONGSIDE (e.g. the right
+        title fading in as the list moves). Piece-by-piece (role handles), never a blob
+        morph — see bpkfigures CLAUDE.md."""
         dst_tile = {ch: dst.contents[i][k]
                     for i, lets in enumerate(dst_letters) for k, ch in enumerate(lets)}
         pairs = []
@@ -140,7 +142,7 @@ class Scene17(HangmanScene):
         for m in movers:
             self.add(m)
         self.play(*[Transform(m, b.copy()) for m, (_, b) in zip(movers, pairs)],
-                  run_time=run_time)
+                  *extra, run_time=run_time)
         self.remove(*movers)
         self.add(dst)
 
@@ -150,9 +152,12 @@ class Scene17(HangmanScene):
     def equal_bars(self):
         self.title = crisp_text("Word Frequency", font_size=40, color=TITLE_COLOR,
                                 weight=BOLD).move_to([0, 3.55, 0])
-        self.bar_rows = [self._bar_row(r, self._equal_values(r)) for r in range(BAR_ROWS)]
         self.play(FadeIn(self.title), run_time=0.6)
-        self.play(*[FadeIn(row) for row in self.bar_rows], run_time=1.0)
+        self.bar_rows = [self._bar_row(r, self._equal_values(r)) for r in range(BAR_ROWS)]
+        labels = VGroup(*[row.labels for row in self.bar_rows]).set_opacity(0)
+        self.add(*self.bar_rows)          # grow_bars collapses the bars next → no flash
+        bars = [b for row in self.bar_rows for b in row.bars]
+        grow_bars(self, bars, 1.3, lag=0.04, extra=[labels.animate.set_opacity(1)])
 
     # b : morph the bar heights to each word's actual frequency (zipf)
     @subscene
@@ -174,13 +179,14 @@ class Scene17(HangmanScene):
         self.left = self._filled_list(tl.TIER_LETTERS).move_to([LEFT_X, LIST_Y, 0])
         self.left_title = self._title("Equal Weighted Words", LEFT_X)
         self.play(FadeIn(self.left, self.left_title), run_time=0.8)
-        # a copy of the left list slides right and re-forms as the frequency list
+        # a copy of the left list slides right and re-forms as the frequency list,
+        # the right title fading in AS it moves
         self.right = self._filled_list(tl.FREQ_TIER_LETTERS,
                                        names=tl.FREQ_NAME_LABELS).move_to([RIGHT_X, LIST_Y, 0])
-        self._morph_into(self.left, self.right, tl.TIER_LETTERS, tl.FREQ_TIER_LETTERS,
-                         [0, 1, 1, 2, 3, 4, 5], 2.0)                 # HIGH↑,HIGH↓ → HIGH
         self.right_title = self._title("Frequency Weighted", RIGHT_X)
-        self.play(FadeIn(self.right_title), run_time=0.5)
+        self._morph_into(self.left, self.right, tl.TIER_LETTERS, tl.FREQ_TIER_LETTERS,
+                         [0, 1, 1, 2, 3, 4, 5], 2.0,                 # HIGH↑,HIGH↓ → HIGH
+                         extra=[FadeIn(self.right_title)])
         self.arrow = Arrow([-1.05, LIST_Y, 0], [1.05, LIST_Y, 0], buff=0.0,
                            color=TITLE_COLOR, stroke_width=6)
         self.play(GrowArrow(self.arrow), run_time=0.5)               # arrow drawn AFTER
@@ -229,7 +235,10 @@ class Scene17(HangmanScene):
                           self.arrow), run_time=0.6)
         self.left = self.right = self.left_title = self.right_title = self.arrow = None
         self.chart = self._strategy_chart()
-        self.play(FadeIn(self.chart), run_time=0.9)
+        bars = [*self.chart[0].bars, *self.chart[1].bars]     # uniform + zipf series
+        rest = VGroup(*self.chart[2:]).set_opacity(0)         # axis labels, title, legend
+        self.add(self.chart)                                  # grow_bars collapses bars next
+        grow_bars(self, bars, 1.1, lag=0.02, extra=[rest.animate.set_opacity(1)])
 
     # e : repeat the comparison — American (left); a copy MORPHS into British (right);
     #     same 7 tiers, A↔I swap in TOP and Z→bottom in LOW↓; arrow drawn AFTER
@@ -241,22 +250,29 @@ class Scene17(HangmanScene):
         self.left_title = self._title("American English", LEFT_X)
         self.play(FadeIn(self.left, self.left_title), run_time=0.8)
         self.right = self._filled_list(tl.GB_TIER_LETTERS).move_to([RIGHT_X, LIST_Y, 0])
-        self._morph_into(self.left, self.right, tl.TIER_LETTERS, tl.GB_TIER_LETTERS,
-                         [0, 1, 2, 3, 4, 5, 6], 2.0)             # same 7 tiers
         self.right_title = self._title("British English", RIGHT_X)
-        self.play(FadeIn(self.right_title), run_time=0.5)
+        self._morph_into(self.left, self.right, tl.TIER_LETTERS, tl.GB_TIER_LETTERS,
+                         [0, 1, 2, 3, 4, 5, 6], 2.0,             # same 7 tiers
+                         extra=[FadeIn(self.right_title)])       # title in AS it moves
         self.arrow = Arrow([-1.05, LIST_Y, 0], [1.05, LIST_Y, 0], buff=0.0,
                            color=TITLE_COLOR, stroke_width=6)
         self.play(GrowArrow(self.arrow), run_time=0.5)
 
     # f : below the lists — ENCYCLOPEDIA → ENCYCLOPAEDIA (why A gains in British)
+    def _play_spell(self, pair):
+        """Reveal a spelling pair in order: first word → growing arrow → second word."""
+        left, arrow, right = pair
+        self.play(FadeIn(left), run_time=0.4)
+        self.play(GrowArrow(arrow), run_time=0.4)
+        self.play(FadeIn(right), run_time=0.4)
+
     @subscene
     def enc_spelling(self):
         self.enc = self._spell_pair("ENCYCLOPEDIA", "ENCYCLOPAEDIA", SPELL_Y[0])
-        self.play(FadeIn(self.enc), run_time=0.6)
+        self._play_spell(self.enc)
 
     # g : below that — REALIZE → REALISE (why Z drops in British)
     @subscene
     def realize_spelling(self):
         self.realize = self._spell_pair("REALIZE", "REALISE", SPELL_Y[1])
-        self.play(FadeIn(self.realize), run_time=0.6)
+        self._play_spell(self.realize)
