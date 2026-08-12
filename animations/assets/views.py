@@ -34,15 +34,18 @@ def rise(scene, parent, rows, *, lag_ratio=RISE_LAG, shift=RISE_SHIFT):
                          for row in rows], lag_ratio=lag_ratio)
 
 
-def view_title(text, x, y, *, font_size=30, color=BLACK, width=None):
-    """A single-line view title (e.g. 'Usage by Tier', 'Common Uses'). A longer
-    string WRAPS at `crisp_text`'s 240pt supersample cap, so pass `width` to force
-    ONE line: render at a small underlying font then scale to that width (the
-    05optimal 'Average Misses by Word Length' fix)."""
-    if width is not None:
-        t = crisp_text(text, font_size=10, color=color).scale_to_fit_width(width)
-    else:
-        t = crisp_text(text, font_size=font_size, color=color)
+def view_title(text, x, y, *, font_size=30, color=BLACK):
+    """A single-line view title (e.g. 'Usage by Tier', 'Common Uses') at `font_size`.
+
+    A LONGER string WRAPS at `crisp_text`'s 240pt supersample cap. When that happens,
+    rebuild it at a small underlying font (no wrap) and scale to the SAME height a
+    single line at `font_size` has — so the title stays ONE line at the intended SIZE,
+    not shrunk to a width. A short title that doesn't wrap is left exactly as before
+    (so existing callers render byte-identically)."""
+    ref = crisp_text("Ag", font_size=font_size, color=color)          # one-line height
+    t = crisp_text(text, font_size=font_size, color=color)
+    if t.height > ref.height * 1.5:                                    # it wrapped
+        t = crisp_text(text, font_size=10, color=color).scale_to_fit_height(ref.height)
     return t.move_to([x, y, 0])
 
 

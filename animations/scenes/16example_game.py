@@ -119,7 +119,6 @@ class Scene16(HangmanScene):
         self._tl_center = np.array([-fx + g + w_tl / 2, 0.0, 0.0])
         self._plot_left = -fx + 2 * g + w_tl + w_lab     # left edge of the ROWS
         self._title_x = self._plot_left + w_rows / 2     # centred over the rows
-        self._title_w = w_rows                           # one-line title width
         # rows block centred on the tier list's centre (y = 0); title just above it
         n = len(lens)
         self._plot_top_y = (n - 1) / 2 * ROW_PITCH       # top row cy (block centred at 0)
@@ -147,15 +146,17 @@ class Scene16(HangmanScene):
                      [left + k * CELL, cy + CELL / 2, 0],
                      color=DIVIDER_COLOR, stroke_width=1.4)
                 for k in range(1, L)])
+            # grid lines get the HIGHEST z so they read over the coloured fill (which
+            # is a separate TOP-LEVEL mobject at z=10 — a fill nested inside .plot does
+            # not render, and a low z does not clear the opaque white box).
             overlay = VGroup(outline, dividers).set_z_index(2)
             lab = crisp_text(str(L), font_size=24, color=BLACK)
             lab.next_to(bg, LEFT, buff=LABEL_BUFF)
-            self.prows[L] = {"cy": cy, "width": W, "left": left, "fills": VGroup()}
+            self.prows[L] = {"cy": cy, "width": W, "left": left}
             self.plot_rows.append(VGroup(lab, bg, overlay))
-        self.title = views.view_title("Usage by Tier", self._title_x, self._title_y,
-                                      width=self._title_w)
+        self.title = views.view_title("Usage by Tier", self._title_x, self._title_y)
         self.plot = VGroup(*self.plot_rows)
-        self.plot_fills = VGroup()                       # coloured bars (added per beat)
+        self.plot_fills = VGroup()                       # coloured bars (top-level, tracked)
 
     def _fill(self, j, run_time):
         """Grow each display row's bar for cache tier `j` (segment prev_frac→cur_frac)
@@ -173,12 +174,14 @@ class Scene16(HangmanScene):
             W, left = row["width"], row["left"]
             rect = Rectangle(width=(b - a) * W, height=CELL)
             rect.set_stroke(width=0).set_fill(color, opacity=1.0)
-            rect.move_to([left + (a + b) / 2 * W, row["cy"], 0]).set_z_index(1)
+            # z=10 clears the opaque white box (z=0); the grid overlay (z=20) still reads
+            # over it. Kept a TOP-LEVEL mobject (self.add) — a fill nested in .plot is
+            # silently not rendered.
+            rect.move_to([left + (a + b) / 2 * W, row["cy"], 0]).set_z_index(10)
             rect.save_state()
             rect.stretch_to_fit_width(1e-3, about_edge=LEFT)   # collapse to its left edge
             self.add(rect)
-            row["fills"].add(rect)
-            self.plot_fills.add(rect)
+            self.plot_fills.add(rect)                    # tracked so board_in can fade it
             anims.append(Restore(rect))                  # grows rightward from the left
         self.play(*anims, run_time=run_time)
 
