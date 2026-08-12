@@ -239,13 +239,13 @@ class Scene18(HangmanScene):
     @subscene
     def try_undo(self):
         undo = self.data["example_undo"]
-        # try the failing change: CRIMSON (marks the one that didn't work), avg drops
-        self._apply_state(undo["worse"], combo_rt=0.9, word_rt=0.9, flash=SHRINK_CRIMSON)
+        # try the failing change: RAISE the e combo → GREEN (direction rule); avg drops
+        self._apply_state(undo["worse"], combo_rt=0.9, word_rt=0.9)
         self._count_to(undo["worse"]["avg_misses"], 0.8)       # DOWN = failure
-        # undo it: returning to default → stay BLUE
-        self._apply_state(undo["base"], combo_rt=0.7, word_rt=0.7, flash=WORD_BLUE)
+        # undo it: LOWER the e combo back → CRIMSON (direction rule)
+        self._apply_state(undo["base"], combo_rt=0.7, word_rt=0.7)
         self._count_to(undo["base"]["avg_misses"], 0.6)
-        # reset the kept beat-d change back to default too → stay BLUE
+        # reset the kept beat-d change (lower u) — JUST resetting, so keep it BLUE
         self._apply_state(undo["reset"], combo_rt=0.9, word_rt=0.9, flash=WORD_BLUE)
         self._count_to(undo["reset"]["avg_misses"], 0.8)
 

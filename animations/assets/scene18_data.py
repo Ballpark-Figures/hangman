@@ -60,8 +60,8 @@ BEAT1_LENGTHS = range(1, 21)
 # PINNED demo combos (stable across display tweaks; both are forced into the shown
 # grid). d RAISES misses (kept); e LOWERS misses (a failure -> undo -> reset). Each
 # also moves a tracked WORD bar so the combo->word propagation is visible.
-BEAT_D_PATTERN, BEAT_D_FACTOR = "_u__", 2.0     # d: 'u' in slot 2 -> pump/just/…
-BEAT_E_PATTERN, BEAT_E_FACTOR = "__e_", 2.0     # e: 'e' in slot 3 -> they/when/them
+BEAT_D_PATTERN, BEAT_D_FACTOR = "_u__", 2.0     # d: 'u' in slot 2 -> pump/just/…  (RAISE, kept)
+BEAT_E_PATTERN, BEAT_E_FACTOR = "__e_", 2.0     # e: 'e' in slot 3 -> they/when/them (RAISE, then undo)
 DEMO_COMBOS = (BEAT_D_PATTERN, BEAT_E_PATTERN)
 
 # beat b is the optimal length-2 tree = the end of scene 05, already cached in
