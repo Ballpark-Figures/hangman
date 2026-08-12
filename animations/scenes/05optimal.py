@@ -713,14 +713,13 @@ class Scene05(HangmanScene):
         by_dot, by_blk, _ = sub.leaves["by"]
         _, my_blk, _ = sub.leaves["my"]
         b_val = f"{self._n_miss_node(5)['avg']:g}"        # 0.5 — sourced {by,my} position value
-        # (a) back up B: label it with its value; drop the children's 'Avg misses: 0'. The value now
-        #     sits on B, so the tall gap CLIMBS from B→leaves up to Y→B (B drops toward its children).
+        # (a) back up B: the value now sits on B, so the tall gap CLIMBS from B→leaves up to Y→B —
+        #     B drops toward its children, its '0.5' fades in travelling WITH it, the base-leaf '0's
+        #     fade out (all one motion).
         self.avg_b = self._avg_label(sub.discs["b"], value=b_val, direction=LEFT)
-        self.play(FadeIn(self.avg_b), FadeOut(self.avg0), FadeOut(self.avg0_by),
-                  run_time=0.9)
         self._gap_up(sub.discs["b"], sub.node_letters[1], sub.gdot, sub.edges["yb"],
                      [(sub.edges["bby"], by_dot), (sub.edges["bm"], sub.discs["m"])],
-                     run_time=0.7, also=[self.avg_b])
+                     run_time=0.9, fade_in=[self.avg_b], fade_out=[self.avg0, self.avg0_by])
         # (b) try the OTHER letter that could go in this node — M. Its optimal continuation
         # MIRRORS B's (M→MY hit / B→BY miss), same avg 0.5, descendants already green: swap
         # the labels in place (guess B↔M, and the BY/MY leaves swap branches).
@@ -875,19 +874,26 @@ class Scene05(HangmanScene):
         return Line(ac + dn * a_dot.width / 2, bc - dn * b_dot.width / 2,
                     color=color, stroke_width=2.0)
 
-    def _gap_up(self, node_dot, node_lab, parent_dot, in_edge, child_pairs, run_time, also=()):
+    def _gap_up(self, node_dot, node_lab, parent_dot, in_edge, child_pairs, run_time,
+                also=(), fade_in=(), fade_out=()):
         """Climb the tall gap up one level: the avg-miss value has just backed up INTO ``node``,
         so the tall edge becomes the one COMING IN to it (``in_edge``, parent→node) and the edges
         going OUT of it (``child_pairs`` = [(edge, child_dot), …]) revert to compact. Implemented
         as: ``node`` drops toward its (fixed) children by GRID_ROOT_DY−GRID_CHILD_DY (at the node's
         scale) — its in-edge lengthens, its out-edges shorten; the subtree below stays put. ``also``
-        = extra mobjects (e.g. the node's avg label) that shift down WITH the node."""
+        = mobjects that shift down WITH the node; ``fade_in`` = the NEW avg label, which fades in
+        WHILE travelling down with the node (appears alongside it as it moves); ``fade_out`` = the
+        old (below) avg labels, which fade out during the same motion."""
         delta = DOWN * (GRID_ROOT_DY - GRID_CHILD_DY) * (node_dot.width / (2 * GRID_NODE_R))
         new_c = node_dot.get_center() + delta
         moved = node_dot.copy().move_to(new_c)
         anims = [node_dot.animate.move_to(new_c), node_lab.animate.move_to(new_c),
                  *[m.animate.shift(delta) for m in also],
+                 *[FadeOut(m) for m in fade_out],
                  Transform(in_edge, self._edge_line(parent_dot, moved, in_edge.get_color()))]
+        for m in fade_in:                      # travels down with the node AND fades in
+            m.set_opacity(0)
+            anims.append(m.animate.set_opacity(1).shift(delta))
         for edge, child_dot in child_pairs:
             anims.append(Transform(edge, self._edge_line(moved, child_dot, edge.get_color())))
         self.play(*anims, run_time=run_time)
@@ -934,19 +940,20 @@ class Scene05(HangmanScene):
         def fmt(v):
             return f"{int(v * 10 + 0.5) / 10:.1f}"      # round half up (values are positive)
 
+        def place(v):
+            return mk(v, WHITE).scale_to_fit_height(height).next_to(node_dot, direction, buff=height * 0.6)
+
         def mk(v, color):
             return crisp_text(f"Avg misses: {fmt(v)}", font_size=12, color=color, weight=BOLD)
-        lab = mk(tracker.get_value(), WHITE)
-        lab.scale_to_fit_height(height).next_to(node_dot, direction, buff=height * 0.6)
-        center, h = lab.get_center(), lab.height
-        st = {"s": fmt(tracker.get_value()), "color": WHITE}
+        lab = place(tracker.get_value())
+        st = {"s": fmt(tracker.get_value())}
 
         def upd(m):
+            # re-place relative to node_dot every frame so the counter FOLLOWS the node when it
+            # moves (e.g. the _gap_up reflow); rebuild the text only when the rounded value ticks
             s = fmt(tracker.get_value())
-            if s == st["s"]:
-                return
             st["s"] = s
-            m.become(mk(float(s), st["color"]).scale_to_fit_height(h).move_to(center))
+            m.become(place(float(s)))
 
         lab.add_updater(upd)
         lab._upd = upd
@@ -969,16 +976,14 @@ class Scene05(HangmanScene):
                      sub.discs["b"], sub.node_letters[1], sub.edges["bby"], by_dot, by_blk,
                      sub.edges["bm"], sub.discs["m"], sub.node_letters[2],
                      sub.edges["mmy"], my_dot, my_blk)
-        # 1) B's value goes away; a FRESH white value appears next to Y (this position, being
-        #    computed — not the same as B's, just coincidentally equal)
+        # 1) the value now sits on Y → the tall gap climbs from Y→B up to U→Y (the diagonal
+        #    connection): Y drops below the diagonal's U, Y→B reverts to compact, Y's FRESH '0.5'
+        #    fades in travelling WITH Y, and B's '0.5' fades out (all one motion).
         avg_y = self._avg_label(sub.discs["y"], value="0.5", direction=LEFT)   # white
-        self.play(FadeOut(self.avg_b), run_time=0.4)
-        self.play(FadeIn(avg_y), run_time=0.4)
-        self.avg_b = avg_y
-        # 1b) the value now sits on Y → the tall gap climbs from Y→B up to U→Y (the diagonal
-        #     connection): Y drops below the diagonal's U, Y→B reverts to compact.
         self._gap_up(sub.gdot, sub.glab, path.levels[4]["dot"], self.grid.drilled_edge,
-                     [(sub.edges["yb"], sub.discs["b"])], run_time=0.7, also=[avg_y])
+                     [(sub.edges["yb"], sub.discs["b"])], run_time=0.7,
+                     fade_in=[avg_y], fade_out=[self.avg_b])
+        self.avg_b = avg_y
         anchor = sub.gdot.get_center()                    # Y's NEW (dropped) position — candidates hang here
         # 2) cycle Y → B → M, each a COMPLETE green subtree. The avg-misses value STAYS on
         #    screen (no flashing) and will roll via a counter where candidates differ; here
@@ -1110,26 +1115,34 @@ class Scene05(HangmanScene):
     def choose_u(self):
         uh = self.u_ref.node["u"]
         u_dot, u_lab = uh.dot, uh.lab
-        uc = u_dot.get_center()
         yedge = self.grid.drilled_edge            # U→Y (miss, red)
         uedge = self.u_pedge                      # U→P (hit, white)
+        path = self.grid.path
         # the persistent U-subtree (already tidy from k/l) IS the U candidate — no reformat
         cur = VGroup(u_dot, u_lab, yedge, uedge, self.u_spine, self.ups)
         scale_c = u_dot.width / (2 * GRID_NODE_R)  # match the persistent tree's node size
         node = self._n_miss_node(4)
         opts = {o["letter"]: o for o in node["options"] if o["splits"]}
-        cand = {}
-        for c in ("y", "b", "m", "p", "s"):        # the alternative candidates (SOURCED)
-            # tall first drop like the active U-tree (U is the frontier) so cross-fades match
-            ct = self._ctree(self._subtree_spec(opts[c]["subtree"]), root_miss=1, tall_level=0)
-            ct.scale(scale_c, about_point=ORIGIN).shift(uc - ct.root.get_center())
-            cand[c] = ct
         u_avg = opts["u"]["avg"]                    # 1.0 (== node['avg'])
         uval = ValueTracker(u_avg)
         counter = self._counter_label(uval, u_dot, direction=LEFT)
-        # fade the {up,us} child value; the rolling counter appears on U (we start ON U)
-        self.play(FadeOut(self.avg_p), FadeIn(counter), run_time=0.6)
+        # We are dealing with the U node now → at the START its value backs up, so the tall gap
+        # climbs from U→children up to E→U (the diagonal connection): U drops below E, U→Y/P revert
+        # to compact, the rolling counter fades in travelling WITH U, {up,us}'s value fades out.
+        counter.remove_updater(counter._upd)        # detach so it can fade + travel with U
+        self._gap_up(u_dot, u_lab, path.levels[3]["dot"], path.levels[4]["in_edge"],
+                     [(yedge, self.u_spine.gdot), (uedge, self.ups.root)],
+                     run_time=0.7, fade_in=[counter], fade_out=[self.avg_p])
         self.avg_p = None
+        counter.add_updater(counter._upd)           # re-attach for the rolling cycle (tracks moved U)
+        uc = u_dot.get_center()                     # U's NEW (dropped) position — candidates hang here
+        cand = {}
+        for c in ("y", "b", "m", "p", "s"):        # the alternative candidates (SOURCED)
+            # compact: at m the tall edge is E→U (above), so each candidate hangs the same tall gap
+            # below E and is internally compact
+            ct = self._ctree(self._subtree_spec(opts[c]["subtree"]), root_miss=1)
+            ct.scale(scale_c, about_point=ORIGIN).shift(uc - ct.root.get_center())
+            cand[c] = ct
         self._active = cur
         self.wait(0.4)                             # hold on the U candidate before cycling
 
@@ -1149,12 +1162,6 @@ class Scene05(HangmanScene):
         del counter._upd
         self.play(VGroup(u_dot, yedge, uedge, counter).animate.set_color(LIGHT_GREEN),
                   run_time=1.0)
-        # U's value (1.0) now sits on U → the tall gap climbs from U→children up to E→U (the diagonal
-        # connection): U drops below E, U→Y/P revert to compact. backup_e then slides U in rigidly.
-        path = self.grid.path
-        self._gap_up(u_dot, u_lab, path.levels[3]["dot"], path.levels[4]["in_edge"],
-                     [(yedge, self.u_spine.gdot), (uedge, self.ups.root)],
-                     run_time=0.7, also=[counter])
         self.u_subtree = cur                        # hand off U's solved subtree to backing up E
         self.avg_u = counter                        # U's value label (green 1.0)
 
