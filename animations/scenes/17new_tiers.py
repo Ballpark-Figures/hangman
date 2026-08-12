@@ -7,9 +7,10 @@ On the BRAND light-blue tier-list background. Four beats:
   c freq_list    — clear the bars; the equal-weighted list (left, "Equal Weighted
                    Words"); a COPY morphs into the FREQUENCY-weighted list (right,
                    "Frequency Weighted"; 6 tiers — the two HIGH tiers merge); arrow AFTER
-  d strategy_chart — [STUB] double bar chart: optimal misses, uniform vs zipf weighting.
-                   Numbers pending sourcing (optimal CSVs; avg of lower/upper bounds where
-                   unconverged). For now it just clears the comparison.
+  d strategy_chart — double bar chart: the optimal strategy's avg misses per word length,
+                   EQUAL (uniform) vs FREQUENCY (zipf) weighting — frequency is lower
+                   everywhere. Sourced from scene17_chart_data (exact where converged, avg
+                   of lower/upper bounds where not).
   e brit_list    — repeat the comparison, American (left) → copy morphs into British
                    (right); A↔I in TOP, Z→bottom of LOW↓; arrow AFTER
   f enc_spelling — below the lists: ENCYCLOPEDIA → ENCYCLOPAEDIA (why A gains in British)
@@ -33,7 +34,12 @@ sys.path.append(str(Path(__file__).resolve().parent.parent.parent.parent))
 from config import *
 from assets import tier_list as tl
 from assets import scene17_data
+from assets import scene17_chart_data
 from bpkfigures.bar_graph import get_bar_chart, morph_bar_chart
+
+# beat-d double bar chart (optimal misses, uniform vs zipf)
+UNIFORM_COLOR = ACCENT_FILL        # equal-weighted bars
+ZIPF_COLOR = ACCENT_GOLD           # frequency-weighted bars
 
 # ── bar graph (beats a/b) ─────────────────────────────────────────────────────
 BAR_ROWS = 3
@@ -62,6 +68,7 @@ class Scene17(HangmanScene):
         self.left = self.right = None
         self.left_title = self.right_title = None
         self.arrow = None
+        self.chart = None
         self.enc = self.realize = None
 
     # ── bar-graph helpers ─────────────────────────────────────────────────────
@@ -175,22 +182,58 @@ class Scene17(HangmanScene):
                            color=TITLE_COLOR, stroke_width=6)
         self.play(GrowArrow(self.arrow), run_time=0.5)               # arrow drawn AFTER
 
-    # d : double bar chart — optimal misses under uniform vs zipf weighting.
-    #     STUB — numbers must be SOURCED (optimal CSVs; avg of lower/upper bounds where
-    #     unconverged). Pending the data decision; for now it just clears the comparison.
+    # d : double bar chart — the OPTIMAL strategy's avg misses per word length, EQUAL
+    #     (uniform) vs FREQUENCY (zipf) weighting; frequency is lower everywhere
+    def _legend(self, entries, pos):
+        g = VGroup()
+        for name, color in entries:
+            sq = Square(side_length=0.28, fill_color=color, fill_opacity=1.0,
+                        stroke_width=0)
+            g.add(VGroup(sq, crisp_text(name, font_size=22,
+                                        color=TITLE_COLOR)).arrange(RIGHT, buff=0.18))
+        return g.arrange(DOWN, buff=0.22, aligned_edge=LEFT).move_to(pos)
+
+    def _strategy_chart(self):
+        data = scene17_chart_data.get()
+        lengths = sorted(int(L) for L in data["uniform"])
+        ymax = max(data[w][str(L)]["avg"] for w in ("uniform", "zipf") for L in lengths)
+        W, cy, H = 12.6, -0.55, 3.8
+        N, slot = len(lengths), 12.6 / len(lengths)
+        dx = slot / 4.2                                     # half-gap between the paired bars
+
+        def series(w, color, off):
+            items = [(str(L), data[w][str(L)]["avg"]) for L in lengths]
+            return get_bar_chart(items, center=[off, cy, 0], width=W, height=H,
+                                 y_max=ymax, n_slots=N, bar_color=color, bar_ratio=0.42,
+                                 show_labels=False)
+
+        uni, zipc = series("uniform", UNIFORM_COLOR, -dx), series("zipf", ZIPF_COLOR, dx)
+        base_y = cy - H / 2
+        xlabels = VGroup(*[crisp_text(str(L), font_size=20, color=TITLE_COLOR).move_to(
+                              [-W / 2 + (i + 0.5) * slot, base_y - 0.28, 0])
+                           for i, L in enumerate(lengths)])
+        xtitle = crisp_text("word length", font_size=24, color=TITLE_COLOR).move_to(
+            [0, base_y - 0.78, 0])
+        title = crisp_text("Optimal Misses per Word", font_size=34, color=TITLE_COLOR,
+                           weight=BOLD).move_to([0, cy + H / 2 + 0.7, 0])
+        legend = self._legend([("Equal", UNIFORM_COLOR), ("Frequency", ZIPF_COLOR)],
+                              [4.9, cy + H / 2 - 0.2, 0])
+        return VGroup(uni, zipc, xlabels, xtitle, title, legend)
+
     @subscene
     def strategy_chart(self):
         self.play(FadeOut(self.left, self.left_title, self.right, self.right_title,
                           self.arrow), run_time=0.6)
         self.left = self.right = self.left_title = self.right_title = self.arrow = None
-        # TODO(strategy_chart): get_bar_graph double bars, optimal avg misses per length,
-        # uniform vs zipf; where a length isn't converged, average lower (capped_avg) and
-        # greedy-finish upper bounds. Data module + committed cache, then render here.
+        self.chart = self._strategy_chart()
+        self.play(FadeIn(self.chart), run_time=0.9)
 
     # e : repeat the comparison — American (left); a copy MORPHS into British (right);
     #     same 7 tiers, A↔I swap in TOP and Z→bottom in LOW↓; arrow drawn AFTER
     @subscene
     def brit_list(self):
+        self.play(FadeOut(self.chart), run_time=0.5)          # clear the beat-d chart
+        self.chart = None
         self.left = self._filled_list(tl.TIER_LETTERS).move_to([LEFT_X, LIST_Y, 0])
         self.left_title = self._title("American English", LEFT_X)
         self.play(FadeIn(self.left, self.left_title), run_time=0.8)
