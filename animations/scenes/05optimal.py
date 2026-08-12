@@ -1107,34 +1107,40 @@ class Scene05(HangmanScene):
         sfac = uh.dot.width / u_now.width
         y0, ty = u_now.get_center(), uh.dot.get_center()
         # E's hit branches don't SPAWN new roots: REUSE each existing bare hit-sibling dot as the
-        # branch's root guess node — morph it to the tidy node size, write its letter on, and
-        # EXPAND its children out of it (same reuse fix as backup_u; see the user's note).
+        # branch's root guess node. TWO phases, mirroring the drill's reveal (`_transform_move`):
+        # (1) the bare dot MOVES to the tidy root slot while its letter RIDES in on top of it
+        # (starts small+transparent AT the bare dot, Restores to the node — NOT a fade-in at the
+        # destination); (2) the branch's children SPROUT out of the settled root.
         hits = path.levels[3]["hits"]                # [(bare_edge, bare_dot), …], one per hit branch
-        anims, hit_trees = [], []
+        move, grows, hit_trees = [], [], []
         for (be, bd), h, sp in zip(hits, hit_handles, e_hit_specs):
             ct = self._ctree(sp, root_miss=0, solved=True)
             ct.scale(scale_c, about_point=ORIGIN).shift(h.dot.get_center() - ct.root.get_center())
+            lab = ct.root_h.lab
+            lab.save_state()                          # ride the letter in with the node…
+            lab.scale(bd.width / ct.root.width).move_to(bd.get_center()).set_opacity(0)
             kids = VGroup(*[m for k in ct.root_h.kids for m in (k.in_edge, k.all)])  # below the root
-            anims += [ReplacementTransform(bd, ct.root),  # existing bare dot → tidy branch root
-                      Transform(be, h.in_edge),           # existing bare edge → tidy E→root edge
-                      FadeIn(ct.root_h.lab),              # write the guess letter onto the node
-                      GrowFromPoint(kids, h.dot.get_center())]  # expand the branch's children
+            move += [ReplacementTransform(bd, ct.root),   # bare dot → tidy branch root (the node moves)
+                     Transform(be, h.in_edge),            # bare edge → tidy E→root edge
+                     Restore(lab)]                        # …letter develops ON the node as it travels
+            grows.append((kids, ct.root))
             hit_trees.append((h, ct))
-        # DECLUTTER the drilled-past board/tally annotations on the diagonal ABOVE E (A/O/I) plus
-        # E's own — E's big subtree now grows RIGHT into the space where these right-splaying
-        # boards sit, so the E→(far-right hit) edge would otherwise cut through them (the user's
-        # note). The diagonal spine + bare dots stay; each level re-expands its own hit siblings
-        # when it's later backed up, so nothing is lost.
+        # only E's OWN bare-board annotation fades (replaced by the real subtree); the drilled-past
+        # A/O/I annotations STAY — they're re-expanded when each of those levels is later backed up
         n_before = sum(len(path.levels[i]["hits"]) for i in range(3))
-        e_anns = VGroup(*path.leaf_text[:n_before + len(hits)])
+        e_anns = VGroup(*path.leaf_text[n_before:n_before + len(hits)])
+        # phase 1 — everything MOVES into place (E morphs to the tidy root, the green U-subtree
+        # slides onto the miss slot, each hit root rides in from its bare dot with its letter)
         self.play(
             self.u_subtree.animate.scale(sfac, about_point=y0).shift(ty - y0),
             FadeOut(self.avg_u),                                      # drop U's value label
             ReplacementTransform(VGroup(e_dot, e_lab), VGroup(eh.dot, eh.lab)),  # diagonal E → tidy E
             Transform(eu_edge, uh.in_edge),                          # E→U (miss) redrawn tidy
-            FadeOut(e_anns),                                          # old decluttered E-hit board
-            *anims,
-            run_time=1.3)
+            FadeOut(e_anns),                                          # E's own bare-board annotation
+            *move,
+            run_time=0.9)
+        # phase 2 — each hit branch's children SPROUT out of the (settled) reused root
+        self.play(*[GrowFromPoint(kids, dot.get_center()) for kids, dot in grows], run_time=0.6)
         self.e_ref, self.eu_edge = e_ref, eu_edge
         self.e_hit_trees = hit_trees                 # [(handle, green subtree), …] for solving
         self.avg_u = None
