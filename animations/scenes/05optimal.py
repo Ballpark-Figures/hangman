@@ -604,13 +604,14 @@ class Scene05(HangmanScene):
         cell.path, cell.drilled_edge, cell.sub, cell.mdot = path, drilled_edge, sub, nm.dot
         return cell, nm.dot
 
-    def _avg_label(self, node_dot, value="0", height=0.34, direction=LEFT):
-        """The 'Avg misses: <value>' annotation beside a node — its backed-up optimal value.
-        ``value`` is a pre-formatted string SOURCED from the tree data (0 for a determined
-        leaf; e.g. 0.5 / 1 / 2 / 3.88 for a backed-up position)."""
+    def _avg_label(self, node_dot, value="0", height=0.34, direction=LEFT, bare=False):
+        """A node's backed-up optimal value beside it. ``value`` is a pre-formatted string SOURCED
+        from the tree data. Beats g–n label it 'Avg misses: <value>'; from scene o on, ``bare=True``
+        shows just the number (see the user's convention change at o)."""
         # build small (crisp_text supersamples to a 240pt cap where a longer string
         # WRAPS in pango — see hangman/bpkfigures CLAUDE.md) then scale to a readable height
-        lab = crisp_text(f"Avg misses: {value}", font_size=12, color=WHITE, weight=BOLD)
+        lab = crisp_text(value if bare else f"Avg misses: {value}",
+                         font_size=12, color=WHITE, weight=BOLD)
         lab.scale_to_fit_height(height).next_to(node_dot, direction, buff=height * 0.6)
         return lab
 
@@ -1260,29 +1261,37 @@ class Scene05(HangmanScene):
         self.avg_u = None
 
     # ── solve E's HIT children — each grown green with a WHITE root in n. For each position
-    #    ({EM,EN,EX} avg 1.0 ; {ME,BE,WE,RE,HE,YE} avg 2.5) show its avg, cycle ONE tied first-guess
-    #    alternative, settle back on M and lock the root + its outgoing edges green. Mirrors
-    #    solve_ups; every value/subtree SOURCED from the E-position node's children. ─────────────
+    #    ({EM,EN,EX}=1.00 ; {ME,BE,WE,RE,HE,YE}=2.50) show its number, cycle through ALL the other
+    #    (tied) first-guesses, settle back on M and lock the root + edges green. From scene o on:
+    #    just the NUMBER (no 'Avg misses:'), rounded to 2 dp, and only ONE number on screen at a
+    #    time (the node being dealt with). Values/subtrees SOURCED from the E-position children. ─
     @subscene
     def solve_e_hit(self):
         children = self._n_miss_node(3)["children"]
-        self.e_hit_avgs = []
-        for (h, ct), key, direction in zip(self.e_hit_trees, ("e_", "_e"), (UP, RIGHT)):
+        prev = None
+        for (h, ct), key, direction in zip(self.e_hit_trees, ("e_", "_e"), (LEFT, RIGHT)):
             child = children[key]
-            avg = self._avg_label(ct.root, value=f"{child['avg']:.1f}", direction=direction)   # 1.0 / 2.5
-            self.play(FadeIn(avg), run_time=0.4)
             opts = {o["letter"]: o for o in child["options"] if o["splits"]}
-            alt = next(c for c in opts if c != child["optimal_letter"])   # a tied alternative guess
-            alt_ct = self._ctree(self._subtree_spec(opts[alt]["subtree"]), root_miss=0)
-            alt_ct.scale(ct.root.width / (2 * GRID_NODE_R), about_point=ORIGIN)
-            alt_ct.shift(ct.root.get_center() - alt_ct.root.get_center())
-            self.play(FadeOut(ct), FadeIn(alt_ct), run_time=0.6)   # M → the alternative
-            self.wait(0.3)
-            self.play(FadeOut(alt_ct), FadeIn(ct), run_time=0.6)   # → back to M
-            self.remove(alt_ct)
-            # choose M: green its root + outgoing edges (subtree already green) and the value
-            self.play(VGroup(ct.root, ct.root_edges, avg).animate.set_color(LIGHT_GREEN), run_time=0.8)
-            self.e_hit_avgs.append(avg)
+            avg = self._avg_label(ct.root, value=f"{child['avg']:.2f}", direction=direction, bare=True)
+            self.play(*([FadeOut(prev)] if prev is not None else []),   # one number at a time
+                      FadeIn(avg), run_time=0.4)
+            # cycle through ALL the other (tied) first-guesses, then settle back on M
+            scale = ct.root.width / (2 * GRID_NODE_R)
+            active = ct
+            for c in [x for x in opts if x != child["optimal_letter"]]:
+                alt = self._ctree(self._subtree_spec(opts[c]["subtree"]), root_miss=0)
+                alt.scale(scale, about_point=ORIGIN).shift(ct.root.get_center() - alt.root.get_center())
+                self.play(FadeOut(active), FadeIn(alt), run_time=0.5)
+                self.wait(0.2)
+                if active is not ct:
+                    self.remove(active)
+                active = alt
+            self.play(FadeOut(active), FadeIn(ct), run_time=0.5)   # back to M (the chosen guess)
+            if active is not ct:
+                self.remove(active)
+            self.play(VGroup(ct.root, ct.root_edges, avg).animate.set_color(LIGHT_GREEN), run_time=0.7)
+            prev = avg
+        self.e_hit_avg = prev             # the last number on screen (_e's 2.50) — choose_e fades it
 
     # ── components ─────────────────────────────────────────────────────────────
     def _greedy_chart(self):
