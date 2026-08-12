@@ -44,6 +44,19 @@ NAME_LABELS   = [("TOP",  None),      # tier 0
 # FYVKW while the notebook had FYVWK). One string per tier, top → bottom.
 TIER_LETTERS = ["EIA", "SR", "TNO", "LDC", "PUGMBH", "FYVWK", "XZJQ"]
 
+# The RE-WEIGHTED tier lists for scene 17, also HAND-COPIED from letter_analysis.ipynb
+# (its guess-order ranking) — sourced, never invented here. Keep in sync with the notebook.
+#
+# Frequency-weighted (US dictionary, WEIGHTING="zipf"): the two HIGH tiers MERGE into a
+# single HIGH, so this list has SIX tiers, not seven.
+FREQ_NAME_LABELS  = [("TOP", None), ("HIGH", None), ("MID", "up"), ("MID", "down"),
+                     ("LOW", "up"), ("LOW", "down")]
+FREQ_TIER_LETTERS = ["EI", "RTNAOS", "LCD", "UPGHM", "YVFBW", "KXQJZ"]
+
+# British English (DICTIONARY="gb", uniform): same SEVEN tiers as the US list; only A
+# passes I in TOP (EIA→EAI) and Z drops to the bottom of LOW↓ (XZJQ→XJQZ).
+GB_TIER_LETTERS   = ["EAI", "SR", "TNO", "LDC", "PUGMBH", "FYVWK", "XJQZ"]
+
 # Letter layout inside a panel: fixed slot pitch + edge buff. The default panel
 # width is sized so the FULLEST tier (most letters) sits with EQUAL left/right
 # margins (the letters fill a symmetric block; shorter tiers stay left-aligned).
@@ -87,6 +100,31 @@ NAME_TIER_COLORS = [
     _A_LOW.interpolate(_A_MID, _LEAN),          # LOW  ↑  → toward MID  (above)
     _A_LOW.interpolate(_A_BELOW_LOW, _LEAN),    # LOW  ↓  → toward deeper purple (below)
 ]
+
+# Group base colours + the neighbour each up/down tier leans toward. Drives both the
+# fixed NAME_TIER_COLORS above and name_colors() for a CUSTOM tier structure (e.g. the
+# 6-tier frequency list, whose single HIGH takes the base colour with no lean).
+_GROUP_BASE  = {"TOP": _A_TOP,  "HIGH": _A_HIGH, "MID": _A_MID,  "LOW": _A_LOW}
+_GROUP_ABOVE = {"TOP": _A_TOP,  "HIGH": _A_TOP,  "MID": _A_HIGH, "LOW": _A_MID}
+_GROUP_BELOW = {"TOP": _A_MID,  "HIGH": _A_MID,  "MID": _A_LOW,  "LOW": _A_BELOW_LOW}
+
+
+def name_colors(tier_names):
+    """Per-tier cell colours for a named tier structure `tier_names` (list of
+    (word, arrow)). A single tier of a group (arrow None) takes the group base; an
+    up/down tier leans by ±_LEAN toward the group above/below. name_colors(NAME_LABELS)
+    reproduces NAME_TIER_COLORS."""
+    out = []
+    for word, arrow in tier_names:
+        base = _GROUP_BASE[word]
+        if arrow == "up":
+            out.append(base.interpolate(_GROUP_ABOVE[word], _LEAN))
+        elif arrow == "down":
+            out.append(base.interpolate(_GROUP_BELOW[word], _LEAN))
+        else:
+            out.append(base)
+    return out
+
 
 PANEL_FILL   = ManimColor("#2B2B2B")   # dark charcoal content row (letters pop on it)
 PANEL_STROKE = ManimColor("#15151A")
@@ -141,10 +179,9 @@ def number_label(i, *, height=0.44, color=LABEL_COLOR):
     return lab.set_height(height)
 
 
-def name_label(i, *, height=0.34, color=LABEL_COLOR):
-    """The named tier label: a word (TOP/HIGH/MID/LOW) with an optional up/down
-    arrow to its RIGHT. `height` is the word's cap height."""
-    word, arrow = NAME_LABELS[i]
+def name_label_spec(word, arrow, *, height=0.34, color=LABEL_COLOR):
+    """The named tier label for a (word, arrow) spec: a word (TOP/HIGH/MID/LOW) with an
+    optional up/down arrow to its RIGHT. `height` is the word's cap height."""
     txt = crisp_text(word, font_size=FONT_SIZE_LG, color=color, weight=BOLD)
     txt.set_height(height)
     if arrow is None:
@@ -157,14 +194,23 @@ def name_label(i, *, height=0.34, color=LABEL_COLOR):
     return VGroup(txt, tri).move_to(ORIGIN)
 
 
+def name_label(i, *, height=0.34, color=LABEL_COLOR):
+    """The named tier label for default tier `i` (reads NAME_LABELS)."""
+    return name_label_spec(*NAME_LABELS[i], height=height, color=color)
+
+
 # ── the tier list ─────────────────────────────────────────────────────────────
 def get_tier_list(labels="letter", *, center=ORIGIN, panel_width=_DEFAULT_PANEL_W,
                   cell_width=1.75, row_height=0.82, row_gap=0.10,
-                  cell_gap=0.08, colors=None, dimmed=False):
-    """A 7-row tier list: a coloured grade CELL on the left + a dark content
-    PANEL on the right, per tier, top (best) → bottom (worst).
+                  cell_gap=0.08, colors=None, dimmed=False, names=None):
+    """A tier list: a coloured grade CELL on the left + a dark content PANEL on the
+    right, per tier, top (best) → bottom (worst). Default is 7 rows.
 
     labels : "letter" | "number" | "name" — which label state to build.
+    names  : optional list of (word, arrow) NAME specs for a CUSTOM tier structure
+             (e.g. the 6-tier frequency-weighted list, whose two HIGH tiers merge into
+             one). Forces labels="name" and sets the number of rows; colours default to
+             `name_colors(names)`.
     dimmed : start every row muted (for the beat-06 emphasis build-up).
     colors : per-tier cell colours; default = the S-tier rainbow for grade labels,
              the grouped TOP/HIGH/MID/LOW palette once the tiers are NAMED.
@@ -173,9 +219,12 @@ def get_tier_list(labels="letter", *, center=ORIGIN, panel_width=_DEFAULT_PANEL_
     contents)), parallel `.cells/.panels/.labels/.contents`, and geometry
     `.panel_left_x` / `.row_cy(i)` for placing letters later.
     """
+    if names is not None:
+        labels = "name"
+    tier_names = names if names is not None else NAME_LABELS
+    n = len(tier_names) if labels == "name" else len(LETTER_LABELS)
     if colors is None:
-        colors = NAME_TIER_COLORS if labels == "name" else TIER_COLORS
-    n = len(LETTER_LABELS)
+        colors = name_colors(tier_names) if labels == "name" else TIER_COLORS
     pitch = row_height + row_gap
     total_h = n * row_height + (n - 1) * row_gap
     top_cy = total_h / 2 - row_height / 2
@@ -185,8 +234,10 @@ def get_tier_list(labels="letter", *, center=ORIGIN, panel_width=_DEFAULT_PANEL_
     panel_cx = left + cell_width + cell_gap + panel_width / 2
     panel_left = left + cell_width + cell_gap
 
-    label_fn = {"letter": letter_label, "number": number_label,
-                "name": name_label}[labels]
+    def build_label(i):
+        if labels == "name":
+            return name_label_spec(*tier_names[i])
+        return (letter_label if labels == "letter" else number_label)(i)
 
     rows, cells, panels, labs, contents = [], [], [], [], []
     for i in range(n):
@@ -201,7 +252,7 @@ def get_tier_list(labels="letter", *, center=ORIGIN, panel_width=_DEFAULT_PANEL_
         panel.set_fill(PANEL_FILL, opacity=1.0).set_stroke(PANEL_STROKE, width=2)
         panel.move_to([panel_cx, cy, 0])
 
-        lab = label_fn(i)
+        lab = build_label(i)
         lab.move_to([cell_cx, cy, 0])
 
         cont = VGroup()   # letters get dropped in here by later scenes

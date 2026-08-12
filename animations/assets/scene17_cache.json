@@ -1,0 +1,200 @@
+{
+  "len2": [
+    {
+      "word": "to",
+      "zipf": 7.43
+    },
+    {
+      "word": "of",
+      "zipf": 7.4
+    },
+    {
+      "word": "in",
+      "zipf": 7.27
+    },
+    {
+      "word": "is",
+      "zipf": 7.07
+    },
+    {
+      "word": "it",
+      "zipf": 6.95
+    },
+    {
+      "word": "on",
+      "zipf": 6.91
+    },
+    {
+      "word": "be",
+      "zipf": 6.79
+    },
+    {
+      "word": "as",
+      "zipf": 6.77
+    },
+    {
+      "word": "at",
+      "zipf": 6.7
+    },
+    {
+      "word": "he",
+      "zipf": 6.69
+    },
+    {
+      "word": "by",
+      "zipf": 6.66
+    },
+    {
+      "word": "my",
+      "zipf": 6.57
+    },
+    {
+      "word": "or",
+      "zipf": 6.54
+    },
+    {
+      "word": "we",
+      "zipf": 6.54
+    },
+    {
+      "word": "an",
+      "zipf": 6.53
+    },
+    {
+      "word": "so",
+      "zipf": 6.52
+    },
+    {
+      "word": "me",
+      "zipf": 6.48
+    },
+    {
+      "word": "if",
+      "zipf": 6.47
+    },
+    {
+      "word": "up",
+      "zipf": 6.39
+    },
+    {
+      "word": "do",
+      "zipf": 6.35
+    },
+    {
+      "word": "no",
+      "zipf": 6.35
+    },
+    {
+      "word": "us",
+      "zipf": 6.04
+    },
+    {
+      "word": "go",
+      "zipf": 6.03
+    },
+    {
+      "word": "am",
+      "zipf": 5.78
+    },
+    {
+      "word": "re",
+      "zipf": 5.23
+    },
+    {
+      "word": "la",
+      "zipf": 5.05
+    },
+    {
+      "word": "hi",
+      "zipf": 5.0
+    },
+    {
+      "word": "ex",
+      "zipf": 4.81
+    },
+    {
+      "word": "ad",
+      "zipf": 4.76
+    },
+    {
+      "word": "ya",
+      "zipf": 4.67
+    },
+    {
+      "word": "ma",
+      "zipf": 4.63
+    },
+    {
+      "word": "id",
+      "zipf": 4.61
+    },
+    {
+      "word": "em",
+      "zipf": 4.57
+    },
+    {
+      "word": "en",
+      "zipf": 4.5
+    },
+    {
+      "word": "pa",
+      "zipf": 4.46
+    },
+    {
+      "word": "yo",
+      "zipf": 4.45
+    },
+    {
+      "word": "op",
+      "zipf": 4.42
+    },
+    {
+      "word": "mi",
+      "zipf": 4.3
+    },
+    {
+      "word": "ye",
+      "zipf": 4.25
+    },
+    {
+      "word": "fa",
+      "zipf": 4.2
+    },
+    {
+      "word": "lo",
+      "zipf": 4.07
+    },
+    {
+      "word": "ab",
+      "zipf": 4.06
+    },
+    {
+      "word": "bi",
+      "zipf": 4.04
+    },
+    {
+      "word": "ta",
+      "zipf": 4.02
+    },
+    {
+      "word": "pi",
+      "zipf": 3.92
+    },
+    {
+      "word": "ti",
+      "zipf": 3.85
+    },
+    {
+      "word": "om",
+      "zipf": 3.55
+    },
+    {
+      "word": "ox",
+      "zipf": 3.47
+    },
+    {
+      "word": "ax",
+      "zipf": 3.34
+    }
+  ]
+}
