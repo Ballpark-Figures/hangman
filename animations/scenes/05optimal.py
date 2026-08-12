@@ -47,10 +47,20 @@ Script row 05, split on '—' (voiceover ↔ animation zip 1:1). BEAT MAP:
   o solve_e_hit   — solve E's two hit children (e_ {EM,EN,EX}=1.00, _e {ME,BE,WE,RE,HE,YE}=2.50):
                     cycle ALL tied first-guesses, lock M green (l for E, ×2). o+ : bare numbers,
                     2 dp, ONE on screen at a time (see the convention change)
-  p choose_e      — back up E: cycle E's candidates (e=2.00 min …), roll the bare counter, choose E,
-                    lock node+edges+value green, climb the gap to I→E (E + I's siblings drop together)
+  p choose_e      — back up E: climb the gap to I→E at the START (E + I's siblings drop first — the
+                    choose_u rule), cycle E's candidates (e=2.00 min …) rolling the bare counter,
+                    choose E, lock node+edges+value green
+  q backup_i      — start backing up I (SAME move as n, one level up): build I's tidy subtree, slide
+                    the green E-subtree onto I's miss slot, grow I's i_/_i hit branches (green)
+  r solve_i_hit   — solve I's hit children (i_=2.00, _i=2.00): cycle ALL tied first-guesses, lock green
+  s choose_i      — back up I: climb to O→I at the START, cycle I's candidates (i=2.57 min …), choose I
+  t backup_o      — start backing up O (SAME move as q): build O's tidy subtree, slide the green
+                    I-subtree onto O's miss slot, grow O's o_/_o hit branches (green)
+  u solve_o_hit   — solve O's hit children (o_=2.50, _o=3.00): cycle ALL tied first-guesses, lock green
+  v choose_o      — back up O: climb to A→O (the diagonal root) at the START, cycle O's candidates
+                    (o=3.28 min …), choose O, lock node+edges+value green
   --- next sections (not yet built) ---
-  … repeat up the diagonal (I→A); dedup + prune; paired chart
+  … back up A (the root) + the first-letter grid recap; dedup + prune; paired chart
 
 BACK-UP BEAT RECIPE (the I→O→A back-ups REPEAT this — reuse, don't reinvent; k/l/m and n/o/p
 are the worked examples, each level is 3 beats):
@@ -976,6 +986,50 @@ class Scene05(HangmanScene):
                 for pat, child in items]
         return {"g": g, "kids": kids}
 
+    # ── resolved-play spec builders: the DRAWN optimal-subtree SKELETONS a back-up slides its
+    #    already-solved child onto its parent's miss slot. ONE source of truth for "what the
+    #    solved subtree below X looks like", reused by backup_e / backup_i / backup_o (see the
+    #    BACK-UP BEAT RECIPE) — so the tidy parent tree reserves the matching footprint. ────────
+    def _u_position_spec(self, key="u"):
+        """The RESOLVED U-position play as DRAWN — the {by,my,up,us} bottom. Hand-composed (NOT
+        `_subtree_spec`) because the DRAWN guess ORDER is the Y-first spine tiebreak from
+        `_ymy_cell`/`choose_u` (an equally-optimal order the solver's raw output doesn't match);
+        expected misses are identical. Structure only — carries no numbers."""
+        spec = {"g": "u",
+                "hit": {"g": "p", "hit": {"leaf": "up"},
+                        "miss": {"g": "s", "hit": {"leaf": "us"}}},
+                "miss": {"g": "y", "hit": {"g": "b", "hit": {"leaf": "by"},
+                                           "miss": {"g": "m", "hit": {"leaf": "my"}}}}}
+        if key:
+            spec["key"] = key
+        return spec
+
+    def _position_hit_specs(self, depth):
+        """The HIT-branch plays (X_ and _X, SOURCED via `_subtree_spec`) of the optimal letter at
+        the depth-``depth`` all-miss position — grown as green solved subtrees off the diagonal's
+        bare hit-sibling dots when that position is backed up (backup_e / backup_i / backup_o)."""
+        node = self._n_miss_node(depth)
+        opt = {o["letter"]: o for o in node["options"]}[node["optimal_letter"]]
+        full = self._subtree_spec(opt["subtree"])
+        return [sp for im, sp in full["kids"] if not im]
+
+    def _resolved_play_spec(self, depth, key=None):
+        """The fully-resolved optimal PLAY at the depth-``depth`` all-miss position, as DRAWN — the
+        skeleton a HIGHER back-up slides its already-solved subtree onto (so the parent's tidy
+        `_ctree` reserves the matching footprint). The optimal letter guessed, its HIT branches
+        SOURCED (`_position_hit_specs`), its MISS child = the resolved play ONE LEVEL DEEPER
+        (recursion), bottoming at the U-position's drawn Y-first spine (`_u_position_spec`). ``key``
+        tags ONLY this root (deeper nodes stay unkeyed) so `_ctree`'s g.node[key] addresses the slot."""
+        if depth >= 4:
+            return self._u_position_spec(key)
+        node = self._n_miss_node(depth)
+        spec = {"g": node["optimal_letter"],
+                "kids": [(True, self._resolved_play_spec(depth + 1))]
+                        + [(False, sp) for sp in self._position_hit_specs(depth)]}
+        if key:
+            spec["key"] = key
+        return spec
+
     def _counter_label(self, tracker, node_dot, direction=LEFT, height=0.34, bare=False):
         """The ROLLING version of ``_avg_label``: a value label that follows ``tracker`` (via the
         shared `_value_label`, so same format/size), re-placed relative to ``node_dot`` each frame
@@ -1217,17 +1271,12 @@ class Scene05(HangmanScene):
         eu_edge = path.levels[4]["in_edge"]           # the diagonal E→U (miss) edge
         # U-position spec (E's MISS child) — the SAME structure as the on-screen green
         # U-subtree, so it slides on exactly; keyed 'u' to address the slot.
-        u_sub_spec = {"g": "u", "key": "u",
-                      "hit": {"g": "p", "hit": {"leaf": "up"},
-                              "miss": {"g": "s", "hit": {"leaf": "us"}}},
-                      "miss": {"g": "y", "hit": {"g": "b", "hit": {"leaf": "by"},
-                                                 "miss": {"g": "m", "hit": {"leaf": "my"}}}}}
-        # E's HIT branches (e_, _e, …) SOURCED from the cache. e_ref lays out the WHOLE E
-        # subtree (unsolved); the hit branches are grown as separate green solved subtrees
-        # (mirroring {up,us} at the U level), the miss slot filled by the slid U-subtree.
-        e_opt = {o["letter"]: o for o in self._n_miss_node(3)["options"]}["e"]
-        e_full = self._subtree_spec(e_opt["subtree"])
-        e_hit_specs = [sp for im, sp in e_full["kids"] if not im]     # the E-hit branches
+        # E's MISS child = the resolved U-position play as DRAWN; its HIT branches (e_, _e) SOURCED.
+        # e_ref lays out the WHOLE E subtree (unsolved); the hit branches are grown as separate green
+        # solved subtrees (mirroring {up,us} at the U level), the miss slot filled by the slid
+        # U-subtree. Same skeleton helpers backup_i / backup_o reuse one level up.
+        u_sub_spec = self._u_position_spec("u")
+        e_hit_specs = self._position_hit_specs(3)                     # the E-hit branches
         e_spec = {"g": "e", "key": "e",
                   "kids": [(True, u_sub_spec)] + [(False, sp) for sp in e_hit_specs]}
         e_ref = self._ctree(e_spec, root_miss=1, solved=False, tall_level=0)
@@ -1324,21 +1373,33 @@ class Scene05(HangmanScene):
         path = self.grid.path
         eh = self.e_ref.node["e"]
         e_dot, e_lab = eh.dot, eh.lab
-        ec = e_dot.get_center()
         scale_c = e_dot.width / (2 * GRID_NODE_R)
         hit_cts = [ct for h, ct in self.e_hit_trees]
-        # the persistent E-tree IS the E candidate
-        cur = VGroup(e_dot, e_lab, self.eu_edge, *self.e_hit_edges, self.u_subtree, *hit_cts)
         opts = {o["letter"]: o for o in self._n_miss_node(3)["options"] if o["splits"]}
         e_avg = opts["e"]["avg"]                     # 2.0
         eval_ = ValueTracker(e_avg)
         counter = self._counter_label(eval_, e_dot, direction=LEFT, bare=True)
-        # fade the last hit number (_e's 2.50); the rolling counter appears on E (one at a time)
-        self.play(FadeOut(self.e_hit_avg), FadeIn(counter), run_time=0.6)
+        # climb the gap to I→E at the START of the beat (the node + its siblings drop at the
+        # BEGINNING, per the choose_u rule): E drops below I, E→children revert to compact, the
+        # rolling counter fades in travelling WITH E, the last hit number (_e's 2.50) fades out;
+        # I's OTHER children (bare hit dots + boards) drop WITH E (sibling rule).
+        n_before = sum(len(path.levels[i]["hits"]) for i in range(2))
+        i_hits, i_anns = path.levels[2]["hits"], path.leaf_text[n_before:]
+        i_sibs = [(VGroup(hd, ann), hd, he) for (he, hd), ann in zip(i_hits, i_anns)]
+        child_pairs = [(self.eu_edge, self.u_ref.node["u"].dot)] + \
+                      [(e, ct.root) for e, ct in zip(self.e_hit_edges, hit_cts)]
+        counter.remove_updater(counter._upd)         # detach so it can fade + travel with E
+        self._gap_up(e_dot, e_lab, path.levels[2]["dot"], path.levels[3]["in_edge"],
+                     child_pairs, run_time=0.7, fade_in=[counter], fade_out=[self.e_hit_avg],
+                     siblings=i_sibs)
+        counter.add_updater(counter._upd)            # re-attach for the rolling cycle (tracks moved E)
+        # the persistent E-tree (now dropped) IS the E candidate
+        cur = VGroup(e_dot, e_lab, self.eu_edge, *self.e_hit_edges, self.u_subtree, *hit_cts)
+        ec = e_dot.get_center()                      # E's NEW (dropped) position — candidates hang here
         alts = [c for c in opts if c != "e"]
         cand = {}
-        for c in alts:                               # full E-subtrees, tall_level=0 like the active tree
-            ct = self._ctree(self._subtree_spec(opts[c]["subtree"]), root_miss=1, tall_level=0)
+        for c in alts:                               # compact (the tall gap is I→E, above)
+            ct = self._ctree(self._subtree_spec(opts[c]["subtree"]), root_miss=1)
             ct.scale(scale_c, about_point=ORIGIN).shift(ec - ct.root.get_center())
             cand[c] = ct
         self._active = cur
@@ -1359,17 +1420,297 @@ class Scene05(HangmanScene):
         del counter._upd
         e_edges = VGroup(self.eu_edge, *self.e_hit_edges)
         self.play(VGroup(e_dot, e_edges, counter).animate.set_color(LIGHT_GREEN), run_time=1.0)
-        # the value now sits on E → the tall gap climbs from E→children up to I→E: E drops below I;
-        # I's OTHER children (its hit-sibling bare dots + boards) drop with it (sibling rule).
-        n_before = sum(len(path.levels[i]["hits"]) for i in range(2))
-        i_hits, i_anns = path.levels[2]["hits"], path.leaf_text[n_before:]
-        i_sibs = [(VGroup(hd, ann), hd, he) for (he, hd), ann in zip(i_hits, i_anns)]
-        child_pairs = [(self.eu_edge, self.u_ref.node["u"].dot)] + \
-                      [(e, ct.root) for e, ct in zip(self.e_hit_edges, hit_cts)]
-        self._gap_up(e_dot, e_lab, path.levels[2]["dot"], path.levels[3]["in_edge"],
-                     child_pairs, run_time=0.7, also=[counter], siblings=i_sibs)
         self.e_subtree = cur                         # hand off E's solved subtree to backing up I
         self.avg_e = counter                         # E's value label (green 2.00)
+
+    # ── q : start backing up I. SAME move as backing up E (n), one level up. Build I's FULL
+    #        tidy subtree as a _ctree (I → its i_/_i HIT branches + the E-position as the MISS
+    #        child), slide the solved green E-subtree onto I's miss slot (scaled to the new,
+    #        smaller node size), morph the diagonal I into the tidy root, and GROW I's hit
+    #        branches (shown solved-green) — chosen among in solve_i_hit / choose_i. ────────────
+    @subscene
+    def backup_i(self):
+        path = self.grid.path
+        i_dot, i_lab = path.levels[2]["dot"], path.levels[2]["lab"]
+        ic = i_dot.get_center()
+        ie_edge = path.levels[3]["in_edge"]           # the diagonal I→E (miss) edge
+        # I's MISS child = the resolved E-play as DRAWN (same structure as the on-screen green
+        # E-subtree, so it slides on exactly). SOURCED via _resolved_play_spec; keyed 'e'.
+        e_sub_spec = self._resolved_play_spec(3, key="e")
+        i_hit_specs = self._position_hit_specs(2)     # I's HIT branches (i_, _i), SOURCED
+        i_spec = {"g": "i", "key": "i",
+                  "kids": [(True, e_sub_spec)] + [(False, sp) for sp in i_hit_specs]}
+        i_ref = self._ctree(i_spec, root_miss=1, solved=False, tall_level=0)
+        scale_c = (ic[1] + 4.0) / i_ref.height        # fit below I, pinned at its diagonal node (as in n)
+        i_ref.scale(scale_c, about_point=ORIGIN).shift(ic - i_ref.root.get_center())
+        ih, eh = i_ref.node["i"], i_ref.node["e"]
+        hit_handles = [k for k in ih.kids if not k.is_miss]
+        # slide the green E-subtree onto i_ref's E (miss) slot — exact overlay, scaled down
+        e_now = self.e_ref.node["e"].dot
+        sfac = eh.dot.width / e_now.width
+        y0, ty = e_now.get_center(), eh.dot.get_center()
+        # I's hit branches REUSE each existing bare hit-sibling dot as the branch's root (the
+        # drill's ride-in — letter starts small+transparent AT the bare dot, Restores as the node
+        # travels), then the branch's children SPROUT out of the settled root. Mirrors backup_e.
+        hits = path.levels[2]["hits"]                 # [(bare_edge, bare_dot), …], one per hit branch
+        move, grows, hit_trees = [], [], []
+        for (be, bd), h, sp in zip(hits, hit_handles, i_hit_specs):
+            ct = self._ctree(sp, root_miss=0, solved=True)
+            ct.scale(scale_c, about_point=ORIGIN).shift(h.dot.get_center() - ct.root.get_center())
+            lab = ct.root_h.lab
+            lab.save_state()
+            lab.scale(bd.width / ct.root.width).move_to(bd.get_center()).set_opacity(0)
+            kids = VGroup(*[m for k in ct.root_h.kids for m in (k.in_edge, k.all)])
+            move += [ReplacementTransform(bd, ct.root),
+                     Transform(be, h.in_edge),
+                     Restore(lab)]
+            grows.append((kids, ct.root))
+            hit_trees.append((h, ct))
+        n_before = sum(len(path.levels[i]["hits"]) for i in range(2))
+        i_anns = VGroup(*path.leaf_text[n_before:n_before + len(hits)])
+        # phase 1 — everything MOVES into place (I morphs to the tidy root, the green E-subtree
+        # slides onto the miss slot, each hit root rides in with its letter)
+        self.play(
+            self.e_subtree.animate.scale(sfac, about_point=y0).shift(ty - y0),
+            FadeOut(self.avg_e),                                      # drop E's value label
+            ReplacementTransform(VGroup(i_dot, i_lab), VGroup(ih.dot, ih.lab)),  # diagonal I → tidy I
+            Transform(ie_edge, eh.in_edge),                          # I→E (miss) redrawn tidy
+            FadeOut(i_anns),                                          # I's own bare-board annotations
+            *move,
+            run_time=0.9)
+        # phase 2 — each hit branch's children SPROUT out of the (settled) reused root
+        self.play(*[GrowFromPoint(kids, dot.get_center()) for kids, dot in grows], run_time=0.6)
+        self.i_ref, self.ie_edge = i_ref, ie_edge
+        self.i_hit_trees = hit_trees                 # [(handle, green subtree), …] for solving
+        self.i_hit_edges = [be for be, bd in hits]   # the ACTUAL on-screen I→root edges (transformed be)
+        # keep self.e_subtree — it's now the slid miss child of I; choose_i folds it into cur
+        self.avg_e = None
+
+    # ── r : solve I's HIT children (i_ {…}=2.0 ; _i {…}=2.0) — for each show its number, cycle
+    #        through ALL the other (tied) first-guesses, settle on the optimal, lock root + edges
+    #        green. Bare 2-dp numbers, ONE on screen at a time. Mirror of solve_e_hit. ───────────
+    @subscene
+    def solve_i_hit(self):
+        children = self._n_miss_node(2)["children"]
+        hit_keys = [p for p in children if set(p) != {"_"}]      # ['i_', '_i'] — SOURCED order
+        prev = None
+        for (h, ct), key, direction in zip(self.i_hit_trees, hit_keys, (LEFT, RIGHT)):
+            child = children[key]
+            opts = {o["letter"]: o for o in child["options"] if o["splits"]}
+            avg = self._avg_label(ct.root, value=child["avg"], direction=direction, bare=True)
+            self.play(*([FadeOut(prev)] if prev is not None else []),   # one number at a time
+                      FadeIn(avg), run_time=0.4)
+            scale = ct.root.width / (2 * GRID_NODE_R)
+            active = ct
+            for c in [x for x in opts if x != child["optimal_letter"]]:  # ALL the other tied guesses
+                alt = self._ctree(self._subtree_spec(opts[c]["subtree"]), root_miss=0)
+                alt.scale(scale, about_point=ORIGIN).shift(ct.root.get_center() - alt.root.get_center())
+                self.play(FadeOut(active), FadeIn(alt), run_time=0.5)
+                self.wait(0.2)
+                if active is not ct:
+                    self.remove(active)
+                active = alt
+            self.play(FadeOut(active), FadeIn(ct), run_time=0.5)    # back to the chosen guess
+            if active is not ct:
+                self.remove(active)
+            self.play(VGroup(ct.root, ct.root_edges, avg).animate.set_color(LIGHT_GREEN), run_time=0.7)
+            prev = avg
+        self.i_hit_avg = prev             # the last number on screen — choose_i fades it
+
+    # ── s : back up I — cycle I's first-guess candidates (i=2.57 the min, then e/m/y/b/…, ALL
+    #        sourced), the bare 2-dp counter rolling on I; choose I, lock node + all edges + value
+    #        green. The climb to O→I happens at the START (node + siblings drop first). Mirror of
+    #        choose_e (climb-at-start, per the choose_u rule). ────────────────────────────────────
+    @subscene
+    def choose_i(self):
+        path = self.grid.path
+        ih = self.i_ref.node["i"]
+        i_dot, i_lab = ih.dot, ih.lab
+        scale_c = i_dot.width / (2 * GRID_NODE_R)
+        hit_cts = [ct for h, ct in self.i_hit_trees]
+        opts = {o["letter"]: o for o in self._n_miss_node(2)["options"] if o["splits"]}
+        i_avg = opts["i"]["avg"]                     # 2.565…
+        ival = ValueTracker(i_avg)
+        counter = self._counter_label(ival, i_dot, direction=LEFT, bare=True)
+        # climb the gap to O→I at the START: I drops below O, I→children revert to compact, the
+        # counter fades in travelling WITH I, the last hit number fades out; O's OTHER children
+        # (bare hit dots + boards) drop WITH I (sibling rule).
+        n_before = sum(len(path.levels[i]["hits"]) for i in range(1))
+        o_hits, o_anns = path.levels[1]["hits"], path.leaf_text[n_before:]
+        o_sibs = [(VGroup(hd, ann), hd, he) for (he, hd), ann in zip(o_hits, o_anns)]
+        child_pairs = [(self.ie_edge, self.e_ref.node["e"].dot)] + \
+                      [(e, ct.root) for e, ct in zip(self.i_hit_edges, hit_cts)]
+        counter.remove_updater(counter._upd)
+        self._gap_up(i_dot, i_lab, path.levels[1]["dot"], path.levels[2]["in_edge"],
+                     child_pairs, run_time=0.7, fade_in=[counter], fade_out=[self.i_hit_avg],
+                     siblings=o_sibs)
+        counter.add_updater(counter._upd)
+        # the persistent I-tree (now dropped) IS the I candidate — includes the slid E-subtree (miss)
+        cur = VGroup(i_dot, i_lab, self.ie_edge, *self.i_hit_edges, self.e_subtree, *hit_cts)
+        ic = i_dot.get_center()                      # I's NEW (dropped) position — candidates hang here
+        alts = [c for c in opts if c != "i"]
+        cand = {}
+        for c in alts:                               # compact (the tall gap is O→I, above)
+            ct = self._ctree(self._subtree_spec(opts[c]["subtree"]), root_miss=1)
+            ct.scale(scale_c, about_point=ORIGIN).shift(ic - ct.root.get_center())
+            cand[c] = ct
+        self._active = cur
+        self.wait(0.4)
+
+        def swap_to(tree, val):
+            self.play(FadeOut(self._active), FadeIn(tree),
+                      ival.animate.set_value(val), run_time=0.6)
+            self.wait(0.25)
+            self._active = tree
+
+        for c in alts:                               # I → every other first guess → back to I
+            swap_to(cand[c], opts[c]["avg"])
+        swap_to(cur, i_avg)                          # settle back on I (the minimum)
+        self.remove(*(cand[c] for c in alts))
+        counter.remove_updater(counter._upd)
+        del counter._upd
+        i_edges = VGroup(self.ie_edge, *self.i_hit_edges)
+        self.play(VGroup(i_dot, i_edges, counter).animate.set_color(LIGHT_GREEN), run_time=1.0)
+        self.i_subtree = cur                         # hand off I's solved subtree to backing up O
+        self.avg_i = counter                         # I's value label (green)
+
+    # ── t : start backing up O. SAME move as backing up I (q), one level up. Build O's FULL tidy
+    #        subtree, slide the solved green I-subtree onto O's miss slot, morph the diagonal O
+    #        into the tidy root, and GROW O's hit branches (green). Mirror of backup_i. ───────────
+    @subscene
+    def backup_o(self):
+        path = self.grid.path
+        o_dot, o_lab = path.levels[1]["dot"], path.levels[1]["lab"]
+        oc = o_dot.get_center()
+        oi_edge = path.levels[2]["in_edge"]           # the diagonal O→I (miss) edge
+        # O's MISS child = the resolved I-play as DRAWN (matches the on-screen green I-subtree).
+        i_sub_spec = self._resolved_play_spec(2, key="i")
+        o_hit_specs = self._position_hit_specs(1)     # O's HIT branches (o_, _o), SOURCED
+        o_spec = {"g": "o", "key": "o",
+                  "kids": [(True, i_sub_spec)] + [(False, sp) for sp in o_hit_specs]}
+        o_ref = self._ctree(o_spec, root_miss=1, solved=False, tall_level=0)
+        scale_c = (oc[1] + 4.0) / o_ref.height        # fit below O, pinned at its diagonal node
+        o_ref.scale(scale_c, about_point=ORIGIN).shift(oc - o_ref.root.get_center())
+        oh, ih = o_ref.node["o"], o_ref.node["i"]
+        hit_handles = [k for k in oh.kids if not k.is_miss]
+        i_now = self.i_ref.node["i"].dot
+        sfac = ih.dot.width / i_now.width
+        y0, ty = i_now.get_center(), ih.dot.get_center()
+        hits = path.levels[1]["hits"]                 # O's bare hit-sibling dots
+        move, grows, hit_trees = [], [], []
+        for (be, bd), h, sp in zip(hits, hit_handles, o_hit_specs):
+            ct = self._ctree(sp, root_miss=0, solved=True)
+            ct.scale(scale_c, about_point=ORIGIN).shift(h.dot.get_center() - ct.root.get_center())
+            lab = ct.root_h.lab
+            lab.save_state()
+            lab.scale(bd.width / ct.root.width).move_to(bd.get_center()).set_opacity(0)
+            kids = VGroup(*[m for k in ct.root_h.kids for m in (k.in_edge, k.all)])
+            move += [ReplacementTransform(bd, ct.root),
+                     Transform(be, h.in_edge),
+                     Restore(lab)]
+            grows.append((kids, ct.root))
+            hit_trees.append((h, ct))
+        n_before = sum(len(path.levels[i]["hits"]) for i in range(1))
+        o_anns = VGroup(*path.leaf_text[n_before:n_before + len(hits)])
+        self.play(
+            self.i_subtree.animate.scale(sfac, about_point=y0).shift(ty - y0),
+            FadeOut(self.avg_i),                                      # drop I's value label
+            ReplacementTransform(VGroup(o_dot, o_lab), VGroup(oh.dot, oh.lab)),  # diagonal O → tidy O
+            Transform(oi_edge, ih.in_edge),                          # O→I (miss) redrawn tidy
+            FadeOut(o_anns),                                          # O's own bare-board annotations
+            *move,
+            run_time=0.9)
+        self.play(*[GrowFromPoint(kids, dot.get_center()) for kids, dot in grows], run_time=0.6)
+        self.o_ref, self.oi_edge = o_ref, oi_edge
+        self.o_hit_trees = hit_trees
+        self.o_hit_edges = [be for be, bd in hits]
+        # keep self.i_subtree — it's now the slid miss child of O; choose_o folds it into cur
+        self.avg_i = None
+
+    # ── u : solve O's HIT children (o_ {…}=2.5 ; _o {…}=3.0) — cycle ALL tied first-guesses, lock
+    #        each root + edges green. Bare 2-dp numbers, one at a time. Mirror of solve_i_hit. ─────
+    @subscene
+    def solve_o_hit(self):
+        children = self._n_miss_node(1)["children"]
+        hit_keys = [p for p in children if set(p) != {"_"}]      # ['o_', '_o']
+        prev = None
+        for (h, ct), key, direction in zip(self.o_hit_trees, hit_keys, (LEFT, RIGHT)):
+            child = children[key]
+            opts = {o["letter"]: o for o in child["options"] if o["splits"]}
+            avg = self._avg_label(ct.root, value=child["avg"], direction=direction, bare=True)
+            self.play(*([FadeOut(prev)] if prev is not None else []),
+                      FadeIn(avg), run_time=0.4)
+            scale = ct.root.width / (2 * GRID_NODE_R)
+            active = ct
+            for c in [x for x in opts if x != child["optimal_letter"]]:
+                alt = self._ctree(self._subtree_spec(opts[c]["subtree"]), root_miss=0)
+                alt.scale(scale, about_point=ORIGIN).shift(ct.root.get_center() - alt.root.get_center())
+                self.play(FadeOut(active), FadeIn(alt), run_time=0.5)
+                self.wait(0.2)
+                if active is not ct:
+                    self.remove(active)
+                active = alt
+            self.play(FadeOut(active), FadeIn(ct), run_time=0.5)
+            if active is not ct:
+                self.remove(active)
+            self.play(VGroup(ct.root, ct.root_edges, avg).animate.set_color(LIGHT_GREEN), run_time=0.7)
+            prev = avg
+        self.o_hit_avg = prev
+
+    # ── v : back up O — cycle O's first-guess candidates (o=3.28 the min, then i/e/m/y/…, ALL
+    #        sourced), the bare counter rolling on O; choose O, lock node + all edges + value green.
+    #        The climb to A→O (the diagonal root) happens at the START. Mirror of choose_i. ─────────
+    @subscene
+    def choose_o(self):
+        path = self.grid.path
+        oh = self.o_ref.node["o"]
+        o_dot, o_lab = oh.dot, oh.lab
+        scale_c = o_dot.width / (2 * GRID_NODE_R)
+        hit_cts = [ct for h, ct in self.o_hit_trees]
+        opts = {o["letter"]: o for o in self._n_miss_node(1)["options"] if o["splits"]}
+        o_avg = opts["o"]["avg"]                     # 3.278
+        oval = ValueTracker(o_avg)
+        counter = self._counter_label(oval, o_dot, direction=LEFT, bare=True)
+        # climb the gap to A→O at the START: O drops below A (the diagonal root), O→children revert
+        # to compact, the counter fades in travelling WITH O, the last hit number fades out; A's
+        # OTHER children (bare hit dots + boards) drop WITH O (sibling rule). A is level 0 → no offset.
+        a_hits, a_anns = path.levels[0]["hits"], path.leaf_text
+        a_sibs = [(VGroup(hd, ann), hd, he) for (he, hd), ann in zip(a_hits, a_anns)]
+        child_pairs = [(self.oi_edge, self.i_ref.node["i"].dot)] + \
+                      [(e, ct.root) for e, ct in zip(self.o_hit_edges, hit_cts)]
+        counter.remove_updater(counter._upd)
+        self._gap_up(o_dot, o_lab, path.levels[0]["dot"], path.levels[1]["in_edge"],
+                     child_pairs, run_time=0.7, fade_in=[counter], fade_out=[self.o_hit_avg],
+                     siblings=a_sibs)
+        counter.add_updater(counter._upd)
+        # the persistent O-tree (now dropped) IS the O candidate — includes the slid I-subtree (miss)
+        cur = VGroup(o_dot, o_lab, self.oi_edge, *self.o_hit_edges, self.i_subtree, *hit_cts)
+        oc = o_dot.get_center()
+        alts = [c for c in opts if c != "o"]
+        cand = {}
+        for c in alts:                               # compact (the tall gap is A→O, above)
+            ct = self._ctree(self._subtree_spec(opts[c]["subtree"]), root_miss=1)
+            ct.scale(scale_c, about_point=ORIGIN).shift(oc - ct.root.get_center())
+            cand[c] = ct
+        self._active = cur
+        self.wait(0.4)
+
+        def swap_to(tree, val):
+            self.play(FadeOut(self._active), FadeIn(tree),
+                      oval.animate.set_value(val), run_time=0.6)
+            self.wait(0.25)
+            self._active = tree
+
+        for c in alts:                               # O → every other first guess → back to O
+            swap_to(cand[c], opts[c]["avg"])
+        swap_to(cur, o_avg)                          # settle back on O (the minimum)
+        self.remove(*(cand[c] for c in alts))
+        counter.remove_updater(counter._upd)
+        del counter._upd
+        o_edges = VGroup(self.oi_edge, *self.o_hit_edges)
+        self.play(VGroup(o_dot, o_edges, counter).animate.set_color(LIGHT_GREEN), run_time=1.0)
+        self.o_subtree = cur                         # hand off O's solved subtree to backing up A
+        self.avg_o = counter                         # O's value label (green)
 
     # ── components ─────────────────────────────────────────────────────────────
     def _greedy_chart(self):
