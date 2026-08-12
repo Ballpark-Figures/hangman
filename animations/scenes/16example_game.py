@@ -145,21 +145,20 @@ class Scene16(HangmanScene):
             bg.set_fill(WHITE, opacity=1.0).set_stroke(width=0)
             bg.move_to([left + W / 2, cy, 0])
             outline = Rectangle(width=W, height=CELL)
-            outline.set_fill(opacity=0).set_stroke(BLACK, width=1.8)
+            outline.set_fill(opacity=0).set_stroke(BLACK, width=1.8).set_z_index(2)
             outline.move_to([left + W / 2, cy, 0])
+            # grey dividers sit ABOVE the coloured fill (z=10) so they READ over it —
+            # they're thin lines, so they don't occlude; the black outline stays below
+            # the fill (a filled rect above the fill would blank it).
             dividers = VGroup(*[
                 Line([left + k * CELL, cy - CELL / 2, 0],
                      [left + k * CELL, cy + CELL / 2, 0],
                      color=DIVIDER_COLOR, stroke_width=1.4)
-                for k in range(1, L)])
-            # grid lines get the HIGHEST z so they read over the coloured fill (which
-            # is a separate TOP-LEVEL mobject at z=10 — a fill nested inside .plot does
-            # not render, and a low z does not clear the opaque white box).
-            overlay = VGroup(outline, dividers).set_z_index(2)
+                for k in range(1, L)]).set_z_index(15)
             lab = crisp_text(str(L), font_size=24, color=BLACK)
             lab.next_to(bg, LEFT, buff=LABEL_BUFF)
             self.prows[L] = {"cy": cy, "width": W, "left": left}
-            self.plot_rows.append(VGroup(lab, bg, overlay))
+            self.plot_rows.append(VGroup(lab, bg, outline, dividers))
         self.title = views.view_title("Usage by Tier", self._title_x, self._title_y)
         self.plot = VGroup(*self.plot_rows)
         self.plot_fills = VGroup()                       # coloured bars (top-level, tracked)
@@ -261,7 +260,7 @@ class Scene16(HangmanScene):
         of the gallows (scene 11's grid region): each row = the tier NAME (+ arrow) in
         its tier colour, then the tier's letters in vowel-red / consonant-blue. Stores
         `self.ctl_tiles[ch]` (each letter's chalk mob) so a guess can gold-box it."""
-        name_h, let_h, row_pitch, let_buff = 0.34, 0.40, 0.60, 0.24
+        name_h, let_h, row_pitch, let_pitch = 0.34, 0.40, 0.60, 0.52
         self.ctl_tiles = {}
         names, letters = [], []
         for i in range(7):
@@ -269,35 +268,41 @@ class Scene16(HangmanScene):
             c = tl.NAME_TIER_COLORS[i]
             nm = chalk_phrase(word, height=name_h, color=c)
             if arrow:
-                tri = Triangle(fill_color=c, fill_opacity=1.0, stroke_width=0)
-                tri.set_height(name_h * 0.55)
+                # EMPTY outline triangle drawn from lines (like everything else on the
+                # chalkboard) — not a filled shape
+                tri = Triangle(fill_opacity=0, stroke_color=c, stroke_width=3.0)
+                tri.set_height(name_h * 0.62)
                 if arrow == "down":
                     tri.rotate(PI)
-                nm = VGroup(nm, tri).arrange(RIGHT, buff=0.10)
+                nm = VGroup(nm, tri).arrange(RIGHT, buff=0.12)
             names.append(nm)
+            # letters in FIXED-WIDTH slots (each centred on k*let_pitch) so column k
+            # lines up across every tier (e.g. Q under W under M)
             lets = VGroup()
-            for ch in tl.TIER_LETTERS[i]:
+            for k, ch in enumerate(tl.TIER_LETTERS[i]):
                 L = chalk_letter(ch, height=let_h, color=tl.tile_color(ch))
+                L.move_to([k * let_pitch, 0, 0])
                 self.ctl_tiles[ch.lower()] = L           # guesses are lowercase
                 lets.add(L)
-            lets.arrange(RIGHT, buff=let_buff)
             letters.append(lets)
         name_w = max(n.width for n in names)             # name column width
+        letters_x = name_w + 0.5                         # where column 0 starts
         rows = VGroup()
         for i, (nm, lets) in enumerate(zip(names, letters)):
             y = -i * row_pitch
             nm.move_to([0, y, 0], aligned_edge=LEFT)                       # names left
-            lets.move_to([name_w + 0.5, y, 0], aligned_edge=LEFT)         # letters aligned
+            lets.shift(np.array([letters_x, y, 0]))     # slot 0 → letters_x (columns align)
             rows.add(VGroup(nm, lets))
-        # fit into the box above the word, left of the gallows (scene 11 style)
-        board_left = -(gb.BOARD_W / 2 - 0.34)
+        # fit into the box above the word; CENTRE it horizontally over the word
+        word_cx = self.rules.get_center()[0]
         board_top = gb.BOARD_H / 2 - 0.34
         gallows_left = self.hang.get_left()[0]
         word_top = self.rules[0].get_center()[1] + gb.LETTER_BUFF + gb.LETTER_H
-        box_w = (gallows_left - board_left) - 2 * CTL_MARGIN
-        box_h = (board_top - word_top) - 2 * CTL_MARGIN
+        # width available: word centre out to whichever edge is closer (keep clear of gallows)
+        half_w = min(word_cx - (-(gb.BOARD_W / 2 - 0.34)), gallows_left - word_cx) - CTL_MARGIN
+        box_w, box_h = 2 * half_w, (board_top - word_top) - 2 * CTL_MARGIN
         rows.scale(min(box_w / rows.width, box_h / rows.height, 1.0))
-        rows.move_to([(board_left + gallows_left) / 2, (word_top + board_top) / 2, 0])
+        rows.move_to([word_cx, (word_top + board_top) / 2, 0])
         self.chalk_tl = rows
         return rows
 
@@ -311,11 +316,11 @@ class Scene16(HangmanScene):
         self.play(FadeIn(self.cb), run_time=0.8)
         self.play(LaggedStartMap(Create, self.rules, lag_ratio=1.0), run_time=1.8)
         self.play(LaggedStartMap(Create, self.hang.gallows, lag_ratio=0.6), run_time=1.6)
-        # then draw the chalk tier list out (flatten to STROKES — Create over a whole
-        # multi-stroke VGroup inside a LaggedStart throws int * VMobject)
+        # then bring the chalk tier list in — a bulk reference display, so it FADES in
+        # (row by row), like the other reference lists/grids (scene 04/11)
         self._build_chalk_tierlist()
-        strokes = VGroup(*self.chalk_tl.family_members_with_points())
-        self.play(LaggedStartMap(Create, strokes, lag_ratio=0.02), run_time=2.4)
+        self.play(LaggedStart(*[FadeIn(r) for r in self.chalk_tl], lag_ratio=0.15),
+                  run_time=1.6)
 
     # ── the recurring "play one guess" beat (k–s) ─────────────────────────────
     def _guess(self, i, *, rt_bubble, rt_write, rt_part, rt_out):
