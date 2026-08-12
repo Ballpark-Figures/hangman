@@ -167,8 +167,14 @@ def _choosing_strategy(freq_search, wordlist):
     game_words = set(final.game.words)
     word_list = [w.text for w in sorted(words4, key=lambda w: -w.zipf)
                  if w.text in game_words][:TRACK_N]
-    combo_patterns = list(mult_df.sort_values("n_words", ascending=False)
-                          .head(TRACK_N).pattern)
+    # combos: the first two rows are the commonest combos overall; the LAST row is the
+    # commonest combos that feature a letter MORE THAN ONCE (mask popcount >= 2).
+    by_count = mult_df.sort_values("n_words", ascending=False)
+    rows_per = TRACK_N // 3
+    head = list(by_count.head(2 * rows_per).pattern)
+    multi = by_count[by_count["mask"].map(lambda m: bin(int(m)).count("1")) >= 2]
+    multi = multi[~multi["pattern"].isin(head)]
+    combo_patterns = head + list(multi.head(rows_per).pattern)
 
     nwords = dict(zip(mult_df.pattern, mult_df.n_words))
     final_cm, final_wf = _tracked(final, combo_patterns, word_list)

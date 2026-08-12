@@ -114,7 +114,9 @@ class Scene18(HangmanScene):
 
     # ── bar helpers ───────────────────────────────────────────────────────────
     def _build_side(self, cx, labels, values, y_max):
-        """A side's bars as ROWS get_bar_charts; return (charts, flat bars, flat baselines)."""
+        """A side's bars as ROWS get_bar_charts; return (charts, flat bars, flat baselines).
+        Labels are re-aligned to one line per row (get_bar_chart top-aligns bbox tops, so
+        ascender/descender words otherwise sit at different heights)."""
         charts, bars, base = [], [], []
         for r, base_y in enumerate(BASE_YS):
             sl = slice(r * PER_ROW, (r + 1) * PER_ROW)
@@ -124,36 +126,43 @@ class Scene18(HangmanScene):
                 y_max=y_max, n_slots=PER_ROW, bar_color=WORD_BLUE, ink_color=INK,
                 label_factory=lambda s: crisp_text(s, font_size=BAR_LABEL_FS, color=INK,
                                                    weight=BOLD))
+            for lab in chart.labels:
+                lab.set_y(base_y - 0.42)                   # common centre line per row
             charts.append(chart)
             bars += list(chart.bars)
             base += [base_y] * len(chart.bars)
         return charts, bars, base
 
-    def _grow_anim(self, bar, base_y, h0, h1):
-        """One bar height h0→h1, growing GREEN / shrinking CRIMSON, settling back to blue."""
+    def _grow_anim(self, bar, base_y, h0, h1, flash=None):
+        """One bar height h0→h1, flashing a colour while it changes then settling to blue.
+        flash=None → direction (grow GREEN / shrink CRIMSON); flash=<colour> → force that
+        colour for a changing bar (e.g. CRIMSON for a failed change, or WORD_BLUE = no flash)."""
         eps = 1e-6
-        dcol = (GROW_GREEN if h1 > h0 + eps else
-                SHRINK_CRIMSON if h1 < h0 - eps else WORD_BLUE)
+        changed = abs(h1 - h0) > eps
+        if flash is not None:
+            dcol = flash if changed else WORD_BLUE
+        else:
+            dcol = GROW_GREEN if h1 > h0 + eps else SHRINK_CRIMSON if changed else WORD_BLUE
 
         def upd(m, a):
             m.stretch_to_fit_height(max(interpolate(h0, h1, a), 1e-3), about_edge=DOWN)
             m.set_y(base_y + m.height / 2)                    # keep the base pinned
-            t = 0.0 if a < 0.72 else (a - 0.72) / 0.28        # hold dir-colour, then ease to blue
+            t = 0.0 if a < 0.72 else (a - 0.72) / 0.28        # hold flash colour, then ease to blue
             m.set_color(interpolate_color(dcol, WORD_BLUE, t))
         return UpdateFromAlphaFunc(bar, upd)
 
-    def _morph_bars(self, bars, base, cur_vals, new_vals, y_max, run_time):
-        anims = [self._grow_anim(b, by, ROW_H * v0 / y_max, ROW_H * v1 / y_max)
+    def _morph_bars(self, bars, base, cur_vals, new_vals, y_max, run_time, flash=None):
+        anims = [self._grow_anim(b, by, ROW_H * v0 / y_max, ROW_H * v1 / y_max, flash)
                  for b, by, v0, v1 in zip(bars, base, cur_vals, new_vals)]
         self.play(*anims, run_time=run_time)
         cur_vals[:] = list(new_vals)
 
-    def _apply_state(self, state, combo_rt, word_rt):
+    def _apply_state(self, state, combo_rt, word_rt, flash=None):
         """Morph combos, THEN words, to a {combo_mult, word_freq} state (script order)."""
         self._morph_bars(self.combo_bars, self.combo_base, self.combo_vals,
-                         state["combo_mult"], self.combo_ymax, combo_rt)
+                         state["combo_mult"], self.combo_ymax, combo_rt, flash)
         self._morph_bars(self.word_bars, self.word_base, self.word_vals,
-                         state["word_freq"], self.word_ymax, word_rt)
+                         state["word_freq"], self.word_ymax, word_rt, flash)
 
     # ── a : "Words with Most Misses" — blue words, lagged upward rise, 14-miss set ──
     @subscene
@@ -231,14 +240,14 @@ class Scene18(HangmanScene):
     @subscene
     def try_undo(self):
         undo = self.data["example_undo"]
-        # try the failing change: bars move, avg drops
-        self._apply_state(undo["worse"], combo_rt=0.9, word_rt=0.9)
+        # try the failing change: CRIMSON (marks the one that didn't work), avg drops
+        self._apply_state(undo["worse"], combo_rt=0.9, word_rt=0.9, flash=SHRINK_CRIMSON)
         self._count_to(undo["worse"]["avg_misses"], 0.8)       # DOWN = failure
-        # undo it: back to the kept (beat-d) state
-        self._apply_state(undo["base"], combo_rt=0.7, word_rt=0.7)
+        # undo it: returning to default → stay BLUE
+        self._apply_state(undo["base"], combo_rt=0.7, word_rt=0.7, flash=WORD_BLUE)
         self._count_to(undo["base"]["avg_misses"], 0.6)
-        # reset the whole thing back to the uniform start
-        self._apply_state(undo["reset"], combo_rt=0.9, word_rt=0.9)
+        # reset the kept beat-d change back to default too → stay BLUE
+        self._apply_state(undo["reset"], combo_rt=0.9, word_rt=0.9, flash=WORD_BLUE)
         self._count_to(undo["reset"]["avg_misses"], 0.8)
 
     # ── f : replay the optimization uniform→final in N_BUCKETS steps ───────────
