@@ -745,11 +745,15 @@ class Scene05(HangmanScene):
         g = VGroup()
         g.root_edges = VGroup()
 
-        # pass 1 — TIDY layout: give every leaf its own column (miss subtree LEFT, hit RIGHT)
-        # and centre each node over its children, so no two subtrees overlap however deep they
-        # run. The old fixed ±SPR spread let a right subtree's left edge collide with a left
-        # subtree's right edge (bit us on the Y candidate in choose_u); a per-leaf column can't.
-        slot = [0]
+        # pass 1 — TIDY layout via CONTOUR PACKING (Reingold-Tilford-style, miss subtree LEFT /
+        # hit RIGHT, each node centred over its children). Each subtree is laid out relative to
+        # its own root, then each next sibling is slid right JUST enough that its left contour
+        # clears the placed siblings' right contour by MIN_SEP at EVERY shared depth. So a deep,
+        # narrow branch (e.g. a comb like _E: ME/BE/WE/RE/HE/YE) nests tightly against its
+        # neighbour instead of claiming one full column per leaf (which left big gaps and shoved
+        # it far right — the user's note). A BALANCED tree still spaces its leaves ~COL apart, so
+        # existing subtrees (k's, the candidates) are unchanged. No two subtrees can overlap.
+        MIN_SEP, INF = COL, float("inf")
 
         def kids_of(sp):
             """A node's children as [(is_miss, childspec), …], miss-first (LEFT). Accepts the
@@ -760,18 +764,37 @@ class Scene05(HangmanScene):
             ks = [(True, sp["miss"])] if "miss" in sp else []
             return ks + [(False, sp["hit"])]
 
-        def layout(sp, depth):
-            node = {"spec": sp, "y": -depth * DY}
-            if "leaf" in sp:
-                node["x"], node["kids"] = slot[0] * COL, []
-                slot[0] += 1
-                return node
-            kids = [(is_miss, layout(cs, depth + 1)) for is_miss, cs in kids_of(sp)]
-            node["kids"] = kids
-            node["x"] = sum(k[1]["x"] for k in kids) / len(kids)  # centre over children
-            return node
+        def shift_x(node, dx):
+            node["x"] += dx
+            for _, c in node["kids"]:
+                shift_x(c, dx)
 
-        root = layout(spec, 0)
+        def layout(sp, depth):
+            """Returns (node, left_contour, right_contour): the laid-out subtree and its per-depth
+            min/max x (absolute in this subtree's frame). A leaf sits at x=0."""
+            node = {"spec": sp, "y": -depth * DY, "kids": []}
+            kids = [] if "leaf" in sp else kids_of(sp)
+            if not kids:
+                node["x"] = 0.0
+                return node, {depth: 0.0}, {depth: 0.0}
+            lcont, rcont = {}, {}                        # contours of the placed children
+            for i, (is_miss, cs) in enumerate(kids):
+                cnode, cl, cr = layout(cs, depth + 1)
+                off = 0.0                                # slide this child right to clear the rest
+                if i:
+                    off = max([0.0] + [rcont[d] - x + MIN_SEP for d, x in cl.items() if d in rcont])
+                    shift_x(cnode, off)
+                node["kids"].append((is_miss, cnode))
+                for d, x in cl.items():
+                    lcont[d] = min(lcont.get(d, INF), x + off)
+                for d, x in cr.items():
+                    rcont[d] = max(rcont.get(d, -INF), x + off)
+            node["x"] = sum(c["x"] for _, c in node["kids"]) / len(node["kids"])  # centre over children
+            lcont[depth] = min(lcont.get(depth, INF), node["x"])
+            rcont[depth] = max(rcont.get(depth, -INF), node["x"])
+            return node, lcont, rcont
+
+        root, _, _ = layout(spec, 0)
         x0 = root["x"]                             # re-centre the whole tree on x = 0
 
         # pass 2 — build mobjects at the laid-out positions. Each node returns a HANDLE
