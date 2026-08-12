@@ -1,5 +1,5 @@
-"""Cached data for scene 17 (re-weighting): the length-2 words + their frequency for
-the "Word Frequency" bar graph (beats a/b), SORTED by descending frequency.
+"""Cached data for scene 17 (re-weighting): the TOP 30 five-letter words by frequency
+for the "Word Frequency" bar graph (beats a/b), SORTED by descending frequency.
 
 `freq` is the ACTUAL word frequency = `round(10**zipf)`, the per-billion occurrence rate
 — exactly what `wordlist.freq_weights` / `resolve_weighting("zipf")` feeds the solver as
@@ -30,13 +30,13 @@ def build():
         sys.path.insert(0, str(_MATH))
     import wordlist
 
-    words = sorted(wordlist.load(min_len=2, max_len=2), key=lambda w: -w.zipf)  # A: desc freq
-    data = {"len2": [{"word": w.text, "zipf": round(float(w.zipf), 3),
-                      "freq": round(10.0 ** w.zipf)}                # the solver's weighting
-                     for w in words]}
+    words = sorted(wordlist.load(min_len=5, max_len=5), key=lambda w: -w.zipf)[:30]  # top 30
+    data = {"words": [{"word": w.text, "zipf": round(float(w.zipf), 3),
+                       "freq": round(10.0 ** w.zipf)}               # the solver's weighting
+                      for w in words]}
     CACHE.write_text(json.dumps(data, indent=2))
-    print(f"{len(words)} length-2 words (freq {data['len2'][0]['freq']:,} .. "
-          f"{data['len2'][-1]['freq']:,}) -> {CACHE.name}")
+    print(f"top {len(words)} 5-letter words (freq {data['words'][0]['freq']:,} .. "
+          f"{data['words'][-1]['freq']:,}) -> {CACHE.name}")
     return data
 
 

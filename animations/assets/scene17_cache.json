@@ -1,249 +1,154 @@
 {
-  "len2": [
+  "words": [
     {
-      "word": "to",
-      "zipf": 7.43,
-      "freq": 26915348
+      "word": "about",
+      "zipf": 6.4,
+      "freq": 2511886
     },
     {
-      "word": "of",
-      "zipf": 7.4,
-      "freq": 25118864
+      "word": "their",
+      "zipf": 6.33,
+      "freq": 2137962
     },
     {
-      "word": "in",
-      "zipf": 7.27,
-      "freq": 18620871
+      "word": "there",
+      "zipf": 6.31,
+      "freq": 2041738
     },
     {
-      "word": "is",
-      "zipf": 7.07,
-      "freq": 11748976
+      "word": "which",
+      "zipf": 6.3,
+      "freq": 1995262
     },
     {
-      "word": "it",
-      "zipf": 6.95,
-      "freq": 8912509
+      "word": "would",
+      "zipf": 6.27,
+      "freq": 1862087
     },
     {
-      "word": "on",
-      "zipf": 6.91,
-      "freq": 8128305
+      "word": "other",
+      "zipf": 6.16,
+      "freq": 1445440
     },
     {
-      "word": "be",
-      "zipf": 6.79,
-      "freq": 6165950
+      "word": "after",
+      "zipf": 6.11,
+      "freq": 1288250
     },
     {
-      "word": "as",
-      "zipf": 6.77,
-      "freq": 5888437
+      "word": "first",
+      "zipf": 6.11,
+      "freq": 1288250
     },
     {
-      "word": "at",
-      "zipf": 6.7,
-      "freq": 5011872
+      "word": "think",
+      "zipf": 6.08,
+      "freq": 1202264
     },
     {
-      "word": "he",
-      "zipf": 6.69,
-      "freq": 4897788
+      "word": "could",
+      "zipf": 6.06,
+      "freq": 1148154
     },
     {
-      "word": "by",
-      "zipf": 6.66,
-      "freq": 4570882
-    },
-    {
-      "word": "my",
-      "zipf": 6.57,
-      "freq": 3715352
-    },
-    {
-      "word": "or",
-      "zipf": 6.54,
-      "freq": 3467369
-    },
-    {
-      "word": "we",
-      "zipf": 6.54,
-      "freq": 3467369
-    },
-    {
-      "word": "an",
-      "zipf": 6.53,
-      "freq": 3388442
-    },
-    {
-      "word": "so",
-      "zipf": 6.52,
-      "freq": 3311311
-    },
-    {
-      "word": "me",
-      "zipf": 6.48,
-      "freq": 3019952
-    },
-    {
-      "word": "if",
-      "zipf": 6.47,
-      "freq": 2951209
-    },
-    {
-      "word": "up",
-      "zipf": 6.39,
-      "freq": 2454709
-    },
-    {
-      "word": "do",
-      "zipf": 6.35,
-      "freq": 2238721
-    },
-    {
-      "word": "no",
-      "zipf": 6.35,
-      "freq": 2238721
-    },
-    {
-      "word": "us",
+      "word": "these",
       "zipf": 6.04,
       "freq": 1096478
     },
     {
-      "word": "go",
-      "zipf": 6.03,
-      "freq": 1071519
+      "word": "where",
+      "zipf": 6.0,
+      "freq": 1000000
     },
     {
-      "word": "am",
+      "word": "right",
+      "zipf": 5.96,
+      "freq": 912011
+    },
+    {
+      "word": "years",
+      "zipf": 5.96,
+      "freq": 912011
+    },
+    {
+      "word": "being",
+      "zipf": 5.95,
+      "freq": 891251
+    },
+    {
+      "word": "going",
+      "zipf": 5.94,
+      "freq": 870964
+    },
+    {
+      "word": "still",
+      "zipf": 5.92,
+      "freq": 831764
+    },
+    {
+      "word": "never",
+      "zipf": 5.91,
+      "freq": 812831
+    },
+    {
+      "word": "those",
+      "zipf": 5.9,
+      "freq": 794328
+    },
+    {
+      "word": "world",
+      "zipf": 5.89,
+      "freq": 776247
+    },
+    {
+      "word": "great",
+      "zipf": 5.88,
+      "freq": 758578
+    },
+    {
+      "word": "while",
+      "zipf": 5.86,
+      "freq": 724436
+    },
+    {
+      "word": "every",
+      "zipf": 5.79,
+      "freq": 616595
+    },
+    {
+      "word": "state",
       "zipf": 5.78,
       "freq": 602560
     },
     {
-      "word": "re",
-      "zipf": 5.23,
-      "freq": 169824
+      "word": "three",
+      "zipf": 5.78,
+      "freq": 602560
     },
     {
-      "word": "la",
-      "zipf": 5.05,
-      "freq": 112202
+      "word": "since",
+      "zipf": 5.75,
+      "freq": 562341
     },
     {
-      "word": "hi",
-      "zipf": 5.0,
-      "freq": 100000
+      "word": "under",
+      "zipf": 5.73,
+      "freq": 537032
     },
     {
-      "word": "ex",
-      "zipf": 4.81,
-      "freq": 64565
+      "word": "thing",
+      "zipf": 5.72,
+      "freq": 524807
     },
     {
-      "word": "ad",
-      "zipf": 4.76,
-      "freq": 57544
+      "word": "house",
+      "zipf": 5.71,
+      "freq": 512861
     },
     {
-      "word": "ya",
-      "zipf": 4.67,
-      "freq": 46774
-    },
-    {
-      "word": "ma",
-      "zipf": 4.63,
-      "freq": 42658
-    },
-    {
-      "word": "id",
-      "zipf": 4.61,
-      "freq": 40738
-    },
-    {
-      "word": "em",
-      "zipf": 4.57,
-      "freq": 37154
-    },
-    {
-      "word": "en",
-      "zipf": 4.5,
-      "freq": 31623
-    },
-    {
-      "word": "pa",
-      "zipf": 4.46,
-      "freq": 28840
-    },
-    {
-      "word": "yo",
-      "zipf": 4.45,
-      "freq": 28184
-    },
-    {
-      "word": "op",
-      "zipf": 4.42,
-      "freq": 26303
-    },
-    {
-      "word": "mi",
-      "zipf": 4.3,
-      "freq": 19953
-    },
-    {
-      "word": "ye",
-      "zipf": 4.25,
-      "freq": 17783
-    },
-    {
-      "word": "fa",
-      "zipf": 4.2,
-      "freq": 15849
-    },
-    {
-      "word": "lo",
-      "zipf": 4.07,
-      "freq": 11749
-    },
-    {
-      "word": "ab",
-      "zipf": 4.06,
-      "freq": 11482
-    },
-    {
-      "word": "bi",
-      "zipf": 4.04,
-      "freq": 10965
-    },
-    {
-      "word": "ta",
-      "zipf": 4.02,
-      "freq": 10471
-    },
-    {
-      "word": "pi",
-      "zipf": 3.92,
-      "freq": 8318
-    },
-    {
-      "word": "ti",
-      "zipf": 3.85,
-      "freq": 7079
-    },
-    {
-      "word": "om",
-      "zipf": 3.55,
-      "freq": 3548
-    },
-    {
-      "word": "ox",
-      "zipf": 3.47,
-      "freq": 2951
-    },
-    {
-      "word": "ax",
-      "zipf": 3.34,
-      "freq": 2188
+      "word": "place",
+      "zipf": 5.71,
+      "freq": 512861
     }
   ]
 }

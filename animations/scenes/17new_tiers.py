@@ -1,9 +1,9 @@
 """SCENE 17 — re-weighting the tier list (frequency, then British English).
 
 On the BRAND light-blue tier-list background. Four beats:
-  a equal_bars   — all 49 length-2 words as bars in 3 rows, sorted by DESCENDING
-                   frequency, ALL THE SAME height; titled "Word Frequency"
-  b freq_bars    — morph the bar heights to each word's actual frequency (zipf)
+  a equal_bars   — the top 30 five-letter words (bold) as bars in 3 rows, sorted by
+                   DESCENDING frequency, ALL THE SAME height; titled "Word Frequency"
+  b freq_bars    — morph the bar heights to each word's actual frequency (10**zipf)
   c freq_list    — clear the bars; the equal-weighted list (left, "Equal Weighted
                    Words"); a COPY morphs into the FREQUENCY-weighted list (right,
                    "Frequency Weighted"; 6 tiers — the two HIGH tiers merge); arrow AFTER
@@ -39,7 +39,7 @@ from bpkfigures.bar_graph import get_bar_chart, morph_bar_chart
 
 # beat-d double bar chart (optimal misses, uniform vs zipf)
 UNIFORM_COLOR = ACCENT_FILL        # equal-weighted bars
-ZIPF_COLOR = ACCENT_GOLD           # frequency-weighted bars
+ZIPF_COLOR = ACCENT_GREEN          # frequency-weighted bars (softer than the gold)
 
 # ── bar graph (beats a/b) ─────────────────────────────────────────────────────
 BAR_ROWS = 3
@@ -61,7 +61,7 @@ class Scene17(HangmanScene):
     """Re-weighting the tier list. See the module docstring for the beat map."""
 
     def setup_scene(self):
-        self.words = scene17_data.get()["len2"]        # sorted DESC by frequency
+        self.words = scene17_data.get()["words"]       # top 30 5-letter, DESC by frequency
         self.ymax = self.words[0]["freq"]              # tallest bar = the commonest word
         self.bar_rows = None
         self.title = None
@@ -83,8 +83,9 @@ class Scene17(HangmanScene):
         items = [(w["word"].upper(), v) for w, v in zip(slice_, values)]
         return get_bar_chart(items, center=[0, ROW_CYS[r], 0], width=BAR_ROW_W,
                              height=BAR_ROW_H, y_max=self.ymax, n_slots=self._per(),
-                             bar_color=ACCENT_FILL, ink_color=BAR_INK, bar_ratio=0.7,
-                             label_buff=0.14)
+                             bar_color=ACCENT_FILL, bar_ratio=0.7, label_buff=0.14,
+                             label_factory=lambda s: crisp_text(s, font_size=18,
+                                                                color=BAR_INK, weight=BOLD))
 
     def _per(self):
         return (len(self.words) + BAR_ROWS - 1) // BAR_ROWS
@@ -108,15 +109,17 @@ class Scene17(HangmanScene):
         return crisp_text(text, font_size=30, color=TITLE_COLOR,
                           weight=BOLD).move_to([x, TITLE_Y, 0])
 
-    def _spell_line(self, us, gb, y):
-        """An 'AMERICAN → BRITISH' spelling example, centred at height y (the changed
-        letters carry the vowel/consonant ink so the eye lands on them)."""
-        def word(w):
-            return crisp_text(w, font_size=26, color=TITLE_COLOR, weight=BOLD)
-        arrow = Triangle(fill_color=TITLE_COLOR, fill_opacity=1, stroke_width=0)
-        arrow.set_height(0.24).rotate(-PI / 2)                 # points RIGHT
-        line = VGroup(word(us), arrow, word(gb)).arrange(RIGHT, buff=0.4)
-        return line.move_to([0, y, 0])
+    def _spell_pair(self, us, gb, y):
+        """A spelling example at height y, laid out to MIRROR the tier lists: the US word
+        RIGHT-aligned under the left (American) list, the GB word LEFT-aligned under the
+        right (British) list, with an arrow IDENTICAL to the one between the lists."""
+        left = crisp_text(us, font_size=26, color=TITLE_COLOR, weight=BOLD)
+        left.move_to([self.left.get_right()[0], y, 0], aligned_edge=RIGHT)
+        right = crisp_text(gb, font_size=26, color=TITLE_COLOR, weight=BOLD)
+        right.move_to([self.right.get_left()[0], y, 0], aligned_edge=LEFT)
+        arrow = Arrow([-1.05, y, 0], [1.05, y, 0], buff=0.0, color=TITLE_COLOR,
+                      stroke_width=6)                          # == the tier-list arrow
+        return VGroup(left, arrow, right)
 
     def _morph_into(self, src, dst, src_letters, dst_letters, row_map, run_time):
         """Transform a COPY of tier list `src` into `dst`: per-role structure
@@ -249,11 +252,11 @@ class Scene17(HangmanScene):
     # f : below the lists — ENCYCLOPEDIA → ENCYCLOPAEDIA (why A gains in British)
     @subscene
     def enc_spelling(self):
-        self.enc = self._spell_line("ENCYCLOPEDIA", "ENCYCLOPAEDIA", SPELL_Y[0])
+        self.enc = self._spell_pair("ENCYCLOPEDIA", "ENCYCLOPAEDIA", SPELL_Y[0])
         self.play(FadeIn(self.enc), run_time=0.6)
 
     # g : below that — REALIZE → REALISE (why Z drops in British)
     @subscene
     def realize_spelling(self):
-        self.realize = self._spell_line("REALIZE", "REALISE", SPELL_Y[1])
+        self.realize = self._spell_pair("REALIZE", "REALISE", SPELL_Y[1])
         self.play(FadeIn(self.realize), run_time=0.6)
