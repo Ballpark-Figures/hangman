@@ -105,7 +105,11 @@ def _greedy_score(option):
 GRID_ROWS, GRID_COLS = 4, 5
 GRID_NODE_R      = 0.16   # parent-node radius (natural; the whole grid is scaled to fit)
 GRID_CHILD_RF    = 0.68   # child radius as a fraction of the parent radius
-GRID_CHILD_DY    = 0.55   # parent → child vertical drop (natural units)
+GRID_CHILD_DY    = 0.55   # parent → child vertical drop (natural units, deeper levels)
+GRID_ROOT_DY     = 1.00   # TALLER first level: root → its children drops more than deeper levels
+                          # (the root gets breathing room). Applied to every _ctree, so a backed-up
+                          # subtree's children clear the drilled-past diagonal's hit-sibling text
+                          # while deeper levels stay compact — and k / the candidates stay consistent.
 GRID_CHILD_SPR   = 0.72   # child horizontal half-spread (blanks sit under each child)
 GRID_BLANK_H     = 0.13   # blank-row height under a child (rule + revealed letter)
 GRID_BLANK_DROP  = 0.36   # child centre → blank RULE baseline (fixed → rules line up AND
@@ -742,6 +746,9 @@ class Scene05(HangmanScene):
         .in_edge, .out_edges, .kids, .all). g.root / g.root_edges / g.root_h expose the root."""
         r, cr = GRID_NODE_R, GRID_NODE_R * GRID_CHILD_RF
         DY, COL = GRID_CHILD_DY, GRID_CHILD_SPR   # COL = leaf column width
+        # y by depth: a TALLER first level (root → children = GRID_ROOT_DY) then compact DY per
+        # deeper level, so the root has breathing room (see GRID_ROOT_DY).
+        y_of = lambda d: 0.0 if d == 0 else -(GRID_ROOT_DY + (d - 1) * DY)
         g = VGroup()
         g.root_edges = VGroup()
 
@@ -772,7 +779,7 @@ class Scene05(HangmanScene):
         def layout(sp, depth):
             """Returns (node, left_contour, right_contour): the laid-out subtree and its per-depth
             min/max x (absolute in this subtree's frame). A leaf sits at x=0."""
-            node = {"spec": sp, "y": -depth * DY, "kids": []}
+            node = {"spec": sp, "y": y_of(depth), "kids": []}
             kids = [] if "leaf" in sp else kids_of(sp)
             if not kids:
                 node["x"] = 0.0
