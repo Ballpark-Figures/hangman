@@ -63,6 +63,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent.parent.parent))
 import numpy as np
 from config import *
 from assets import tier_list as tl
+from assets import views
 from assets import game_board as gb
 from assets import scene16_data
 from assets.chalkboard import chalkboard
@@ -77,9 +78,6 @@ LABEL_BUFF = 0.28                   # gap from length label to its row
 PLOT_TOP_Y = 1.7                    # top row centre y (lengths 2..10 stack downward)
 TITLE_Y    = 2.9                    # "Usage by Tier" baseline (above the rows)
 DIVIDER_COLOR = tl.TIER_GREY        # grey lines between the individual boxes
-
-RISE_SHIFT = 0.28                   # tier-scene `_rise` entrance: preset low, lag up
-RISE_LAG   = 0.14
 
 TL_SCALE = 0.80                     # tier list scale once tucked left
 
@@ -149,22 +147,9 @@ class Scene16(HangmanScene):
             lab.next_to(bg, LEFT, buff=LABEL_BUFF)
             self.prows[L] = {"cy": cy, "width": W, "left": left, "fills": VGroup()}
             self.plot_rows.append(VGroup(lab, bg, overlay))
-        self.title = crisp_text("Usage by Tier", font_size=30,
-                                color=BLACK).move_to([self._title_x, TITLE_Y, 0])
+        self.title = views.view_title("Usage by Tier", self._title_x, TITLE_Y)
         self.plot = VGroup(*self.plot_rows)
         self.plot_fills = VGroup()                       # coloured bars (added per beat)
-
-    def _rise_in(self, parent, rows, run_time, *, extra=()):
-        """The tier scenes' `_rise` entrance (96's row-by-row rise): preset each row a
-        touch low + transparent, add the parent, then lag each up into place; `extra`
-        anims (e.g. the title FadeIn) play in the SAME play."""
-        for row in rows:
-            row.shift(DOWN * RISE_SHIFT).set_opacity(0)
-        self.add(parent)
-        self.play(*extra,
-                  LaggedStart(*[row.animate.shift(UP * RISE_SHIFT).set_opacity(1)
-                                for row in rows], lag_ratio=RISE_LAG),
-                  run_time=run_time)
 
     def _fill(self, j, run_time):
         """Grow each display row's bar for cache tier `j` (segment prev_frac→cur_frac)
@@ -214,7 +199,9 @@ class Scene16(HangmanScene):
     @subscene
     def plot(self):
         self._setup_plot()
-        self._rise_in(self.plot, self.plot_rows, 1.6, extra=[FadeIn(self.title)])
+        # established entrance (tier scenes' show_heat): title FadeIn + row-by-row rise
+        self.play(FadeIn(self.title), views.rise(self, self.plot, self.plot_rows),
+                  run_time=1.6)
 
     # ── e : grow each bar (from the left) to the TOP-tier fraction ────────────
     @subscene

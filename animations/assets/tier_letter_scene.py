@@ -28,6 +28,7 @@ file (the render tooling AST-scans it), so this base holds ONLY plain helpers.
 """
 from config import *
 from assets import tier_list as tl
+from assets import views
 from assets.common_uses import common_uses
 from assets.letter_heatmaps import letter_heatmaps
 from assets.letter_ngrams import letter_ngrams
@@ -176,21 +177,18 @@ class TierLetterScene(HangmanScene):
         self.play(*[FadeOut(m) for m in outs], run_time=run_time)
 
     # ── views: heatmap + n-gram + (optional) common-uses, 96-style row rise ──────
+    # Titles + the row-by-row rise now live in the shared `assets.views` (so any
+    # scene reuses the SAME motion — e.g. scene 16's usage plot); these delegate.
     def _title(self, l1, l2, x):
-        return crisp_paragraph(l1, l2, font_size=30, color=BLACK,
-                               alignment="center").move_to([x, TITLE_Y, 0])
+        return views.view_title2(l1, l2, x, TITLE_Y)
 
     def _title1(self, text, x):
-        return crisp_text(text, font_size=30, color=BLACK).move_to([x, TITLE_Y, 0])
+        return views.view_title(text, x, TITLE_Y)
 
-    def _rise(self, parent, rows, *, lag_ratio=0.14, shift=0.28):
-        """96's entrance: add `parent`, preset each row a touch low + transparent,
-        then lag each up into place. Returns the LaggedStart (caller sets run_time)."""
-        for row in rows:
-            row.shift(DOWN * shift).set_opacity(0)
-        self.add(parent)
-        return LaggedStart(*[row.animate.shift(UP * shift).set_opacity(1)
-                             for row in rows], lag_ratio=lag_ratio)
+    def _rise(self, parent, rows, *, lag_ratio=views.RISE_LAG, shift=views.RISE_SHIFT):
+        """96's entrance (shared `views.rise`): add `parent`, preset each row low +
+        transparent, return the LaggedStart lifting them in (caller sets run_time)."""
+        return views.rise(self, parent, rows, lag_ratio=lag_ratio, shift=shift)
 
     def _heat_rows(self, heat):
         return [VGroup(lab, hm) for lab, hm in zip(heat.labels, heat.heatmaps)]
