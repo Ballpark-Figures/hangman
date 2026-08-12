@@ -117,6 +117,9 @@ GRID_LEAF_DROP   = 0.36            # child centre → its blank baseline
 GRID_W, GRID_H   = 15.6, 8.0       # the cells tile this box (full width, small top/bottom margin)
 GRID_CENTER      = [0, 0, 0]
 PATH_SCALE       = 0.5     # the drilled-past path (A→O→…) is shrunk vs the active subtree
+E_TREE_DROP      = 1.3     # backing up E (and higher): DETACH the active subtree BELOW the diagonal
+                          # (its wide right branch would otherwise splay back UNDER the drilled-past
+                          # hit-sibling text). The node's incoming diagonal edge lengthens to follow.
 # the diagonal takes a TALLER vertical step than a normal parent→child drop, so each
 # guess node has room BELOW it for its hit-siblings' recapped leaf text (avoids the packed
 # rows colliding). Only the drilled-past diagonal uses this; grafted subtrees use CHILD_DY.
@@ -975,13 +978,16 @@ class Scene05(HangmanScene):
         # slide the green spine onto u_ref's {by,my} slot (exact overlay — same _ctree layout)
         sfac = yh.dot.width / spine.gdot.width
         y0, ty = spine.gdot.get_center(), yh.dot.get_center()
-        # REUSE U's existing bare hit-sibling dot as the {up,us} root (P): the diagonal already
-        # drew this node, so morph THAT dot into P (grown to node size), write P onto it, and
-        # EXPAND its children out of it — don't spawn a whole new subtree (see the user's note;
-        # same fix applies one level up in backup_e).
+        # REUSE U's existing bare hit-sibling dot as the {up,us} root (P). TWO phases, mirroring
+        # the drill's reveal (`_transform_move`): (1) the bare dot MOVES to P's tidy slot while its
+        # letter RIDES in on top (starts small+transparent AT the bare dot, Restores to the node —
+        # NOT a fade-in at the destination); (2) the {up,us} children SPROUT out of the settled P.
         be, bd = path.levels[4]["hits"][0]                            # U's bare 'u_' hit edge + dot
         p_lab = ups.root_h.lab
+        p_lab.save_state()                                            # ride P in with the node…
+        p_lab.scale(bd.width / ups.root.width).move_to(bd.get_center()).set_opacity(0)
         p_kids = VGroup(*[m for k in ups.root_h.kids for m in (k.in_edge, k.all)])  # below P
+        # phase 1 — everything MOVES into place
         self.play(
             spine.animate.scale(sfac, about_point=y0).shift(ty - y0),
             FadeOut(self.avg_b),                                       # drop the {by,my} value
@@ -989,14 +995,17 @@ class Scene05(HangmanScene):
             Transform(self.grid.drilled_edge, yh.in_edge),            # U→Y (miss) redrawn tidy
             ReplacementTransform(bd, ups.root),                       # bare 'u_' dot → P root node
             Transform(be, ph.in_edge),                                # bare 'u_' edge → tidy U→P edge
-            FadeIn(p_lab),                                            # write P onto the reused node
-            GrowFromPoint(p_kids, ph.dot.get_center()),               # expand {up,us} children
+            Restore(p_lab),                                           # …P develops ON the node as it travels
             FadeOut(path.leaf_text[-1]),                              # old 'U_ AOIE' annotation
-            run_time=1.3)
+            run_time=0.9)
+        # phase 2 — the {up,us} children sprout out of the (settled) reused P
+        self.play(GrowFromPoint(p_kids, ups.root.get_center()), run_time=0.6)
         self.avg_p = self._avg_label(ups.root, value="0.5", direction=RIGHT)
         self.play(FadeIn(self.avg_p), run_time=0.4)
         self.u_ref, self.u_spine, self.ups = u_ref, spine, ups
-        self.u_pedge = ph.in_edge                          # U→P edge (greens when U is chosen)
+        self.u_pedge = be              # the ACTUAL on-screen U→P edge is the transformed bare edge
+                                       # (NOT ph.in_edge, which was only the transform TARGET) — so
+                                       # choose_u greens + backup_e slides the REAL edge, no orphan
 
     # ── l : solve U's other child {up,us} — cycle its candidates P and S (mirror complete
     #        green subtrees, both 0.5), then CHOOSE P and lock it green. ────────────────────
@@ -1081,6 +1090,9 @@ class Scene05(HangmanScene):
         path = self.grid.path
         e_dot, e_lab = path.levels[3]["dot"], path.levels[3]["lab"]
         ec = e_dot.get_center()
+        ec_drop = ec + DOWN * E_TREE_DROP             # DETACH E below the diagonal (see E_TREE_DROP):
+                                                      # its wide subtree needs clear space, and the
+                                                      # I→E edge lengthens to follow it down
         eu_edge = path.levels[4]["in_edge"]           # the diagonal E→U (miss) edge
         # U-position spec (E's MISS child) — the SAME structure as the on-screen green
         # U-subtree, so it slides on exactly; keyed 'u' to address the slot.
@@ -1098,9 +1110,15 @@ class Scene05(HangmanScene):
         e_spec = {"g": "e", "key": "e",
                   "kids": [(True, u_sub_spec)] + [(False, sp) for sp in e_hit_specs]}
         e_ref = self._ctree(e_spec, root_miss=1, solved=False)
-        scale_c = (ec[1] + 4.0) / e_ref.height        # fit below E (same idea as u_ref)
-        e_ref.scale(scale_c, about_point=ORIGIN).shift(ec - e_ref.root.get_center())
+        scale_c = (ec_drop[1] + 4.0) / e_ref.height   # fit below the DROPPED E position
+        e_ref.scale(scale_c, about_point=ORIGIN).shift(ec_drop - e_ref.root.get_center())
         eh, uh = e_ref.node["e"], e_ref.node["u"]
+        # the I→E diagonal edge must stretch down to E's new (dropped) position
+        i_dot = path.levels[2]["dot"]
+        dn_ie = normalize(eh.dot.get_center() - i_dot.get_center())
+        ie_target = Line(i_dot.get_center() + dn_ie * (i_dot.width / 2),
+                         eh.dot.get_center() - dn_ie * (eh.dot.width / 2),
+                         color=LIGHT_RED, stroke_width=2.0)
         hit_handles = [k for k in eh.kids if not k.is_miss]
         # slide the green U-subtree onto e_ref's U (miss) slot — exact overlay, scaled down
         u_now = self.u_ref.node["u"].dot
@@ -1134,7 +1152,8 @@ class Scene05(HangmanScene):
         self.play(
             self.u_subtree.animate.scale(sfac, about_point=y0).shift(ty - y0),
             FadeOut(self.avg_u),                                      # drop U's value label
-            ReplacementTransform(VGroup(e_dot, e_lab), VGroup(eh.dot, eh.lab)),  # diagonal E → tidy E
+            ReplacementTransform(VGroup(e_dot, e_lab), VGroup(eh.dot, eh.lab)),  # diagonal E → tidy E (drops)
+            Transform(path.levels[3]["in_edge"], ie_target),         # I→E stretches down to follow E
             Transform(eu_edge, uh.in_edge),                          # E→U (miss) redrawn tidy
             FadeOut(e_anns),                                          # E's own bare-board annotation
             *move,
