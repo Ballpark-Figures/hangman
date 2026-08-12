@@ -2,45 +2,57 @@
 
 Continues from scene 15: the COMPLETE named tier list is centred on the brand
 light-blue background from frame 0. Beat a is a no-op (the list is already
-centred — the VO "we now have this massive tier list" plays over it); (b) we
-emphasise it tier by tier — top, then top-two, … — to say "start at the top and
-move down"; (c) tuck it to the LEFT (the left half of the screen); then (d) build
-a per-length plot on the RIGHT half that looks like the tier scenes' location-
-frequency views (lengths 2–10, white boxes, black outline, grey dividers) titled
-"Usage by Tier", and (e–i) fill each length's row — a bar growing from the LEFT —
-to the AVERAGE fraction of the word done as the strategy finishes each tier
-(TOP → both HIGH → MID↑ → MID↓ → LOW↑), coloured by tier. Finally (j) a chalkboard
-comes in and the near-optimal strategy plays out a full game.
+centred). (b) emphasise it tier by tier — top, then top-two, … — to say "start at
+the top and move down"; (c) tuck it LEFT; then (d) build a per-length plot on the
+RIGHT that looks like the location-frequency views (lengths 2–10, white boxes,
+black outline, grey dividers) titled "Usage by Tier", entering with the SAME title
+FadeIn + row-by-row rise as the tier scenes (`tier_letter_scene.show_heat`/`_rise`);
+(e–i) fill each length's row — a bar growing from the LEFT — to the average
+fraction of the word done as the strategy finishes each tier (TOP → both HIGH →
+MID↑ → MID↓ → LOW↑). Then (j) the chalkboard FADES in and the near-optimal
+strategy plays out PLAYERS one guess per beat, ending green.
 
-Script row 16, split on '—' → beats a–j (voiceover ↔ animation zip 1:1), ONE
-@subscene per beat. The game (beat j) is a SINGLE subscene whose body plays the
-whole game (board-in, blanks+gallows, the guesses, the win) — one script beat =
-one subscene (see bpkfigures/CLAUDE.md "SUBSCENE COUNT MUST EQUAL BEAT COUNT").
+Horizontal layout: the tier list (left) and the plot (right) are placed for EQUAL
+thirds — left margin == middle gap == right margin (computed from measured widths).
 
-ALL displayed numbers are SOURCED from `assets/scene16_data.py` (committed
+Script row 16, split on '—' → one @subscene per beat (see bpkfigures/CLAUDE.md
+"SUBSCENE COUNT MUST EQUAL BEAT COUNT"). The script unrolls the game into a beat
+per guess.
+
+ALL displayed content is SOURCED from `assets/scene16_data.py` (committed
 `scene16_cache.json`): the tier-fill fractions are `set_before_outside / length`
-under optimal/uniform (letter_analysis.ipynb's method), and the example guess
-order is that word's optimal/uniform trace. The render reads only the cache.
+under optimal/uniform, and the guess order is PLAYERS' optimal/uniform trace.
+
+⚠️ SCRIPT / TRACE MISMATCH (flagged, not silently resolved): the script lists the
+guesses E S T R A L P Y (one miss, T), but PLAYERS' optimal/uniform trace is
+E S T R A L **B** P Y — B is a SECOND miss between L and P (the 2nd miss the word
+was chosen for). This scene plays the SOURCED trace (with B), so it has a `guess_b`
+subscene the script has no beat for. Either add a "Guess B" beat to the script
+(between L and P, in both columns) — recommended — or say to drop B (then remove
+`guess_b` and this note). Do NOT leave them out of sync.
 
 BEAT MAP
   a have_list  — no-op: the complete tier list is already centred (VO over it)
   b walk_down  — emphasise top tier, then top-two, … down to all lit (dim the rest)
-  c to_left    — tuck the tier list to the LEFT half, a bit smaller
-  d plot       — build the white/black/grey length-2..10 grid on the right + title
+  c to_left    — tuck the tier list left (equal-thirds layout)
+  d plot       — white/black/grey length-2..10 grid on the right + "Usage by Tier"
+                 title, entering with the tier-scene FadeIn + row rise
   e fill_top   — grow each row's bar (from the LEFT) to the TOP-tier fraction
   f fill_high  — extend by both HIGH tiers (their two colours)
   g fill_mid1  — extend by MID↑
   h fill_mid2  — extend by MID↓
-  i fill_low1  — extend by LOW↑  (LOW↓ never reached — word usually already done)
-  j game       — chalkboard in; blanks + gallows; play the whole game; win (green)
+  i fill_low1  — extend by LOW↑  (LOW↓ never reached)
+  j board_in   — FADE the views out / the chalkboard in; draw blanks + gallows
+  k guess_e … s guess_y — the nine guesses E S T R A L B P Y, one per beat
+  t win        — turn the letters, blanks, and gallows green (per script)
 
-Render:  render 16a --fast   (…16j)   /   render 16 sub  for the whole scene
+Render:  render 16a --fast   (…16t)   /   render 16 sub  for the whole scene
 
 TIMING / FEEL KNOBS LEFT AT A GUESS (judge from the video): every run_time here is
-a first-pass guess. The board bring-in (beat j) is a plain fade-out + slide-in —
-scene 16 is the FIRST time the chalkboard enters over a light-blue scene (01/02/
-03/04/94 have it from frame 0; 11 slides it in over a matching NAVY bg), so there
-is no established animation to reuse — this one is bespoke, tune freely.
+a first-pass guess. The board FADE-in (beat j) and the green win are the script's
+"bring in" / "turn green". Scene END: the script's last beat is "turn green" (no
+fade); scene 16 currently ends on the green board — if scene 17 follows directly
+(animated, no talking head), it likely needs a fade-out. FLAGGED — confirm.
 """
 from pathlib import Path
 import sys
@@ -48,6 +60,7 @@ import sys
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent.parent))
 
+import numpy as np
 from config import *
 from assets import tier_list as tl
 from assets import game_board as gb
@@ -55,35 +68,38 @@ from assets import scene16_data
 from assets.chalkboard import chalkboard
 
 # ── plot geometry (echoes the location-frequency views: left-aligned rows, one
-#    white cell per position, a length label to the left; here a coloured bar fills
-#    the leftmost fraction, grey dividers between cells, black outline around each) ─
-CELL      = 0.40                    # one position cell (square)
-ROW_GAP   = 0.14
-ROW_PITCH = CELL + ROW_GAP
-PLOT_LEFT_X = 0.4                   # left edge of every row (rows grow RIGHT), right half
-PLOT_TOP_Y  = 1.7                   # top row centre y (lengths 2..10 stack downward)
-TITLE_POS   = [2.4, 2.6, 0.0]       # "Usage by Tier", centred over the rows
+#    white cell per position, a length label to the left; a coloured bar fills the
+#    leftmost fraction, grey dividers between cells, black outline around each) ────
+CELL       = 0.40                   # one position cell (square)
+ROW_GAP    = 0.14
+ROW_PITCH  = CELL + ROW_GAP
+LABEL_BUFF = 0.28                   # gap from length label to its row
+PLOT_TOP_Y = 1.7                    # top row centre y (lengths 2..10 stack downward)
+TITLE_Y    = 2.9                    # "Usage by Tier" baseline (above the rows)
 DIVIDER_COLOR = tl.TIER_GREY        # grey lines between the individual boxes
 
-# ── tier list resting pose once tucked left (beat c): the LEFT HALF ───────────
-TL_SCALE = 0.80
-TL_LEFT  = [-4.2, 0.0, 0.0]
+RISE_SHIFT = 0.28                   # tier-scene `_rise` entrance: preset low, lag up
+RISE_LAG   = 0.14
 
-# ── the example game (beat j): word + guess order = optimal/uniform trace ──────
+TL_SCALE = 0.80                     # tier list scale once tucked left
+
+
+# ── the example game (beat j…): word + guess order = optimal/uniform trace ─────
 _EX = scene16_data.get()["example"]
 WORD    = _EX["word"]
-GUESSES = [g for g, _hit in _EX["trace"]]
-MISSES  = [g for g, hit in _EX["trace"] if not hit]
+GUESSES = [g for g, _hit in _EX["trace"]]                # e s t r a l b p y
+MISSES  = [g for g, hit in _EX["trace"] if not hit]      # t b
 
 
 class Scene16(HangmanScene):
     """Walk down the tiers, show the tier-fill plot, then play the example game.
-    See the module docstring for the full beat map and sourcing."""
+    See the module docstring for the full beat map, sourcing, and the B-miss flag."""
 
     # the complete named tier list is on screen from frame 0 (continues scene 15)
     def setup_scene(self):
         self._setup_tierlist()
         self.data = scene16_data.get()
+        self._compute_layout()
 
     # ── builders ──────────────────────────────────────────────────────────────
     def _setup_tierlist(self):
@@ -92,18 +108,31 @@ class Scene16(HangmanScene):
             tl.fill_tier(self.tl, i)                     # sourced TIER_LETTERS[i]
         self.add(self.tl)
 
+    def _compute_layout(self):
+        """Place the tucked tier list + the plot for EQUAL horizontal thirds:
+        left margin == middle gap == right margin (from measured widths)."""
+        fx = config.frame_x_radius
+        w_tl = self.tl.width * TL_SCALE                  # tier list once scaled
+        lens = self.data["display_lengths"]
+        w_rows = max(lens) * CELL                        # widest row (L=10)
+        w_lab = crisp_text(str(max(lens)), font_size=24).width + LABEL_BUFF
+        w_pl = w_lab + w_rows                            # label + rows block
+        g = (2 * fx - w_tl - w_pl) / 3
+        self._tl_center = np.array([-fx + g + w_tl / 2, 0.0, 0.0])
+        self._plot_left = -fx + 2 * g + w_tl + w_lab     # left edge of the ROWS
+        self._title_x = self._plot_left + w_rows / 2     # centred over the rows
+
     def _setup_plot(self):
-        """The white/black/grey length-2..10 grid on the right (no fill yet), like the
-        location-frequency views. Stores per-row geometry in `self.prows[L]`."""
+        """The white/black/grey length-2..10 grid (no fill yet), like the location-
+        frequency views. `self.prows[L]` holds each row's geometry; `self.plot_rows`
+        are the VGroups the `_rise` entrance lifts in."""
         lens = self.data["display_lengths"]
         self.prows = {}
-        boxes = VGroup()
-        overlays = VGroup()
-        labels = VGroup()
+        self.plot_rows = []
+        left = self._plot_left
         for i, L in enumerate(lens):
             cy = PLOT_TOP_Y - i * ROW_PITCH
             W = L * CELL
-            left = PLOT_LEFT_X
             bg = Rectangle(width=W, height=CELL)
             bg.set_fill(WHITE, opacity=1.0).set_stroke(width=0)
             bg.move_to([left + W / 2, cy, 0])
@@ -117,17 +146,25 @@ class Scene16(HangmanScene):
                 for k in range(1, L)])
             overlay = VGroup(outline, dividers).set_z_index(2)
             lab = crisp_text(str(L), font_size=24, color=BLACK)
-            lab.next_to(bg, LEFT, buff=0.28)
-            boxes.add(bg)
-            overlays.add(overlay)
-            labels.add(lab)
+            lab.next_to(bg, LEFT, buff=LABEL_BUFF)
             self.prows[L] = {"cy": cy, "width": W, "left": left, "fills": VGroup()}
-        self.title = crisp_text("Usage by Tier", font_size=30, color=BLACK).move_to(TITLE_POS)
-        self.plot = VGroup(labels, boxes, overlays)
-        self.plot_boxes = boxes
-        self.plot_overlays = overlays
-        self.plot_labels = labels
+            self.plot_rows.append(VGroup(lab, bg, overlay))
+        self.title = crisp_text("Usage by Tier", font_size=30,
+                                color=BLACK).move_to([self._title_x, TITLE_Y, 0])
+        self.plot = VGroup(*self.plot_rows)
         self.plot_fills = VGroup()                       # coloured bars (added per beat)
+
+    def _rise_in(self, parent, rows, run_time, *, extra=()):
+        """The tier scenes' `_rise` entrance (96's row-by-row rise): preset each row a
+        touch low + transparent, add the parent, then lag each up into place; `extra`
+        anims (e.g. the title FadeIn) play in the SAME play."""
+        for row in rows:
+            row.shift(DOWN * RISE_SHIFT).set_opacity(0)
+        self.add(parent)
+        self.play(*extra,
+                  LaggedStart(*[row.animate.shift(UP * RISE_SHIFT).set_opacity(1)
+                                for row in rows], lag_ratio=RISE_LAG),
+                  run_time=run_time)
 
     def _fill(self, j, run_time):
         """Grow each display row's bar for cache tier `j` (segment prev_frac→cur_frac)
@@ -167,20 +204,17 @@ class Scene16(HangmanScene):
             self.play(*tl.emphasize(self.tl, range(i + 1)), run_time=0.4)
         self.play(*tl.reset(self.tl), run_time=0.4)            # back to all full
 
-    # ── c : tuck the tier list to the left half, a bit smaller ────────────────
+    # ── c : tuck the tier list left (equal-thirds layout) ─────────────────────
     @subscene
     def to_left(self):
-        self.play(self.tl.animate.scale(TL_SCALE).move_to(TL_LEFT), run_time=1.0)
+        self.play(self.tl.animate.scale(TL_SCALE).move_to(self._tl_center),
+                  run_time=1.0)
 
-    # ── d : build the white/black/grey length-2..10 plot on the right + title ──
+    # ── d : white/black/grey length-2..10 plot on the right + title (rise-in) ──
     @subscene
     def plot(self):
         self._setup_plot()
-        self.play(Write(self.title), run_time=0.8)
-        self.play(LaggedStart(*[FadeIn(b, shift=0.25 * UP) for b in self.plot_boxes],
-                              *[FadeIn(o) for o in self.plot_overlays],
-                              *[FadeIn(l) for l in self.plot_labels],
-                              lag_ratio=0.10), run_time=1.6)
+        self._rise_in(self.plot, self.plot_rows, 1.6, extra=[FadeIn(self.title)])
 
     # ── e : grow each bar (from the left) to the TOP-tier fraction ────────────
     @subscene
@@ -208,7 +242,27 @@ class Scene16(HangmanScene):
     def fill_low1(self):
         self._fill(5, 0.9)
 
-    # ── the recurring "play one guess" beat (used inside the game subscene) ────
+    # ── j : FADE the views out / the chalkboard in; draw blanks + gallows ─────
+    def _setup_board(self):
+        self.cb = chalkboard(gb.BOARD_W, gb.BOARD_H)
+        self.cb.set_z_index(-10)
+        self.rules = gb.build_rules(len(WORD))
+        self.hang, self.hang_parts = gb.build_gallows()
+        self.miss_n = 0
+        self.miss_row = VGroup()
+        self.miss_slots_x = gb.miss_slots(self.hang, MISSES)
+        self.hit_marks = VGroup()                         # revealed letters (for recolour)
+
+    @subscene
+    def board_in(self):
+        self._setup_board()
+        self.play(FadeOut(self.tl), FadeOut(self.plot), FadeOut(self.plot_fills),
+                  FadeOut(self.title), FadeIn(self.cb), run_time=1.0)
+        self.tl = None
+        self.play(LaggedStartMap(Create, self.rules, lag_ratio=1.0), run_time=1.8)
+        self.play(LaggedStartMap(Create, self.hang.gallows, lag_ratio=0.6), run_time=1.6)
+
+    # ── the recurring "play one guess" beat (k–s) ─────────────────────────────
     def _guess(self, i, *, rt_bubble, rt_write, rt_part, rt_out):
         g = GUESSES[i]
         positions = [p for p, c in enumerate(WORD) if c == g]
@@ -229,34 +283,47 @@ class Scene16(HangmanScene):
             self.play(Create(part), run_time=rt_part)
         self.play(FadeOut(bub), run_time=rt_out)
 
-    def _setup_game(self):
-        self.cb = chalkboard(gb.BOARD_W, gb.BOARD_H)
-        self.cb.set_z_index(-10)
-        self.rules = gb.build_rules(len(WORD))
-        self.hang, self.hang_parts = gb.build_gallows()
-        self.miss_n = 0
-        self.miss_row = VGroup()
-        self.miss_slots_x = gb.miss_slots(self.hang, MISSES)
-        self.hit_marks = VGroup()                         # revealed letters (for recolour)
-
-    # ── j : chalkboard in; blanks + gallows; play the whole game; win ─────────
+    # k–s : the nine guesses E S T R A L B P Y (B is the flagged 2nd miss)
     @subscene
-    def game(self):
-        self._setup_game()
-        # scene 16 is the first board-over-light-blue case (no established anim):
-        # fade the views out, slide the chalkboard in from the top.
-        self.cb.shift(UP * 9)
-        self.play(FadeOut(self.tl), FadeOut(self.plot), FadeOut(self.plot_fills),
-                  FadeOut(self.title), run_time=0.6)
-        self.tl = None
-        self.play(self.cb.animate.shift(DOWN * 9), run_time=0.8)
-        self.play(LaggedStartMap(Create, self.rules, lag_ratio=1.0), run_time=1.8)
-        self.play(LaggedStartMap(Create, self.hang.gallows, lag_ratio=0.6), run_time=1.6)
-        # play the game — the strategy's sourced guesses, one at a time (lockstep)
-        for i in range(len(GUESSES)):
-            self._guess(i, rt_bubble=0.7, rt_write=0.9, rt_part=0.7, rt_out=0.4)
-        # win — flash the whole board green, then clear to blank
-        board = VGroup(self.rules, self.hang, self.miss_row, self.hit_marks)
-        self.play(board.animate.set_color(LIGHT_GREEN), run_time=0.5)
-        self.wait(0.5)                                    # VO
-        self.play(FadeOut(board), FadeOut(self.cb), run_time=0.8)
+    def guess_e(self):
+        self._guess(0, rt_bubble=0.7, rt_write=0.9, rt_part=0.7, rt_out=0.4)
+
+    @subscene
+    def guess_s(self):
+        self._guess(1, rt_bubble=0.7, rt_write=0.9, rt_part=0.7, rt_out=0.4)
+
+    @subscene
+    def guess_t(self):
+        self._guess(2, rt_bubble=0.7, rt_write=0.9, rt_part=0.7, rt_out=0.4)
+
+    @subscene
+    def guess_r(self):
+        self._guess(3, rt_bubble=0.7, rt_write=0.9, rt_part=0.7, rt_out=0.4)
+
+    @subscene
+    def guess_a(self):
+        self._guess(4, rt_bubble=0.7, rt_write=0.9, rt_part=0.7, rt_out=0.4)
+
+    @subscene
+    def guess_l(self):
+        self._guess(5, rt_bubble=0.7, rt_write=0.9, rt_part=0.7, rt_out=0.4)
+
+    # q : guess B — the sourced 2nd miss the script omits (see the module flag)
+    @subscene
+    def guess_b(self):
+        self._guess(6, rt_bubble=0.7, rt_write=0.9, rt_part=0.7, rt_out=0.4)
+
+    @subscene
+    def guess_p(self):
+        self._guess(7, rt_bubble=0.7, rt_write=0.9, rt_part=0.7, rt_out=0.4)
+
+    @subscene
+    def guess_y(self):
+        self._guess(8, rt_bubble=0.7, rt_write=0.9, rt_part=0.7, rt_out=0.4)
+
+    # ── t : turn the letters, blanks, and gallows green (per script) ──────────
+    @subscene
+    def win(self):
+        # script: "letters, blanks, and gallows" — the miss row (T, B) stays chalk.
+        green = VGroup(self.rules, self.hang, self.hit_marks)
+        self.play(green.animate.set_color(LIGHT_GREEN), run_time=0.6)
