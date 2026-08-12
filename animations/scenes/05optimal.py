@@ -996,7 +996,9 @@ class Scene05(HangmanScene):
                   "miss": {"g": "y", "key": "y",
                            "hit": {"g": "b", "key": "b", "hit": {"leaf": "by"},
                                    "miss": {"g": "m", "key": "m", "hit": {"leaf": "my"}}}}}
-        u_ref = self._ctree(u_spec, root_miss=1, solved=False)   # LAYOUT + U node + U's edges
+        u_ref = self._ctree(u_spec, root_miss=1, solved=False, root_dy=GRID_ROOT_DY)  # LAYOUT +
+        # U node + U's edges. U is the CURRENT frontier → its first drop (U→Y/P) is TALL; deeper
+        # levels stay compact. backup_e reverts this to normal once E expands above U.
         scale_c = (uc[1] + 4.0) / u_ref.height             # fit below U (same as the candidates)
         u_ref.scale(scale_c, about_point=ORIGIN).shift(uc - u_ref.root.get_center())
         uh, yh, ph = u_ref.node["u"], u_ref.node["y"], u_ref.node["p"]
@@ -1077,7 +1079,8 @@ class Scene05(HangmanScene):
         opts = {o["letter"]: o for o in node["options"] if o["splits"]}
         cand = {}
         for c in ("y", "b", "m", "p", "s"):        # the alternative candidates (SOURCED)
-            ct = self._ctree(self._subtree_spec(opts[c]["subtree"]), root_miss=1)
+            # tall first drop like the active U-tree (U is the frontier) so cross-fades match
+            ct = self._ctree(self._subtree_spec(opts[c]["subtree"]), root_miss=1, root_dy=GRID_ROOT_DY)
             ct.scale(scale_c, about_point=ORIGIN).shift(uc - ct.root.get_center())
             cand[c] = ct
         u_avg = opts["u"]["avg"]                    # 1.0 (== node['avg'])
@@ -1107,7 +1110,8 @@ class Scene05(HangmanScene):
                   run_time=1.0)
         self.u_subtree = cur                        # hand off U's solved subtree to backing up E
         self.avg_u = counter                        # U's value label (green 1.0)
-        self.ups = None
+        # keep self.u_spine (Y-block) and self.ups (P-block) as handles: backup_e compresses U's
+        # TALL first drop back to normal (U stops being the frontier), moving these two blocks up
 
     # ── n : start backing up E. SAME move as backing up U, one level up. Build E's FULL tidy
     #        subtree as a _ctree (E → its e_/_e HIT branches + the U-position as the MISS child),
@@ -1168,10 +1172,21 @@ class Scene05(HangmanScene):
         # A/O/I annotations STAY — they're re-expanded when each of those levels is later backed up
         n_before = sum(len(path.levels[i]["hits"]) for i in range(3))
         e_anns = VGroup(*path.leaf_text[n_before:n_before + len(hits)])
+        # the reused U-subtree slides onto E's miss slot AND reverts U's TALL first drop to normal:
+        # U is no longer the frontier (E is), so U→Y/P shrinks from GRID_ROOT_DY to compact. U moves
+        # rigidly to the slot; the Y-block and P-block move the same PLUS an extra UP*reflow (so their
+        # roots land at the compact depth); the two first-level edges redraw to e_ref's compact slots.
+        reflow = (GRID_ROOT_DY - GRID_CHILD_DY) * scale_c
+        u_node = VGroup(self.u_ref.node["u"].dot, self.u_ref.node["u"].lab)
+        yedge, uedge = self.grid.drilled_edge, self.u_pedge          # U→Y (miss) / U→P (hit)
         # phase 1 — everything MOVES into place (E morphs to the tidy root, the green U-subtree
-        # slides onto the miss slot, each hit root rides in from its bare dot with its letter)
+        # slides onto the miss slot + compresses its first drop, each hit root rides in with its letter)
         self.play(
-            self.u_subtree.animate.scale(sfac, about_point=y0).shift(ty - y0),
+            u_node.animate.scale(sfac, about_point=y0).shift(ty - y0),
+            self.u_spine.animate.scale(sfac, about_point=y0).shift((ty - y0) + UP * reflow),
+            self.ups.animate.scale(sfac, about_point=y0).shift((ty - y0) + UP * reflow),
+            Transform(yedge, uh.kids[0].in_edge),                    # U→Y redrawn compact
+            Transform(uedge, uh.kids[1].in_edge),                    # U→P redrawn compact
             FadeOut(self.avg_u),                                      # drop U's value label
             ReplacementTransform(VGroup(e_dot, e_lab), VGroup(eh.dot, eh.lab)),  # diagonal E → tidy E
             Transform(eu_edge, uh.in_edge),                          # E→U (miss) redrawn tidy
