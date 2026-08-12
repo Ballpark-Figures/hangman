@@ -75,8 +75,8 @@ CELL       = 0.40                   # one position cell (square)
 ROW_GAP    = 0.14
 ROW_PITCH  = CELL + ROW_GAP
 LABEL_BUFF = 0.28                   # gap from length label to its row
-PLOT_TOP_Y = 1.7                    # top row centre y (lengths 2..10 stack downward)
-TITLE_Y    = 2.9                    # "Usage by Tier" baseline (above the rows)
+# the rows' vertical placement + title y are COMPUTED per-scene (block centred on
+# the tier list's centre, y=0) in _compute_layout.
 DIVIDER_COLOR = tl.TIER_GREY        # grey lines between the individual boxes
 
 TL_SCALE = 0.80                     # tier list scale once tucked left
@@ -119,6 +119,11 @@ class Scene16(HangmanScene):
         self._tl_center = np.array([-fx + g + w_tl / 2, 0.0, 0.0])
         self._plot_left = -fx + 2 * g + w_tl + w_lab     # left edge of the ROWS
         self._title_x = self._plot_left + w_rows / 2     # centred over the rows
+        self._title_w = w_rows                           # one-line title width
+        # rows block centred on the tier list's centre (y = 0); title just above it
+        n = len(lens)
+        self._plot_top_y = (n - 1) / 2 * ROW_PITCH       # top row cy (block centred at 0)
+        self._title_y = self._plot_top_y + CELL / 2 + 0.55
 
     def _setup_plot(self):
         """The white/black/grey length-2..10 grid (no fill yet), like the location-
@@ -129,7 +134,7 @@ class Scene16(HangmanScene):
         self.plot_rows = []
         left = self._plot_left
         for i, L in enumerate(lens):
-            cy = PLOT_TOP_Y - i * ROW_PITCH
+            cy = self._plot_top_y - i * ROW_PITCH
             W = L * CELL
             bg = Rectangle(width=W, height=CELL)
             bg.set_fill(WHITE, opacity=1.0).set_stroke(width=0)
@@ -147,7 +152,8 @@ class Scene16(HangmanScene):
             lab.next_to(bg, LEFT, buff=LABEL_BUFF)
             self.prows[L] = {"cy": cy, "width": W, "left": left, "fills": VGroup()}
             self.plot_rows.append(VGroup(lab, bg, overlay))
-        self.title = views.view_title("Usage by Tier", self._title_x, TITLE_Y)
+        self.title = views.view_title("Usage by Tier", self._title_x, self._title_y,
+                                      width=self._title_w)
         self.plot = VGroup(*self.plot_rows)
         self.plot_fills = VGroup()                       # coloured bars (added per beat)
 
@@ -243,9 +249,11 @@ class Scene16(HangmanScene):
     @subscene
     def board_in(self):
         self._setup_board()
+        # fade EVERYTHING else out first, THEN bring the chalkboard in
         self.play(FadeOut(self.tl), FadeOut(self.plot), FadeOut(self.plot_fills),
-                  FadeOut(self.title), FadeIn(self.cb), run_time=1.0)
+                  FadeOut(self.title), run_time=0.6)
         self.tl = None
+        self.play(FadeIn(self.cb), run_time=0.8)
         self.play(LaggedStartMap(Create, self.rules, lag_ratio=1.0), run_time=1.8)
         self.play(LaggedStartMap(Create, self.hang.gallows, lag_ratio=0.6), run_time=1.6)
 
@@ -311,6 +319,6 @@ class Scene16(HangmanScene):
     # ── t : turn the letters, blanks, and gallows green (per script) ──────────
     @subscene
     def win(self):
-        # script: "letters, blanks, and gallows" — the miss row (T, B) stays chalk.
-        green = VGroup(self.rules, self.hang, self.hit_marks)
+        # turn the letters, blanks, gallows AND the miss row (T, B) below it green
+        green = VGroup(self.rules, self.hang, self.hit_marks, self.miss_row)
         self.play(green.animate.set_color(LIGHT_GREEN), run_time=0.6)

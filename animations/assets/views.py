@@ -34,9 +34,16 @@ def rise(scene, parent, rows, *, lag_ratio=RISE_LAG, shift=RISE_SHIFT):
                          for row in rows], lag_ratio=lag_ratio)
 
 
-def view_title(text, x, y, *, font_size=30, color=BLACK):
-    """A single-line view title (e.g. 'Usage by Tier', 'Common Uses')."""
-    return crisp_text(text, font_size=font_size, color=color).move_to([x, y, 0])
+def view_title(text, x, y, *, font_size=30, color=BLACK, width=None):
+    """A single-line view title (e.g. 'Usage by Tier', 'Common Uses'). A longer
+    string WRAPS at `crisp_text`'s 240pt supersample cap, so pass `width` to force
+    ONE line: render at a small underlying font then scale to that width (the
+    05optimal 'Average Misses by Word Length' fix)."""
+    if width is not None:
+        t = crisp_text(text, font_size=10, color=color).scale_to_fit_width(width)
+    else:
+        t = crisp_text(text, font_size=font_size, color=color)
+    return t.move_to([x, y, 0])
 
 
 def view_title2(l1, l2, x, y, *, font_size=30, color=BLACK):
