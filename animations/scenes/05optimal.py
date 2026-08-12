@@ -106,10 +106,10 @@ GRID_ROWS, GRID_COLS = 4, 5
 GRID_NODE_R      = 0.16   # parent-node radius (natural; the whole grid is scaled to fit)
 GRID_CHILD_RF    = 0.68   # child radius as a fraction of the parent radius
 GRID_CHILD_DY    = 0.55   # parent → child vertical drop (natural units, deeper levels)
-GRID_ROOT_DY     = 1.00   # TALLER first level: root → its children drops more than deeper levels
-                          # (the root gets breathing room). Applied to every _ctree, so a backed-up
-                          # subtree's children clear the drilled-past diagonal's hit-sibling text
-                          # while deeper levels stay compact — and k / the candidates stay consistent.
+GRID_ROOT_DY     = 1.00   # TALLER first level for the TRUE ROOT of a backed-up tree that must clear
+                          # the drilled-past diagonal's hit-sibling text (E and higher). Passed as
+                          # _ctree(root_dy=GRID_ROOT_DY) ONLY there; sub-pieces + reused subtrees keep
+                          # the compact GRID_CHILD_DY, so only the top junction is tall (no stacking).
 GRID_CHILD_SPR   = 0.72   # child horizontal half-spread (blanks sit under each child)
 GRID_BLANK_H     = 0.13   # blank-row height under a child (rule + revealed letter)
 GRID_BLANK_DROP  = 0.36   # child centre → blank RULE baseline (fixed → rules line up AND
@@ -730,7 +730,7 @@ class Scene05(HangmanScene):
         green = VGroup(sub.discs["b"], sub.edges["bby"], sub.edges["bm"], self.avg_b)
         self.play(green.animate.set_color(LIGHT_GREEN), run_time=1.0)
 
-    def _ctree(self, spec, root_miss=1, solved=True):
+    def _ctree(self, spec, root_miss=1, solved=True, root_dy=None):
         """A COMPLETE optimal subtree, fully played out. In SOLVED mode (default — a candidate)
         the SUBTREE is GREEN, but the ROOT node and its OUTGOING edges keep their ORIGINAL
         colours (the candidate isn't chosen yet — the caller greens them on lock): root node =
@@ -746,9 +746,12 @@ class Scene05(HangmanScene):
         .in_edge, .out_edges, .kids, .all). g.root / g.root_edges / g.root_h expose the root."""
         r, cr = GRID_NODE_R, GRID_NODE_R * GRID_CHILD_RF
         DY, COL = GRID_CHILD_DY, GRID_CHILD_SPR   # COL = leaf column width
-        # y by depth: a TALLER first level (root → children = GRID_ROOT_DY) then compact DY per
-        # deeper level, so the root has breathing room (see GRID_ROOT_DY).
-        y_of = lambda d: 0.0 if d == 0 else -(GRID_ROOT_DY + (d - 1) * DY)
+        # y by depth: the FIRST level (root → its children) drops by ``root_dy``, deeper levels by
+        # the compact DY. root_dy defaults to DY (fully compact) — pass GRID_ROOT_DY ONLY for the
+        # TRUE ROOT of a backed-up tree that needs to clear the diagonal (its sub-pieces / reused
+        # subtrees stay compact, so only the top junction is tall — no stacked tall levels).
+        root_dy = DY if root_dy is None else root_dy
+        y_of = lambda d: 0.0 if d == 0 else -(root_dy + (d - 1) * DY)
         g = VGroup()
         g.root_edges = VGroup()
 
@@ -1133,7 +1136,7 @@ class Scene05(HangmanScene):
         e_hit_specs = [sp for im, sp in e_full["kids"] if not im]     # the E-hit branches
         e_spec = {"g": "e", "key": "e",
                   "kids": [(True, u_sub_spec)] + [(False, sp) for sp in e_hit_specs]}
-        e_ref = self._ctree(e_spec, root_miss=1, solved=False)
+        e_ref = self._ctree(e_spec, root_miss=1, solved=False, root_dy=GRID_ROOT_DY)
         scale_c = (ec[1] + 4.0) / e_ref.height        # fit below E, pinned at its diagonal node (as in k)
         e_ref.scale(scale_c, about_point=ORIGIN).shift(ec - e_ref.root.get_center())
         eh, uh = e_ref.node["e"], e_ref.node["u"]
