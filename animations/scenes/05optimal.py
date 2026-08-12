@@ -574,9 +574,10 @@ class Scene05(HangmanScene):
                 "hit": {"g": "b", "key": "b",
                         "hit": {"leaf": "by", "key": "by"},
                         "miss": {"g": "m", "key": "m", "hit": {"leaf": "my", "key": "my"}}}}
-        # Y is the CURRENT frontier while the base is worked (g–j) → its first drop (Y→B) is TALL;
-        # backup_u reverts it to compact once U expands above Y.
-        sub = self._ctree(spec, root_miss=1, solved=False, root_dy=GRID_ROOT_DY)
+        # at g/h the avg-miss value sits on the BASE LEAVES (M=0, BY=0), so the tall edges are the
+        # ones INTO that level — out of B (depth 1). backup_b/backup_y climb the gap up as the value
+        # backs up (B→leaves → Y→B → U→Y).
+        sub = self._ctree(spec, root_miss=1, solved=False, tall_level=1)
         sub.shift(anchor - sub.root.get_center())          # Y (root) sits at the anchor
         dn = normalize(anchor - last_dot.get_center())
         drilled_edge = Line(last_dot.get_center() + dn * (r * PATH_SCALE),
@@ -709,13 +710,17 @@ class Scene05(HangmanScene):
     def backup_b(self):
         sub = self.grid.sub
         blab, mlab = sub.node_letters[1], sub.node_letters[2]
-        _, by_blk, _ = sub.leaves["by"]
+        by_dot, by_blk, _ = sub.leaves["by"]
         _, my_blk, _ = sub.leaves["my"]
         b_val = f"{self._n_miss_node(5)['avg']:g}"        # 0.5 — sourced {by,my} position value
-        # (a) back up B: label it with its value; drop the children's 'Avg misses: 0'
+        # (a) back up B: label it with its value; drop the children's 'Avg misses: 0'. The value now
+        #     sits on B, so the tall gap CLIMBS from B→leaves up to Y→B (B drops toward its children).
         self.avg_b = self._avg_label(sub.discs["b"], value=b_val, direction=LEFT)
         self.play(FadeIn(self.avg_b), FadeOut(self.avg0), FadeOut(self.avg0_by),
                   run_time=0.9)
+        self._gap_up(sub.discs["b"], sub.node_letters[1], sub.gdot, sub.edges["yb"],
+                     [(sub.edges["bby"], by_dot), (sub.edges["bm"], sub.discs["m"])],
+                     run_time=0.7, also=[self.avg_b])
         # (b) try the OTHER letter that could go in this node — M. Its optimal continuation
         # MIRRORS B's (M→MY hit / B→BY miss), same avg 0.5, descendants already green: swap
         # the labels in place (guess B↔M, and the BY/MY leaves swap branches).
@@ -732,7 +737,7 @@ class Scene05(HangmanScene):
         green = VGroup(sub.discs["b"], sub.edges["bby"], sub.edges["bm"], self.avg_b)
         self.play(green.animate.set_color(LIGHT_GREEN), run_time=1.0)
 
-    def _ctree(self, spec, root_miss=1, solved=True, root_dy=None):
+    def _ctree(self, spec, root_miss=1, solved=True, tall_level=None):
         """A COMPLETE optimal subtree, fully played out. In SOLVED mode (default — a candidate)
         the SUBTREE is GREEN, but the ROOT node and its OUTGOING edges keep their ORIGINAL
         colours (the candidate isn't chosen yet — the caller greens them on lock): root node =
@@ -748,12 +753,12 @@ class Scene05(HangmanScene):
         .in_edge, .out_edges, .kids, .all). g.root / g.root_edges / g.root_h expose the root."""
         r, cr = GRID_NODE_R, GRID_NODE_R * GRID_CHILD_RF
         DY, COL = GRID_CHILD_DY, GRID_CHILD_SPR   # COL = leaf column width
-        # y by depth: the FIRST level (root → its children) drops by ``root_dy``, deeper levels by
-        # the compact DY. root_dy defaults to DY (fully compact) — pass GRID_ROOT_DY ONLY for the
-        # TRUE ROOT of a backed-up tree that needs to clear the diagonal (its sub-pieces / reused
-        # subtrees stay compact, so only the top junction is tall — no stacked tall levels).
-        root_dy = DY if root_dy is None else root_dy
-        y_of = lambda d: 0.0 if d == 0 else -(root_dy + (d - 1) * DY)
+        # y by depth: every level drops by the compact DY, EXCEPT the ONE edge OUT OF depth
+        # ``tall_level`` (down into the level currently showing the backed-up avg-miss value),
+        # which drops by GRID_ROOT_DY — the tall gap. tall_level=None → fully compact. The tall gap
+        # climbs one level each back-up beat (a `_gap_up` reflow), so only ONE junction is ever tall.
+        extra = GRID_ROOT_DY - DY
+        y_of = lambda d: -(d * DY + (extra if (tall_level is not None and d > tall_level) else 0.0))
         g = VGroup()
         g.root_edges = VGroup()
 
@@ -863,6 +868,30 @@ class Scene05(HangmanScene):
         g.root = g.root_h.dot
         return g
 
+    def _edge_line(self, a_dot, b_dot, color):
+        """A node→node edge Line from ``a_dot``'s boundary to ``b_dot``'s boundary."""
+        ac, bc = a_dot.get_center(), b_dot.get_center()
+        dn = normalize(bc - ac)
+        return Line(ac + dn * a_dot.width / 2, bc - dn * b_dot.width / 2,
+                    color=color, stroke_width=2.0)
+
+    def _gap_up(self, node_dot, node_lab, parent_dot, in_edge, child_pairs, run_time, also=()):
+        """Climb the tall gap up one level: the avg-miss value has just backed up INTO ``node``,
+        so the tall edge becomes the one COMING IN to it (``in_edge``, parent→node) and the edges
+        going OUT of it (``child_pairs`` = [(edge, child_dot), …]) revert to compact. Implemented
+        as: ``node`` drops toward its (fixed) children by GRID_ROOT_DY−GRID_CHILD_DY (at the node's
+        scale) — its in-edge lengthens, its out-edges shorten; the subtree below stays put. ``also``
+        = extra mobjects (e.g. the node's avg label) that shift down WITH the node."""
+        delta = DOWN * (GRID_ROOT_DY - GRID_CHILD_DY) * (node_dot.width / (2 * GRID_NODE_R))
+        new_c = node_dot.get_center() + delta
+        moved = node_dot.copy().move_to(new_c)
+        anims = [node_dot.animate.move_to(new_c), node_lab.animate.move_to(new_c),
+                 *[m.animate.shift(delta) for m in also],
+                 Transform(in_edge, self._edge_line(parent_dot, moved, in_edge.get_color()))]
+        for edge, child_dot in child_pairs:
+            anims.append(Transform(edge, self._edge_line(moved, child_dot, edge.get_color())))
+        self.play(*anims, run_time=run_time)
+
     def _subtree_spec(self, tree, revealed=""):
         """Convert a solver option-subtree (nested ``{guess, branches}`` / ``{word}`` from
         the tree2 cache) into a `_ctree` spec, APPENDING the forced-tail guesses that finish
@@ -930,8 +959,8 @@ class Scene05(HangmanScene):
     @subscene
     def backup_y(self):
         sub = self.grid.sub
+        path = self.grid.path
         scale = sub.gdot.width / (2 * GRID_NODE_R)        # match the (fit-scaled) spine nodes
-        anchor = sub.gdot.get_center()
         by_dot, by_blk, _ = sub.leaves["by"]
         my_dot, my_blk, _ = sub.leaves["my"]
         # the Y-first spine subtree WITHOUT the leaf tallies (dropped in h) — this IS the Y
@@ -946,6 +975,11 @@ class Scene05(HangmanScene):
         self.play(FadeOut(self.avg_b), run_time=0.4)
         self.play(FadeIn(avg_y), run_time=0.4)
         self.avg_b = avg_y
+        # 1b) the value now sits on Y → the tall gap climbs from Y→B up to U→Y (the diagonal
+        #     connection): Y drops below the diagonal's U, Y→B reverts to compact.
+        self._gap_up(sub.gdot, sub.glab, path.levels[4]["dot"], self.grid.drilled_edge,
+                     [(sub.edges["yb"], sub.discs["b"])], run_time=0.7, also=[avg_y])
+        anchor = sub.gdot.get_center()                    # Y's NEW (dropped) position — candidates hang here
         # 2) cycle Y → B → M, each a COMPLETE green subtree. The avg-misses value STAYS on
         #    screen (no flashing) and will roll via a counter where candidates differ; here
         #    all three are 0.5, so it just reads 0.5 throughout.
@@ -958,8 +992,9 @@ class Scene05(HangmanScene):
         }
 
         def ctree(letter):
-            # tall first drop like the Y-first spine (Y is the frontier) so cross-fades match
-            ct = self._ctree(specs[letter], root_dy=GRID_ROOT_DY)
+            # compact internally — at j the tall edge is U→Y (above the spine), so each candidate
+            # is fully compact and hangs the same tall gap below U (set up by the reflow above)
+            ct = self._ctree(specs[letter])
             ct.scale(scale, about_point=ORIGIN).shift(anchor)
             return ct
 
@@ -999,9 +1034,9 @@ class Scene05(HangmanScene):
                   "miss": {"g": "y", "key": "y",
                            "hit": {"g": "b", "key": "b", "hit": {"leaf": "by"},
                                    "miss": {"g": "m", "key": "m", "hit": {"leaf": "my"}}}}}
-        u_ref = self._ctree(u_spec, root_miss=1, solved=False, root_dy=GRID_ROOT_DY)  # LAYOUT +
-        # U node + U's edges. U is the CURRENT frontier → its first drop (U→Y/P) is TALL; deeper
-        # levels stay compact. backup_e reverts this to normal once E expands above U.
+        u_ref = self._ctree(u_spec, root_miss=1, solved=False, tall_level=0)  # LAYOUT + U node +
+        # U's edges. The value now sits on U's children (Y solved in j, {up,us} here), so the tall
+        # edges are U→Y / U→P (out of U). choose_u climbs the gap up to E→U once U itself backs up.
         scale_c = (uc[1] + 4.0) / u_ref.height             # fit below U (same as the candidates)
         u_ref.scale(scale_c, about_point=ORIGIN).shift(uc - u_ref.root.get_center())
         uh, yh, ph = u_ref.node["u"], u_ref.node["y"], u_ref.node["p"]
@@ -1022,16 +1057,12 @@ class Scene05(HangmanScene):
         p_lab.save_state()                                            # ride P in with the node…
         p_lab.scale(bd.width / ups.root.width).move_to(bd.get_center()).set_opacity(0)
         p_kids = VGroup(*[m for k in ups.root_h.kids for m in (k.in_edge, k.all)])  # below P
-        # the spine slides onto U's Y-slot AND reverts Y's TALL first drop to normal (U is now the
-        # frontier, not Y): Y moves rigidly; the B-block (B + its subtree) moves up an extra reflow
-        # so Y→B shrinks to compact; the Y→B edge redraws to u_ref's compact slot.
-        reflow = (GRID_ROOT_DY - GRID_CHILD_DY) * scale_c
-        b_block = VGroup(spine.bdot, spine.node_letters[1], spine.fan_levels[1], spine.fan_levels[2])
+        # the spine arrives from j already compact AND hanging the tall gap below U (U→Y tall was set
+        # up by backup_y's reflow), and u_ref lays out the same (tall_level=0) — so it just slides
+        # rigidly onto the Y-slot, no reflow here. choose_u climbs the gap up to E→U later.
         # phase 1 — everything MOVES into place
         self.play(
-            VGroup(spine.gdot, spine.glab).animate.scale(sfac, about_point=y0).shift(ty - y0),
-            b_block.animate.scale(sfac, about_point=y0).shift((ty - y0) + UP * reflow),
-            Transform(spine.edges["yb"], u_ref.node["b"].in_edge),    # Y→B redrawn compact
+            spine.animate.scale(sfac, about_point=y0).shift(ty - y0),
             FadeOut(self.avg_b),                                       # drop the {by,my} value
             ReplacementTransform(VGroup(u_dot, u_lab), VGroup(uh.dot, uh.lab)),  # diagonal U → tidy U
             Transform(self.grid.drilled_edge, yh.in_edge),            # U→Y (miss) redrawn tidy
@@ -1090,7 +1121,7 @@ class Scene05(HangmanScene):
         cand = {}
         for c in ("y", "b", "m", "p", "s"):        # the alternative candidates (SOURCED)
             # tall first drop like the active U-tree (U is the frontier) so cross-fades match
-            ct = self._ctree(self._subtree_spec(opts[c]["subtree"]), root_miss=1, root_dy=GRID_ROOT_DY)
+            ct = self._ctree(self._subtree_spec(opts[c]["subtree"]), root_miss=1, tall_level=0)
             ct.scale(scale_c, about_point=ORIGIN).shift(uc - ct.root.get_center())
             cand[c] = ct
         u_avg = opts["u"]["avg"]                    # 1.0 (== node['avg'])
@@ -1118,10 +1149,14 @@ class Scene05(HangmanScene):
         del counter._upd
         self.play(VGroup(u_dot, yedge, uedge, counter).animate.set_color(LIGHT_GREEN),
                   run_time=1.0)
+        # U's value (1.0) now sits on U → the tall gap climbs from U→children up to E→U (the diagonal
+        # connection): U drops below E, U→Y/P revert to compact. backup_e then slides U in rigidly.
+        path = self.grid.path
+        self._gap_up(u_dot, u_lab, path.levels[3]["dot"], path.levels[4]["in_edge"],
+                     [(yedge, self.u_spine.gdot), (uedge, self.ups.root)],
+                     run_time=0.7, also=[counter])
         self.u_subtree = cur                        # hand off U's solved subtree to backing up E
         self.avg_u = counter                        # U's value label (green 1.0)
-        # keep self.u_spine (Y-block) and self.ups (P-block) as handles: backup_e compresses U's
-        # TALL first drop back to normal (U stops being the frontier), moving these two blocks up
 
     # ── n : start backing up E. SAME move as backing up U, one level up. Build E's FULL tidy
     #        subtree as a _ctree (E → its e_/_e HIT branches + the U-position as the MISS child),
@@ -1150,7 +1185,7 @@ class Scene05(HangmanScene):
         e_hit_specs = [sp for im, sp in e_full["kids"] if not im]     # the E-hit branches
         e_spec = {"g": "e", "key": "e",
                   "kids": [(True, u_sub_spec)] + [(False, sp) for sp in e_hit_specs]}
-        e_ref = self._ctree(e_spec, root_miss=1, solved=False, root_dy=GRID_ROOT_DY)
+        e_ref = self._ctree(e_spec, root_miss=1, solved=False, tall_level=0)
         scale_c = (ec[1] + 4.0) / e_ref.height        # fit below E, pinned at its diagonal node (as in k)
         e_ref.scale(scale_c, about_point=ORIGIN).shift(ec - e_ref.root.get_center())
         eh, uh = e_ref.node["e"], e_ref.node["u"]
@@ -1182,21 +1217,13 @@ class Scene05(HangmanScene):
         # A/O/I annotations STAY — they're re-expanded when each of those levels is later backed up
         n_before = sum(len(path.levels[i]["hits"]) for i in range(3))
         e_anns = VGroup(*path.leaf_text[n_before:n_before + len(hits)])
-        # the reused U-subtree slides onto E's miss slot AND reverts U's TALL first drop to normal:
-        # U is no longer the frontier (E is), so U→Y/P shrinks from GRID_ROOT_DY to compact. U moves
-        # rigidly to the slot; the Y-block and P-block move the same PLUS an extra UP*reflow (so their
-        # roots land at the compact depth); the two first-level edges redraw to e_ref's compact slots.
-        reflow = (GRID_ROOT_DY - GRID_CHILD_DY) * scale_c
-        u_node = VGroup(self.u_ref.node["u"].dot, self.u_ref.node["u"].lab)
-        yedge, uedge = self.grid.drilled_edge, self.u_pedge          # U→Y (miss) / U→P (hit)
+        # the reused U-subtree arrives from choose_u already compact (U→Y/P compact) AND hanging the
+        # tall gap below E (E→U tall was set up by choose_u's reflow); e_ref lays out the same
+        # (tall_level=0) — so it just slides rigidly onto the miss slot, no reflow here.
         # phase 1 — everything MOVES into place (E morphs to the tidy root, the green U-subtree
-        # slides onto the miss slot + compresses its first drop, each hit root rides in with its letter)
+        # slides onto the miss slot, each hit root rides in with its letter)
         self.play(
-            u_node.animate.scale(sfac, about_point=y0).shift(ty - y0),
-            self.u_spine.animate.scale(sfac, about_point=y0).shift((ty - y0) + UP * reflow),
-            self.ups.animate.scale(sfac, about_point=y0).shift((ty - y0) + UP * reflow),
-            Transform(yedge, uh.kids[0].in_edge),                    # U→Y redrawn compact
-            Transform(uedge, uh.kids[1].in_edge),                    # U→P redrawn compact
+            self.u_subtree.animate.scale(sfac, about_point=y0).shift(ty - y0),
             FadeOut(self.avg_u),                                      # drop U's value label
             ReplacementTransform(VGroup(e_dot, e_lab), VGroup(eh.dot, eh.lab)),  # diagonal E → tidy E
             Transform(eu_edge, uh.in_edge),                          # E→U (miss) redrawn tidy
