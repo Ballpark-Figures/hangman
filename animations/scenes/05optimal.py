@@ -42,8 +42,10 @@ Script row 05, split on '—' (voiceover ↔ animation zip 1:1). BEAT MAP:
   l solve_ups     — solve {up,us}: cycle P/S candidate subtrees, choose P (0.5)
   m choose_u      — back up U: cycle U/Y/B/M/P/S candidate subtrees w/ a rolling avg counter,
                     choose U (1.0) and lock its node + edges + value green
+  n backup_e      — start backing up E (same move as k, one level up): build E's tidy subtree,
+                    slide the green U-subtree onto E's miss slot, grow E's hit branches (green)
   --- next sections (not yet built) ---
-  … back the values up the diagonal (E→A) level by level; dedup + prune; paired chart
+  … solve_e_hit + choose_e (l/m for E); repeat up the diagonal (I→A); dedup + prune; paired chart
 
 Render:  render 05a --fast  (…05c)   /   render 05 sub  for the whole scene
 
@@ -973,15 +975,23 @@ class Scene05(HangmanScene):
         # slide the green spine onto u_ref's {by,my} slot (exact overlay — same _ctree layout)
         sfac = yh.dot.width / spine.gdot.width
         y0, ty = spine.gdot.get_center(), yh.dot.get_center()
+        # REUSE U's existing bare hit-sibling dot as the {up,us} root (P): the diagonal already
+        # drew this node, so morph THAT dot into P (grown to node size), write P onto it, and
+        # EXPAND its children out of it — don't spawn a whole new subtree (see the user's note;
+        # same fix applies one level up in backup_e).
+        be, bd = path.levels[4]["hits"][0]                            # U's bare 'u_' hit edge + dot
+        p_lab = ups.root_h.lab
+        p_kids = VGroup(*[m for k in ups.root_h.kids for m in (k.in_edge, k.all)])  # below P
         self.play(
             spine.animate.scale(sfac, about_point=y0).shift(ty - y0),
             FadeOut(self.avg_b),                                       # drop the {by,my} value
             ReplacementTransform(VGroup(u_dot, u_lab), VGroup(uh.dot, uh.lab)),  # diagonal U → tidy U
             Transform(self.grid.drilled_edge, yh.in_edge),            # U→Y (miss) redrawn tidy
-            FadeOut(path.levels[4]["hits"][0][0]),                    # old bare 'u_' edge
-            FadeOut(path.levels[4]["hits"][0][1]),                    # old bare 'u_' dot
+            ReplacementTransform(bd, ups.root),                       # bare 'u_' dot → P root node
+            Transform(be, ph.in_edge),                                # bare 'u_' edge → tidy U→P edge
+            FadeIn(p_lab),                                            # write P onto the reused node
+            GrowFromPoint(p_kids, ph.dot.get_center()),               # expand {up,us} children
             FadeOut(path.leaf_text[-1]),                              # old 'U_ AOIE' annotation
-            GrowFromPoint(VGroup(ph.in_edge, ups), uc),               # grow {up,us} + its U→P edge
             run_time=1.3)
         self.avg_p = self._avg_label(ups.root, value="0.5", direction=RIGHT)
         self.play(FadeIn(self.avg_p), run_time=0.4)
@@ -1057,7 +1067,77 @@ class Scene05(HangmanScene):
         self.play(VGroup(u_dot, yedge, uedge, counter).animate.set_color(LIGHT_GREEN),
                   run_time=1.0)
         self.u_subtree = cur                        # hand off U's solved subtree to backing up E
+        self.avg_u = counter                        # U's value label (green 1.0)
         self.ups = None
+
+    # ── n : start backing up E. SAME move as backing up U, one level up. Build E's FULL tidy
+    #        subtree as a _ctree (E → its e_/_e HIT branches + the U-position as the MISS child),
+    #        slide the solved green U-subtree onto E's miss slot (scaled to the new, smaller node
+    #        size — the whole tree shrinks to fit as it grows), morph the diagonal E into the tidy
+    #        root, and GROW E's other children (the E-hit branches, shown solved-green) to be
+    #        chosen among next in solve_e_hit / choose_e. ──────────────────────────────────────
+    @subscene
+    def backup_e(self):
+        path = self.grid.path
+        e_dot, e_lab = path.levels[3]["dot"], path.levels[3]["lab"]
+        ec = e_dot.get_center()
+        eu_edge = path.levels[4]["in_edge"]           # the diagonal E→U (miss) edge
+        # U-position spec (E's MISS child) — the SAME structure as the on-screen green
+        # U-subtree, so it slides on exactly; keyed 'u' to address the slot.
+        u_sub_spec = {"g": "u", "key": "u",
+                      "hit": {"g": "p", "hit": {"leaf": "up"},
+                              "miss": {"g": "s", "hit": {"leaf": "us"}}},
+                      "miss": {"g": "y", "hit": {"g": "b", "hit": {"leaf": "by"},
+                                                 "miss": {"g": "m", "hit": {"leaf": "my"}}}}}
+        # E's HIT branches (e_, _e, …) SOURCED from the cache. e_ref lays out the WHOLE E
+        # subtree (unsolved); the hit branches are grown as separate green solved subtrees
+        # (mirroring {up,us} at the U level), the miss slot filled by the slid U-subtree.
+        e_opt = {o["letter"]: o for o in self._n_miss_node(3)["options"]}["e"]
+        e_full = self._subtree_spec(e_opt["subtree"])
+        e_hit_specs = [sp for im, sp in e_full["kids"] if not im]     # the E-hit branches
+        e_spec = {"g": "e", "key": "e",
+                  "kids": [(True, u_sub_spec)] + [(False, sp) for sp in e_hit_specs]}
+        e_ref = self._ctree(e_spec, root_miss=1, solved=False)
+        scale_c = (ec[1] + 4.0) / e_ref.height        # fit below E (same idea as u_ref)
+        e_ref.scale(scale_c, about_point=ORIGIN).shift(ec - e_ref.root.get_center())
+        eh, uh = e_ref.node["e"], e_ref.node["u"]
+        hit_handles = [k for k in eh.kids if not k.is_miss]
+        # slide the green U-subtree onto e_ref's U (miss) slot — exact overlay, scaled down
+        u_now = self.u_ref.node["u"].dot
+        sfac = uh.dot.width / u_now.width
+        y0, ty = u_now.get_center(), uh.dot.get_center()
+        # E's hit branches don't SPAWN new roots: REUSE each existing bare hit-sibling dot as the
+        # branch's root guess node — morph it to the tidy node size, write its letter on, and
+        # EXPAND its children out of it (same reuse fix as backup_u; see the user's note).
+        hits = path.levels[3]["hits"]                # [(bare_edge, bare_dot), …], one per hit branch
+        anims, hit_trees = [], []
+        for (be, bd), h, sp in zip(hits, hit_handles, e_hit_specs):
+            ct = self._ctree(sp, root_miss=0, solved=True)
+            ct.scale(scale_c, about_point=ORIGIN).shift(h.dot.get_center() - ct.root.get_center())
+            kids = VGroup(*[m for k in ct.root_h.kids for m in (k.in_edge, k.all)])  # below the root
+            anims += [ReplacementTransform(bd, ct.root),  # existing bare dot → tidy branch root
+                      Transform(be, h.in_edge),           # existing bare edge → tidy E→root edge
+                      FadeIn(ct.root_h.lab),              # write the guess letter onto the node
+                      GrowFromPoint(kids, h.dot.get_center())]  # expand the branch's children
+            hit_trees.append((h, ct))
+        # DECLUTTER the drilled-past board/tally annotations on the diagonal ABOVE E (A/O/I) plus
+        # E's own — E's big subtree now grows RIGHT into the space where these right-splaying
+        # boards sit, so the E→(far-right hit) edge would otherwise cut through them (the user's
+        # note). The diagonal spine + bare dots stay; each level re-expands its own hit siblings
+        # when it's later backed up, so nothing is lost.
+        n_before = sum(len(path.levels[i]["hits"]) for i in range(3))
+        e_anns = VGroup(*path.leaf_text[:n_before + len(hits)])
+        self.play(
+            self.u_subtree.animate.scale(sfac, about_point=y0).shift(ty - y0),
+            FadeOut(self.avg_u),                                      # drop U's value label
+            ReplacementTransform(VGroup(e_dot, e_lab), VGroup(eh.dot, eh.lab)),  # diagonal E → tidy E
+            Transform(eu_edge, uh.in_edge),                          # E→U (miss) redrawn tidy
+            FadeOut(e_anns),                                          # old decluttered E-hit board
+            *anims,
+            run_time=1.3)
+        self.e_ref, self.eu_edge = e_ref, eu_edge
+        self.e_hit_trees = hit_trees                 # [(handle, green subtree), …] for solving
+        self.avg_u = None
 
     # ── components ─────────────────────────────────────────────────────────────
     def _greedy_chart(self):
