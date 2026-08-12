@@ -323,11 +323,18 @@ class Scene16(HangmanScene):
                   run_time=1.6)
 
     # ── the recurring "play one guess" beat (k–s) ─────────────────────────────
-    def _guess(self, i, *, rt_bubble, rt_write, rt_part, rt_out):
+    def _guess(self, i, *, rt_box, rt_write, rt_part):
+        """Gold-box the guess on the tier list FIRST (the 'here's my guess' beat —
+        replaces the speech bubble for this scene), THEN write the letter into its
+        blank(s) on a HIT, or the miss row + next gallows part on a MISS."""
         g = GUESSES[i]
         positions = [p for p, c in enumerate(WORD) if c == g]
-        bub = gb.bubble(g, tail="left")
-        self.play(GrowFromPoint(bub, bub.tip_dot.get_center()), run_time=rt_bubble)
+        # 1. gold box around this guess in the chalk tier list (accumulates)
+        box = SurroundingRectangle(self.ctl_tiles[g], color=ACCENT_GOLD,
+                                   buff=CTL_GOLD_BUFF, stroke_width=4).set_z_index(3)
+        self.gold_boxes.add(box)
+        self.play(Create(box), run_time=rt_box)
+        # 2. write the letter
         if positions:                                     # HIT — write each occurrence
             for p in positions:
                 L = gb.reveal_letter(g, self.rules[p])
@@ -341,49 +348,44 @@ class Scene16(HangmanScene):
             self.hang.add(part)
             self.miss_n += 1
             self.play(Create(part), run_time=rt_part)
-        # gold box around this guess in the chalk tier list (accumulates)
-        box = SurroundingRectangle(self.ctl_tiles[g], color=ACCENT_GOLD,
-                                   buff=CTL_GOLD_BUFF, stroke_width=4).set_z_index(3)
-        self.gold_boxes.add(box)
-        self.play(Create(box), FadeOut(bub), run_time=rt_out)
 
     # k–s : the nine guesses E S T R A L B P Y (B is the flagged 2nd miss)
     @subscene
     def guess_e(self):
-        self._guess(0, rt_bubble=0.7, rt_write=0.9, rt_part=0.7, rt_out=0.4)
+        self._guess(0, rt_box=0.5, rt_write=0.9, rt_part=0.7)
 
     @subscene
     def guess_s(self):
-        self._guess(1, rt_bubble=0.7, rt_write=0.9, rt_part=0.7, rt_out=0.4)
+        self._guess(1, rt_box=0.5, rt_write=0.9, rt_part=0.7)
 
     @subscene
     def guess_t(self):
-        self._guess(2, rt_bubble=0.7, rt_write=0.9, rt_part=0.7, rt_out=0.4)
+        self._guess(2, rt_box=0.5, rt_write=0.9, rt_part=0.7)
 
     @subscene
     def guess_r(self):
-        self._guess(3, rt_bubble=0.7, rt_write=0.9, rt_part=0.7, rt_out=0.4)
+        self._guess(3, rt_box=0.5, rt_write=0.9, rt_part=0.7)
 
     @subscene
     def guess_a(self):
-        self._guess(4, rt_bubble=0.7, rt_write=0.9, rt_part=0.7, rt_out=0.4)
+        self._guess(4, rt_box=0.5, rt_write=0.9, rt_part=0.7)
 
     @subscene
     def guess_l(self):
-        self._guess(5, rt_bubble=0.7, rt_write=0.9, rt_part=0.7, rt_out=0.4)
+        self._guess(5, rt_box=0.5, rt_write=0.9, rt_part=0.7)
 
     # q : guess B — the sourced 2nd miss the script omits (see the module flag)
     @subscene
     def guess_b(self):
-        self._guess(6, rt_bubble=0.7, rt_write=0.9, rt_part=0.7, rt_out=0.4)
+        self._guess(6, rt_box=0.5, rt_write=0.9, rt_part=0.7)
 
     @subscene
     def guess_p(self):
-        self._guess(7, rt_bubble=0.7, rt_write=0.9, rt_part=0.7, rt_out=0.4)
+        self._guess(7, rt_box=0.5, rt_write=0.9, rt_part=0.7)
 
     @subscene
     def guess_y(self):
-        self._guess(8, rt_bubble=0.7, rt_write=0.9, rt_part=0.7, rt_out=0.4)
+        self._guess(8, rt_box=0.5, rt_write=0.9, rt_part=0.7)
 
     # ── t : turn the letters, blanks, and gallows green (per script) ──────────
     @subscene
