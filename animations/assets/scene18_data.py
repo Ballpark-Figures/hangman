@@ -57,11 +57,12 @@ BEAT1_WEIGHTING = "uniform"   # the scene-05 optimal strategy is on the uniform 
 BEAT1_LENGTHS = range(1, 21)
 
 # ── beats 4/5 (illustrative single steps) ─────────────────────────────────────
-# Both demos are chosen automatically (see _demo_keep / _demo_undo): among the
-# tracked combos that a tracked WORD exhibits (so the combo bar and a word bar move
-# together), beat 4 takes the biggest RAISE from uniform (kept), beat 5 the biggest
-# DROP from the beat-4 state (a failure -> undo -> reset). The factor set probed:
-BEAT_DEMO_FACTORS = (0.5, 2.0)
+# PINNED demo combos (stable across display tweaks; both are forced into the shown
+# grid). d RAISES misses (kept); e LOWERS misses (a failure -> undo -> reset). Each
+# also moves a tracked WORD bar so the combo->word propagation is visible.
+BEAT_D_PATTERN, BEAT_D_FACTOR = "_u__", 2.0     # d: 'u' in slot 2 -> pump/just/…
+BEAT_E_PATTERN, BEAT_E_FACTOR = "__e_", 2.0     # e: 'e' in slot 3 -> they/when/them
+DEMO_COMBOS = (BEAT_D_PATTERN, BEAT_E_PATTERN)
 
 # beat b is the optimal length-2 tree = the end of scene 05, already cached in
 # tree2_data.py; the scene imports that module directly. Nothing to cache here.
@@ -167,11 +168,13 @@ def _choosing_strategy(freq_search, wordlist):
     game_words = set(final.game.words)
     word_list = [w.text for w in sorted(words4, key=lambda w: -w.zipf)
                  if w.text in game_words][:TRACK_N]
-    # combos: the first two rows are the commonest combos overall; the LAST row is the
-    # commonest combos that feature a letter MORE THAN ONCE (mask popcount >= 2).
+    # combos: the first two rows are the commonest combos overall (with the pinned demo
+    # combos guaranteed present); the LAST row is the commonest combos that feature a
+    # letter MORE THAN ONCE (mask popcount >= 2).
     by_count = mult_df.sort_values("n_words", ascending=False)
     rows_per = TRACK_N // 3
-    head = list(by_count.head(2 * rows_per).pattern)
+    common = [p for p in by_count.pattern if p not in DEMO_COMBOS]
+    head = (list(DEMO_COMBOS) + common)[:2 * rows_per]      # demo combos lead, then commonest
     multi = by_count[by_count["mask"].map(lambda m: bin(int(m)).count("1")) >= 2]
     multi = multi[~multi["pattern"].isin(head)]
     combo_patterns = head + list(multi.head(rows_per).pattern)
@@ -215,80 +218,34 @@ def _snapshot(s, patterns, words):
     return {"combo_mult": cm, "word_freq": wf, "avg_misses": _score(s)}
 
 
-def _word_has_pattern(word, pat):
-    """True iff ``word`` exhibits the (letter, occurrence-mask) that ``pat`` encodes
-    (letter sits at EXACTLY the non-underscore slots of pat)."""
-    letter = next(ch for ch in pat if ch != "_")
-    return all((word[i] == letter) == (pat[i] == letter) for i in range(len(pat)))
-
-
-def _candidate_patterns(patterns, words):
-    """Tracked combos that at least one TRACKED word exhibits — so changing the combo
-    bar visibly moves a word bar (the propagation the demos illustrate)."""
-    return [p for p in patterns
-            if any(_word_has_pattern(w, p) for w in words)]
-
-
-def _best_single_step(freq_search, patterns, words, *, base_setup, want, exclude=()):
-    """Probe every candidate combo × factor on top of ``base_setup(s)``; return the
-    (pattern, value, snapshot) whose avg move is most in the ``want`` direction
-    ('up' or 'down') among moves that actually shift a tracked WORD bar. Patterns in
-    ``exclude`` are skipped (e.g. beat 5 must not just reverse beat 4's combo)."""
-    cands = [p for p in _candidate_patterns(patterns, words) if p not in exclude]
-    s = _reconstruct(freq_search, 0)
-    base_setup(s)
-    base = _snapshot(s, patterns, words)
-    base_mult = dict(zip(s.multipliers_df().pattern, s.multipliers_df().multiplier))
-    better = (lambda a, b: a > b) if want == "up" else (lambda a, b: a < b)
-
-    best = None                                            # (pattern, value, avg, moved)
-    for p in cands:
-        b = float(base_mult[p])
-        for fac in BEAT_DEMO_FACTORS:
-            _set_mult(s, p, b * fac)
-            snap = _snapshot(s, patterns, words)
-            moved = [w for w, x, y in zip(words, base["word_freq"], snap["word_freq"])
-                     if x != y]
-            _set_mult(s, p, b)                             # restore before next probe
-            if not moved:
-                continue
-            if best is None or better(snap["avg_misses"], best[2]):
-                best = (p, b * fac, snap["avg_misses"], moved)
-    return base, best
+def _moved(a, b, words):
+    return [w for w, x, y in zip(words, a["word_freq"], b["word_freq"]) if x != y]
 
 
 def _demo_keep(freq_search, patterns, words):
-    """Beat 4: from the uniform start, the combo move that RAISES misses the most
-    while moving a tracked word bar (the change we KEEP). before = uniform (all bars
-    equal), after = that one combo changed + its dependent word bars."""
-    before, best = _best_single_step(freq_search, patterns, words,
-                                     base_setup=lambda s: None, want="up")
-    pat, val, _, moved = best
+    """Beat 4: the PINNED combo BEAT_D_PATTERN boosted from the uniform start (raises
+    misses -> KEEP). before = uniform (all bars equal), after = that combo + its
+    dependent word bars."""
     s = _reconstruct(freq_search, 0)
-    _set_mult(s, pat, val)
+    before = _snapshot(s, patterns, words)
+    _set_mult(s, BEAT_D_PATTERN, BEAT_D_FACTOR)
     after = _snapshot(s, patterns, words)
-    return {"pattern": pat, "value": val, "moved_words": moved,
-            "before": before, "after": after}
+    return {"pattern": BEAT_D_PATTERN, "value": BEAT_D_FACTOR,
+            "moved_words": _moved(before, after, words), "before": before, "after": after}
 
 
 def _demo_undo(freq_search, patterns, words, keep):
-    """Beat 5: from the (kept) beat-4 state, the combo move that LOWERS misses the
-    most while moving a tracked word bar — a FAILED change (misses go DOWN). Then undo
-    (back to the beat-4 state) and reset (back to the uniform start)."""
-    kpat, kval = keep["pattern"], keep["value"]
-
-    def _kept(s):
-        _set_mult(s, kpat, kval)
-
-    base, best = _best_single_step(freq_search, patterns, words,
-                                   base_setup=_kept, want="down", exclude=(kpat,))
-    pat, val, _, moved = best
+    """Beat 5: the PINNED combo BEAT_E_PATTERN changed on top of the beat-4 state — a
+    FAILED change (lowers misses). Then undo (back to the beat-4 state) and reset (back
+    to the uniform start)."""
     s = _reconstruct(freq_search, 0)
-    _kept(s)
-    _set_mult(s, pat, val)
+    _set_mult(s, keep["pattern"], keep["value"])           # the beat-4 kept state
+    base = _snapshot(s, patterns, words)
+    _set_mult(s, BEAT_E_PATTERN, BEAT_E_FACTOR)
     worse = _snapshot(s, patterns, words)
     reset = _snapshot(_reconstruct(freq_search, 0), patterns, words)   # uniform
-    return {"pattern": pat, "value": val, "moved_words": moved,
+    return {"pattern": BEAT_E_PATTERN, "value": BEAT_E_FACTOR,
+            "moved_words": _moved(base, worse, words),
             "base": base, "worse": worse, "reset": reset}
 
 

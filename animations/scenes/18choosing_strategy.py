@@ -124,10 +124,9 @@ class Scene18(HangmanScene):
             chart = get_bar_chart(
                 items, center=[cx, base_y + ROW_H / 2, 0], width=ROW_W, height=ROW_H,
                 y_max=y_max, n_slots=PER_ROW, bar_color=WORD_BLUE, ink_color=INK,
+                baseline_labels=True,                      # sit labels on one baseline
                 label_factory=lambda s: crisp_text(s, font_size=BAR_LABEL_FS, color=INK,
                                                    weight=BOLD))
-            for lab in chart.labels:
-                lab.set_y(base_y - 0.42)                   # common centre line per row
             charts.append(chart)
             bars += list(chart.bars)
             base += [base_y] * len(chart.bars)
