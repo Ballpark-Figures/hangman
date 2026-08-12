@@ -30,9 +30,10 @@ wordlist, tiers, or a solve changes. The render path only calls ``get()``.
 FLAGS (values a human still owns):
   - ``EXAMPLE_WORD`` — the beat-j demo word (the animation column says BOARDS).
     Its optimal guess sequence falls out of the trace; the WORD is the choice.
-  - ``PLOT_LENGTHS`` — which length rows the beat d–i plot actually draws is a
-    SCENE display choice; the cache stores every length 1–20 so the scene can
-    pick. Set/trim in the scene, not here.
+  - ``DISPLAY_LENGTHS`` — which length rows the beat d–i plot draws: lengths
+    2–10, matching the position-frequency heatmap views in the tier scenes
+    (``letter_heat_data.LENGTHS``). The cache still stores every length 1–20
+    (``PLOT_LENGTHS``) so the scene can pick.
   - Tiers shown as fill segments stop at LOW↑ (index 5): the script fills through
     "first bottom tier" only — "we'll usually finish the whole word without ever
     dipping into the last tier", so LOW↓ (XZJQ) gets no segment.
@@ -52,7 +53,11 @@ CACHE = Path(__file__).resolve().parent / "scene16_cache.json"
 STRATEGY = "optimal"
 WEIGHTING = "uniform"
 FILL_CAPPED = True          # finish cap-truncated optimal branches with greedy
-PLOT_LENGTHS = list(range(1, 21))
+PLOT_LENGTHS = list(range(1, 21))   # computed/cached for every length …
+# … but the plot DISPLAYS only these rows, to match the position-frequency
+# ("Location Frequencies") heatmap views in the tier scenes, which use
+# letter_heat_data.LENGTHS = range(2, 11). So the plot shows lengths 2..10.
+DISPLAY_LENGTHS = list(range(2, 11))
 
 # ── FLAG: the beat-j example word (animation column: BOARDS) ────────────────────
 EXAMPLE_WORD = "boards"
@@ -142,6 +147,7 @@ def build():
         "weighting": WEIGHTING,
         "fill_capped": FILL_CAPPED,
         "lengths": PLOT_LENGTHS,
+        "display_lengths": DISPLAY_LENGTHS,
         "tier_letters": [t.lower() for t in TIER_LETTERS],
         "tiers": _tier_fill(),
         "example": _example_game(),
