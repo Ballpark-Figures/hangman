@@ -52,6 +52,27 @@ Script row 05, split on '—' (voiceover ↔ animation zip 1:1). BEAT MAP:
   --- next sections (not yet built) ---
   … repeat up the diagonal (I→A); dedup + prune; paired chart
 
+BACK-UP BEAT RECIPE (the I→O→A back-ups REPEAT this — reuse, don't reinvent; k/l/m and n/o/p
+are the worked examples, each level is 3 beats):
+  1. backup_X  — build X's tidy subtree as ONE _ctree(tall_level=0); SLIDE the already-solved
+     child (the green subtree from below) rigidly onto its slot; REUSE X's bare diagonal hit-dots
+     as the other children's roots and REVEAL them with the drill's ride-in (letter starts small+
+     transparent AT the bare dot, Restore → rides in; children sprout after — the `_transform_move`
+     technique, NOT a fade-in at the destination).
+  2. solve_X_hit — solve X's OTHER child(ren): for each, show its number, cycle through ALL the
+     tied first-guesses (the user means ALL), settle on the optimal, lock root+edges green.
+  3. choose_X  — back up X: roll a counter through ALL of X's candidate first-guesses, choose the
+     min, lock node+all-edges+value green.
+  TALL GAP follows the VALUE: the tall (GRID_ROOT_DY) edges always lead DOWN INTO the level that
+  currently shows the avg-miss number; it CLIMBS one level each back-up via `_gap_up` (the just-
+  valued node drops toward its fixed children — in-edge lengthens, out-edges compact). SIBLINGS
+  move together: `_gap_up(siblings=…)` drops the parent's OTHER children the same delta so a
+  level never splits. Do the climb at the START of the beat that deals with the node (choose_X),
+  the new number FADING IN travelling WITH the node; only ONE number on screen at a time.
+  NUMBERS: every value routes through `_fmt` (2 dp, half-up) + `_value_label` — worded
+  'Avg misses: N.NN' in g–n, BARE just-the-number from scene o on (same digit size). Never format
+  at the call site; pass the raw SOURCED float.
+
 Render:  render 05a --fast  (…05c)   /   render 05 sub  for the whole scene
 
 TIMING KNOBS LEFT AT A GUESS (feel — judge from the video): every fade/grow
