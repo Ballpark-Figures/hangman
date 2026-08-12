@@ -574,7 +574,9 @@ class Scene05(HangmanScene):
                 "hit": {"g": "b", "key": "b",
                         "hit": {"leaf": "by", "key": "by"},
                         "miss": {"g": "m", "key": "m", "hit": {"leaf": "my", "key": "my"}}}}
-        sub = self._ctree(spec, root_miss=1, solved=False)
+        # Y is the CURRENT frontier while the base is worked (g–j) → its first drop (Y→B) is TALL;
+        # backup_u reverts it to compact once U expands above Y.
+        sub = self._ctree(spec, root_miss=1, solved=False, root_dy=GRID_ROOT_DY)
         sub.shift(anchor - sub.root.get_center())          # Y (root) sits at the anchor
         dn = normalize(anchor - last_dot.get_center())
         drilled_edge = Line(last_dot.get_center() + dn * (r * PATH_SCALE),
@@ -956,7 +958,8 @@ class Scene05(HangmanScene):
         }
 
         def ctree(letter):
-            ct = self._ctree(specs[letter])
+            # tall first drop like the Y-first spine (Y is the frontier) so cross-fades match
+            ct = self._ctree(specs[letter], root_dy=GRID_ROOT_DY)
             ct.scale(scale, about_point=ORIGIN).shift(anchor)
             return ct
 
@@ -1019,9 +1022,16 @@ class Scene05(HangmanScene):
         p_lab.save_state()                                            # ride P in with the node…
         p_lab.scale(bd.width / ups.root.width).move_to(bd.get_center()).set_opacity(0)
         p_kids = VGroup(*[m for k in ups.root_h.kids for m in (k.in_edge, k.all)])  # below P
+        # the spine slides onto U's Y-slot AND reverts Y's TALL first drop to normal (U is now the
+        # frontier, not Y): Y moves rigidly; the B-block (B + its subtree) moves up an extra reflow
+        # so Y→B shrinks to compact; the Y→B edge redraws to u_ref's compact slot.
+        reflow = (GRID_ROOT_DY - GRID_CHILD_DY) * scale_c
+        b_block = VGroup(spine.bdot, spine.node_letters[1], spine.fan_levels[1], spine.fan_levels[2])
         # phase 1 — everything MOVES into place
         self.play(
-            spine.animate.scale(sfac, about_point=y0).shift(ty - y0),
+            VGroup(spine.gdot, spine.glab).animate.scale(sfac, about_point=y0).shift(ty - y0),
+            b_block.animate.scale(sfac, about_point=y0).shift((ty - y0) + UP * reflow),
+            Transform(spine.edges["yb"], u_ref.node["b"].in_edge),    # Y→B redrawn compact
             FadeOut(self.avg_b),                                       # drop the {by,my} value
             ReplacementTransform(VGroup(u_dot, u_lab), VGroup(uh.dot, uh.lab)),  # diagonal U → tidy U
             Transform(self.grid.drilled_edge, yh.in_edge),            # U→Y (miss) redrawn tidy
