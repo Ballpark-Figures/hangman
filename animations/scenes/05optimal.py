@@ -44,8 +44,10 @@ Script row 05, split on '—' (voiceover ↔ animation zip 1:1). BEAT MAP:
                     choose U (1.0) and lock its node + edges + value green
   n backup_e      — start backing up E (same move as k, one level up): build E's tidy subtree,
                     slide the green U-subtree onto E's miss slot, grow E's hit branches (green)
+  o solve_e_hit   — solve E's two hit children (e_ {EM,EN,EX}=1.0, _e {ME,BE,WE,RE,HE,YE}=2.5):
+                    show avg, cycle a tied alternative, lock M green (l for E, ×2)
   --- next sections (not yet built) ---
-  … solve_e_hit + choose_e (l/m for E); repeat up the diagonal (I→A); dedup + prune; paired chart
+  … choose_e (m for E); repeat up the diagonal (I→A); dedup + prune; paired chart
 
 Render:  render 05a --fast  (…05c)   /   render 05 sub  for the whole scene
 
@@ -1256,6 +1258,31 @@ class Scene05(HangmanScene):
         self.e_ref, self.eu_edge = e_ref, eu_edge
         self.e_hit_trees = hit_trees                 # [(handle, green subtree), …] for solving
         self.avg_u = None
+
+    # ── solve E's HIT children — each grown green with a WHITE root in n. For each position
+    #    ({EM,EN,EX} avg 1.0 ; {ME,BE,WE,RE,HE,YE} avg 2.5) show its avg, cycle ONE tied first-guess
+    #    alternative, settle back on M and lock the root + its outgoing edges green. Mirrors
+    #    solve_ups; every value/subtree SOURCED from the E-position node's children. ─────────────
+    @subscene
+    def solve_e_hit(self):
+        children = self._n_miss_node(3)["children"]
+        self.e_hit_avgs = []
+        for (h, ct), key, direction in zip(self.e_hit_trees, ("e_", "_e"), (UP, RIGHT)):
+            child = children[key]
+            avg = self._avg_label(ct.root, value=f"{child['avg']:.1f}", direction=direction)   # 1.0 / 2.5
+            self.play(FadeIn(avg), run_time=0.4)
+            opts = {o["letter"]: o for o in child["options"] if o["splits"]}
+            alt = next(c for c in opts if c != child["optimal_letter"])   # a tied alternative guess
+            alt_ct = self._ctree(self._subtree_spec(opts[alt]["subtree"]), root_miss=0)
+            alt_ct.scale(ct.root.width / (2 * GRID_NODE_R), about_point=ORIGIN)
+            alt_ct.shift(ct.root.get_center() - alt_ct.root.get_center())
+            self.play(FadeOut(ct), FadeIn(alt_ct), run_time=0.6)   # M → the alternative
+            self.wait(0.3)
+            self.play(FadeOut(alt_ct), FadeIn(ct), run_time=0.6)   # → back to M
+            self.remove(alt_ct)
+            # choose M: green its root + outgoing edges (subtree already green) and the value
+            self.play(VGroup(ct.root, ct.root_edges, avg).animate.set_color(LIGHT_GREEN), run_time=0.8)
+            self.e_hit_avgs.append(avg)
 
     # ── components ─────────────────────────────────────────────────────────────
     def _greedy_chart(self):
