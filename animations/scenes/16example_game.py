@@ -66,7 +66,7 @@ from assets import tier_list as tl
 from assets import views
 from assets import game_board as gb
 from assets import scene16_data
-from assets.chalkboard import chalkboard
+from assets.chalkboard import chalkboard, chalk_phrase, chalk_letter
 
 # ── plot geometry (echoes the location-frequency views: left-aligned rows, one
 #    white cell per position, a length label to the left; a coloured bar fills the
@@ -80,6 +80,12 @@ LABEL_BUFF = 0.28                   # gap from length label to its row
 DIVIDER_COLOR = tl.TIER_GREY        # grey lines between the individual boxes
 
 TL_SCALE = 0.80                     # tier list scale once tucked left
+
+# ── chalk game layout (beats j…): word near the BOTTOM (scene 11 / FIGURES), a
+#    CHALK tier list above it, gallows unchanged on the right ────────────────────
+GAME_BLANK_Y = -2.6                 # word blanks near the bottom-left (as in scene 11)
+CTL_MARGIN   = 0.45                 # inset of the chalk tier list from its box
+CTL_GOLD_BUFF = 0.08               # gold guess-box padding
 
 
 # ── the example game (beat j…): word + guess order = optimal/uniform trace ─────
@@ -238,16 +244,62 @@ class Scene16(HangmanScene):
     def fill_low1(self):
         self._fill(5, 0.9)
 
-    # ── j : FADE the views out / the chalkboard in; draw blanks + gallows ─────
+    # ── j : FADE the views out / the chalkboard in; draw blanks, gallows, tiers ──
     def _setup_board(self):
         self.cb = chalkboard(gb.BOARD_W, gb.BOARD_H)
         self.cb.set_z_index(-10)
-        self.rules = gb.build_rules(len(WORD))
+        self.rules = gb.build_rules(len(WORD), y=GAME_BLANK_Y)   # word near the bottom
         self.hang, self.hang_parts = gb.build_gallows()
         self.miss_n = 0
         self.miss_row = VGroup()
         self.miss_slots_x = gb.miss_slots(self.hang, MISSES)
         self.hit_marks = VGroup()                         # revealed letters (for recolour)
+        self.gold_boxes = VGroup()                        # accumulated guess boxes
+
+    def _build_chalk_tierlist(self):
+        """The named tier list in CHALK, sat in the box above the bottom word and left
+        of the gallows (scene 11's grid region): each row = the tier NAME (+ arrow) in
+        its tier colour, then the tier's letters in vowel-red / consonant-blue. Stores
+        `self.ctl_tiles[ch]` (each letter's chalk mob) so a guess can gold-box it."""
+        name_h, let_h, row_pitch, let_buff = 0.34, 0.40, 0.60, 0.24
+        self.ctl_tiles = {}
+        names, letters = [], []
+        for i in range(7):
+            word, arrow = tl.NAME_LABELS[i]
+            c = tl.NAME_TIER_COLORS[i]
+            nm = chalk_phrase(word, height=name_h, color=c)
+            if arrow:
+                tri = Triangle(fill_color=c, fill_opacity=1.0, stroke_width=0)
+                tri.set_height(name_h * 0.55)
+                if arrow == "down":
+                    tri.rotate(PI)
+                nm = VGroup(nm, tri).arrange(RIGHT, buff=0.10)
+            names.append(nm)
+            lets = VGroup()
+            for ch in tl.TIER_LETTERS[i]:
+                L = chalk_letter(ch, height=let_h, color=tl.tile_color(ch))
+                self.ctl_tiles[ch.lower()] = L           # guesses are lowercase
+                lets.add(L)
+            lets.arrange(RIGHT, buff=let_buff)
+            letters.append(lets)
+        name_w = max(n.width for n in names)             # name column width
+        rows = VGroup()
+        for i, (nm, lets) in enumerate(zip(names, letters)):
+            y = -i * row_pitch
+            nm.move_to([0, y, 0], aligned_edge=LEFT)                       # names left
+            lets.move_to([name_w + 0.5, y, 0], aligned_edge=LEFT)         # letters aligned
+            rows.add(VGroup(nm, lets))
+        # fit into the box above the word, left of the gallows (scene 11 style)
+        board_left = -(gb.BOARD_W / 2 - 0.34)
+        board_top = gb.BOARD_H / 2 - 0.34
+        gallows_left = self.hang.get_left()[0]
+        word_top = self.rules[0].get_center()[1] + gb.LETTER_BUFF + gb.LETTER_H
+        box_w = (gallows_left - board_left) - 2 * CTL_MARGIN
+        box_h = (board_top - word_top) - 2 * CTL_MARGIN
+        rows.scale(min(box_w / rows.width, box_h / rows.height, 1.0))
+        rows.move_to([(board_left + gallows_left) / 2, (word_top + board_top) / 2, 0])
+        self.chalk_tl = rows
+        return rows
 
     @subscene
     def board_in(self):
@@ -259,6 +311,11 @@ class Scene16(HangmanScene):
         self.play(FadeIn(self.cb), run_time=0.8)
         self.play(LaggedStartMap(Create, self.rules, lag_ratio=1.0), run_time=1.8)
         self.play(LaggedStartMap(Create, self.hang.gallows, lag_ratio=0.6), run_time=1.6)
+        # then draw the chalk tier list out (flatten to STROKES — Create over a whole
+        # multi-stroke VGroup inside a LaggedStart throws int * VMobject)
+        self._build_chalk_tierlist()
+        strokes = VGroup(*self.chalk_tl.family_members_with_points())
+        self.play(LaggedStartMap(Create, strokes, lag_ratio=0.02), run_time=2.4)
 
     # ── the recurring "play one guess" beat (k–s) ─────────────────────────────
     def _guess(self, i, *, rt_bubble, rt_write, rt_part, rt_out):
@@ -279,7 +336,11 @@ class Scene16(HangmanScene):
             self.hang.add(part)
             self.miss_n += 1
             self.play(Create(part), run_time=rt_part)
-        self.play(FadeOut(bub), run_time=rt_out)
+        # gold box around this guess in the chalk tier list (accumulates)
+        box = SurroundingRectangle(self.ctl_tiles[g], color=ACCENT_GOLD,
+                                   buff=CTL_GOLD_BUFF, stroke_width=4).set_z_index(3)
+        self.gold_boxes.add(box)
+        self.play(Create(box), FadeOut(bub), run_time=rt_out)
 
     # k–s : the nine guesses E S T R A L B P Y (B is the flagged 2nd miss)
     @subscene
