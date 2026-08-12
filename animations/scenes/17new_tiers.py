@@ -49,8 +49,8 @@ class Scene17(HangmanScene):
     """Re-weighting the tier list. See the module docstring for the beat map."""
 
     def setup_scene(self):
-        self.words = scene17_data.get()["len2"]        # sorted DESC by zipf
-        self.ymax = self.words[0]["zipf"]              # tallest bar (highest freq)
+        self.words = scene17_data.get()["len2"]        # sorted DESC by frequency
+        self.ymax = self.words[0]["freq"]              # tallest bar = the commonest word
         self.bar_rows = None
         self.title = None
         self.left = self.right = None
@@ -79,7 +79,7 @@ class Scene17(HangmanScene):
         return [self.ymax] * len(self._row_slice(r))             # all the same height
 
     def _freq_values(self, r):
-        return [w["zipf"] for w in self._row_slice(r)]           # actual frequency
+        return [w["freq"] for w in self._row_slice(r)]           # ACTUAL frequency (10**zipf)
 
     # ── tier-list helpers ─────────────────────────────────────────────────────
     def _filled_list(self, letters, *, names=None):

@@ -1,10 +1,11 @@
 """Cached data for scene 17 (re-weighting): the length-2 words + their frequency for
 the "Word Frequency" bar graph (beats a/b), SORTED by descending frequency.
 
-Frequency here is the wordlist's ZIPF value (the project's frequency measure; the
-`word<TAB>zipf` master list) — a readable log scale. The solver's frequency WEIGHTING is
-the linear `round(10**zipf)` rate; if the bars should show that raw rate instead, swap
-`zipf` for `10**zipf` here (a few common words would then tower over the rest).
+`freq` is the ACTUAL word frequency = `round(10**zipf)`, the per-billion occurrence rate
+— exactly what `wordlist.freq_weights` / `resolve_weighting("zipf")` feeds the solver as
+its frequency WEIGHTING. (`zipf` = log10 of that, kept for reference.) These frequencies
+are heavily skewed (the commonest 2-letter words are ~10^4× the rarest), so the bars tower
+then flatten — the honest picture of "more common words are more likely."
 
 The three tier orderings the scene compares live in `assets/tier_list.py`
 (TIER_LETTERS / FREQ_TIER_LETTERS / GB_TIER_LETTERS), also sourced from the notebook.
@@ -30,10 +31,12 @@ def build():
     import wordlist
 
     words = sorted(wordlist.load(min_len=2, max_len=2), key=lambda w: -w.zipf)  # A: desc freq
-    data = {"len2": [{"word": w.text, "zipf": round(float(w.zipf), 3)} for w in words]}
+    data = {"len2": [{"word": w.text, "zipf": round(float(w.zipf), 3),
+                      "freq": round(10.0 ** w.zipf)}                # the solver's weighting
+                     for w in words]}
     CACHE.write_text(json.dumps(data, indent=2))
-    print(f"{len(words)} length-2 words (zipf {words[0].zipf:.2f}..{words[-1].zipf:.2f}) "
-          f"-> {CACHE.name}")
+    print(f"{len(words)} length-2 words (freq {data['len2'][0]['freq']:,} .. "
+          f"{data['len2'][-1]['freq']:,}) -> {CACHE.name}")
     return data
 
 

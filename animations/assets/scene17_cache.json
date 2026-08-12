@@ -2,199 +2,248 @@
   "len2": [
     {
       "word": "to",
-      "zipf": 7.43
+      "zipf": 7.43,
+      "freq": 26915348
     },
     {
       "word": "of",
-      "zipf": 7.4
+      "zipf": 7.4,
+      "freq": 25118864
     },
     {
       "word": "in",
-      "zipf": 7.27
+      "zipf": 7.27,
+      "freq": 18620871
     },
     {
       "word": "is",
-      "zipf": 7.07
+      "zipf": 7.07,
+      "freq": 11748976
     },
     {
       "word": "it",
-      "zipf": 6.95
+      "zipf": 6.95,
+      "freq": 8912509
     },
     {
       "word": "on",
-      "zipf": 6.91
+      "zipf": 6.91,
+      "freq": 8128305
     },
     {
       "word": "be",
-      "zipf": 6.79
+      "zipf": 6.79,
+      "freq": 6165950
     },
     {
       "word": "as",
-      "zipf": 6.77
+      "zipf": 6.77,
+      "freq": 5888437
     },
     {
       "word": "at",
-      "zipf": 6.7
+      "zipf": 6.7,
+      "freq": 5011872
     },
     {
       "word": "he",
-      "zipf": 6.69
+      "zipf": 6.69,
+      "freq": 4897788
     },
     {
       "word": "by",
-      "zipf": 6.66
+      "zipf": 6.66,
+      "freq": 4570882
     },
     {
       "word": "my",
-      "zipf": 6.57
+      "zipf": 6.57,
+      "freq": 3715352
     },
     {
       "word": "or",
-      "zipf": 6.54
+      "zipf": 6.54,
+      "freq": 3467369
     },
     {
       "word": "we",
-      "zipf": 6.54
+      "zipf": 6.54,
+      "freq": 3467369
     },
     {
       "word": "an",
-      "zipf": 6.53
+      "zipf": 6.53,
+      "freq": 3388442
     },
     {
       "word": "so",
-      "zipf": 6.52
+      "zipf": 6.52,
+      "freq": 3311311
     },
     {
       "word": "me",
-      "zipf": 6.48
+      "zipf": 6.48,
+      "freq": 3019952
     },
     {
       "word": "if",
-      "zipf": 6.47
+      "zipf": 6.47,
+      "freq": 2951209
     },
     {
       "word": "up",
-      "zipf": 6.39
+      "zipf": 6.39,
+      "freq": 2454709
     },
     {
       "word": "do",
-      "zipf": 6.35
+      "zipf": 6.35,
+      "freq": 2238721
     },
     {
       "word": "no",
-      "zipf": 6.35
+      "zipf": 6.35,
+      "freq": 2238721
     },
     {
       "word": "us",
-      "zipf": 6.04
+      "zipf": 6.04,
+      "freq": 1096478
     },
     {
       "word": "go",
-      "zipf": 6.03
+      "zipf": 6.03,
+      "freq": 1071519
     },
     {
       "word": "am",
-      "zipf": 5.78
+      "zipf": 5.78,
+      "freq": 602560
     },
     {
       "word": "re",
-      "zipf": 5.23
+      "zipf": 5.23,
+      "freq": 169824
     },
     {
       "word": "la",
-      "zipf": 5.05
+      "zipf": 5.05,
+      "freq": 112202
     },
     {
       "word": "hi",
-      "zipf": 5.0
+      "zipf": 5.0,
+      "freq": 100000
     },
     {
       "word": "ex",
-      "zipf": 4.81
+      "zipf": 4.81,
+      "freq": 64565
     },
     {
       "word": "ad",
-      "zipf": 4.76
+      "zipf": 4.76,
+      "freq": 57544
     },
     {
       "word": "ya",
-      "zipf": 4.67
+      "zipf": 4.67,
+      "freq": 46774
     },
     {
       "word": "ma",
-      "zipf": 4.63
+      "zipf": 4.63,
+      "freq": 42658
     },
     {
       "word": "id",
-      "zipf": 4.61
+      "zipf": 4.61,
+      "freq": 40738
     },
     {
       "word": "em",
-      "zipf": 4.57
+      "zipf": 4.57,
+      "freq": 37154
     },
     {
       "word": "en",
-      "zipf": 4.5
+      "zipf": 4.5,
+      "freq": 31623
     },
     {
       "word": "pa",
-      "zipf": 4.46
+      "zipf": 4.46,
+      "freq": 28840
     },
     {
       "word": "yo",
-      "zipf": 4.45
+      "zipf": 4.45,
+      "freq": 28184
     },
     {
       "word": "op",
-      "zipf": 4.42
+      "zipf": 4.42,
+      "freq": 26303
     },
     {
       "word": "mi",
-      "zipf": 4.3
+      "zipf": 4.3,
+      "freq": 19953
     },
     {
       "word": "ye",
-      "zipf": 4.25
+      "zipf": 4.25,
+      "freq": 17783
     },
     {
       "word": "fa",
-      "zipf": 4.2
+      "zipf": 4.2,
+      "freq": 15849
     },
     {
       "word": "lo",
-      "zipf": 4.07
+      "zipf": 4.07,
+      "freq": 11749
     },
     {
       "word": "ab",
-      "zipf": 4.06
+      "zipf": 4.06,
+      "freq": 11482
     },
     {
       "word": "bi",
-      "zipf": 4.04
+      "zipf": 4.04,
+      "freq": 10965
     },
     {
       "word": "ta",
-      "zipf": 4.02
+      "zipf": 4.02,
+      "freq": 10471
     },
     {
       "word": "pi",
-      "zipf": 3.92
+      "zipf": 3.92,
+      "freq": 8318
     },
     {
       "word": "ti",
-      "zipf": 3.85
+      "zipf": 3.85,
+      "freq": 7079
     },
     {
       "word": "om",
-      "zipf": 3.55
+      "zipf": 3.55,
+      "freq": 3548
     },
     {
       "word": "ox",
-      "zipf": 3.47
+      "zipf": 3.47,
+      "freq": 2951
     },
     {
       "word": "ax",
-      "zipf": 3.34
+      "zipf": 3.34,
+      "freq": 2188
     }
   ]
 }
