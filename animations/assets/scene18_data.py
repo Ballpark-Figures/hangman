@@ -145,7 +145,7 @@ def _set_mult(s, pattern, value):
     s._recompute_freq()
 
 
-def _choosing_strategy(freq_search):
+def _choosing_strategy(freq_search, wordlist):
     import pandas as pd
 
     csv_path = _log_path(freq_search)
@@ -154,25 +154,32 @@ def _choosing_strategy(freq_search):
 
     final = _reconstruct(freq_search, None)
     mult_df = final.multipliers_df()
-    freq_df = final.frequencies_df()
     bo_letter, final_avg = final.game.best_opener_misses(final.freq)
 
-    # the fixed sets of bars shown (multi-row) and animated across every beat
-    combo_patterns = list(mult_df.head(TRACK_N).pattern)
-    word_list = list(freq_df.head(TRACK_N).word)
+    # The bars shown are chosen from the NATURAL wordlist, not the strategy's winners:
+    #  - WORDS: the most common real 4-letter words, by zipf frequency.
+    #  - COMBOS: the most common letter-combos in the (uniform) wordlist, by # of words
+    #            that carry them (n_words = the uniform-weighting count).
+    # (The bar HEIGHTS still track each word's strategy frequency / each combo's
+    #  adjustment multiplier as the optimization runs.)
+    words4 = wordlist.load(min_len=BO_LENGTH, max_len=BO_LENGTH)
+    zipf = {w.text: float(w.zipf) for w in words4}
+    game_words = set(final.game.words)
+    word_list = [w.text for w in sorted(words4, key=lambda w: -w.zipf)
+                 if w.text in game_words][:TRACK_N]
+    combo_patterns = list(mult_df.sort_values("n_words", ascending=False)
+                          .head(TRACK_N).pattern)
 
+    nwords = dict(zip(mult_df.pattern, mult_df.n_words))
+    final_cm, final_wf = _tracked(final, combo_patterns, word_list)
     beat3 = {
         "length": BO_LENGTH, "objective": OBJECTIVE,
         "best_opener_letter": bo_letter, "avg_misses": float(final_avg),
         "n_changes": int(n_changes),
-        "top_words": [{"word": w, "frequency": float(f)}
-                      for w, f in zip(freq_df.head(TRACK_N).word,
-                                      freq_df.head(TRACK_N).frequency)],
-        "top_combos": [{"pattern": p, "letter": l, "multiplier": float(m), "n_words": int(n)}
-                       for p, l, m, n in zip(mult_df.head(TRACK_N).pattern,
-                                             mult_df.head(TRACK_N).letter,
-                                             mult_df.head(TRACK_N).multiplier,
-                                             mult_df.head(TRACK_N).n_words)],
+        "top_words": [{"word": w, "zipf": round(zipf[w], 3), "frequency": float(f)}
+                      for w, f in zip(word_list, final_wf)],
+        "top_combos": [{"pattern": p, "n_words": int(nwords[p]), "multiplier": float(m)}
+                       for p, m in zip(combo_patterns, final_cm)],
     }
 
     # beat 6: N_BUCKETS steps. Snapshot the tracked bars + avg at each boundary,
@@ -283,7 +290,7 @@ def build():
     freq_search, strategy_view, wordlist = _imports()
 
     most_misses = _most_misses(strategy_view)
-    beat3, beat6, beat4, beat5 = _choosing_strategy(freq_search)
+    beat3, beat6, beat4, beat5 = _choosing_strategy(freq_search, wordlist)
 
     data = {
         "meta": {"min_zipf": wordlist.DEFAULT_ZIPF, "track_n": TRACK_N,

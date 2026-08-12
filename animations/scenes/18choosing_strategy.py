@@ -14,30 +14,27 @@ BEAT MAP (Script.md scene 18; --- delimited, 6 beats a-f):
   b opt_tree     — the optimal length-2 tree + "*See blog post for more information".
                    >>> PLACEHOLDER: meant to be the SAME tree as the END of scene 05
                    (tree2_data.py), not built yet. Roughed as a labelled card.
-  c strategy     — "Average Misses: N" (counter, top); LEFT = top len-4 words, RIGHT =
-                   top letter-combos, each a MULTI-ROW block of bars (scene-17 style).
+  c strategy     — "Average Misses: N" (counter, top); LEFT = the most common real
+                   4-letter words (by zipf), RIGHT = the most common letter-combos in the
+                   wordlist, each a MULTI-ROW block of bars (scene-17 style, bold labels).
                    Starts UNIFORM (every bar equal). SOURCED scene18_data.
   d try_keep     — one combo bar rises → the WORDS exhibiting it rise too → the avg
-                   counts UP; we KEEP it.
+                   counts UP; we KEEP it. Rising bars flash GREEN.
   e try_undo     — a DIFFERENT change → the avg counts DOWN (a failure) → undo → reset
-                   the whole thing back to the uniform start.
+                   the whole thing back to the uniform start. Falling bars flash CRIMSON.
   f replay       — replay the optimization uniform→final in N_BUCKETS steps: each step
-                   morphs the combo bars, then the word bars, then the avg.
+                   morphs the combo bars, then the word bars, then the avg (grow = green,
+                   shrink = crimson).
 
 REUSE MAP (styling sources):
-  - bars    : bpkfigures.bar_graph get_bar_chart / morph_bar_chart / grow_bars (scene 17)
-  - text    : crisp_text (non-chalkboard world), ink BLACK on the brand bg
+  - bars    : bpkfigures.bar_graph get_bar_chart / grow_bars (scene-17 word-frequency bars)
+  - text    : crisp_text (non-chalkboard world), ink BLACK, bold bar labels
   - counter : a ValueTracker + become() so the avg number never moves or resizes
-  - colours : ACCENT_FILL bars + blue words; numbers ALL from assets/scene18_data cache
+  - colours : ACCENT_FILL bars; grow = ACCENT_GREEN, shrink = CRIMSON; blue words
 
 FLAGS (owned by a human — tune/decide in the timing+polish pass):
   - beat b background: the tree world is navy (scenes 01/05); roughed on a navy card.
-  - TRACK_N / PER_ROW / row geometry / all run_times = guesses. The uniform bars start
-    SHORT (final products are up to ~19× the uniform 1) — the honest scene-17 linear
-    scale; if that reads too flat, say so and we can start them at an equal DISPLAY
-    height instead.
-
-Render:  render 18a --fast (…18f)  /  render 18 sub  for the whole scene
+  - TRACK_N / PER_ROW / row geometry / BAR_LABEL_FS / all run_times = guesses.
 """
 from pathlib import Path
 import sys
@@ -48,10 +45,12 @@ sys.path.append(str(Path(__file__).resolve().parent.parent.parent.parent))
 from config import *
 from assets import scene18_data
 from assets.chalkboard import BOARD_NAVY
-from bpkfigures.bar_graph import get_bar_chart, morph_bar_chart, grow_bars
+from bpkfigures.bar_graph import get_bar_chart, grow_bars
 
 INK = BLACK                       # dark labels on the brand light-blue bg (scene-17 convention)
-WORD_BLUE = ACCENT_FILL           # the blue words in the beat-a table + the bars
+WORD_BLUE = ACCENT_FILL           # the blue words in the beat-a table + the resting bars
+GROW_GREEN = ACCENT_GREEN         # a bar flashes green while it GROWS
+SHRINK_CRIMSON = CRIMSON          # a bar flashes crimson while it SHRINKS
 TITLE_Y = 3.7
 
 # ── beat-c/d/e/f multi-row bar composition ────────────────────────────────────
@@ -60,7 +59,7 @@ ROW_W = 6.8                       # each side's row width
 PER_ROW = 8                       # bars per row (TRACK_N // ROWS)
 ROW_H = 1.1                       # bar height at y_max
 BASE_YS = [1.4, -0.3, -2.0]       # the 3 row BASELINES (bars grow up; ROWS = len(BASE_YS))
-BAR_LABEL_FS = 13
+BAR_LABEL_FS = 20                 # bold, scene-17-word-bar sized
 
 
 class Scene18(HangmanScene):
@@ -71,15 +70,18 @@ class Scene18(HangmanScene):
         opt = self.data["optimization"]
         self.combos = opt["tracked_combos"]
         self.words = opt["tracked_words"]
-        # per-side fixed y_max so every state's bars share one scale (morph pairs them)
+        # per-side fixed y_max so every state's bars share one scale
         self.combo_ymax = max(max(b["combo_mult"]) for b in opt["buckets"])
         self.word_ymax = max(max(b["word_freq"]) for b in opt["buckets"])
         self.avg_tracker = ValueTracker(0.0)     # bare tracker pickles fine (updater added in body)
-        # carried mobjects
+        # carried mobjects / state
         self.table = None
         self.tree_card = None
         self.avg_label = self.avg_num = None
-        self.word_rows = self.combo_rows = None
+        self.word_charts = self.combo_charts = None
+        self.word_bars = self.combo_bars = None
+        self.word_base = self.combo_base = None
+        self.word_vals = self.combo_vals = None
 
     # ── text helpers ──────────────────────────────────────────────────────────
     def _fit_text(self, text, width, **kw):
@@ -88,15 +90,16 @@ class Scene18(HangmanScene):
 
     def _number_text(self, value):
         """The avg number at a FIXED height + left edge, so counting never moves/resizes it."""
-        t = crisp_text(f"{value:.2f}", font_size=48, color=INK, weight=BOLD)
-        t.scale_to_fit_height(self.num_h).move_to([self.num_left, self.num_y, 0], aligned_edge=LEFT)
-        return t
+        return (crisp_text(f"{value:.2f}", font_size=10, color=INK, weight=BOLD)
+                .scale_to_fit_height(self.num_h)
+                .move_to([self.num_left, self.num_y, 0], aligned_edge=LEFT))
 
     def _setup_avg(self, value):
-        label = self._fit_text("Average Misses:", 3.8, color=INK, weight=BOLD)
-        num = crisp_text(f"{value:.2f}", font_size=48, color=INK, weight=BOLD)
-        num.scale_to_fit_height(label.height).next_to(label, RIGHT, buff=0.22)
-        VGroup(label, num).move_to([0, TITLE_Y, 0])
+        # label + number built at the SAME base size and scaled together → same size
+        label = crisp_text("Average Misses:", font_size=10, color=INK, weight=BOLD)
+        num = crisp_text(f"{value:.2f}", font_size=10, color=INK, weight=BOLD)
+        num.next_to(label, RIGHT, buff=0.12)
+        VGroup(label, num).scale_to_fit_width(6.4).move_to([0, TITLE_Y, 0])
         self.num_h = num.height
         self.num_left, self.num_y = num.get_left()[0], num.get_center()[1]
         self.avg_label, self.avg_num = label, num
@@ -110,33 +113,47 @@ class Scene18(HangmanScene):
         self.avg_num.clear_updaters()
 
     # ── bar helpers ───────────────────────────────────────────────────────────
-    def _side_rows(self, cx, labels, values, y_max):
-        """A side's bars as ROWS get_bar_charts (PER_ROW bars each), heights = values."""
-        rows = []
+    def _build_side(self, cx, labels, values, y_max):
+        """A side's bars as ROWS get_bar_charts; return (charts, flat bars, flat baselines)."""
+        charts, bars, base = [], [], []
         for r, base_y in enumerate(BASE_YS):
             sl = slice(r * PER_ROW, (r + 1) * PER_ROW)
             items = list(zip(labels[sl], values[sl]))
-            rows.append(get_bar_chart(
+            chart = get_bar_chart(
                 items, center=[cx, base_y + ROW_H / 2, 0], width=ROW_W, height=ROW_H,
                 y_max=y_max, n_slots=PER_ROW, bar_color=WORD_BLUE, ink_color=INK,
-                label_factory=lambda s: crisp_text(s, font_size=BAR_LABEL_FS, color=INK)))
-        return rows
+                label_factory=lambda s: crisp_text(s, font_size=BAR_LABEL_FS, color=INK,
+                                                   weight=BOLD))
+            charts.append(chart)
+            bars += list(chart.bars)
+            base += [base_y] * len(chart.bars)
+        return charts, bars, base
 
-    def _remorph(self, old_rows, cx, labels, values, y_max, run_time):
-        """Morph a side's row-charts to new ``values``; return the new live row-charts."""
-        new_rows = self._side_rows(cx, labels, values, y_max)
-        anims = []
-        for o, n in zip(old_rows, new_rows):
-            anims += morph_bar_chart(o, n)
+    def _grow_anim(self, bar, base_y, h0, h1):
+        """One bar height h0→h1, growing GREEN / shrinking CRIMSON, settling back to blue."""
+        eps = 1e-6
+        dcol = (GROW_GREEN if h1 > h0 + eps else
+                SHRINK_CRIMSON if h1 < h0 - eps else WORD_BLUE)
+
+        def upd(m, a):
+            m.stretch_to_fit_height(max(interpolate(h0, h1, a), 1e-3), about_edge=DOWN)
+            m.set_y(base_y + m.height / 2)                    # keep the base pinned
+            t = 0.0 if a < 0.72 else (a - 0.72) / 0.28        # hold dir-colour, then ease to blue
+            m.set_color(interpolate_color(dcol, WORD_BLUE, t))
+        return UpdateFromAlphaFunc(bar, upd)
+
+    def _morph_bars(self, bars, base, cur_vals, new_vals, y_max, run_time):
+        anims = [self._grow_anim(b, by, ROW_H * v0 / y_max, ROW_H * v1 / y_max)
+                 for b, by, v0, v1 in zip(bars, base, cur_vals, new_vals)]
         self.play(*anims, run_time=run_time)
-        return new_rows
+        cur_vals[:] = list(new_vals)
 
     def _apply_state(self, state, combo_rt, word_rt):
         """Morph combos, THEN words, to a {combo_mult, word_freq} state (script order)."""
-        self.combo_rows = self._remorph(self.combo_rows, COMBO_CX, self.combos,
-                                        state["combo_mult"], self.combo_ymax, combo_rt)
-        self.word_rows = self._remorph(self.word_rows, WORD_CX, self.words,
-                                       state["word_freq"], self.word_ymax, word_rt)
+        self._morph_bars(self.combo_bars, self.combo_base, self.combo_vals,
+                         state["combo_mult"], self.combo_ymax, combo_rt)
+        self._morph_bars(self.word_bars, self.word_base, self.word_vals,
+                         state["word_freq"], self.word_ymax, word_rt)
 
     # ── a : "Words with Most Misses" — blue words, lagged upward rise, 14-miss set ──
     @subscene
@@ -187,12 +204,16 @@ class Scene18(HangmanScene):
 
         uni = self.data["optimization"]["buckets"][0]          # bucket 0 = uniform
         self._setup_avg(uni["avg_misses"])
-        self.word_rows = self._side_rows(WORD_CX, self.words, uni["word_freq"], self.word_ymax)
-        self.combo_rows = self._side_rows(COMBO_CX, self.combos, uni["combo_mult"], self.combo_ymax)
+        self.word_charts, self.word_bars, self.word_base = self._build_side(
+            WORD_CX, self.words, uni["word_freq"], self.word_ymax)
+        self.combo_charts, self.combo_bars, self.combo_base = self._build_side(
+            COMBO_CX, self.combos, uni["combo_mult"], self.combo_ymax)
+        self.word_vals = list(uni["word_freq"])
+        self.combo_vals = list(uni["combo_mult"])
 
         self.play(FadeIn(self.avg_label), FadeIn(self.avg_num), run_time=0.6)
         all_bars, label_fades = [], []
-        for chart in (*self.word_rows, *self.combo_rows):
+        for chart in (*self.word_charts, *self.combo_charts):
             self.add(chart)
             chart.labels.set_opacity(0)
             all_bars += list(chart.bars)
@@ -203,7 +224,7 @@ class Scene18(HangmanScene):
     @subscene
     def try_keep(self):
         after = self.data["example_keep"]["after"]
-        self._apply_state(after, combo_rt=0.9, word_rt=0.9)    # combo bar, then its word bars
+        self._apply_state(after, combo_rt=0.9, word_rt=0.9)    # combo bar (green), then its word bars
         self._count_to(after["avg_misses"], 0.8)               # avg ticks UP (kept)
 
     # ── e : a different change → avg counts DOWN (failure) → undo → reset ──────
@@ -226,8 +247,5 @@ class Scene18(HangmanScene):
         buckets = self.data["optimization"]["buckets"]         # 0 (uniform) .. N (final)
         step = 0.3                    # lockstep montage (identical bucket steps) — one knob
         for b in buckets[1:]:
-            self.combo_rows = self._remorph(self.combo_rows, COMBO_CX, self.combos,
-                                            b["combo_mult"], self.combo_ymax, step)
-            self.word_rows = self._remorph(self.word_rows, WORD_CX, self.words,
-                                           b["word_freq"], self.word_ymax, step)
+            self._apply_state(b, combo_rt=step, word_rt=step)
             self._count_to(b["avg_misses"], step * 0.7)
