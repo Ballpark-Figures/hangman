@@ -656,7 +656,8 @@ class Scene05(HangmanScene):
     # box) and anchored by its DECIMAL POINT — so digit composition can't change its size (round
     # digits render taller than 1/4/7; measuring that was the old "two sizes" flip) and it doesn't
     # lurch as it rolls. No box measuring, no monospace grid, no spacer (which leaked as an underline).
-    VALUE_H_RATIO = 0.47   # bare-number digit cap-height as a fraction of the node's diameter
+    VALUE_CAP_H = 0.26     # bare-number digit cap-height (a FIXED world size → consistent throughout,
+                           #   not tied to the node, which shrinks as the tree recenters)
     WORDED_H = 0.34        # worded 'Avg misses: N.NN' box height (the static g–n beats)
     CYCLE_MAX = 3          # a root-back-up cycle shows at most this many DISTINCT letters (chosen + others)
     _NUM_REF = {}          # cached height->font_size reference + decimal-point offsets
@@ -710,7 +711,7 @@ class Scene05(HangmanScene):
         if not bare:
             return self._value_label(value, self.WORDED_H, False).next_to(
                 node_dot, direction, buff=self.WORDED_H * 0.6)
-        cap = node_dot.width * self.VALUE_H_RATIO
+        cap = self.VALUE_CAP_H
         return self._place_value(self._value_label(value, cap, True), node_dot, direction, cap * 0.9, cap)
 
     # ── f : keep drilling — expand the top-left (greedy pick O) tree's all-miss leaf
@@ -985,23 +986,36 @@ class Scene05(HangmanScene):
         return min((anchor[0] + fx) / loff if loff > 1e-6 else 1e9,   # left edge stays in frame
                    (fx - anchor[0]) / roff if roff > 1e-6 else 1e9)   # right edge stays in frame
 
-    def _recenter(self, run_time, margin=0.3):
-        """Pan the WHOLE on-screen tree so it's horizontally centred — as a back-up grows the tree
-        down-LEFT, this drifts the diagonal root rightward to keep everything framed instead of
-        shrinking it in place. Shrinks about the composition centre ONLY if it's still wider than the
-        frame (uniform, vertical centre preserved). Called at the end of each wide back-up."""
-        # only VISUAL mobjects — self.mobjects also holds non-visual Mobjects (a lingering
-        # ValueTracker), which VGroup rejects AND must not be scaled (scaling corrupts its value)
-        mobs = [m for m in self.mobjects if isinstance(m, VMobject)]
-        if not mobs:
-            return
-        comp = VGroup(*mobs)
-        if comp.width < 1e-6:
-            return
-        s = min(1.0, 2 * (config.frame_x_radius - margin) / comp.width)
+    def _above_diag_mobs(self, path, level):
+        """The diagonal mobjects a back-up of the node at ``level`` does NOT otherwise animate: the
+        levels ABOVE it (dots, labels, in-edges, hit siblings) + the in-edge INTO it (parent→node) +
+        the above levels' hit annotations. A reframe must move these explicitly (everything BELOW the
+        node is either the slid subtree or the grown branches, already animated). VMobjects only."""
+        mobs = []
+        for i in range(level):
+            lv = path.levels[i]
+            mobs += [lv["dot"], lv["lab"]]
+            if lv["in_edge"] is not None:
+                mobs.append(lv["in_edge"])
+            for e, d in lv["hits"]:
+                mobs += [e, d]
+        if path.levels[level]["in_edge"] is not None:
+            mobs.append(path.levels[level]["in_edge"])           # parent→node (not the node→child edge)
+        n_above = sum(len(path.levels[i]["hits"]) for i in range(level))
+        mobs += list(path.leaf_text[:n_above])
+        return [m for m in mobs if isinstance(m, VMobject)]
+
+    def _reframe(self, ref, above, margin=0.3):
+        """The horizontal reframe transform (scale ``s`` about point ``c``, then shift ``dx``) that
+        centres the FINAL tree — ``ref`` (the backed-up node's tidy subtree, whose phantom children
+        span the full footprint) plus the diagonal ``above`` — and shrinks it about that centre ONLY
+        if it's still wider than the frame. Applied to the back-up's OWN targets (ref, hit subtrees,
+        the slide) AND, concurrently, to ``above`` — so the tree reframes DURING the growth, drifting
+        the root right instead of extending off-screen and resizing afterward."""
+        comp = VGroup(ref, *above)
+        s = min(1.0, 2 * (config.frame_x_radius - margin) / comp.width) if comp.width > 1e-6 else 1.0
         c = comp.get_center()
-        self.play(*[m.animate.scale(s, about_point=c).shift([-c[0], 0, 0]) for m in mobs],
-                  run_time=run_time)
+        return s, c, np.array([-c[0], 0.0, 0.0])
 
     def _gap_up(self, node_dot, node_lab, parent_dot, in_edge, child_pairs, run_time,
                 also=(), fade_in=(), fade_out=(), siblings=()):
@@ -1120,7 +1134,7 @@ class Scene05(HangmanScene):
             if not bare:
                 return self._value_label(v, self.WORDED_H, False).next_to(
                     node_dot, direction, buff=self.WORDED_H * 0.6)
-            cap = node_dot.width * self.VALUE_H_RATIO
+            cap = self.VALUE_CAP_H
             return self._place_value(self._value_label(v, cap, True), node_dot, direction, cap * 0.9, cap)
         lab = place()
         lab.add_updater(upd := (lambda m: m.become(place())))
@@ -1348,8 +1362,11 @@ class Scene05(HangmanScene):
         # choose U: freeze the counter (drop the updater + its `.animate` target so the scene can
         # still pickle), then lock U's node + both outgoing edges + the value green
         self._freeze(counter)
-        self.play(VGroup(u_dot, yedge, uedge, counter).animate.set_color(LIGHT_GREEN),
-                  run_time=1.0)
+        # green the counter as its OWN animation (NOT wrapped in the VGroup) so it stays a TOP-LEVEL
+        # mobject — else the next back-up's ride-out (fading it) won't render (a submob's opacity anim
+        # is dropped)
+        self.play(VGroup(u_dot, yedge, uedge).animate.set_color(LIGHT_GREEN),
+                  counter.animate.set_color(LIGHT_GREEN), run_time=1.0)
         self.u_subtree = cur                        # hand off U's solved subtree to backing up E
         self.avg_u = counter                        # U's value label (green 1.0)
 
@@ -1376,11 +1393,16 @@ class Scene05(HangmanScene):
         e_spec = {"g": "e", "key": "e",
                   "kids": [(True, u_sub_spec)] + [(False, sp) for sp in e_hit_specs]}
         e_ref = self._ctree(e_spec, root_miss=1, solved=False, tall_level=0)
-        scale_c = (ec[1] + 4.0) / e_ref.height        # fit below E, pinned; _recenter reframes after
+        scale_c = (ec[1] + 4.0) / e_ref.height        # fit below E (height), pinned at its diagonal node
         e_ref.scale(scale_c, about_point=ORIGIN).shift(ec - e_ref.root.get_center())
+        # reframe the WHOLE final tree (this subtree + the diagonal above) horizontally, folded into
+        # phase 1 so the root drifts right AS the tree grows (not a separate resize afterward)
+        above = self._above_diag_mobs(path, 3)
+        s, c, dx = self._reframe(e_ref, above)
+        e_ref.scale(s, about_point=c).shift(dx)
         eh, uh = e_ref.node["e"], e_ref.node["u"]
         hit_handles = [k for k in eh.kids if not k.is_miss]
-        # slide the green U-subtree onto e_ref's U (miss) slot — exact overlay, scaled down
+        # slide the green U-subtree onto e_ref's U (miss) slot — exact overlay, scaled to the reframe
         u_now = self.u_ref.node["u"].dot
         sfac = uh.dot.width / u_now.width
         y0, ty = u_now.get_center(), uh.dot.get_center()
@@ -1390,10 +1412,11 @@ class Scene05(HangmanScene):
         # (starts small+transparent AT the bare dot, Restores to the node — NOT a fade-in at the
         # destination); (2) the branch's children SPROUT out of the settled root.
         hits = path.levels[3]["hits"]                # [(bare_edge, bare_dot), …], one per hit branch
+        sc = scale_c * s                             # hit branches at the reframed scale
         move, grows, hit_trees = [], [], []
         for (be, bd), h, sp in zip(hits, hit_handles, e_hit_specs):
             ct = self._ctree(sp, root_miss=0, solved=True)
-            ct.scale(scale_c, about_point=ORIGIN).shift(h.dot.get_center() - ct.root.get_center())
+            ct.scale(sc, about_point=ORIGIN).shift(h.dot.get_center() - ct.root.get_center())
             lab = ct.root_h.lab
             lab.save_state()                          # ride the letter in with the node…
             lab.scale(bd.width / ct.root.width).move_to(bd.get_center()).set_opacity(0)
@@ -1407,22 +1430,18 @@ class Scene05(HangmanScene):
         # A/O/I annotations STAY — they're re-expanded when each of those levels is later backed up
         n_before = sum(len(path.levels[i]["hits"]) for i in range(3))
         e_anns = VGroup(*path.leaf_text[n_before:n_before + len(hits)])
-        # the reused U-subtree arrives from choose_u already compact (U→Y/P compact) AND hanging the
-        # tall gap below E (E→U tall was set up by choose_u's reflow); e_ref lays out the same
-        # (tall_level=0) — so it just slides rigidly onto the miss slot, no reflow here.
-        # phase 1 — everything MOVES into place (E morphs to the tidy root, the green U-subtree
-        # slides onto the miss slot, each hit root rides in with its letter)
+        # phase 1 — slide/morph/reveal to the REFRAMED targets AND reframe the diagonal above, together
         self.play(
             self.u_subtree.animate.scale(sfac, about_point=y0).shift(ty - y0),
-            self.avg_u.animate.scale(sfac, about_point=y0).shift(ty - y0).set_opacity(0),  # rides out w/ U
+            FadeOut(self.avg_u, shift=ty - y0),                      # rides out (fade + move) with U
             ReplacementTransform(VGroup(e_dot, e_lab), VGroup(eh.dot, eh.lab)),  # diagonal E → tidy E
             Transform(eu_edge, uh.in_edge),                          # E→U (miss) redrawn tidy
             FadeOut(e_anns),                                          # E's own bare-board annotation
             *move,
+            *[m.animate.scale(s, about_point=c).shift(dx) for m in above],   # reframe the diagonal above
             run_time=0.9)
-        # phase 2 — each hit branch's children SPROUT out of the (settled) reused root
+        # phase 2 — each hit branch's children SPROUT out of the (settled) reused root (reframed)
         self.play(*[GrowFromPoint(kids, dot.get_center()) for kids, dot in grows], run_time=0.6)
-        self._recenter(0.6)                          # drift the root right so the wider tree stays framed
         self.e_ref, self.eu_edge = e_ref, eu_edge
         self.e_hit_trees = hit_trees                 # [(handle, green subtree), …] for solving
         self.e_hit_edges = [be for be, bd in hits]   # the ACTUAL on-screen E→M edges (transformed be)
@@ -1530,7 +1549,8 @@ class Scene05(HangmanScene):
         # choose E: freeze the counter, green E node + ALL its outgoing edges + the value
         self._freeze(counter)
         e_edges = VGroup(self.eu_edge, *self.e_hit_edges)
-        self.play(VGroup(e_dot, e_edges, counter).animate.set_color(LIGHT_GREEN), run_time=1.0)
+        self.play(VGroup(e_dot, e_edges).animate.set_color(LIGHT_GREEN),
+                  counter.animate.set_color(LIGHT_GREEN), run_time=1.0)   # counter TOP-LEVEL (rides out later)
         self.e_subtree = cur                         # hand off E's solved subtree to backing up I
         self.avg_e = counter                         # E's value label (green 2.00)
 
@@ -1552,11 +1572,16 @@ class Scene05(HangmanScene):
         i_spec = {"g": "i", "key": "i",
                   "kids": [(True, e_sub_spec)] + [(False, sp) for sp in i_hit_specs]}
         i_ref = self._ctree(i_spec, root_miss=1, solved=False, tall_level=0)
-        scale_c = (ic[1] + 4.0) / i_ref.height        # fit below I, pinned; _recenter reframes after
+        scale_c = (ic[1] + 4.0) / i_ref.height        # fit below I (height), pinned at its diagonal node
         i_ref.scale(scale_c, about_point=ORIGIN).shift(ic - i_ref.root.get_center())
+        # reframe the WHOLE final tree (this subtree + the diagonal above) horizontally, folded into
+        # phase 1 so the root drifts right AS the tree grows (not a separate resize afterward)
+        above = self._above_diag_mobs(path, 2)
+        s, c, dx = self._reframe(i_ref, above)
+        i_ref.scale(s, about_point=c).shift(dx)
         ih, eh = i_ref.node["i"], i_ref.node["e"]
         hit_handles = [k for k in ih.kids if not k.is_miss]
-        # slide the green E-subtree onto i_ref's E (miss) slot — exact overlay, scaled down
+        # slide the green E-subtree onto i_ref's E (miss) slot — exact overlay, scaled to the reframe
         e_now = self.e_ref.node["e"].dot
         sfac = eh.dot.width / e_now.width
         y0, ty = e_now.get_center(), eh.dot.get_center()
@@ -1564,10 +1589,11 @@ class Scene05(HangmanScene):
         # drill's ride-in — letter starts small+transparent AT the bare dot, Restores as the node
         # travels), then the branch's children SPROUT out of the settled root. Mirrors backup_e.
         hits = path.levels[2]["hits"]                 # [(bare_edge, bare_dot), …], one per hit branch
+        sc = scale_c * s                              # hit branches at the reframed scale
         move, grows, hit_trees = [], [], []
         for (be, bd), h, sp in zip(hits, hit_handles, i_hit_specs):
             ct = self._ctree(sp, root_miss=0, solved=True)
-            ct.scale(scale_c, about_point=ORIGIN).shift(h.dot.get_center() - ct.root.get_center())
+            ct.scale(sc, about_point=ORIGIN).shift(h.dot.get_center() - ct.root.get_center())
             lab = ct.root_h.lab
             lab.save_state()
             lab.scale(bd.width / ct.root.width).move_to(bd.get_center()).set_opacity(0)
@@ -1579,19 +1605,18 @@ class Scene05(HangmanScene):
             hit_trees.append((h, ct))
         n_before = sum(len(path.levels[i]["hits"]) for i in range(2))
         i_anns = VGroup(*path.leaf_text[n_before:n_before + len(hits)])
-        # phase 1 — everything MOVES into place (I morphs to the tidy root, the green E-subtree
-        # slides onto the miss slot, each hit root rides in with its letter)
+        # phase 1 — slide/morph/reveal to the REFRAMED targets AND reframe the diagonal above, together
         self.play(
             self.e_subtree.animate.scale(sfac, about_point=y0).shift(ty - y0),
-            self.avg_e.animate.scale(sfac, about_point=y0).shift(ty - y0).set_opacity(0),  # rides out w/ E
+            FadeOut(self.avg_e, shift=ty - y0),                      # rides out (fade + move) with E
             ReplacementTransform(VGroup(i_dot, i_lab), VGroup(ih.dot, ih.lab)),  # diagonal I → tidy I
             Transform(ie_edge, eh.in_edge),                          # I→E (miss) redrawn tidy
             FadeOut(i_anns),                                          # I's own bare-board annotations
             *move,
+            *[m.animate.scale(s, about_point=c).shift(dx) for m in above],   # reframe the diagonal above
             run_time=0.9)
-        # phase 2 — each hit branch's children SPROUT out of the (settled) reused root
+        # phase 2 — each hit branch's children SPROUT out of the (settled) reused root (reframed)
         self.play(*[GrowFromPoint(kids, dot.get_center()) for kids, dot in grows], run_time=0.6)
-        self._recenter(0.6)                          # drift the root right so the wider tree stays framed
         self.i_ref, self.ie_edge = i_ref, ie_edge
         self.i_hit_trees = hit_trees                 # [(handle, green subtree), …] for solving
         self.i_hit_edges = [be for be, bd in hits]   # the ACTUAL on-screen I→root edges (transformed be)
@@ -1657,7 +1682,8 @@ class Scene05(HangmanScene):
         self.remove(*(cand[c] for c in alts))
         self._freeze(counter)
         i_edges = VGroup(self.ie_edge, *self.i_hit_edges)
-        self.play(VGroup(i_dot, i_edges, counter).animate.set_color(LIGHT_GREEN), run_time=1.0)
+        self.play(VGroup(i_dot, i_edges).animate.set_color(LIGHT_GREEN),
+                  counter.animate.set_color(LIGHT_GREEN), run_time=1.0)   # counter TOP-LEVEL (rides out later)
         self.i_subtree = cur                         # hand off I's solved subtree to backing up O
         self.avg_i = counter                         # I's value label (green)
 
@@ -1676,18 +1702,24 @@ class Scene05(HangmanScene):
         o_spec = {"g": "o", "key": "o",
                   "kids": [(True, i_sub_spec)] + [(False, sp) for sp in o_hit_specs]}
         o_ref = self._ctree(o_spec, root_miss=1, solved=False, tall_level=0)
-        scale_c = (oc[1] + 4.0) / o_ref.height        # fit below O, pinned; _recenter reframes after
+        scale_c = (oc[1] + 4.0) / o_ref.height        # fit below O (height), pinned at its diagonal node
         o_ref.scale(scale_c, about_point=ORIGIN).shift(oc - o_ref.root.get_center())
+        # reframe the WHOLE final tree (this subtree + the diagonal above) horizontally, folded into
+        # phase 1 so the root drifts right AS the tree grows (not a separate resize afterward)
+        above = self._above_diag_mobs(path, 1)
+        s, c, dx = self._reframe(o_ref, above)
+        o_ref.scale(s, about_point=c).shift(dx)
         oh, ih = o_ref.node["o"], o_ref.node["i"]
         hit_handles = [k for k in oh.kids if not k.is_miss]
         i_now = self.i_ref.node["i"].dot
         sfac = ih.dot.width / i_now.width
         y0, ty = i_now.get_center(), ih.dot.get_center()
         hits = path.levels[1]["hits"]                 # O's bare hit-sibling dots
+        sc = scale_c * s                              # hit branches at the reframed scale
         move, grows, hit_trees = [], [], []
         for (be, bd), h, sp in zip(hits, hit_handles, o_hit_specs):
             ct = self._ctree(sp, root_miss=0, solved=True)
-            ct.scale(scale_c, about_point=ORIGIN).shift(h.dot.get_center() - ct.root.get_center())
+            ct.scale(sc, about_point=ORIGIN).shift(h.dot.get_center() - ct.root.get_center())
             lab = ct.root_h.lab
             lab.save_state()
             lab.scale(bd.width / ct.root.width).move_to(bd.get_center()).set_opacity(0)
@@ -1699,16 +1731,17 @@ class Scene05(HangmanScene):
             hit_trees.append((h, ct))
         n_before = sum(len(path.levels[i]["hits"]) for i in range(1))
         o_anns = VGroup(*path.leaf_text[n_before:n_before + len(hits)])
+        # phase 1 — slide/morph/reveal to the REFRAMED targets AND reframe the diagonal above, together
         self.play(
             self.i_subtree.animate.scale(sfac, about_point=y0).shift(ty - y0),
-            self.avg_i.animate.scale(sfac, about_point=y0).shift(ty - y0).set_opacity(0),  # rides out w/ I
+            FadeOut(self.avg_i, shift=ty - y0),                      # rides out (fade + move) with I
             ReplacementTransform(VGroup(o_dot, o_lab), VGroup(oh.dot, oh.lab)),  # diagonal O → tidy O
             Transform(oi_edge, ih.in_edge),                          # O→I (miss) redrawn tidy
             FadeOut(o_anns),                                          # O's own bare-board annotations
             *move,
+            *[m.animate.scale(s, about_point=c).shift(dx) for m in above],   # reframe the diagonal above
             run_time=0.9)
         self.play(*[GrowFromPoint(kids, dot.get_center()) for kids, dot in grows], run_time=0.6)
-        self._recenter(0.6)                          # drift the root right so the wider tree stays framed
         self.o_ref, self.oi_edge = o_ref, oi_edge
         self.o_hit_trees = hit_trees
         self.o_hit_edges = [be for be, bd in hits]
@@ -1771,7 +1804,8 @@ class Scene05(HangmanScene):
         self.remove(*(cand[c] for c in alts))
         self._freeze(counter)
         o_edges = VGroup(self.oi_edge, *self.o_hit_edges)
-        self.play(VGroup(o_dot, o_edges, counter).animate.set_color(LIGHT_GREEN), run_time=1.0)
+        self.play(VGroup(o_dot, o_edges).animate.set_color(LIGHT_GREEN),
+                  counter.animate.set_color(LIGHT_GREEN), run_time=1.0)   # counter TOP-LEVEL (rides out later)
         self.o_subtree = cur                         # hand off O's solved subtree to backing up A
         self.avg_o = counter                         # O's value label (green)
 
@@ -1792,18 +1826,24 @@ class Scene05(HangmanScene):
         a_spec = {"g": "a", "key": "a",
                   "kids": [(True, o_sub_spec)] + [(False, sp) for sp in a_hit_specs]}
         a_ref = self._ctree(a_spec, root_miss=0, solved=False, tall_level=0)  # root reached w/ 0 misses → white
-        scale_c = (ac[1] + 4.0) / a_ref.height        # fit below A, pinned; _recenter reframes after
+        scale_c = (ac[1] + 4.0) / a_ref.height        # fit below A (height), pinned at its diagonal node
         a_ref.scale(scale_c, about_point=ORIGIN).shift(ac - a_ref.root.get_center())
+        # reframe the WHOLE final tree horizontally, folded into phase 1 (A is the root — nothing above,
+        # so the reframe rides entirely on this subtree's own targets); drifts right AS it grows
+        above = self._above_diag_mobs(path, 0)        # [] at the root
+        s, c, dx = self._reframe(a_ref, above)
+        a_ref.scale(s, about_point=c).shift(dx)
         ah, oh = a_ref.node["a"], a_ref.node["o"]
         hit_handles = [k for k in ah.kids if not k.is_miss]
         o_now = self.o_ref.node["o"].dot
         sfac = oh.dot.width / o_now.width
         y0, ty = o_now.get_center(), oh.dot.get_center()
         hits = path.levels[0]["hits"]                 # A's bare hit-sibling dots (O's siblings)
+        sc = scale_c * s                              # hit branches at the reframed scale
         move, grows, hit_trees = [], [], []
         for (be, bd), h, sp in zip(hits, hit_handles, a_hit_specs):
             ct = self._ctree(sp, root_miss=0, solved=True)
-            ct.scale(scale_c, about_point=ORIGIN).shift(h.dot.get_center() - ct.root.get_center())
+            ct.scale(sc, about_point=ORIGIN).shift(h.dot.get_center() - ct.root.get_center())
             lab = ct.root_h.lab
             lab.save_state()
             lab.scale(bd.width / ct.root.width).move_to(bd.get_center()).set_opacity(0)
@@ -1814,16 +1854,17 @@ class Scene05(HangmanScene):
             grows.append((kids, ct.root))
             hit_trees.append((h, ct))
         a_anns = VGroup(*path.leaf_text[0:len(hits)])
+        # phase 1 — slide/morph/reveal to the REFRAMED targets AND reframe the diagonal above, together
         self.play(
             self.o_subtree.animate.scale(sfac, about_point=y0).shift(ty - y0),
-            self.avg_o.animate.scale(sfac, about_point=y0).shift(ty - y0).set_opacity(0),  # rides out w/ O
+            FadeOut(self.avg_o, shift=ty - y0),                      # rides out (fade + move) with O
             ReplacementTransform(VGroup(a_dot, a_lab), VGroup(ah.dot, ah.lab)),  # diagonal A → tidy A
             Transform(ao_edge, oh.in_edge),                          # A→O (miss) redrawn tidy
             FadeOut(a_anns),                                          # A's own bare-board annotations
             *move,
+            *[m.animate.scale(s, about_point=c).shift(dx) for m in above],   # reframe the diagonal above
             run_time=0.9)
         self.play(*[GrowFromPoint(kids, dot.get_center()) for kids, dot in grows], run_time=0.6)
-        self._recenter(0.6)                          # drift the root right so the wider tree stays framed
         self.a_ref, self.ao_edge = a_ref, ao_edge
         self.a_hit_trees = hit_trees
         self.a_hit_edges = [be for be, bd in hits]
