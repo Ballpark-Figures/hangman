@@ -36,11 +36,14 @@ CACHE = _ASSETS / "short_words_cache.json"
 WEIGHTINGS = ("uniform", "best_opener")
 LENGTHS = range(1, 21)
 
-# per-length table sizes: (n_patterns_top, n_words_top, want_least)
+# per-length table sizes: cap rows per table; `rare` = also emit the Rare tables
+# (patterns with multiplier < 1, words with the lowest frequency). Only length 2
+# has Rare tables per the script. Pattern tables EXCLUDE multiplier == 1 (unchanged):
+# Common = boosted (mult > 1), Rare = reduced (mult < 1).
 TABLE_SPEC = {
-    2: {"top": 5, "least": True},
-    3: {"top": 12, "least": False},
-    4: {"top": 12, "least": False},
+    2: {"cap": 5, "rare": True},
+    3: {"cap": 12, "rare": False},
+    4: {"cap": 12, "rare": False},
 }
 
 
@@ -86,13 +89,14 @@ def _build_by_length(np, sview):
     return out
 
 
-def _pattern_rows(mult_df, rows):
+def _pattern_rows(rows):
     return [{"pattern": r.pattern.upper(), "multiplier": float(r.multiplier)}
             for r in rows.itertuples(index=False)]
 
 
-def _word_rows(freq_df, rows, total):
-    return [{"word": r.word.upper(), "pct": round(100.0 * r.frequency / total, 1)}
+def _word_rows(rows, total):
+    # pct kept at full precision here; the scene rounds it (2 significant figures).
+    return [{"word": r.word.upper(), "pct": round(100.0 * r.frequency / total, 6)}
             for r in rows.itertuples(index=False)]
 
 
@@ -101,22 +105,23 @@ def _build_tables(freq_search):
     for L, spec in TABLE_SPEC.items():
         csv = freq_search._default_log_path("best_opener", L)
         s = freq_search.FrequencySearch.reconstruct(L, csv, objective="best_opener")
-        n = spec["top"]
+        n = spec["cap"]
 
         mult_df = s.multipliers_df()                            # sorted multiplier desc
         freq_df = s.frequencies_df()                            # sorted frequency desc
         total = float(freq_df["frequency"].sum())
 
+        above = mult_df[mult_df.multiplier > 1]                 # boosted (Common)
+        below = mult_df[mult_df.multiplier < 1]                 # reduced (Rare)
         entry = {
-            "most_patterns": _pattern_rows(mult_df, mult_df.head(n)),
-            "most_words": _word_rows(freq_df, freq_df.head(n), total),
+            "common_patterns": _pattern_rows(above.head(n)),                  # highest first
+            "common_words": _word_rows(freq_df.head(n), total),              # commonest first
         }
-        if spec["least"]:
-            # least = smallest first (ascending)
-            entry["least_patterns"] = _pattern_rows(
-                mult_df, mult_df.tail(n).iloc[::-1])
-            entry["least_words"] = _word_rows(
-                freq_df, freq_df.tail(n).iloc[::-1], total)
+        if spec["rare"]:
+            entry["rare_patterns"] = _pattern_rows(
+                below.sort_values("multiplier").head(n))                      # lowest first
+            entry["rare_words"] = _word_rows(
+                freq_df.sort_values("frequency").head(n), total)             # rarest first
         tables[str(L)] = entry
     return tables
 
@@ -152,14 +157,14 @@ def _report(out):
     print()
     for L, spec in TABLE_SPEC.items():
         t = out["tables"][str(L)]
-        print(f"LEN {L}  most_patterns[{len(t['most_patterns'])}] "
-              f"most_words[{len(t['most_words'])}]"
-              + (f" least_patterns[{len(t['least_patterns'])}] "
-                 f"least_words[{len(t['least_words'])}]" if spec["least"] else ""))
-        mp = t["most_patterns"][0]
-        mw = t["most_words"][0]
+        print(f"LEN {L}  common_patterns[{len(t['common_patterns'])}] "
+              f"common_words[{len(t['common_words'])}]"
+              + (f" rare_patterns[{len(t['rare_patterns'])}] "
+                 f"rare_words[{len(t['rare_words'])}]" if spec["rare"] else ""))
+        mp = t["common_patterns"][0]
+        mw = t["common_words"][0]
         print(f"       top pattern {mp['pattern']!r} x{mp['multiplier']:g}   "
-              f"top word {mw['word']!r} {mw['pct']:.1f}%")
+              f"top word {mw['word']!r} {mw['pct']:.2f}%")
 
 
 if __name__ == "__main__":

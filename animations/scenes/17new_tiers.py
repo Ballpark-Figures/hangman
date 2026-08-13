@@ -218,6 +218,12 @@ class Scene17(HangmanScene):
 
         uni, zipc = series("uniform", UNIFORM_COLOR, -dx), series("zipf", ZIPF_COLOR, dx)
         base_y = cy - H / 2
+        axes = VGroup(Line([-W / 2, base_y, 0], [W / 2, base_y, 0], color=TITLE_COLOR, stroke_width=3),
+                      Line([-W / 2, base_y, 0], [-W / 2, base_y + H, 0], color=TITLE_COLOR, stroke_width=3))
+        for t in (0, 2, 4, 6):
+            yy = base_y + t / ymax * H
+            tick = Line([-W / 2 - 0.12, yy, 0], [-W / 2, yy, 0], color=TITLE_COLOR, stroke_width=2)
+            axes.add(tick, crisp_text(str(t), font_size=18, color=TITLE_COLOR).next_to(tick, LEFT, buff=0.12))
         xlabels = VGroup(*[crisp_text(str(L), font_size=20, color=TITLE_COLOR).move_to(
                               [-W / 2 + (i + 0.5) * slot, base_y - 0.28, 0])
                            for i, L in enumerate(lengths)])
@@ -227,7 +233,7 @@ class Scene17(HangmanScene):
                            weight=BOLD).move_to([0, cy + H / 2 + 0.7, 0])
         legend = self._legend([("Equal", UNIFORM_COLOR), ("Frequency", ZIPF_COLOR)],
                               [4.9, cy + H / 2 - 0.2, 0])
-        return VGroup(uni, zipc, xlabels, xtitle, title, legend)
+        return VGroup(uni, zipc, axes, xlabels, xtitle, title, legend)
 
     @subscene
     def strategy_chart(self):

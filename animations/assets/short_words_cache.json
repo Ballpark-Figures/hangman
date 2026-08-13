@@ -247,7 +247,7 @@
   },
   "tables": {
     "2": {
-      "most_patterns": [
+      "common_patterns": [
         {
           "pattern": "U_",
           "multiplier": 3.375
@@ -255,89 +255,73 @@
         {
           "pattern": "_Y",
           "multiplier": 2.0
-        },
-        {
-          "pattern": "_O",
-          "multiplier": 1.0
-        },
-        {
-          "pattern": "T_",
-          "multiplier": 1.0
-        },
-        {
-          "pattern": "F_",
-          "multiplier": 1.0
         }
       ],
-      "most_words": [
+      "common_words": [
         {
           "word": "UP",
-          "pct": 8.2
+          "pct": 8.181818
         },
         {
           "word": "US",
-          "pct": 8.2
+          "pct": 8.181818
         },
         {
           "word": "BY",
-          "pct": 4.8
+          "pct": 4.848485
         },
         {
           "word": "MY",
-          "pct": 4.8
+          "pct": 4.848485
         },
         {
           "word": "NO",
-          "pct": 2.4
+          "pct": 2.424242
         }
       ],
-      "least_patterns": [
-        {
-          "pattern": "O_",
-          "multiplier": 0.125
-        },
+      "rare_patterns": [
         {
           "pattern": "_A",
           "multiplier": 0.125
         },
         {
-          "pattern": "I_",
-          "multiplier": 0.5
+          "pattern": "O_",
+          "multiplier": 0.125
         },
         {
           "pattern": "E_",
           "multiplier": 0.5
         },
         {
-          "pattern": "_B",
-          "multiplier": 1.0
+          "pattern": "I_",
+          "multiplier": 0.5
         }
       ],
-      "least_words": [
+      "rare_words": [
         {
           "word": "PA",
-          "pct": 0.3
+          "pct": 0.30303
         },
         {
-          "word": "OX",
-          "pct": 0.3
+          "word": "OP",
+          "pct": 0.30303
         },
         {
-          "word": "OM",
-          "pct": 0.3
+          "word": "MA",
+          "pct": 0.30303
         },
         {
-          "word": "OF",
-          "pct": 0.3
+          "word": "YA",
+          "pct": 0.30303
         },
         {
-          "word": "LA",
-          "pct": 0.3
+          "word": "FA",
+          "pct": 0.30303
         }
       ]
     },
     "3": {
-      "most_patterns": [
+      "common_patterns": [
         {
           "pattern": "__J",
           "multiplier": 4.5
@@ -387,59 +371,59 @@
           "multiplier": 1.125
         }
       ],
-      "most_words": [
+      "common_words": [
         {
           "word": "HAJ",
-          "pct": 0.9
+          "pct": 0.86312
         },
         {
           "word": "FIR",
-          "pct": 0.5
+          "pct": 0.511478
         },
         {
           "word": "FIG",
-          "pct": 0.5
+          "pct": 0.511478
         },
         {
           "word": "FIT",
-          "pct": 0.5
+          "pct": 0.511478
         },
         {
           "word": "VOW",
-          "pct": 0.5
+          "pct": 0.511478
         },
         {
           "word": "DIV",
-          "pct": 0.5
+          "pct": 0.511478
         },
         {
           "word": "VIE",
-          "pct": 0.5
+          "pct": 0.511478
         },
         {
           "word": "FIX",
-          "pct": 0.5
+          "pct": 0.511478
         },
         {
           "word": "FIN",
-          "pct": 0.5
+          "pct": 0.511478
         },
         {
           "word": "FOX",
-          "pct": 0.5
+          "pct": 0.511478
         },
         {
           "word": "BIZ",
-          "pct": 0.5
+          "pct": 0.511478
         },
         {
           "word": "WIZ",
-          "pct": 0.5
+          "pct": 0.511478
         }
       ]
     },
     "4": {
-      "most_patterns": [
+      "common_patterns": [
         {
           "pattern": "__X_",
           "multiplier": 8.0
@@ -489,54 +473,54 @@
           "multiplier": 2.0
         }
       ],
-      "most_words": [
+      "common_words": [
         {
           "word": "BABE",
-          "pct": 0.7
+          "pct": 0.650664
         },
         {
           "word": "WAXY",
-          "pct": 0.5
+          "pct": 0.547928
         },
         {
           "word": "FOXY",
-          "pct": 0.5
+          "pct": 0.547928
         },
         {
           "word": "BOXY",
-          "pct": 0.5
+          "pct": 0.547928
         },
         {
           "word": "POPE",
-          "pct": 0.3
+          "pct": 0.325332
         },
         {
           "word": "BABY",
-          "pct": 0.3
+          "pct": 0.325332
         },
         {
           "word": "PIPE",
-          "pct": 0.3
+          "pct": 0.325332
         },
         {
           "word": "PUMP",
-          "pct": 0.3
+          "pct": 0.282525
         },
         {
           "word": "POMP",
-          "pct": 0.3
+          "pct": 0.282525
         },
         {
           "word": "PIMP",
-          "pct": 0.3
+          "pct": 0.282525
         },
         {
           "word": "HALL",
-          "pct": 0.3
+          "pct": 0.273964
         },
         {
           "word": "GILL",
-          "pct": 0.3
+          "pct": 0.273964
         }
       ]
     }
