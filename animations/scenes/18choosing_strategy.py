@@ -44,22 +44,31 @@ sys.path.append(str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from config import *
 from assets import scene18_data
-from assets.chalkboard import BOARD_NAVY
+from assets.chalkboard import BOARD_NAVY, CHALK
 from bpkfigures.bar_graph import get_bar_chart, grow_bars
 
 INK = BLACK                       # dark labels on the brand light-blue bg (scene-17 convention)
 WORD_BLUE = ACCENT_FILL           # the blue words in the beat-a table + the resting bars
 GROW_GREEN = ACCENT_GREEN         # a bar flashes green while it GROWS
 SHRINK_CRIMSON = CRIMSON          # a bar flashes crimson while it SHRINKS
-TITLE_Y = 3.7
+TITLE_Y = 3.7                     # beat-a table title
 
-# ── beat-c/d/e/f multi-row bar composition ────────────────────────────────────
+# ── beat-c/d/e/f bar composition (length 2 → 2 rows of 8) ─────────────────────
 WORD_CX, COMBO_CX = -4.0, 4.0     # left = words, right = combos
 ROW_W = 6.8                       # each side's row width
-PER_ROW = 8                       # bars per row (TRACK_N // ROWS)
-ROW_H = 1.1                       # bar height at y_max
-BASE_YS = [1.4, -0.3, -2.0]       # the 3 row BASELINES (bars grow up; ROWS = len(BASE_YS))
+PER_ROW = 8                       # bars per row
+ROW_H = 1.0                       # bar height at y_max
+BASE_YS = [0.3, -1.9]             # the 2 row BASELINES (bars grow up)
 BAR_LABEL_FS = 20                 # bold, scene-17-word-bar sized
+
+# ── the mini best-opener greedy TREE (whole tree, no letters) on a navy card ───
+TREE_C = (-4.2, 2.9)              # card centre (top-left, LEFT of the avg readout)
+TREE_W, TREE_H = 6.2, 2.4         # the plotting box inside the card
+AVG_C = (3.4, 2.9)               # "Average Misses: N" — to the RIGHT of the tree
+TREE_DOT_R = 0.03
+TREE_EDGE_W = 1.3
+TREE_MISS_COL = CRIMSON           # miss edges (the deep "spine")
+TREE_HIT_COL = CHALK              # hit edges + nodes (off-white)
 
 
 class Scene18(HangmanScene):
@@ -76,7 +85,8 @@ class Scene18(HangmanScene):
         self.avg_tracker = ValueTracker(0.0)     # bare tracker pickles fine (updater added in body)
         # carried mobjects / state
         self.table = None
-        self.tree_card = None
+        self.tree_card = None                    # beat-b placeholder card
+        self.mini_card = self.tree_mob = None    # beat-c+ mini greedy tree (+ its navy card)
         self.avg_label = self.avg_num = None
         self.word_charts = self.combo_charts = None
         self.word_bars = self.combo_bars = None
@@ -99,7 +109,7 @@ class Scene18(HangmanScene):
         label = crisp_text("Average Misses:", font_size=10, color=INK, weight=BOLD)
         num = crisp_text(f"{value:.2f}", font_size=10, color=INK, weight=BOLD)
         num.next_to(label, RIGHT, buff=0.12)
-        VGroup(label, num).scale_to_fit_width(6.4).move_to([0, TITLE_Y, 0])
+        VGroup(label, num).scale_to_fit_width(6.0).move_to([AVG_C[0], AVG_C[1], 0])
         self.num_h = num.height
         self.num_left, self.num_y = num.get_left()[0], num.get_center()[1]
         self.avg_label, self.avg_num = label, num
@@ -111,6 +121,62 @@ class Scene18(HangmanScene):
             lambda m: m.become(self._number_text(self.avg_tracker.get_value())))
         self.play(self.avg_tracker.animate.set_value(value), run_time=run_time)
         self.avg_num.clear_updaters()
+
+    def _count_and_tree(self, state, run_time):
+        """Count the avg AND crossfade the mini tree to ``state``'s tree, together — the
+        tree updates every time the avg does."""
+        new_tree = self._tree_mob(state["tree"])
+        self.avg_num.add_updater(
+            lambda m: m.become(self._number_text(self.avg_tracker.get_value())))
+        self.play(FadeOut(self.tree_mob), FadeIn(new_tree),
+                  self.avg_tracker.animate.set_value(state["avg_misses"]), run_time=run_time)
+        self.avg_num.clear_updaters()
+        self.tree_mob = new_tree
+
+    # ── mini tree (whole best-opener greedy tree, no letters) ─────────────────
+    def _tree_mob(self, tree):
+        """Draw the WHOLE tree as dots + hit/miss edges, fit into the TREE box. Layout:
+        leaves spread left→right in order, an internal node sits above its children,
+        depth increases downward. Miss edges (the spine) are crimson, hits off-white."""
+        pos, leaf = {}, [0]
+
+        def layout(node, depth):
+            if node.get("leaf"):
+                x = leaf[0]; leaf[0] += 1
+            else:
+                xs = [layout(k["sub"], depth + 1) for k in node["kids"]]
+                x = sum(xs) / len(xs)
+            pos[id(node)] = (x, depth)
+            return x
+        layout(tree, 0)
+
+        xs = [p[0] for p in pos.values()]
+        x0, x1 = min(xs), max(xs)
+        dmax = max(p[1] for p in pos.values())
+        sx = TREE_W / (x1 - x0 or 1)
+        sy = TREE_H / (dmax or 1)
+
+        def place(node):
+            x, d = pos[id(node)]
+            return [TREE_C[0] + (x - (x0 + x1) / 2) * sx, TREE_C[1] + TREE_H / 2 - d * sy, 0]
+
+        edges, dots = VGroup(), VGroup()
+
+        def draw(node):
+            c = place(node)
+            dots.add(Dot(c, radius=TREE_DOT_R, color=TREE_HIT_COL))
+            if not node.get("leaf"):
+                for k in node["kids"]:
+                    edges.add(Line(c, place(k["sub"]), stroke_width=TREE_EDGE_W,
+                                   color=(TREE_MISS_COL if k["miss"] else TREE_HIT_COL)))
+                    draw(k["sub"])
+        draw(tree)
+        return VGroup(edges, dots)              # edges behind dots
+
+    def _tree_card(self):
+        return RoundedRectangle(width=TREE_W + 0.7, height=TREE_H + 0.7, corner_radius=0.15,
+                                fill_color=BOARD_NAVY, fill_opacity=1.0,
+                                stroke_color=WHITE, stroke_width=2).move_to([*TREE_C, 0])
 
     # ── bar helpers ───────────────────────────────────────────────────────────
     def _build_side(self, cx, labels, values, y_max):
@@ -174,11 +240,13 @@ class Scene18(HangmanScene):
                                   ROW_H * v1 / self.word_ymax, flash)
                   for b, by, v0, v1 in zip(self.word_bars, self.word_base,
                                            self.word_vals, state["word_freq"])]
+        new_tree = self._tree_mob(state["tree"])
         self.avg_num.add_updater(
             lambda m: m.become(self._number_text(self.avg_tracker.get_value())))
-        self.play(*anims, self.avg_tracker.animate.set_value(state["avg_misses"]),
-                  run_time=run_time)
+        self.play(*anims, FadeOut(self.tree_mob), FadeIn(new_tree),
+                  self.avg_tracker.animate.set_value(state["avg_misses"]), run_time=run_time)
         self.avg_num.clear_updaters()
+        self.tree_mob = new_tree
         self.combo_vals[:] = list(state["combo_mult"])
         self.word_vals[:] = list(state["word_freq"])
 
@@ -224,6 +292,7 @@ class Scene18(HangmanScene):
         self.play(FadeIn(self.tree_card), run_time=0.8)
 
     # ── c : the choosing strategy composition — starts UNIFORM (every bar equal) ──
+    #     the mini best-opener greedy TREE sits (on a navy card) left of the avg readout
     @subscene
     def strategy(self):
         self.play(FadeOut(self.tree_card), run_time=0.5)
@@ -231,6 +300,8 @@ class Scene18(HangmanScene):
 
         uni = self.data["optimization"]["buckets"][0]          # bucket 0 = uniform
         self._setup_avg(uni["avg_misses"])
+        self.mini_card = self._tree_card()
+        self.tree_mob = self._tree_mob(uni["tree"])
         self.word_charts, self.word_bars, self.word_base = self._build_side(
             WORD_CX, self.words, uni["word_freq"], self.word_ymax)
         self.combo_charts, self.combo_bars, self.combo_base = self._build_side(
@@ -238,7 +309,8 @@ class Scene18(HangmanScene):
         self.word_vals = list(uni["word_freq"])
         self.combo_vals = list(uni["combo_mult"])
 
-        self.play(FadeIn(self.avg_label), FadeIn(self.avg_num), run_time=0.6)
+        self.play(FadeIn(self.avg_label), FadeIn(self.avg_num),
+                  FadeIn(self.mini_card), FadeIn(self.tree_mob), run_time=0.6)
         all_bars, label_fades = [], []
         for chart in (*self.word_charts, *self.combo_charts):
             self.add(chart)
@@ -247,12 +319,12 @@ class Scene18(HangmanScene):
             label_fades.append(chart.labels.animate.set_opacity(1))
         grow_bars(self, all_bars, 1.3, lag=0.02, extra=label_fades)
 
-    # ── d : a combo rises → its words rise → avg counts UP → keep ──────────────
+    # ── d : a combo rises → its words rise → avg + tree update → keep ──────────
     @subscene
     def try_keep(self):
         after = self.data["example_keep"]["after"]
         self._apply_state(after, combo_rt=0.9, word_rt=0.9)    # combo bar (green), then its word bars
-        self._count_to(after["avg_misses"], 0.8)               # avg ticks UP (kept)
+        self._count_and_tree(after, 0.8)                       # avg ticks UP + tree updates (kept)
 
     # ── e : a different change → avg counts DOWN (failure) → undo → reset ──────
     @subscene
@@ -260,19 +332,19 @@ class Scene18(HangmanScene):
         undo = self.data["example_undo"]
         # try the failing change: RAISE the e combo → GREEN (direction rule); avg drops
         self._apply_state(undo["worse"], combo_rt=0.9, word_rt=0.9)
-        self._count_to(undo["worse"]["avg_misses"], 0.8)       # DOWN = failure
+        self._count_and_tree(undo["worse"], 0.8)               # DOWN = failure (+ tree)
         # undo it: LOWER the e combo back → CRIMSON (direction rule)
         self._apply_state(undo["base"], combo_rt=0.7, word_rt=0.7)
-        self._count_to(undo["base"]["avg_misses"], 0.6)
-        # reset the kept beat-d change (lower u) — JUST resetting: bars + avg together,
-        # in ONE play, kept BLUE
+        self._count_and_tree(undo["base"], 0.6)
+        # reset the kept beat-d change (lower u) — JUST resetting: bars + avg + tree
+        # together in ONE play, kept BLUE
         self._apply_state_at_once(undo["reset"], run_time=0.9, flash=WORD_BLUE)
 
-    # ── f : replay the optimization uniform→final in N_BUCKETS steps ───────────
+    # ── f : replay the optimization uniform→final, one step per change ─────────
     @subscene
     def replay(self):
-        buckets = self.data["optimization"]["buckets"]         # 0 (uniform) .. N (final)
-        step = 0.3                    # lockstep montage (identical bucket steps) — one knob
+        buckets = self.data["optimization"]["buckets"]         # 0 (uniform) .. final
+        step = 0.45                   # lockstep montage (identical steps) — one knob
         for b in buckets[1:]:
             self._apply_state(b, combo_rt=step, word_rt=step)
-            self._count_to(b["avg_misses"], step * 0.7)
+            self._count_and_tree(b, step * 0.9)                # avg + tree update together
