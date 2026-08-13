@@ -182,6 +182,16 @@ greedy, greedy_word, best_opener, best_opener_word):
   Use `crisp_text` on the chalkboard ONLY when explicitly asked. (This is why a
   chalkboard bar chart uses `get_bar_chart` with chalk factories, not `get_histogram`,
   which is `crisp_text`-only.)
+- **HANGMAN WORDS (and their letters/combos) are UPPERCASE EVERYWHERE — `.upper()` them
+  when rendering from the game/wordlist.** The chalk font is capitals-only (above), and
+  the NON-chalk views uppercase too: scene 17's word bars (`.upper()`), the navy tree
+  scenes, and `hangman_board` (`blanked_board`/`missed_letters` render `.upper()`). So a
+  word/letter/combo pulled from the game (`game.words`, a wordlist entry, a `_y`-style
+  pattern) is displayed uppercase — never a lowercase `crisp_text`. Bonus: uppercasing
+  keeps a ROW of words aligned for free (caps are uniform-height with no descenders, so
+  the baseline drift that needs `baseline_at`/`baseline_labels` only bites lowercase).
+  (Bit us: scene 18 first rendered its words + combos lowercase — the lone deviation from
+  the convention — before matching the rest of the video.)
 - **Chalk font AND line-drawn/outline graphs are ONLY for the CHALKBOARD.** The chalk
   strokes (`chalk_*`) and the "made out of lines" chart look (`bar_outline="open"`/
   `"closed"`, no fill) belong to the framed-chalkboard scenes (02/03/04/94). On a

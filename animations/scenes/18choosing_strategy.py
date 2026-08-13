@@ -191,8 +191,8 @@ class Scene18(HangmanScene):
                 items, center=[cx, base_y + ROW_H / 2, 0], width=ROW_W, height=ROW_H,
                 y_max=y_max, n_slots=PER_ROW, bar_color=WORD_BLUE, ink_color=INK,
                 baseline_labels=True,                      # sit labels on one baseline
-                label_factory=lambda s: crisp_text(s, font_size=BAR_LABEL_FS, color=INK,
-                                                   weight=BOLD))
+                label_factory=lambda s: crisp_text(s.upper(), font_size=BAR_LABEL_FS,
+                                                   color=INK, weight=BOLD))
             charts.append(chart)
             bars += list(chart.bars)
             base += [base_y] * len(chart.bars)
@@ -264,7 +264,7 @@ class Scene18(HangmanScene):
         for r, row in enumerate(top):
             by = 1.72 - r * 0.5                          # common baseline per row
             rows.add(VGroup(
-                crisp_text(row["word"], font_size=26, color=WORD_BLUE, baseline_at=(-1.9, by)),
+                crisp_text(row["word"].upper(), font_size=26, color=WORD_BLUE, baseline_at=(-1.9, by)),
                 crisp_text(str(row["misses"]), font_size=26, color=INK, baseline_at=(1.9, by))))
         for row in rows:
             row.shift(DOWN * 0.4).set_opacity(0)          # start below + hidden → rise in
