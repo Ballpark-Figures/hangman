@@ -266,7 +266,8 @@ class Scene18(HangmanScene):
         for r, row in enumerate(top):
             by = 1.72 - r * 0.5                          # common baseline per row
             rows.add(VGroup(
-                crisp_text(row["word"].upper(), font_size=26, color=WORD_BLUE, baseline_at=(-1.9, by)),
+                crisp_text(row["word"].upper(), font_size=26, color=WORD_BLUE, weight=BOLD,
+                           baseline_at=(-1.9, by)),
                 crisp_text(str(row["misses"]), font_size=26, color=INK, baseline_at=(1.9, by))))
         for row in rows:
             row.shift(DOWN * 0.4).set_opacity(0)          # start below + hidden → rise in
@@ -288,8 +289,11 @@ class Scene18(HangmanScene):
         note = VGroup(crisp_text("Optimal length-2 tree", font_size=30, color=WHITE),
                       crisp_text("(mirrors the end of scene 05)", font_size=24, color=WHITE))
         note.arrange(DOWN, buff=0.3).move_to(card.get_center())
-        foot = self._fit_text("*See blog post for more information", 6.0,
-                              color=INK).move_to([0, -3.2, 0])
+        # footnote with a RAISED asterisk (a superscript footnote marker), not a mid-line one
+        body = crisp_text("See blog post for more information", font_size=10, color=INK)
+        star = crisp_text("*", font_size=10, color=INK).next_to(body, LEFT, buff=0.04)
+        star.set_y(body.get_top()[1])                 # centre it at the cap line → clearly raised
+        foot = VGroup(star, body).scale_to_fit_width(6.0).move_to([0, -3.2, 0])
         self.tree_card = VGroup(card, note, foot)
         self.play(FadeIn(self.tree_card), run_time=0.8)
 
