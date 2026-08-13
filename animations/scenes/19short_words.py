@@ -17,7 +17,8 @@ BEAT MAP (Script.md scene 19; --- delimited, 8 beats a-h):
   e three_letter_words   — RIGHT Common Words (top word HAJ).
   f four_letter_title    — title → "4-Letter Words"; clear the len-3 tables (title swap only).
   g four_letter_patterns — LEFT Common Letter Patterns (duplicated-letter combos).
-  h four_letter_words    — RIGHT Common Words; the PIMP row is BLURRED from the start.
+  h four_letter_words    — RIGHT Common Words; the PIMP word is replaced by a transparent
+                           gray box (censored) so it's never shown.
 
 Formatting conventions (routed through single helpers so they hold everywhere):
   - every number is 2 SIGNIFICANT FIGURES (`_sig2`) — multipliers AND word %.
@@ -37,8 +38,8 @@ REUSE MAP (styling sources):
 
 FLAGS (owned by a human — tune/decide in the timing+polish pass):
   - table TITLES ("Common Letter Patterns" …) are rendered as captions; drop/reword if undesired.
-  - "Blur PIMP" is roughed as a dense stacked-offset SMEAR (manim has no native blur); a true
-    blur is a post/compositing effect if preferred.
+  - "Blur PIMP" is done as a transparent gray CENSOR box over the word (per the user); swap for
+    a real blur in post if preferred.
   - all geometry (columns, CHAR_W, row spacing, stack anchors, chart box) + run_times = guesses.
 
 Render:  render 19a --fast (…19h)  /  render 19 sub  for the whole scene
@@ -58,12 +59,12 @@ INK = BLACK                        # dark labels on the brand light-blue bg (sce
 UNIFORM_COLOR = ACCENT_FILL        # equal-weighted bars (the double plot)
 BESTOP_COLOR = CRIMSON             # best-opener (adversarial) weighted bars
 
-TITLE_Y = 3.95                     # the scene title ("N-Letter Words")
+TITLE_Y = 3.6                      # the scene title ("N-Letter Words")
 
 # ── table layout (LEFT = patterns, RIGHT = words) ─────────────────────────────
 LEFT_X, RIGHT_X = -3.7, 3.7        # each side's centre
 LABEL_DX, VALUE_DX = -1.25, 1.15   # column x offsets from a side centre (label left, value right)
-CHAR_W = 0.36                      # monospaced letter slot (letters line up into columns)
+CHAR_W = 0.28                      # monospaced letter slot (letters line up into columns)
 TABLE_TITLE_W = 5.4                # a wide table title scales down to this
 SCENE_TITLE_H = 0.52               # scene-title glyph height (built small, scaled up)
 TABLE_TITLE_H = 0.30               # table-title glyph height
@@ -72,9 +73,10 @@ ROW_FS = 22
 TITLE_GAP = 0.6                    # table title → header
 HDR_GAP = 0.44                     # header → first row
 ROW_DY = 0.48                      # row → row
-STACK_TOP = 3.1                    # len-2: top table's title y
-STACK_BOTTOM = -3.6                # len-2: bottom table's LAST ROW y (anchored to fill the frame)
-LEN34_TOP = 2.9                    # len-3/4: the single table's title y
+STACK_TOP = 2.85                   # len-2: top (Common) table's title y
+STACK_BOTTOM_TITLE = -0.55         # len-2: bottom (Rare) table's title y — the two Rare tables
+                                   # share this y so their titles ALIGN (regardless of row count)
+LEN34_TOP = 2.85                   # len-3/4: the single table's title y
 
 
 class Scene19(HangmanScene):
@@ -110,15 +112,11 @@ class Scene19(HangmanScene):
             g.add(crisp_text(ch, font_size=ROW_FS, color=color, weight=BOLD, baseline_at=(x, y)))
         return g
 
-    # ── poor-man blur (manim has no native blur): a dense stacked smear ───────
-    def _blur(self, mob, *, layers=22, spread=0.09, opacity=0.13):
-        g = VGroup()
-        ga = math.pi * (3 - math.sqrt(5))                   # golden angle → even disk fill
-        for k in range(layers):
-            r = spread * math.sqrt((k + 0.5) / layers)
-            a = k * ga
-            g.add(mob.copy().shift([r * math.cos(a), r * math.sin(a), 0]).set_opacity(opacity))
-        return g.move_to(mob)
+    # ── censor: replace a word entirely with a transparent gray box ───────────
+    def _censor(self, mob):
+        return RoundedRectangle(width=mob.width + 0.14, height=mob.height + 0.12,
+                                corner_radius=0.05, fill_color=MUTED_GREY, fill_opacity=0.55,
+                                stroke_width=0).move_to(mob)
 
     # ── title helpers (build small + scale so long titles don't wrap) ─────────
     def _fit(self, text, height, **kw):
@@ -134,7 +132,7 @@ class Scene19(HangmanScene):
         return t
 
     # ── one titled table (title + column headers + baseline/mono rows) ────────
-    def _table(self, title, headers, rows, *, top_y, cx, blur=()):
+    def _table(self, title, headers, rows, *, top_y, cx, censor=()):
         lx, vx = cx + LABEL_DX, cx + VALUE_DX
         ttl = self._table_title(title, TABLE_TITLE_W).move_to([cx, top_y, 0])
         hy = top_y - TITLE_GAP
@@ -145,21 +143,17 @@ class Scene19(HangmanScene):
         for r, (lab, val) in enumerate(rows):
             ry = hy - HDR_GAP - r * ROW_DY
             label_mob = self._mono(lab, lx, ry)
-            if lab in blur:
-                label_mob = self._blur(label_mob)       # already-blurred → never shown clear
+            if lab in censor:
+                label_mob = self._censor(label_mob)      # word replaced → never shown
             val_mob = crisp_text(val, font_size=ROW_FS, color=INK, baseline_at=(vx, ry))
             row_group.add(VGroup(label_mob, val_mob))
         tab = VGroup(ttl, hdr, row_group)
         tab.title, tab.header, tab.rows = ttl, hdr, row_group
         return tab
 
-    def _bottom_top_y(self, nrows):
-        """Top-y for a stacked table whose LAST row should sit at STACK_BOTTOM."""
-        return STACK_BOTTOM + TITLE_GAP + HDR_GAP + (nrows - 1) * ROW_DY
-
     def _reveal(self, tab, rows_run_time):
         """Fade the title+header in, then rise the rows up (FadeIn+shift keeps each cell's
-        own opacity — so a blurred cell stays a smear)."""
+        own opacity — so a censored cell keeps its transparency)."""
         self.play(FadeIn(tab.title), FadeIn(tab.header), run_time=0.4)
         self.play(LaggedStart(*[FadeIn(row, shift=UP * 0.3) for row in tab.rows],
                               lag_ratio=0.12), run_time=rows_run_time)
@@ -187,7 +181,7 @@ class Scene19(HangmanScene):
         data = short_words_data.get()["by_length"]
         lengths = sorted(int(L) for L in data["uniform"])
         ymax = max(data[w][str(L)]["avg"] for w in ("uniform", "best_opener") for L in lengths)
-        W, cy, H = 12.6, -0.55, 3.8
+        W, cy, H = 12.6, -0.25, 3.8         # raised (cy) + bigger title gap → fills the top
         N, slot = len(lengths), 12.6 / len(lengths)
         dx = slot / 4.2                                     # half-gap between the paired bars
         base_y = cy - H / 2
@@ -202,9 +196,9 @@ class Scene19(HangmanScene):
         xlabels = VGroup(*[crisp_text(str(L), font_size=20, color=INK).move_to(
                               [-W / 2 + (i + 0.5) * slot, base_y - 0.28, 0])
                            for i, L in enumerate(lengths)])
-        xtitle = crisp_text("word length", font_size=24, color=INK).move_to([0, base_y - 0.78, 0])
+        xtitle = crisp_text("Word Length", font_size=24, color=INK).move_to([0, base_y - 0.78, 0])
         title = crisp_text("Optimal Misses per Word", font_size=34, color=INK,
-                           weight=BOLD).move_to([0, cy + H / 2 + 0.7, 0])
+                           weight=BOLD).move_to([0, cy + H / 2 + 1.15, 0])
         legend = self._legend([("Equal", UNIFORM_COLOR), ("Best Opener", BESTOP_COLOR)],
                               [4.6, cy + H / 2 - 0.2, 0])
         g = VGroup(uni, best, axes, xlabels, xtitle, title, legend)
@@ -233,9 +227,8 @@ class Scene19(HangmanScene):
         common = self._table("Common Letter Patterns", ("Pattern", "Multiplier"),
                              self._pat_rows(t2["common_patterns"]), top_y=STACK_TOP, cx=LEFT_X)
         self._reveal(common, 1.0)
-        rare_rows = self._pat_rows(t2["rare_patterns"])
-        rare = self._table("Rare Letter Patterns", ("Pattern", "Multiplier"), rare_rows,
-                           top_y=self._bottom_top_y(len(rare_rows)), cx=LEFT_X)
+        rare = self._table("Rare Letter Patterns", ("Pattern", "Multiplier"),
+                           self._pat_rows(t2["rare_patterns"]), top_y=STACK_BOTTOM_TITLE, cx=LEFT_X)
         self._reveal(rare, 1.0)
         self.left_tables = VGroup(common, rare)
 
@@ -246,9 +239,8 @@ class Scene19(HangmanScene):
         common = self._table("Common Words", ("Word", "Frequency"),
                              self._word_rows(t2["common_words"]), top_y=STACK_TOP, cx=RIGHT_X)
         self._reveal(common, 1.0)
-        rare_rows = self._word_rows(t2["rare_words"])
-        rare = self._table("Rare Words", ("Word", "Frequency"), rare_rows,
-                           top_y=self._bottom_top_y(len(rare_rows)), cx=RIGHT_X)
+        rare = self._table("Rare Words", ("Word", "Frequency"),
+                           self._word_rows(t2["rare_words"]), top_y=STACK_BOTTOM_TITLE, cx=RIGHT_X)
         self._reveal(rare, 1.0)
         self.right_tables = VGroup(common, rare)
 
@@ -292,12 +284,12 @@ class Scene19(HangmanScene):
         self._reveal(common, 1.6)
         self.left_tables = VGroup(common)
 
-    # h : RIGHT Common Words (12); the PIMP row is blurred from the start
+    # h : RIGHT Common Words (12); the PIMP word is replaced by a transparent gray box
     @subscene
     def four_letter_words(self):
         t4 = self.tables["4"]
         common = self._table("Common Words", ("Word", "Frequency"),
                              self._word_rows(t4["common_words"]), top_y=LEN34_TOP, cx=RIGHT_X,
-                             blur={"PIMP"})
+                             censor={"PIMP"})
         self._reveal(common, 1.6)
         self.right_tables = VGroup(common)

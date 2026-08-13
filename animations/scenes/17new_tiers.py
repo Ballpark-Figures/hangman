@@ -206,7 +206,7 @@ class Scene17(HangmanScene):
         data = scene17_chart_data.get()
         lengths = sorted(int(L) for L in data["uniform"])
         ymax = max(data[w][str(L)]["avg"] for w in ("uniform", "zipf") for L in lengths)
-        W, cy, H = 12.6, -0.55, 3.8
+        W, cy, H = 12.6, -0.25, 3.8         # raised (cy) + bigger title gap → fills the top
         N, slot = len(lengths), 12.6 / len(lengths)
         dx = slot / 4.2                                     # half-gap between the paired bars
 
@@ -227,10 +227,10 @@ class Scene17(HangmanScene):
         xlabels = VGroup(*[crisp_text(str(L), font_size=20, color=TITLE_COLOR).move_to(
                               [-W / 2 + (i + 0.5) * slot, base_y - 0.28, 0])
                            for i, L in enumerate(lengths)])
-        xtitle = crisp_text("word length", font_size=24, color=TITLE_COLOR).move_to(
+        xtitle = crisp_text("Word Length", font_size=24, color=TITLE_COLOR).move_to(
             [0, base_y - 0.78, 0])
         title = crisp_text("Optimal Misses per Word", font_size=34, color=TITLE_COLOR,
-                           weight=BOLD).move_to([0, cy + H / 2 + 0.7, 0])
+                           weight=BOLD).move_to([0, cy + H / 2 + 1.15, 0])
         legend = self._legend([("Equal", UNIFORM_COLOR), ("Frequency", ZIPF_COLOR)],
                               [4.9, cy + H / 2 - 0.2, 0])
         return VGroup(uni, zipc, axes, xlabels, xtitle, title, legend)
