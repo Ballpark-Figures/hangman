@@ -652,14 +652,38 @@ class Scene05(HangmanScene):
         """The canonical avg-miss value string: 2 decimals, rounded HALF UP (1.245 → 1.25)."""
         return f"{int(v * 100 + 0.5) / 100:.2f}"
 
+    _DIGIT_W = {}          # cache: font_size -> widest-digit width at weight BOLD (for tabular figures)
+
+    def _mono_number(self, s, font_size=12, color=WHITE):
+        """The number ``s`` (e.g. '2.57') with TABULAR (fixed-width) digits: each digit is centred in
+        a cell of the widest-digit width, and the group's horizontal extent is PINNED to the cell
+        grid by an invisible spacer. Without this a ROLLING counter lurches as the digits change —
+        the brand font's figures are proportional ('1' is ~half the width of '8') and the label is
+        right-aligned via next_to, so the left edge jumps and reads as the number resizing. Built as
+        ONE crisp_text (so baselines/heights stay correct), then the glyphs are re-gridded in x (y
+        preserved); '.' keeps its own width."""
+        t = crisp_text(s, font_size=font_size, color=color, weight=BOLD)
+        dw = Scene05._DIGIT_W.get(font_size)
+        if dw is None:
+            dw = max(crisp_text(str(d), font_size=font_size, weight=BOLD).width for d in range(10))
+            Scene05._DIGIT_W[font_size] = dw
+        x = 0.0
+        for ch, glyph in zip(s, t):
+            w = dw if ch.isdigit() else glyph.width
+            glyph.set_x(x + w / 2)
+            x += w
+        spacer = Line([0, t.get_bottom()[1], 0], [x, t.get_bottom()[1], 0], stroke_opacity=0)
+        return VGroup(t, spacer)
+
     def _value_label(self, v, height=0.34, bare=False, color=WHITE):
         """The value glyphs at the shared size: the full 'Avg misses: N.NN' scaled to ``height``;
         a ``bare`` number scaled by that SAME factor (so the digits match), not fit to its own box.
+        The bare number uses TABULAR digits (`_mono_number`) so a rolling counter's width is constant.
         crisp_text supersamples to a 240pt cap; a longer string WRAPS in pango — build small."""
         full = crisp_text(f"Avg misses: {self._fmt(v)}", font_size=12, color=color, weight=BOLD)
         if not bare:
             return full.scale_to_fit_height(height)
-        return crisp_text(self._fmt(v), font_size=12, color=color, weight=BOLD).scale(height / full.height)
+        return self._mono_number(self._fmt(v), font_size=12, color=color).scale(height / full.height)
 
     def _avg_label(self, node_dot, value=0.0, height=0.34, direction=LEFT, bare=False):
         """A node's backed-up optimal value beside it — ``value`` is the raw SOURCED number. Beats
