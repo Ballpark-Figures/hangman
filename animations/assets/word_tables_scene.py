@@ -95,9 +95,24 @@ class WordTablesScene(HangmanScene):
             t.scale_to_fit_width(maxw)
         return t
 
-    # ── one titled table (title + column headers + baseline/mono rows) ────────
-    def _table(self, title, headers, rows, *, top_y, cx, censor=()):
-        lx, vx = cx + LABEL_DX, cx + VALUE_DX
+    def _word_label(self, s, cx, y, color=INK, max_w=LABEL_MAX_W):
+        """A row label rendered as a PLAIN single bold string, centred on cx (no letter
+        spacing) — for WORD columns. Equal-length words still line up; a too-wide word
+        scales down about cx. Contrast `_mono` (letter-spaced) used for PATTERN columns."""
+        m = crisp_text(s, font_size=ROW_FS, color=color, weight=BOLD, baseline_at=(cx, y))
+        if max_w and m.width > max_w:
+            m.scale_to_fit_width(max_w)
+        return m
+
+    def _label(self, s, cx, y, mono, color=INK):
+        return self._mono(s, cx, y, color=color) if mono else self._word_label(s, cx, y, color=color)
+
+    # ── one titled table (title + column headers + baseline rows) ─────────────
+    def _table(self, title, headers, rows, *, top_y, cx, censor=(), mono=True,
+               label_dx=LABEL_DX, value_dx=VALUE_DX):
+        """`mono=True` → letter-spaced labels (PATTERN columns); `mono=False` → plain
+        words (WORD columns). `label_dx`/`value_dx` set the two columns' x offsets from cx."""
+        lx, vx = cx + label_dx, cx + value_dx
         ttl = self._table_title(title, TABLE_TITLE_W).move_to([cx, top_y, 0])
         hy = top_y - TITLE_GAP
         hdr = VGroup(
@@ -106,7 +121,7 @@ class WordTablesScene(HangmanScene):
         row_group = VGroup()
         for r, (lab, val) in enumerate(rows):
             ry = hy - HDR_GAP - r * ROW_DY
-            label_mob = self._mono(lab, lx, ry)
+            label_mob = self._label(lab, lx, ry, mono)
             if lab in censor:
                 label_mob = self._censor(label_mob)      # word replaced → never shown
             val_mob = crisp_text(val, font_size=ROW_FS, color=INK, baseline_at=(vx, ry))

@@ -111,10 +111,12 @@ class Scene19(WordTablesScene):
     def two_letter_words(self):
         t2 = self.tables["2"]
         common = self._table("Common Words", ("Word", "Frequency"),
-                             self._word_rows(t2["common_words"]), top_y=STACK_TOP, cx=RIGHT_X)
+                             self._word_rows(t2["common_words"]), top_y=STACK_TOP, cx=RIGHT_X,
+                             mono=False)
         self._reveal(common, 1.0)
         rare = self._table("Rare Words", ("Word", "Frequency"),
-                           self._word_rows(t2["rare_words"]), top_y=STACK_BOTTOM_TITLE, cx=RIGHT_X)
+                           self._word_rows(t2["rare_words"]), top_y=STACK_BOTTOM_TITLE, cx=RIGHT_X,
+                           mono=False)
         self._reveal(rare, 1.0)
         self.right_tables = VGroup(common, rare)
 
@@ -137,7 +139,8 @@ class Scene19(WordTablesScene):
     def three_letter_words(self):
         t3 = self.tables["3"]
         common = self._table("Common Words", ("Word", "Frequency"),
-                             self._word_rows(t3["common_words"]), top_y=LEN34_TOP, cx=RIGHT_X)
+                             self._word_rows(t3["common_words"]), top_y=LEN34_TOP, cx=RIGHT_X,
+                             mono=False)
         self._reveal(common, 1.6)
         self.right_tables = VGroup(common)
 
@@ -164,6 +167,6 @@ class Scene19(WordTablesScene):
         t4 = self.tables["4"]
         common = self._table("Common Words", ("Word", "Frequency"),
                              self._word_rows(t4["common_words"]), top_y=LEN34_TOP, cx=RIGHT_X,
-                             censor={"PIMP"})
+                             mono=False, censor={"PIMP"})
         self._reveal(common, 1.6)
         self.right_tables = VGroup(common)

@@ -1,14 +1,15 @@
-"""SCENE 20 — LONGER WORDS (the choosing strategy for lengths 5-10 & 16; "ING is king").
+"""SCENE 20 — LONGER WORDS (the choosing strategy for lengths 5-9 & 16; "ING is king").
 
 Borrows heavily from scene 19 (short_words): the SAME brand light-blue background +
 crisp_text tables, routed through the SHARED WordTablesScene base (assets/word_tables_scene)
-— LEFT = letter-combo patterns + multipliers, RIGHT = the chosen words + their frequency
-share, under an "N-Letter Words" title. What's NEW here is the ENDING FILTER: the strategy
-concentrates its word choices on a few suffixes, so we repeatedly strip an ending
-(Y / ED / ER / ES / ING) from the word list and REFLOW it — the stripped words fade out,
-survivors slide up, and new words rise from the bottom to refill the slots.
+— LEFT = letter-combo patterns (letter-spaced) + multipliers, RIGHT = the chosen words
+(plain, NOT letter-spaced) + their frequency share, under an "N-Letter Words" title. What's
+NEW here is the ENDING FILTER: the strategy concentrates its word choices on a few suffixes,
+so we repeatedly strip an ending (Y / ED / ER / ES / ING) and REFLOW the list in ONE play —
+the stripped words fade out while, overlapping, survivors slide up and new words rise in
+from the bottom to refill the slots.
 
-BEAT MAP (Script.md scene 20; --- delimited, 15 beats a-o):
+BEAT MAP (Script.md scene 20; --- delimited, 14 beats a-n):
   a five_patterns   — title "5-Letter Words"; LEFT Common Letter Patterns.
   b five_words      — RIGHT Common Words (almost all end in Y).
   c remove_y        — strip Y-ending words + reflow → what's left usually ends in S.
@@ -22,29 +23,30 @@ BEAT MAP (Script.md scene 20; --- delimited, 15 beats a-o):
   k remove_ing7     — strip ING endings + reflow → NOTHING left.
   l eight_full      — title → "8-Letter Words"; clear; LEFT patterns + RIGHT words together.
   m nine_full       — title → "9-Letter Words"; clear; patterns + words together.
-  n ten_full        — title → "10-Letter Words"; clear; patterns + words together.
-  o sixteen_full    — title → "16-Letter Words"; clear; ONLY Common Words, CENTERED + bigger,
-                      10 rows, no patterns table (top word UNDERREPRESENTED).
+  n sixteen_full    — title → "16-Letter Words"; clear; ONLY Common Words, CENTERED + bigger,
+                      10 rows, columns spread WIDER, no patterns table (top word UNDERREPRESENTED).
 
 DATA (SOURCED, cached): assets.long_words_data -> long_words_cache.json. Per length:
 `common_patterns` (boosted multiplier rows, uppercased) + `words` (every word the strategy
-uses — frequency > 0 — for lengths 5/6/7 so the filters are truthful; top-12 for 8/9/10/16).
+uses — frequency > 0 — for lengths 5/6/7 so the filters are truthful; top-12 for 8/9/16).
 Each word carries its sourced `pct`; the ending filters are deterministic string ops. The
 73% / 97% aggregates in the voiceover are NOT shown (script column 2 doesn't ask for them).
 
 REUSE MAP (styling sources):
   - table machinery : assets.word_tables_scene.WordTablesScene — `_table`/`_reveal`/`_mono`/
-                      `_sig2`/`_scene_title`/`_word_rows` + layout constants (shared w/ scene 19).
+                      `_word_label`/`_sig2`/`_mult`/`_scene_title` + layout constants (shared w/ 19).
   - text/colour     : crisp_text, INK = BLACK (base).
 
 FLAGS (owned by a human — tune/decide in the timing+polish pass):
-  - ROWS_SHOWN, all geometry (columns, row spacing, the single-table top_y) + run_times = guesses.
+  - ROWS_SHOWN, all geometry (columns, row spacing, the single-table top_y, beat-n spread/scale)
+    + run_times = guesses.
   - table TITLES ("Common Letter Patterns"/"Common Words") are rendered captions; reword if undesired.
-  - VERY-WIDE rows (length-16 patterns/words) may crowd the value column — geometry tuning owed.
-  - "ING is king" for length 9: the sourced TOP-12 length-9 words are only partly ING (the
-    dominance is strongest at 7/8); shown faithfully — flag for the user if a different pick is wanted.
+  - length-16 words are wide — beat n uses widened columns + a scale; a long PATTERN elsewhere
+    still leans on `_word_label`/`_mono`'s max-width clamp.
+  - Length-9 (beat m) is only partly ING (dominance is strongest at 7/8) — shown faithfully; the
+    script's beat-m VO was updated to match ("not as many clear patterns for even longer words").
 
-Render:  render 20a --fast (…20o)  /  render 20 sub  for the whole scene
+Render:  render 20a --fast (…20n)  /  render 20 sub  for the whole scene
 """
 from pathlib import Path
 import sys
@@ -78,44 +80,43 @@ class Scene20(WordTablesScene):
                            rows, top_y=LONG_TOP, cx=LEFT_X)
 
     # ── word table with a filter/reflow POOL underneath the visible rows ───────
-    def _word_table(self, L, *, n=ROWS_SHOWN, cx=RIGHT_X, title="Common Words"):
+    def _word_table(self, L, *, n=ROWS_SHOWN, cx=RIGHT_X,
+                    label_dx=LABEL_DX, value_dx=VALUE_DX, title="Common Words"):
         pool = self.tables[str(L)]["words"]
         shown = pool[:n]
-        tab = self._table(title, ("Word", "Frequency"),
-                          self._word_rows(shown), top_y=LONG_TOP, cx=cx)
+        tab = self._table(title, ("Word", "Frequency"), self._word_rows(shown),
+                          top_y=LONG_TOP, cx=cx, mono=False,     # words plain, not letter-spaced
+                          label_dx=label_dx, value_dx=value_dx)
         tab.pool = list(pool)
         tab.words = [d["word"] for d in shown]
         tab.n, tab.cx = n, cx
+        tab.label_dx, tab.value_dx = label_dx, value_dx
         tab.row_by_word = {tab.words[i]: tab.rows[i] for i in range(len(tab.words))}
         return tab
 
     def _row_y(self, i):
         return LONG_TOP - TITLE_GAP - HDR_GAP - i * ROW_DY
 
-    def _word_row(self, d, y, cx=RIGHT_X):
-        """One word row (mono word + plain % value) on baseline y."""
-        lx, vx = cx + LABEL_DX, cx + VALUE_DX
-        return VGroup(self._mono(d["word"], lx, y),
+    def _word_row(self, d, y, cx=RIGHT_X, label_dx=LABEL_DX, value_dx=VALUE_DX):
+        """One word row (plain word + plain % value) on baseline y."""
+        lx, vx = cx + label_dx, cx + value_dx
+        return VGroup(self._word_label(d["word"], lx, y),
                       crisp_text(self._sig2(d["pct"]) + "%", font_size=ROW_FS,
                                  color=INK, baseline_at=(vx, y)))
 
-    def _filter_words(self, ending, fade_rt, reflow_rt):
-        """Strip words ending in `ending` from the RIGHT table's pool, then reflow:
-        (1) the stripped visible rows fade out; (2) survivors slide up to their new slots
-        while newly-promoted words RISE UP FROM BELOW the window (a uniform travel of the
-        full window height, so they visibly scroll in from the bottom and land exactly on
-        their slots — no gap)."""
+    def _filter_words(self, ending, run_time):
+        """Strip words ending in `ending` from the RIGHT table's pool, then reflow — all in
+        ONE play so the stripped rows FADE OUT while, overlapping, survivors slide up to
+        their new slots and newly-promoted words RISE UP FROM BELOW the window (uniform
+        travel = window height, so they scroll in from the bottom and land exactly, no gap)."""
         tab = self.right
         pred = lambda w: w.endswith(ending)
-        removed = [tab.row_by_word[w] for w in tab.words if pred(w)]
-        if removed:
-            self.play(*[FadeOut(m) for m in removed], run_time=fade_rt)
-
         new_pool = [d for d in tab.pool if not pred(d["word"])]
         new_shown = new_pool[:tab.n]
         old_index = {w: i for i, w in enumerate(tab.words)}
         travel = tab.n * ROW_DY                             # > window height → starts below it
-        anims, new_row_by_word = [], {}
+        anims = [FadeOut(tab.row_by_word[w]) for w in tab.words if pred(w)]
+        new_row_by_word = {}
         for i, d in enumerate(new_shown):
             w, y = d["word"], self._row_y(i)
             if w in tab.row_by_word:                        # survivor → slide up in place
@@ -124,11 +125,11 @@ class Scene20(WordTablesScene):
                 if dy:
                     anims.append(row.animate.shift(UP * dy))
             else:                                           # newcomer → rise from below
-                row = self._word_row(d, y - travel, tab.cx)
+                row = self._word_row(d, y - travel, tab.cx, tab.label_dx, tab.value_dx)
                 anims.append(row.animate.shift(UP * travel))
             new_row_by_word[w] = row
         if anims:
-            self.play(*anims, run_time=reflow_rt)
+            self.play(*anims, run_time=run_time)
 
         tab.pool, tab.words = new_pool, [d["word"] for d in new_shown]
         tab.row_by_word = new_row_by_word
@@ -174,7 +175,7 @@ class Scene20(WordTablesScene):
     # c : strip Y-ending words + reflow (survivors usually end in S)
     @subscene
     def remove_y(self):
-        self._filter_words("Y", 0.6, 1.2)
+        self._filter_words("Y", 1.3)
 
     # d : "6-Letter Words"; clear len-5; LEFT patterns + RIGHT words TOGETHER
     @subscene
@@ -187,22 +188,22 @@ class Scene20(WordTablesScene):
     # e : strip ED endings + reflow
     @subscene
     def remove_ed(self):
-        self._filter_words("ED", 0.6, 1.0)
+        self._filter_words("ED", 1.1)
 
     # f : strip ER endings + reflow
     @subscene
     def remove_er(self):
-        self._filter_words("ER", 0.6, 1.0)
+        self._filter_words("ER", 1.1)
 
     # g : strip ES endings + reflow
     @subscene
     def remove_es(self):
-        self._filter_words("ES", 0.6, 1.0)
+        self._filter_words("ES", 1.1)
 
     # h : strip ING endings + reflow → only NUTMEG & AZALEA remain
     @subscene
     def remove_ing(self):
-        self._filter_words("ING", 0.6, 1.0)
+        self._filter_words("ING", 1.1)
 
     # i : "7-Letter Words"; clear len-6; LEFT Common Letter Patterns
     @subscene
@@ -220,7 +221,7 @@ class Scene20(WordTablesScene):
     # k : strip ING endings + reflow → NOTHING left
     @subscene
     def remove_ing7(self):
-        self._filter_words("ING", 0.8, 0.8)
+        self._filter_words("ING", 0.9)
 
     # l : "8-Letter Words"; clear; LEFT patterns + RIGHT words together
     @subscene
@@ -238,19 +239,11 @@ class Scene20(WordTablesScene):
         self.right = self._word_table(9)
         self._reveal_pair(self.left, self.right, 1.6)
 
-    # n : "10-Letter Words"; clear; patterns + words together
-    @subscene
-    def ten_full(self):
-        self._next_length(10, 0.6)
-        self.left = self._pat_table(10)
-        self.right = self._word_table(10)
-        self._reveal_pair(self.left, self.right, 1.6)
-
-    # o : "16-Letter Words"; clear; ONLY Common Words, CENTERED, 10 rows, bigger font
-    #     (top word UNDERREPRESENTED) — no patterns table here
+    # n : "16-Letter Words"; clear; ONLY Common Words, CENTERED, 10 rows, bigger font,
+    #     columns spread WIDER (word ↔ %) — no patterns table here (top word UNDERREPRESENTED)
     @subscene
     def sixteen_full(self):
         self._next_length(16, 0.6)
-        self.right = self._word_table(16, n=10, cx=0.0)
+        self.right = self._word_table(16, n=10, cx=0.0, label_dx=-1.9, value_dx=1.9)
         VGroup(self.right.title, self.right.header, self.right.rows).scale(1.25, about_edge=UP)
         self._reveal(self.right, 1.6)

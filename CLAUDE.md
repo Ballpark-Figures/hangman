@@ -110,8 +110,10 @@ the chosen words + their frequency share, under a "N-Letter Words" title.
     (per the script); lengths 3/4/… show Common only.
   - **Number formatting:** a MULTIPLIER is ONE DECIMAL PLACE (`_mult`, e.g. `18.0`/`510.8`);
     a word % is 2 SIGNIFICANT FIGURES (`_sig2`). Everywhere, both scenes.
-  - **A pattern (blanked word) / word is BOLD and MONOSPACED** (`_mono`, fixed `CHAR_W` slot),
-    so equal-length strings line their letters up into COLUMNS down the table. The
+  - **A PATTERN is BOLD and MONOSPACED** (`_mono`, fixed `CHAR_W` slot) so its letters line up
+    into COLUMNS down the table; a WORD is BOLD but PLAIN (`_word_label`, `_table(mono=False)`),
+    NOT letter-spaced (the per-letter column look was dropped for words — user preference). All
+    words in a length's table are equal length, so a plain centred word still lines up. The
     multiplier/frequency numbers are plain (not bold, not monospaced).
   - **Stacked (length-2) tables align by their TITLE**, not their last row — the top pair
     (Common) share `STACK_TOP`, the bottom pair (Rare) share `STACK_BOTTOM_TITLE`, so the two

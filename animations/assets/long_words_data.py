@@ -37,7 +37,6 @@ LONG_SPEC = {
     7:  {"pat_cap": 12, "words": "all"},
     8:  {"pat_cap": 12, "words": 12},
     9:  {"pat_cap": 12, "words": 12},
-    10: {"pat_cap": 12, "words": 12},
     16: {"pat_cap": 12, "words": 12},
 }
 
