@@ -58,13 +58,16 @@ WORD_CX, COMBO_CX = -4.0, 4.0     # left = words, right = combos
 ROW_W = 6.8                       # each side's row width
 PER_ROW = 8                       # bars per row
 ROW_H = 1.0                       # bar height at y_max
-BASE_YS = [0.3, -1.9]             # the 2 row BASELINES (bars grow up)
+BASE_YS = [-1.18, -2.98]          # the 2 row BASELINES (bars grow up); lowered so the gap
+                                  # from a full top bar to the card ≈ the gap from the
+                                  # bottom labels to the frame edge
 BAR_LABEL_FS = 20                 # bold, scene-17-word-bar sized
 
 # ── the mini best-opener greedy TREE (whole tree, no letters) on a navy card ───
-TREE_C = (-4.2, 2.9)              # card centre (top-left, LEFT of the avg readout)
+TREE_C = (WORD_CX, 2.35)          # card centre: x over the LEFT bars, y lowered from top
 TREE_W, TREE_H = 6.2, 2.4         # the plotting box inside the card
-AVG_C = (3.4, 2.9)               # "Average Misses: N" — to the RIGHT of the tree
+AVG_C = (COMBO_CX, 2.35)          # "Average Misses: N" readout — centred over the RIGHT bars
+AVG_W = 5.6                       # readout width (fixed, so the number never resizes/jitters)
 TREE_DOT_R = 0.03
 TREE_EDGE_W = 1.3
 TREE_MISS_COL = CRIMSON           # miss edges (the deep "spine")
@@ -87,7 +90,7 @@ class Scene18(HangmanScene):
         self.table = None
         self.tree_card = None                    # beat-b placeholder card
         self.mini_card = self.tree_mob = None    # beat-c+ mini greedy tree (+ its navy card)
-        self.avg_label = self.avg_num = None
+        self.avg_readout = None                  # single-text "Average Misses: N.NN" counter
         self.word_charts = self.combo_charts = None
         self.word_bars = self.combo_bars = None
         self.word_base = self.combo_base = None
@@ -98,39 +101,38 @@ class Scene18(HangmanScene):
         # long crisp_text wraps at the 240pt supersample; build small, scale to width
         return crisp_text(text, font_size=10, **kw).scale_to_fit_width(width)
 
-    def _number_text(self, value):
-        """The avg number at a FIXED height + left edge, so counting never moves/resizes it."""
-        return (crisp_text(f"{value:.2f}", font_size=10, color=INK, weight=BOLD)
-                .scale_to_fit_height(self.num_h)
-                .move_to([self.num_left, self.num_y, 0], aligned_edge=LEFT))
+    def _avg_readout(self, value):
+        """The WHOLE 'Average Misses: N.NN' as ONE text (label + number inherently share a
+        baseline — no two-mobject alignment). Fixed left edge + scale, so counting never
+        shifts/resizes it; the fixed prefix keeps its height (and baseline) constant."""
+        return (crisp_text(f"Average Misses: {value:.2f}", font_size=10, color=INK,
+                           weight=BOLD).scale(self.avg_scale)
+                .move_to([0, self.avg_y, 0]).align_to([self.avg_left, 0, 0], LEFT))
 
     def _setup_avg(self, value):
-        # label + number built at the SAME base size and scaled together → same size
-        label = crisp_text("Average Misses:", font_size=10, color=INK, weight=BOLD)
-        num = crisp_text(f"{value:.2f}", font_size=10, color=INK, weight=BOLD)
-        num.next_to(label, RIGHT, buff=0.12)
-        VGroup(label, num).scale_to_fit_width(6.0).move_to([AVG_C[0], AVG_C[1], 0])
-        self.num_h = num.height
-        self.num_left, self.num_y = num.get_left()[0], num.get_center()[1]
-        self.avg_label, self.avg_num = label, num
+        ref = crisp_text("Average Misses: 0.00", font_size=10, color=INK, weight=BOLD)
+        self.avg_scale = AVG_W / ref.width                 # fixed scale (readout never resizes)
+        ref.scale(self.avg_scale).move_to([AVG_C[0], AVG_C[1], 0])
+        self.avg_left, self.avg_y = ref.get_left()[0], ref.get_center()[1]
+        self.avg_readout = self._avg_readout(value)
         self.avg_tracker.set_value(value)
 
     def _count_to(self, value, run_time):
-        """Animate the avg number to ``value`` with a counter (become() from the tracker)."""
-        self.avg_num.add_updater(
-            lambda m: m.become(self._number_text(self.avg_tracker.get_value())))
+        """Animate the avg readout to ``value`` with a counter (become() from the tracker)."""
+        self.avg_readout.add_updater(
+            lambda m: m.become(self._avg_readout(self.avg_tracker.get_value())))
         self.play(self.avg_tracker.animate.set_value(value), run_time=run_time)
-        self.avg_num.clear_updaters()
+        self.avg_readout.clear_updaters()
 
     def _count_and_tree(self, state, run_time):
         """Count the avg AND crossfade the mini tree to ``state``'s tree, together — the
         tree updates every time the avg does."""
         new_tree = self._tree_mob(state["tree"])
-        self.avg_num.add_updater(
-            lambda m: m.become(self._number_text(self.avg_tracker.get_value())))
+        self.avg_readout.add_updater(
+            lambda m: m.become(self._avg_readout(self.avg_tracker.get_value())))
         self.play(FadeOut(self.tree_mob), FadeIn(new_tree),
                   self.avg_tracker.animate.set_value(state["avg_misses"]), run_time=run_time)
-        self.avg_num.clear_updaters()
+        self.avg_readout.clear_updaters()
         self.tree_mob = new_tree
 
     # ── mini tree (whole best-opener greedy tree, no letters) ─────────────────
@@ -241,11 +243,11 @@ class Scene18(HangmanScene):
                   for b, by, v0, v1 in zip(self.word_bars, self.word_base,
                                            self.word_vals, state["word_freq"])]
         new_tree = self._tree_mob(state["tree"])
-        self.avg_num.add_updater(
-            lambda m: m.become(self._number_text(self.avg_tracker.get_value())))
+        self.avg_readout.add_updater(
+            lambda m: m.become(self._avg_readout(self.avg_tracker.get_value())))
         self.play(*anims, FadeOut(self.tree_mob), FadeIn(new_tree),
                   self.avg_tracker.animate.set_value(state["avg_misses"]), run_time=run_time)
-        self.avg_num.clear_updaters()
+        self.avg_readout.clear_updaters()
         self.tree_mob = new_tree
         self.combo_vals[:] = list(state["combo_mult"])
         self.word_vals[:] = list(state["word_freq"])
@@ -309,7 +311,7 @@ class Scene18(HangmanScene):
         self.word_vals = list(uni["word_freq"])
         self.combo_vals = list(uni["combo_mult"])
 
-        self.play(FadeIn(self.avg_label), FadeIn(self.avg_num),
+        self.play(FadeIn(self.avg_readout),
                   FadeIn(self.mini_card), FadeIn(self.tree_mob), run_time=0.6)
         all_bars, label_fades = [], []
         for chart in (*self.word_charts, *self.combo_charts):
