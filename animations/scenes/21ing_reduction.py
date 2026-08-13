@@ -18,16 +18,18 @@ SOURCED DATA
     (`scene17_chart_data.get()["uniform"]`); NOT recomputed here.
   • beats e/f word walls + the VO word counts = `assets/scene21_data.py`
     (committed `scene21_cache.json`), read from `math/wordlist.py` (cutoff zipf≥2.5):
-      words4 = EVERY 20th 4-letter word (alphabetical, 106)   — LEFT wall
-      words7 = EVERY 20th 7-letter word (alphabetical, 278)   — RIGHT wall
-      counts = {len4: 2120, len7: 5541, len7_ing: 658}        — the VO's three ___ blanks
-    The walls are A–Z SAMPLES (every 20th); the counts are the true totals, SPOKEN
-    in the VO only (NOT rendered — voiceover ≠ on-screen). Of the 278 shown 7-letter
-    words, 35 end in -ING (survive beat f).
+      words4 = FIRST 100 4-letter words (alphabetical)   — LEFT wall
+      words7 = FIRST 250 7-letter words (alphabetical)   — RIGHT wall
+      counts = {len4: 2120, len7: 5541, len7_ing: 658}   — the VO's three ___ blanks
+    100/250 are DISPLAY caps (samples); the counts are the true totals, SPOKEN in
+    the VO only (NOT rendered — voiceover ≠ on-screen). Of the 250 shown 7-letter
+    words, 9 end in -ING (survive beat f).
 
 FLAGS (confirm)
-  • beat b: chart named to match scene 17's OPTIMAL chart — title "Optimal Misses
-    per Word" + x-axis "Word Length" (chalk here vs scene 17's crisp grouped bars).
+  • beat b: chart TITLE matches the CHALKBOARD chart (scene 04 `_avg_chart` /
+    scene 05 recap) = "Average Misses by Word Length". DATA is the OPTIMAL uniform
+    series (scene17 cache), per the script's "optimal misses" wording (user chose
+    optimal over greedy — scene 04's chalkboard chart itself uses greedy data).
   • beat h GAINING guess order = I·N·G then A — the ILLUSTRATIVE "start with ING"
     order the VO prescribes (all hits, 0 misses), NOT a solver trace. It ends on the
     fully-revealed white board (no green win / no fade) — the script names neither.
@@ -38,7 +40,7 @@ BEAT MAP
   b chart           — chalk line-outline graph: optimal misses per word length
   c blanks_gallows  — erase the chart; draw 7 word blanks + the gallows
   d guess_ing       — guess I, N, G → written into the LAST 3 blanks (the reduction)
-  e word_walls      — clear the demo; LEFT = every-20th 4-letter, RIGHT = every-20th 7-letter
+  e word_walls      — clear the demo; LEFT = 100 4-letter words, RIGHT = 250 7-letter
   f erase_nonings   — fade the right-wall words NOT ending in ING (only -ING survive)
   g erase_all       — erase the board (both walls)
   h gaining         — play GAINING out: I·N·G·A, all hits (extras give it away)
@@ -97,17 +99,13 @@ class Scene21(HangmanScene):
             x_axis=True, y_axis=True,
             y_ticks=range(0, 8, 2),
             y_tick_factory=lambda t: chalk_number(t, height=0.22),
-            # naming matches scene 17's OPTIMAL chart: title "Optimal Misses per
-            # Word", x-axis "Word Length" (below)
-            title_mobject=chalk_phrase("Optimal Misses per Word", height=0.38),
+            # title matches the CHALKBOARD chart (scene 04's `_avg_chart`, recapped
+            # in scene 05) — no separate x-axis title, as there
+            title_mobject=chalk_phrase("Average Misses by Word Length", height=0.38),
             title_buff=0.5,
         )
         chart.shift([0, -chart.get_center()[1], 0])       # centre vertically
         chart.axes = VGroup(chart.x_axis, chart.y_axis)
-        xt = chalk_phrase("Word Length", height=0.28)     # x-axis title (scene 17)
-        xt.next_to(chart.labels, DOWN, buff=0.22).set_x(chart.x_axis.get_center()[0])
-        chart.add(xt)              # a submobject so FadeOut(chart) in beat c clears it
-        chart.xtitle = xt
         self.chart = chart
 
     @subscene
@@ -115,7 +113,6 @@ class Scene21(HangmanScene):
         self._setup_chart()
         self.play(FadeIn(self.chart.axes), FadeIn(self.chart.labels),
                   FadeIn(self.chart.yticks), FadeIn(self.chart.title),
-                  FadeIn(self.chart.xtitle),
                   *[Create(b) for b in self.chart.bars], run_time=1.8)
 
     # ── c : erase the chart; draw 7 blanks + the gallows ──────────────────────
