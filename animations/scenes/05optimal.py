@@ -61,7 +61,9 @@ Script row 05, split on '—' (voiceover ↔ animation zip 1:1). BEAT MAP:
                     (o=3.28 min …), choose O, lock node+edges+value green
   w backup_a      — add O's SIBLINGS: build A's tidy subtree, slide the green O-subtree onto A's miss
                     slot, morph the diagonal A into the (white) root, grow A's a_/_a hit branches
-                    (green). A itself left UN-chosen (no choose_a yet)
+                    (green subtree, white root). A itself left UN-chosen
+  x solve_a_hit   — solve O's siblings: cycle a_ (=3.00) and _a (=2.50) through ALL their tied first-
+                    guesses (T optimal for both), lock each root + edges green (solve_X_hit at the root)
   --- next sections (not yet built) ---
   … choose A (or the first-letter grid recap); dedup + prune; paired chart
 
@@ -1735,6 +1737,14 @@ class Scene05(HangmanScene):
         self.a_hit_edges = [be for be, bd in hits]
         # keep self.o_subtree — it's now the slid miss child of A (a later choose_a would fold it in)
         self.avg_o = None
+
+    # ── x : solve O's SIBLINGS — A's HIT children a_ ({…}=3.0) and _a ({…}=2.5), grown white-rooted
+    #        in w. Just like every other node: show each one's avg, cycle ALL its tied first-guesses,
+    #        settle on the optimal (T for both), lock its root + edges green. solve_X_hit at the
+    #        root — the same _solve_position_hits helper. ─────────────────────────────────────────
+    @subscene
+    def solve_a_hit(self):
+        self.a_hit_avg = self._solve_position_hits(0, self.a_hit_trees)
 
     # ── components ─────────────────────────────────────────────────────────────
     def _greedy_chart(self):
