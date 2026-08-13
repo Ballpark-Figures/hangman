@@ -18,7 +18,7 @@ BEAT MAP (Script.md scene 19; --- delimited, 8 beats a-h):
   f four_letter_title    — title → "4-Letter Words"; clear the len-3 tables (title swap only).
   g four_letter_patterns — LEFT Common Letter Patterns (duplicated-letter combos).
   h four_letter_words    — RIGHT Common Words; the PIMP word is replaced by a transparent
-                           gray box (censored) so it's never shown.
+                           black box (censored) so it's never shown.
 
 Formatting conventions (routed through single helpers so they hold everywhere):
   - every number is 2 SIGNIFICANT FIGURES (`_sig2`) — multipliers AND word %.
@@ -38,7 +38,7 @@ REUSE MAP (styling sources):
 
 FLAGS (owned by a human — tune/decide in the timing+polish pass):
   - table TITLES ("Common Letter Patterns" …) are rendered as captions; drop/reword if undesired.
-  - "Blur PIMP" is done as a transparent gray CENSOR box over the word (per the user); swap for
+  - "Blur PIMP" is done as a transparent black CENSOR box over the word (per the user); swap for
     a real blur in post if preferred.
   - all geometry (columns, CHAR_W, row spacing, stack anchors, chart box) + run_times = guesses.
 
@@ -112,10 +112,10 @@ class Scene19(HangmanScene):
             g.add(crisp_text(ch, font_size=ROW_FS, color=color, weight=BOLD, baseline_at=(x, y)))
         return g
 
-    # ── censor: replace a word entirely with a transparent gray box ───────────
+    # ── censor: replace a word entirely with a transparent black box ──────────
     def _censor(self, mob):
         return RoundedRectangle(width=mob.width + 0.14, height=mob.height + 0.12,
-                                corner_radius=0.05, fill_color=MUTED_GREY, fill_opacity=0.55,
+                                corner_radius=0.05, fill_color=INK, fill_opacity=0.55,
                                 stroke_width=0).move_to(mob)
 
     # ── title helpers (build small + scale so long titles don't wrap) ─────────
@@ -199,7 +199,7 @@ class Scene19(HangmanScene):
         xtitle = crisp_text("Word Length", font_size=24, color=INK).move_to([0, base_y - 0.78, 0])
         title = crisp_text("Optimal Misses per Word", font_size=34, color=INK,
                            weight=BOLD).move_to([0, cy + H / 2 + 1.15, 0])
-        legend = self._legend([("Equal", UNIFORM_COLOR), ("Best Opener", BESTOP_COLOR)],
+        legend = self._legend([("Uniform", UNIFORM_COLOR), ("Better Choosing", BESTOP_COLOR)],
                               [4.6, cy + H / 2 - 0.2, 0])
         g = VGroup(uni, best, axes, xlabels, xtitle, title, legend)
         g.uni, g.best = uni, best

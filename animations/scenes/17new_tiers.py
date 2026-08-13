@@ -231,8 +231,8 @@ class Scene17(HangmanScene):
             [0, base_y - 0.78, 0])
         title = crisp_text("Optimal Misses per Word", font_size=34, color=TITLE_COLOR,
                            weight=BOLD).move_to([0, cy + H / 2 + 1.15, 0])
-        legend = self._legend([("Equal", UNIFORM_COLOR), ("Frequency", ZIPF_COLOR)],
-                              [4.9, cy + H / 2 - 0.2, 0])
+        legend = self._legend([("Uniform", UNIFORM_COLOR), ("Frequency Weighted", ZIPF_COLOR)],
+                              [4.6, cy + H / 2 - 0.2, 0])
         return VGroup(uni, zipc, axes, xlabels, xtitle, title, legend)
 
     @subscene
