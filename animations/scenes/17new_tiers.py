@@ -35,7 +35,7 @@ from config import *
 from assets import tier_list as tl
 from assets import scene17_data
 from assets import scene17_chart_data
-from bpkfigures.bar_graph import get_bar_chart, morph_bar_chart, grow_bars
+from bpkfigures.bar_graph import get_bar_chart, morph_bar_chart, grow_bars, grouped_bar_chart
 
 # beat-d double bar chart (optimal misses, uniform vs zipf)
 UNIFORM_COLOR = ACCENT_FILL        # equal-weighted bars
@@ -193,47 +193,14 @@ class Scene17(HangmanScene):
 
     # d : double bar chart — the OPTIMAL strategy's avg misses per word length, EQUAL
     #     (uniform) vs FREQUENCY (zipf) weighting; frequency is lower everywhere
-    def _legend(self, entries, pos):
-        g = VGroup()
-        for name, color in entries:
-            sq = Square(side_length=0.28, fill_color=color, fill_opacity=1.0,
-                        stroke_width=0)
-            g.add(VGroup(sq, crisp_text(name, font_size=22,
-                                        color=TITLE_COLOR)).arrange(RIGHT, buff=0.18))
-        return g.arrange(DOWN, buff=0.22, aligned_edge=LEFT).move_to(pos)
-
     def _strategy_chart(self):
         data = scene17_chart_data.get()
         lengths = sorted(int(L) for L in data["uniform"])
-        ymax = max(data[w][str(L)]["avg"] for w in ("uniform", "zipf") for L in lengths)
-        W, cy, H = 12.6, -0.25, 3.8         # raised (cy) + bigger title gap → fills the top
-        N, slot = len(lengths), 12.6 / len(lengths)
-        dx = slot / 4.2                                     # half-gap between the paired bars
-
-        def series(w, color, off):
-            items = [(str(L), data[w][str(L)]["avg"]) for L in lengths]
-            return get_bar_chart(items, center=[off, cy, 0], width=W, height=H,
-                                 y_max=ymax, n_slots=N, bar_color=color, bar_ratio=0.42,
-                                 show_labels=False)
-
-        uni, zipc = series("uniform", UNIFORM_COLOR, -dx), series("zipf", ZIPF_COLOR, dx)
-        base_y = cy - H / 2
-        axes = VGroup(Line([-W / 2, base_y, 0], [W / 2, base_y, 0], color=TITLE_COLOR, stroke_width=3),
-                      Line([-W / 2, base_y, 0], [-W / 2, base_y + H, 0], color=TITLE_COLOR, stroke_width=3))
-        for t in (0, 2, 4, 6):
-            yy = base_y + t / ymax * H
-            tick = Line([-W / 2 - 0.12, yy, 0], [-W / 2, yy, 0], color=TITLE_COLOR, stroke_width=2)
-            axes.add(tick, crisp_text(str(t), font_size=18, color=TITLE_COLOR).next_to(tick, LEFT, buff=0.12))
-        xlabels = VGroup(*[crisp_text(str(L), font_size=20, color=TITLE_COLOR).move_to(
-                              [-W / 2 + (i + 0.5) * slot, base_y - 0.28, 0])
-                           for i, L in enumerate(lengths)])
-        xtitle = crisp_text("Word Length", font_size=24, color=TITLE_COLOR).move_to(
-            [0, base_y - 0.78, 0])
-        title = crisp_text("Optimal Misses per Word", font_size=34, color=TITLE_COLOR,
-                           weight=BOLD).move_to([0, cy + H / 2 + 1.15, 0])
-        legend = self._legend([("Uniform", UNIFORM_COLOR), ("Frequency Weighted", ZIPF_COLOR)],
-                              [4.6, cy + H / 2 - 0.2, 0])
-        return VGroup(uni, zipc, axes, xlabels, xtitle, title, legend)
+        uni = [data["uniform"][str(L)]["avg"] for L in lengths]
+        zipf = [data["zipf"][str(L)]["avg"] for L in lengths]
+        return grouped_bar_chart(
+            lengths, [("Uniform", UNIFORM_COLOR, uni), ("Frequency Weighted", ZIPF_COLOR, zipf)],
+            title="Optimal Misses per Word", x_title="Word Length", ink_color=TITLE_COLOR)
 
     @subscene
     def strategy_chart(self):
@@ -241,10 +208,10 @@ class Scene17(HangmanScene):
                           self.arrow), run_time=0.6)
         self.left = self.right = self.left_title = self.right_title = self.arrow = None
         self.chart = self._strategy_chart()
-        bars = [*self.chart[0].bars, *self.chart[1].bars]     # uniform + zipf series
-        rest = VGroup(*self.chart[2:]).set_opacity(0)         # axis labels, title, legend
+        self.chart.rest.set_opacity(0)                        # axes/labels/title/legend fade in with bars
         self.add(self.chart)                                  # grow_bars collapses bars next
-        grow_bars(self, bars, 1.1, lag=0.02, extra=[rest.animate.set_opacity(1)])
+        grow_bars(self, self.chart.bars, 1.1, lag=0.02,
+                  extra=[self.chart.rest.animate.set_opacity(1)])
 
     # e : repeat the comparison — American (left); a copy MORPHS into British (right);
     #     same 7 tiers, A↔I swap in TOP and Z→bottom in LOW↓; arrow drawn AFTER

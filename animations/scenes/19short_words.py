@@ -27,11 +27,9 @@ Formatting conventions (routed through single helpers so they hold everywhere):
   - pattern tables show only multiplier != 1 (Common = boosted, Rare = reduced).
 
 REUSE MAP (styling sources):
-  - double chart : bpkfigures.bar_graph get_bar_chart (x_axis/y_axis/y_ticks) + grow_bars —
-                   an INLINED adapt of scene 17's `_strategy_chart`/`_legend` (best_opener
-                   swaps in for zipf, axes added).
-                   >>> FLAG: still duplicates scene 17's private chart builder — a shared
-                   "double bar chart by length" helper is now clearly warranted (ask).
+  - double chart : bpkfigures.bar_graph.grouped_bar_chart + grow_bars — the SHARED grouped
+                   bar chart (axes, x/y labels, title, legend), also used by scene 17's
+                   optimal-vs-zipf plot. Just pass the two series + labels here.
   - tables       : scene 18's beat-a table — crisp_text title + column headers + rows on a
                    shared BASELINE (baseline_at), rows rise in (FadeIn + shift up).
   - text/colour  : crisp_text, INK = BLACK; bars ACCENT_FILL (uniform) / CRIMSON (best_opener).
@@ -53,7 +51,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from config import *
 from assets import short_words_data
-from bpkfigures.bar_graph import get_bar_chart, grow_bars
+from bpkfigures.bar_graph import grouped_bar_chart, grow_bars
 
 INK = BLACK                        # dark labels on the brand light-blue bg (scene 17/18 convention)
 UNIFORM_COLOR = ACCENT_FILL        # equal-weighted bars (the double plot)
@@ -158,62 +156,24 @@ class Scene19(HangmanScene):
         self.play(LaggedStart(*[FadeIn(row, shift=UP * 0.3) for row in tab.rows],
                               lag_ratio=0.12), run_time=rows_run_time)
 
-    # ── the by-length double bar chart (adapt of scene 17's _strategy_chart) ──
-    def _legend(self, entries, pos):
-        g = VGroup()
-        for name, color in entries:
-            sq = Square(side_length=0.28, fill_color=color, fill_opacity=1.0, stroke_width=0)
-            g.add(VGroup(sq, crisp_text(name, font_size=22, color=INK)).arrange(RIGHT, buff=0.18))
-        return g.arrange(DOWN, buff=0.22, aligned_edge=LEFT).move_to(pos)
-
-    def _axes(self, cx, base_y, W, H, ymax, ticks):
-        xa = Line([cx - W / 2, base_y, 0], [cx + W / 2, base_y, 0], color=INK, stroke_width=3)
-        ya = Line([cx - W / 2, base_y, 0], [cx - W / 2, base_y + H, 0], color=INK, stroke_width=3)
-        g = VGroup(xa, ya)
-        for t in ticks:
-            yy = base_y + t / ymax * H
-            tick = Line([cx - W / 2 - 0.12, yy, 0], [cx - W / 2, yy, 0], color=INK, stroke_width=2)
-            lab = crisp_text(str(t), font_size=18, color=INK).next_to(tick, LEFT, buff=0.12)
-            g.add(tick, lab)
-        return g
-
+    # ── the by-length double bar chart (shared bpkfigures.grouped_bar_chart) ──
     def _double_chart(self):
         data = short_words_data.get()["by_length"]
         lengths = sorted(int(L) for L in data["uniform"])
-        ymax = max(data[w][str(L)]["avg"] for w in ("uniform", "best_opener") for L in lengths)
-        W, cy, H = 12.6, -0.25, 3.8         # raised (cy) + bigger title gap → fills the top
-        N, slot = len(lengths), 12.6 / len(lengths)
-        dx = slot / 4.2                                     # half-gap between the paired bars
-        base_y = cy - H / 2
+        uni = [data["uniform"][str(L)]["avg"] for L in lengths]
+        best = [data["best_opener"][str(L)]["avg"] for L in lengths]
+        return grouped_bar_chart(
+            lengths, [("Uniform", UNIFORM_COLOR, uni), ("Better Choosing", BESTOP_COLOR, best)],
+            title="Optimal Misses per Word", x_title="Word Length", ink_color=INK)
 
-        def series(w, color, off):
-            items = [(str(L), data[w][str(L)]["avg"]) for L in lengths]
-            return get_bar_chart(items, center=[off, cy, 0], width=W, height=H, y_max=ymax,
-                                 n_slots=N, bar_color=color, bar_ratio=0.42, show_labels=False)
-
-        uni, best = series("uniform", UNIFORM_COLOR, -dx), series("best_opener", BESTOP_COLOR, dx)
-        axes = self._axes(0, base_y, W, H, ymax, [0, 2, 4, 6])
-        xlabels = VGroup(*[crisp_text(str(L), font_size=20, color=INK).move_to(
-                              [-W / 2 + (i + 0.5) * slot, base_y - 0.28, 0])
-                           for i, L in enumerate(lengths)])
-        xtitle = crisp_text("Word Length", font_size=24, color=INK).move_to([0, base_y - 0.78, 0])
-        title = crisp_text("Optimal Misses per Word", font_size=34, color=INK,
-                           weight=BOLD).move_to([0, cy + H / 2 + 1.15, 0])
-        legend = self._legend([("Uniform", UNIFORM_COLOR), ("Better Choosing", BESTOP_COLOR)],
-                              [4.6, cy + H / 2 - 0.2, 0])
-        g = VGroup(uni, best, axes, xlabels, xtitle, title, legend)
-        g.uni, g.best = uni, best
-        g.rest = VGroup(axes, xlabels, xtitle, title, legend)
-        return g
-
-    # a : double bar chart — optimal avg misses per length, EQUAL vs BEST_OPENER
+    # a : double bar chart — optimal avg misses per length, UNIFORM vs BETTER CHOOSING
     @subscene
     def double_plot(self):
         self.chart = self._double_chart()
         self.chart.rest.set_opacity(0)                      # axes/labels/title/legend fade in with bars
         self.add(self.chart)
-        bars = [*self.chart.uni.bars, *self.chart.best.bars]
-        grow_bars(self, bars, 1.2, lag=0.02, extra=[self.chart.rest.animate.set_opacity(1)])
+        grow_bars(self, self.chart.bars, 1.2, lag=0.02,
+                  extra=[self.chart.rest.animate.set_opacity(1)])
 
     # b : "2-Letter Words"; LEFT Common Patterns (top), Rare Patterns (bottom-anchored)
     @subscene
