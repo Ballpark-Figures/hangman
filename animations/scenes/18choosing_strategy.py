@@ -264,10 +264,8 @@ class Scene18(HangmanScene):
         for r, row in enumerate(top):
             by = 1.72 - r * 0.5                          # common baseline per row
             rows.add(VGroup(
-                place_on_baseline(crisp_text(row["word"], font_size=26, color=WORD_BLUE),
-                                  [-1.9, by], string=row["word"]),
-                place_on_baseline(crisp_text(str(row["misses"]), font_size=26, color=INK),
-                                  [1.9, by], string=row["misses"])))
+                crisp_text(row["word"], font_size=26, color=WORD_BLUE, baseline_at=(-1.9, by)),
+                crisp_text(str(row["misses"]), font_size=26, color=INK, baseline_at=(1.9, by))))
         for row in rows:
             row.shift(DOWN * 0.4).set_opacity(0)          # start below + hidden → rise in
 
