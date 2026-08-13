@@ -45,23 +45,24 @@ import sys
 _MATH = Path(__file__).resolve().parents[2] / "math"
 CACHE = Path(__file__).resolve().parent / "scene18_cache.json"
 
-# ── length-4 best-opener choosing strategy (beats 3-6) ─────────────────────────
-BO_LENGTH = 4
+# ── length-2 best-opener choosing strategy (beats c-f) ─────────────────────────
+BO_LENGTH = 2
 OBJECTIVE = "best_opener"
-TRACK_N = 24          # FLAG: # of combo bars + word bars shown (multi-row layout)
-N_BUCKETS = 25        # script: buckets to split the optimization into (rough: 25)
+TRACK_N = 16          # FLAG: # of combo bars + word bars shown (2 rows of 8)
+# beat f uses ONE step per accepted change (len-2 has only ~15), not fixed buckets.
 
 # ── beat 1 (most misses under optimal play) ───────────────────────────────────
 MOST_MISSES_ROWS = 12   # FLAG: table rows to list (ties at the max are always kept)
 BEAT1_WEIGHTING = "uniform"   # the scene-05 optimal strategy is on the uniform game
 BEAT1_LENGTHS = range(1, 21)
 
-# ── beats 4/5 (illustrative single steps) ─────────────────────────────────────
+# ── beats d/e (illustrative single steps) ─────────────────────────────────────
 # PINNED demo combos (stable across display tweaks; both are forced into the shown
-# grid). d RAISES misses (kept); e LOWERS misses (a failure -> undo -> reset). Each
-# also moves a tracked WORD bar so the combo->word propagation is visible.
-BEAT_D_PATTERN, BEAT_D_FACTOR = "_u__", 2.0     # d: 'u' in slot 2 -> pump/just/…  (RAISE, kept)
-BEAT_E_PATTERN, BEAT_E_FACTOR = "__e_", 2.0     # e: 'e' in slot 3 -> they/when/them (RAISE, then undo)
+# grid). BOTH are RAISED (x2); d's raise RAISES misses (kept, green), e's raise LOWERS
+# misses (a failure: green up, then crimson back down -> reset). Each moves a tracked
+# WORD bar so the combo->word propagation is visible.
+BEAT_D_PATTERN, BEAT_D_FACTOR = "_y", 2.0       # d: 'y' in slot 2 -> by/my   (RAISE, kept)
+BEAT_E_PATTERN, BEAT_E_FACTOR = "_o", 2.0       # e: 'o' in slot 2 -> to/do/no (RAISE, fails)
 DEMO_COMBOS = (BEAT_D_PATTERN, BEAT_E_PATTERN)
 
 # beat b is the optimal length-2 tree = the end of scene 05, already cached in
@@ -158,26 +159,19 @@ def _choosing_strategy(freq_search, wordlist):
     bo_letter, final_avg = final.game.best_opener_misses(final.freq)
 
     # The bars shown are chosen from the NATURAL wordlist, not the strategy's winners:
-    #  - WORDS: the most common real 4-letter words, by zipf frequency.
+    #  - WORDS: the most common real 2-letter words, by zipf frequency.
     #  - COMBOS: the most common letter-combos in the (uniform) wordlist, by # of words
-    #            that carry them (n_words = the uniform-weighting count).
+    #            (n_words). At length 2 every combo is single-position (no repeats).
     # (The bar HEIGHTS still track each word's strategy frequency / each combo's
     #  adjustment multiplier as the optimization runs.)
-    words4 = wordlist.load(min_len=BO_LENGTH, max_len=BO_LENGTH)
-    zipf = {w.text: float(w.zipf) for w in words4}
+    words2 = wordlist.load(min_len=BO_LENGTH, max_len=BO_LENGTH)
+    zipf = {w.text: float(w.zipf) for w in words2}
     game_words = set(final.game.words)
-    word_list = [w.text for w in sorted(words4, key=lambda w: -w.zipf)
+    word_list = [w.text for w in sorted(words2, key=lambda w: -w.zipf)
                  if w.text in game_words][:TRACK_N]
-    # combos: the first two rows are the commonest combos overall (with the pinned demo
-    # combos guaranteed present); the LAST row is the commonest combos that feature a
-    # letter MORE THAN ONCE (mask popcount >= 2).
     by_count = mult_df.sort_values("n_words", ascending=False)
-    rows_per = TRACK_N // 3
     common = [p for p in by_count.pattern if p not in DEMO_COMBOS]
-    head = (list(DEMO_COMBOS) + common)[:2 * rows_per]      # demo combos lead, then commonest
-    multi = by_count[by_count["mask"].map(lambda m: bin(int(m)).count("1")) >= 2]
-    multi = multi[~multi["pattern"].isin(head)]
-    combo_patterns = head + list(multi.head(rows_per).pattern)
+    combo_patterns = (list(DEMO_COMBOS) + common)[:TRACK_N]   # demo combos lead, then commonest
 
     nwords = dict(zip(mult_df.pattern, mult_df.n_words))
     final_cm, final_wf = _tracked(final, combo_patterns, word_list)
@@ -191,20 +185,15 @@ def _choosing_strategy(freq_search, wordlist):
                        for p, m in zip(combo_patterns, final_cm)],
     }
 
-    # beat 6: N_BUCKETS steps. Snapshot the tracked bars + avg at each boundary,
-    # 0 (uniform start, all multipliers 1) .. N_BUCKETS (final).
-    def _avg_at(upto):
-        if upto <= 0:
-            return _score(_reconstruct(freq_search, 0))
-        return float(log.iloc[upto - 1]["avg_misses"])   # avg after applying change upto-1
-
+    # beat f: ONE snapshot per accepted change (upto = 0 uniform .. n_changes final).
+    # Each snapshot carries the tracked bars, the avg, AND the best-opener greedy TREE
+    # for that frequency state (the mini tree that updates alongside the avg).
     buckets = []
-    for i in range(N_BUCKETS + 1):
-        upto = round(i * n_changes / N_BUCKETS)
+    for upto in range(n_changes + 1):
         s = _reconstruct(freq_search, upto)
-        cm, wf = _tracked(s, combo_patterns, word_list)
-        buckets.append({"bucket": i, "upto": int(upto), "avg_misses": _avg_at(upto),
-                        "combo_mult": cm, "word_freq": wf})
+        snap = _snapshot(s, combo_patterns, word_list)
+        snap["upto"] = upto
+        buckets.append(snap)
     beat6 = {"tracked_combos": combo_patterns, "tracked_words": word_list,
              "buckets": buckets}
 
@@ -213,9 +202,28 @@ def _choosing_strategy(freq_search, wordlist):
     return beat3, beat6, beat4, beat5
 
 
+def _greedy_tree(game, freq, opener):
+    """The WHOLE best-opener greedy decision tree for this frequency state, as nested
+    {leaf | (n, kids=[{miss, sub}])}. Root guess is forced to ``opener`` (the best first
+    letter), greedy below. Sourced from GreedyGame.state — the scene renders the SHAPE
+    (dots + hit/miss edges), no letters."""
+    empty = "_" * game.length
+
+    def rec(board, missed):
+        st = game.state(board, missed, freq, opener=opener)
+        if st["determined"] or not st["guess"]:
+            return {"leaf": True}
+        return {"leaf": False, "n": int(st["n"]),
+                "kids": [{"miss": (not oc["hit"]), "sub": rec(oc["board"], oc["missed"])}
+                         for oc in st["outcomes"]]}
+    return rec(empty, "")
+
+
 def _snapshot(s, patterns, words):
     cm, wf = _tracked(s, patterns, words)
-    return {"combo_mult": cm, "word_freq": wf, "avg_misses": _score(s)}
+    opener, avg = s.game.best_opener_misses(s.freq)
+    return {"combo_mult": cm, "word_freq": wf, "avg_misses": float(avg),
+            "opener": opener, "tree": _greedy_tree(s.game, s.freq, opener)}
 
 
 def _moved(a, b, words):
@@ -257,13 +265,13 @@ def build():
 
     data = {
         "meta": {"min_zipf": wordlist.DEFAULT_ZIPF, "track_n": TRACK_N,
-                 "n_buckets": N_BUCKETS},
+                 "length": BO_LENGTH},
         "most_misses": most_misses,      # beat a
         "tree_ref": TREE_REF,            # beat b (pointer to tree2_data.py)
         "choosing": beat3,               # beat c (final state)
         "example_keep": beat4,           # beat d
         "example_undo": beat5,           # beat e
-        "optimization": beat6,           # beat f (N_BUCKETS steps)
+        "optimization": beat6,           # beat f (one step per change)
     }
     CACHE.write_text(json.dumps(data, indent=1))
     return data
@@ -316,12 +324,11 @@ if __name__ == "__main__":
     print(f"        dependent words that move: {', '.join(u['moved_words']) or '(none)'}")
 
     opt = data["optimization"]
-    print(f"\n[f] {len(opt['buckets'])} snapshots (0=uniform .. {m['n_buckets']}=final); "
-          f"avg misses per bucket:")
-    print("        " + "  ".join(f"{b['avg_misses']:.2f}" for b in opt["buckets"]))
 
-    opt = data["optimization"]
-    print(f"\n[f] {len(opt['buckets'])} snapshots (0=uniform .. {m['n_buckets']}=final); "
-          f"avg misses per bucket:")
-    print("        " +
-          "  ".join(f"{b['avg_misses']:.3f}" for b in opt["buckets"]))
+    def _tree_nodes(t):
+        return 1 if t.get("leaf") else 1 + sum(_tree_nodes(k["sub"]) for k in t["kids"])
+
+    print(f"\n[f] {len(opt['buckets'])} snapshots (one per change); avg + opener + tree size:")
+    for b in opt["buckets"]:
+        print(f"        upto {b['upto']:>2d}: avg {b['avg_misses']:.3f}  "
+              f"opener {b['opener']!r}  tree {_tree_nodes(b['tree'])} nodes")
