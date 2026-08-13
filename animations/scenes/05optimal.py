@@ -652,43 +652,65 @@ class Scene05(HangmanScene):
         """The canonical avg-miss value string: 2 decimals, rounded HALF UP (1.245 → 1.25)."""
         return f"{int(v * 100 + 0.5) / 100:.2f}"
 
-    _DIGIT_W = {}          # cache: font_size -> widest-digit width at weight BOLD (for tabular figures)
+    # A bare number is built at a FIXED font size for a target cap-height (never scaled to fit its own
+    # box) and anchored by its DECIMAL POINT — so digit composition can't change its size (round
+    # digits render taller than 1/4/7; measuring that was the old "two sizes" flip) and it doesn't
+    # lurch as it rolls. No box measuring, no monospace grid, no spacer (which leaked as an underline).
+    VALUE_H_RATIO = 0.47   # bare-number digit cap-height as a fraction of the node's diameter
+    WORDED_H = 0.34        # worded 'Avg misses: N.NN' box height (the static g–n beats)
+    _NUM_REF = {}          # cached height->font_size reference + decimal-point offsets
 
-    def _mono_number(self, s, font_size=12, color=WHITE):
-        """The number ``s`` (e.g. '2.57') with TABULAR (fixed-width) digits: each digit is centred in
-        a cell of the widest-digit width, and the group's horizontal extent is PINNED to the cell
-        grid by an invisible spacer. Without this a ROLLING counter lurches as the digits change —
-        the brand font's figures are proportional ('1' is ~half the width of '8') and the label is
-        right-aligned via next_to, so the left edge jumps and reads as the number resizing. Built as
-        ONE crisp_text (so baselines/heights stay correct), then the glyphs are re-gridded in x (y
-        preserved); '.' keeps its own width."""
-        t = crisp_text(s, font_size=font_size, color=color, weight=BOLD)
-        dw = Scene05._DIGIT_W.get(font_size)
-        if dw is None:
-            dw = max(crisp_text(str(d), font_size=font_size, weight=BOLD).width for d in range(10))
-            Scene05._DIGIT_W[font_size] = dw
-        x = 0.0
-        for ch, glyph in zip(s, t):
-            w = dw if ch.isdigit() else glyph.width
-            glyph.set_x(x + w / 2)
-            x += w
-        spacer = Line([0, t.get_bottom()[1], 0], [x, t.get_bottom()[1], 0], stroke_opacity=0)
-        return VGroup(t, spacer)
+    def _num_font(self, cap_h):
+        """The font_size whose digit cap-height is ``cap_h``, from a cached reference '0'. A number's
+        size then comes ONLY from ``cap_h`` (never from measuring its own glyphs)."""
+        ref = Scene05._NUM_REF.get("h0")
+        if ref is None:
+            ref = crisp_text("0", font_size=24, weight=BOLD).height
+            Scene05._NUM_REF["h0"] = ref
+        return 24 * cap_h / ref
 
-    def _value_label(self, v, height=0.34, bare=False, color=WHITE):
-        """The value glyphs at the shared size: the full 'Avg misses: N.NN' scaled to ``height``;
-        a ``bare`` number scaled by that SAME factor (so the digits match), not fit to its own box.
-        The bare number uses TABULAR digits (`_mono_number`) so a rolling counter's width is constant.
-        crisp_text supersamples to a 240pt cap; a longer string WRAPS in pango — build small."""
-        full = crisp_text(f"Avg misses: {self._fmt(v)}", font_size=12, color=color, weight=BOLD)
+    def _num_dot_offsets(self):
+        """(left-edge→'.', '.'→right-edge) of a reference 'N.NN' PER UNIT cap-height (they scale with
+        the number's size). Cached — pins a rolling number by its decimal point instead of its box."""
+        o = Scene05._NUM_REF.get("dot")
+        if o is None:
+            ref = crisp_text("0.00", font_size=self._num_font(1.0), weight=BOLD)
+            o = (ref[1].get_center()[0] - ref.get_left()[0],
+                 ref.get_right()[0] - ref[1].get_center()[0])
+            Scene05._NUM_REF["dot"] = o
+        return o
+
+    def _place_value(self, lab, node_dot, direction, gap, cap_h):
+        """Anchor a bare 'N.NN' number beside ``node_dot`` by its DECIMAL POINT (glyph index 1 — every
+        value here is < 10) so it doesn't shift as the digits change; y-centred on the node, hugging
+        its left/right edge via the reference decimal offsets. Returns ``lab``."""
+        left_to_dot, dot_to_right = (x * cap_h for x in self._num_dot_offsets())
+        y = node_dot.get_center()[1]
+        if np.array_equal(direction, LEFT):
+            dot_x = node_dot.get_left()[0] - gap - dot_to_right
+        else:
+            dot_x = node_dot.get_right()[0] + gap + left_to_dot
+        return lab.shift([dot_x - lab[1].get_center()[0], y - lab.get_center()[1], 0])
+
+    def _value_label(self, v, height, bare=False, color=WHITE):
+        """The avg value at ``height``: a worded 'Avg misses: N.NN' scaled-to-fit (early, static
+        beats), or a BARE number built at a FIXED font size for digit cap-height ``height`` (scene o
+        on) — NOT scaled to fit its own box, so digit composition can't change its size. crisp_text
+        supersamples to a 240pt cap; the worded phrase is built small to avoid a wrap."""
         if not bare:
+            full = crisp_text(f"Avg misses: {self._fmt(v)}", font_size=12, color=color, weight=BOLD)
             return full.scale_to_fit_height(height)
-        return self._mono_number(self._fmt(v), font_size=12, color=color).scale(height / full.height)
+        return crisp_text(self._fmt(v), font_size=self._num_font(height), color=color, weight=BOLD)
 
-    def _avg_label(self, node_dot, value=0.0, height=0.34, direction=LEFT, bare=False):
+    def _avg_label(self, node_dot, value=0.0, direction=LEFT, bare=False):
         """A node's backed-up optimal value beside it — ``value`` is the raw SOURCED number. Beats
-        g–n label it 'Avg misses: N.NN'; from scene o on ``bare=True`` shows just the number."""
-        return self._value_label(value, height, bare).next_to(node_dot, direction, buff=height * 0.6)
+        g–n label it worded 'Avg misses: N.NN' (fixed size); from scene o on a bare number sized to
+        the node and decimal-anchored so it stays steady."""
+        if not bare:
+            return self._value_label(value, self.WORDED_H, False).next_to(
+                node_dot, direction, buff=self.WORDED_H * 0.6)
+        cap = node_dot.width * self.VALUE_H_RATIO
+        return self._place_value(self._value_label(value, cap, True), node_dot, direction, cap * 0.9, cap)
 
     # ── f : keep drilling — expand the top-left (greedy pick O) tree's all-miss leaf
     #        into the next grid, each cell now rooted along the path A→O (depth 2),
@@ -1075,14 +1097,18 @@ class Scene05(HangmanScene):
             spec["key"] = key
         return spec
 
-    def _counter_label(self, tracker, node_dot, direction=LEFT, height=0.34, bare=False):
-        """The ROLLING version of ``_avg_label``: a value label that follows ``tracker`` (via the
-        shared `_value_label`, so same format/size), re-placed relative to ``node_dot`` each frame
-        so it FOLLOWS a moving node (e.g. the `_gap_up` reflow). The caller removes ``lab._upd``
-        before greening/locking it."""
+    def _counter_label(self, tracker, node_dot, direction=LEFT, bare=False):
+        """The ROLLING version of ``_avg_label``: a value label that follows ``tracker`` and is re-placed
+        relative to ``node_dot`` each frame (so it follows a moving node during a `_gap_up` reflow).
+        Same sizing/anchoring as `_avg_label` — a bare number is node-sized + decimal-anchored, so it
+        neither resizes nor lurches as it rolls. The caller removes ``lab._upd`` before greening it."""
         def place():
-            return self._value_label(tracker.get_value(), height, bare).next_to(
-                node_dot, direction, buff=height * 0.6)
+            v = tracker.get_value()
+            if not bare:
+                return self._value_label(v, self.WORDED_H, False).next_to(
+                    node_dot, direction, buff=self.WORDED_H * 0.6)
+            cap = node_dot.width * self.VALUE_H_RATIO
+            return self._place_value(self._value_label(v, cap, True), node_dot, direction, cap * 0.9, cap)
         lab = place()
         lab.add_updater(upd := (lambda m: m.become(place())))
         lab._upd = upd
@@ -1200,7 +1226,7 @@ class Scene05(HangmanScene):
         # phase 1 — everything MOVES into place
         self.play(
             spine.animate.scale(sfac, about_point=y0).shift(ty - y0),
-            FadeOut(self.avg_b),                                       # drop the {by,my} value
+            self.avg_b.animate.scale(sfac, about_point=y0).shift(ty - y0).set_opacity(0),  # rides out w/ Y
             ReplacementTransform(VGroup(u_dot, u_lab), VGroup(uh.dot, uh.lab)),  # diagonal U → tidy U
             Transform(self.grid.drilled_edge, yh.in_edge),            # U→Y (miss) redrawn tidy
             ReplacementTransform(bd, ups.root),                       # bare 'u_' dot → P root node
@@ -1363,7 +1389,7 @@ class Scene05(HangmanScene):
         # slides onto the miss slot, each hit root rides in with its letter)
         self.play(
             self.u_subtree.animate.scale(sfac, about_point=y0).shift(ty - y0),
-            FadeOut(self.avg_u),                                      # drop U's value label
+            self.avg_u.animate.scale(sfac, about_point=y0).shift(ty - y0).set_opacity(0),  # rides out w/ U
             ReplacementTransform(VGroup(e_dot, e_lab), VGroup(eh.dot, eh.lab)),  # diagonal E → tidy E
             Transform(eu_edge, uh.in_edge),                          # E→U (miss) redrawn tidy
             FadeOut(e_anns),                                          # E's own bare-board annotation
@@ -1532,7 +1558,7 @@ class Scene05(HangmanScene):
         # slides onto the miss slot, each hit root rides in with its letter)
         self.play(
             self.e_subtree.animate.scale(sfac, about_point=y0).shift(ty - y0),
-            FadeOut(self.avg_e),                                      # drop E's value label
+            self.avg_e.animate.scale(sfac, about_point=y0).shift(ty - y0).set_opacity(0),  # rides out w/ E
             ReplacementTransform(VGroup(i_dot, i_lab), VGroup(ih.dot, ih.lab)),  # diagonal I → tidy I
             Transform(ie_edge, eh.in_edge),                          # I→E (miss) redrawn tidy
             FadeOut(i_anns),                                          # I's own bare-board annotations
@@ -1650,7 +1676,7 @@ class Scene05(HangmanScene):
         o_anns = VGroup(*path.leaf_text[n_before:n_before + len(hits)])
         self.play(
             self.i_subtree.animate.scale(sfac, about_point=y0).shift(ty - y0),
-            FadeOut(self.avg_i),                                      # drop I's value label
+            self.avg_i.animate.scale(sfac, about_point=y0).shift(ty - y0).set_opacity(0),  # rides out w/ I
             ReplacementTransform(VGroup(o_dot, o_lab), VGroup(oh.dot, oh.lab)),  # diagonal O → tidy O
             Transform(oi_edge, ih.in_edge),                          # O→I (miss) redrawn tidy
             FadeOut(o_anns),                                          # O's own bare-board annotations
@@ -1765,7 +1791,7 @@ class Scene05(HangmanScene):
         a_anns = VGroup(*path.leaf_text[0:len(hits)])
         self.play(
             self.o_subtree.animate.scale(sfac, about_point=y0).shift(ty - y0),
-            FadeOut(self.avg_o),                                      # drop O's value label
+            self.avg_o.animate.scale(sfac, about_point=y0).shift(ty - y0).set_opacity(0),  # rides out w/ O
             ReplacementTransform(VGroup(a_dot, a_lab), VGroup(ah.dot, ah.lab)),  # diagonal A → tidy A
             Transform(ao_edge, oh.in_edge),                          # A→O (miss) redrawn tidy
             FadeOut(a_anns),                                          # A's own bare-board annotations
