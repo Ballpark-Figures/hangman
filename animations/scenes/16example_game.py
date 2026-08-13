@@ -77,7 +77,7 @@ ROW_PITCH  = CELL + ROW_GAP
 LABEL_BUFF = 0.28                   # gap from length label to its row
 # the rows' vertical placement + title y are COMPUTED per-scene (block centred on
 # the tier list's centre, y=0) in _compute_layout.
-DIVIDER_COLOR = tl.TIER_GREY        # grey lines between the individual boxes
+DIVIDER_COLOR = BLACK               # lines between the individual boxes
 
 TL_SCALE = 0.80                     # tier list scale once tucked left
 
