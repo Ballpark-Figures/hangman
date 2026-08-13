@@ -26,8 +26,8 @@ SOURCED DATA
     7-letter words, 43 end in -ING (survive beat f).
 
 FLAGS (confirm)
-  • beat b: chart TITLE "Optimal Misses by Word Length" — a chart's own title (like
-    scene 04's chalk chart). Remove it if you want the bare graph.
+  • beat b: chart named to match scene 17's OPTIMAL chart — title "Optimal Misses
+    per Word" + x-axis "Word Length" (chalk here vs scene 17's crisp grouped bars).
   • beat h GAINING guess order = I·N·G then A — the ILLUSTRATIVE "start with ING"
     order the VO prescribes (all hits, 0 misses), NOT a solver trace. It ends on the
     fully-revealed white board (no green win / no fade) — the script names neither.
@@ -97,11 +97,16 @@ class Scene21(HangmanScene):
             x_axis=True, y_axis=True,
             y_ticks=range(0, 8, 2),
             y_tick_factory=lambda t: chalk_number(t, height=0.22),
-            title_mobject=chalk_phrase("Optimal Misses by Word Length", height=0.38),
+            # naming matches scene 17's OPTIMAL chart: title "Optimal Misses per
+            # Word", x-axis "Word Length" (below)
+            title_mobject=chalk_phrase("Optimal Misses per Word", height=0.38),
             title_buff=0.5,
         )
         chart.shift([0, -chart.get_center()[1], 0])       # centre vertically
         chart.axes = VGroup(chart.x_axis, chart.y_axis)
+        xt = chalk_phrase("Word Length", height=0.28)     # x-axis title (scene 17)
+        xt.next_to(chart.labels, DOWN, buff=0.22).set_x(chart.x_axis.get_center()[0])
+        chart.xtitle = xt
         self.chart = chart
 
     @subscene
@@ -109,6 +114,7 @@ class Scene21(HangmanScene):
         self._setup_chart()
         self.play(FadeIn(self.chart.axes), FadeIn(self.chart.labels),
                   FadeIn(self.chart.yticks), FadeIn(self.chart.title),
+                  FadeIn(self.chart.xtitle),
                   *[Create(b) for b in self.chart.bars], run_time=1.8)
 
     # ── c : erase the chart; draw 7 blanks + the gallows ──────────────────────
