@@ -665,6 +665,8 @@ class Scene05(HangmanScene):
                            #   not tied to the node, which shrinks as the tree recenters)
     WORDED_H = 0.34        # worded 'Avg misses: N.NN' box height (the static g–n beats)
     CYCLE_MAX = 3          # a root-back-up cycle shows at most this many DISTINCT letters (chosen + others)
+    OPENER_ROOT_BIG = 2.0  # beat y: grid-cell ROOT node enlarged so its starting letter reads as a header
+    OPENER_LABEL_H  = 0.34  # beat y: grid-cell 'Avg misses: N.NN' height — FIXED on-screen size (not tiled)
     _NUM_REF = {}          # cached height->font_size reference + decimal-point offsets
 
     def _num_font(self, cap_h):
@@ -1800,6 +1802,7 @@ class Scene05(HangmanScene):
         a_hit_specs = self._position_hit_specs(0)     # A's HIT branches (a_, _a) = O's siblings, SOURCED
         a_spec = {"g": "a", "key": "a",
                   "kids": [(True, o_sub_spec)] + [(False, sp) for sp in a_hit_specs]}
+        self.a_spec = a_spec              # reused by beat y to rebuild a clean single-_ctree replica
         a_ref = self._ctree(a_spec, root_miss=0, solved=False, tall_level=0)  # root reached w/ 0 misses → white
         scale_c = (ac[1] + 4.0) / a_ref.height        # fit below A (height), pinned at its diagonal node
         a_ref.scale(scale_c, about_point=ORIGIN).shift(ac - a_ref.root.get_center())
@@ -1854,17 +1857,18 @@ class Scene05(HangmanScene):
     def solve_a_hit(self):
         self.a_hit_avg = self._solve_position_hits(0, self.a_hit_trees)
 
-    # ── y : compare EVERY first letter. Collapse the solved A-tree to the top-left GRID
-    #        corner (strip every letter but the root A, colours back to red-white), fill the
-    #        rest of the grid with the optimal tree for each valid starting letter (each a
-    #        red-white shape, only the root lettered, an 'Avg misses: N.NN' label above), then
-    #        GREEN the winner (A, the min avg — 3.88), fade the rest, and return the green tree
-    #        to full screen with its letters + solved colours restored. Openers sorted by avg so
-    #        the winner is the top-left corner (where A already sits). Every value SOURCED. ──────
+    # ── y : compare EVERY first letter. MORPH the solved A-tree 1:1 into the top-left GRID
+    #        corner (every node/edge to its counterpart, recolouring green to red-white, every
+    #        letter but the root A riding out), fill the rest of the grid with the optimal tree
+    #        for each valid starting letter (red-white shape, an ENLARGED lettered root, a big
+    #        'Avg misses: N.NN' above), then GREEN the winner (A, min avg = 3.88), fade the rest,
+    #        and MORPH the green tree back to full screen with its letters + blanks restored.
+    #        The on-screen A-tree is a patchwork of many `_ctree`s (no single recursive handle
+    #        structure), so we SWAP in a geometrically-identical clean `_ctree` replica (invisible
+    #        — same spec via `self.a_spec`, aligned to `a_ref`) and morph THAT. Every value SOURCED.
     def _tree_handles(self, g):
         """Every node/leaf handle of a `_ctree`, walked from the root (`.root_h`) — includes the
-        UNkeyed interior nodes `g.node` doesn't collect. Used to strip a grid cell to just its
-        shape + root letter."""
+        UNkeyed interior nodes `g.node` doesn't collect. Used to strip a grid cell to shape + root."""
         out, stack = [], [g.root_h]
         while stack:
             h = stack.pop()
@@ -1873,54 +1877,115 @@ class Scene05(HangmanScene):
         return out
 
     def _strip_to_shape(self, g):
-        """Drop every guess-node LETTER and every leaf BLANK except the ROOT's letter — leaving the
-        tree SHAPE (dots + edges) with only the starting letter labelled. For the opener-grid recap,
-        where a full lettered tree would be illegible at 4×5 (script: 'removing letters except the
-        one in the top node')."""
+        """Drop every guess-node LETTER and leaf BLANK except the ROOT's letter — leaving the tree
+        SHAPE (dots + edges) with only the starting letter (script: 'removing letters except the one
+        in the top node'). The dropped mobjects still EXIST (handles keep them) so a morph can fade
+        them out / their counterparts back in."""
         root = g.root_h
-        rm = []
-        for h in self._tree_handles(g):
-            if h is root:
-                continue
-            rm.append(h.blk if getattr(h, "is_leaf", False) else h.lab)
+        rm = [h.blk if getattr(h, "is_leaf", False) else h.lab
+              for h in self._tree_handles(g) if h is not root]
         g.remove(*rm)
+        return g
+
+    def _enlarge_root(self, g, factor):
+        """Scale a `_ctree`'s ROOT node + its letter about the root centre so a grid cell's TOP node
+        reads as a lettered header even when the interior nodes are tiny. Out-edges tuck under the
+        bigger dot (z-index)."""
+        VGroup(g.root, g.root_h.lab).scale(factor, about_point=g.root.get_center())
         return g
 
     def _opener_cells(self):
         """The 20 valid (splitting) openers' optimal trees, tiled 4×5, sorted by avg misses so the
-        WINNER is the top-left corner. Each cell = the red-white tree shape (only the root lettered)
-        + a worded 'Avg misses: N.NN' above it. Every subtree SOURCED (`_subtree_spec`); every value
-        SOURCED (`o['avg']`)."""
+        WINNER is the top-left corner. Each cell = a red-white tree shape with an ENLARGED lettered
+        root + a worded 'Avg misses: N.NN' (built at a FIXED height AFTER tiling, so it stays big
+        regardless of the tree's tile scale). Every subtree + value SOURCED."""
         opts = sorted((o for o in DATA["tree"]["options"] if o["splits"]),
                       key=lambda o: (o["avg"], o["letter"]))
-        cells = []
+        trees = []
         for o in opts:
             g = self._ctree(self._subtree_spec(o["subtree"]), root_miss=0, solved=False)
             self._strip_to_shape(g)
-            lab = self._value_label(o["avg"], 0.42, bare=False)   # 'Avg misses: N.NN' (worded)
-            lab.next_to(g, UP, buff=0.12).set_x(g.root.get_center()[0])
+            self._enlarge_root(g, self.OPENER_ROOT_BIG)
+            g._opt = o
+            trees.append(g)
+        # trees fill the LOWER ~78% of the box so each cell keeps a band up top for its (fixed-size,
+        # NOT tiled) avg label
+        self._tile(trees, rows=GRID_ROWS, cols=GRID_COLS, h=GRID_H * 0.78)
+        cells, cw = [], GRID_W / GRID_COLS
+        for g in trees:
+            lab = self._value_label(g._opt["avg"], self.OPENER_LABEL_H, bare=False)
+            if lab.width > cw * 0.92:
+                lab.scale_to_fit_width(cw * 0.92)
+            lab.next_to(g, UP, buff=0.1).set_x(g.root.get_center()[0])
             cells.append(VGroup(g, lab))
-        self._tile(cells, rows=GRID_ROWS, cols=GRID_COLS)
         return cells
+
+    def _a_replica(self):
+        """A fresh full `_ctree` of the walked A-tree (same `self.a_spec`), coloured to EXACTLY match
+        beat x's end state (solved=True → subtree green, root A white, A→O red, A→hit edges white) and
+        aligned to OVERLAY the on-screen patchwork A-tree (`a_ref` is a uniform transform of the same
+        origin layout, so matching the root pins everything). Swapped in invisibly, then morphed 1:1."""
+        a_root = self.a_ref.node["a"].dot
+        src = self._ctree(self.a_spec, root_miss=0, solved=True, tall_level=0)
+        k = a_root.width / src.root.width
+        src.scale(k, about_point=src.root.get_center()).shift(a_root.get_center() - src.root.get_center())
+        return src
+
+    def _ctree_pairs(self, sh, dh):
+        """Walk two structurally-identical `_ctree` handle trees (same spec) in lockstep, yielding
+        ('node'|'leaf', s, d) per node and ('edge', s_kid, d_kid) per child in-edge — the 1:1
+        correspondence a morph needs."""
+        yield ("leaf" if getattr(sh, "is_leaf", False) else "node", sh, dh)
+        for sk, dk in zip(sh.kids, dh.kids):
+            yield ("edge", sk, dk)
+            yield from self._ctree_pairs(sk, dk)
+
+    def _morph_trees(self, src, dst, run_time, *, src_full, dst_full, extra_in=(), extra_out=()):
+        """Piece-by-piece 1:1 morph of `_ctree` ``src`` into ``dst`` (same spec). Every dot + edge
+        ReplacementTransforms to its counterpart (moving AND recolouring); the ROOT letter always
+        transforms across. A non-root guess letter / leaf blank is 'extra' text, shown only when its
+        side is ``*_full``: present both sides → transform; src-only → it rides toward its dst node and
+        fades; dst-only → it fades in at its node (restoring stripped letters). ``extra_in`` play
+        alongside; ``extra_out`` (e.g. a stale label) fade with the morph."""
+        anims = list(extra_out)
+        root = src.root_h
+        for kind, sh, dh in self._ctree_pairs(src.root_h, dst.root_h):
+            if kind == "edge":
+                anims.append(ReplacementTransform(sh.in_edge, dh.in_edge))
+                continue
+            anims.append(ReplacementTransform(sh.dot, dh.dot))
+            is_leaf = (kind == "leaf")
+            s_txt, d_txt = (sh.blk, dh.blk) if is_leaf else (sh.lab, dh.lab)
+            s_show = (sh is root) or src_full
+            d_show = (sh is root) or dst_full
+            if s_show and d_show:
+                anims.append(ReplacementTransform(s_txt, d_txt))
+            elif s_show and not d_show:
+                ghost = s_txt.copy().scale(max(1e-3, dh.dot.width / max(sh.dot.width, 1e-6))) \
+                    .move_to(dh.dot).set_opacity(0)
+                anims.append(Transform(s_txt, ghost))
+            elif d_show and not s_show:
+                anims.append(FadeIn(d_txt))
+        self.play(*anims, *extra_in, run_time=run_time)
 
     @subscene
     def compare_openers(self):
         self.op_cells = self._opener_cells()
-        self._co_to_corner(1.2)      # the solved A-tree shrinks into the top-left cell (red-white,
-                                     #   letters stripped) as that clean cell fades in there
+        self._co_to_corner(1.4)      # morph the solved A-tree 1:1 into the top-left cell
         self._co_fill_grid(1.4)      # the other 19 opener trees fill the rest of the grid
         self._co_pick_winner(1.2)    # green the winning (A) cell, fade the other 19 out
-        self._co_return(1.4)         # A returns to full screen, letters + solved-green restored
+        self._co_return(1.4)         # morph A back to full screen, letters + blanks restored
 
     def _co_to_corner(self, run_time):
-        # shrink+move the whole on-screen green A-tree toward the corner cell while its clean
-        # red-white, A-only counterpart fades in there (one play = 'move + strip + recolour')
-        cell0 = self.op_cells[0]
-        onscreen = VGroup(*[m for m in self.mobjects if isinstance(m, VMobject)])
-        ghost = onscreen.copy().scale(cell0.height / onscreen.height).move_to(cell0).set_opacity(0)
-        self.play(Transform(onscreen, ghost), FadeIn(cell0), run_time=run_time)
-        self.clear()                                  # drop the now-invisible collapsed tree…
-        self.add(cell0)                               # …keep only the clean corner cell
+        cell0, tree0 = self.op_cells[0], self.op_cells[0][0]
+        src = self._a_replica()
+        num = self.a_hit_avg                          # the last position number still on screen
+        self.clear()
+        self.add(src, num)                            # invisible swap-in of the clean replica (+ num)
+        self._morph_trees(src, tree0, run_time, src_full=True, dst_full=False,
+                          extra_in=[FadeIn(cell0[1])], extra_out=[FadeOut(num)])
+        self.clear()
+        self.add(cell0)
 
     def _co_fill_grid(self, run_time):
         # the rest of the grid (a bulk reference set) FADES in as a group (CLAUDE.md: enumerated
@@ -1938,24 +2003,23 @@ class Scene05(HangmanScene):
         self.add(cell0)
 
     def _co_return(self, run_time):
-        cell0 = self.op_cells[0]
-        a_opt = {o["letter"]: o for o in DATA["tree"]["options"]}["a"]
-        full = self._ctree(self._subtree_spec(a_opt["subtree"]), root_miss=0, solved=True)
+        cell0, tree0 = self.op_cells[0], self.op_cells[0][0]
+        full = self._ctree(self.a_spec, root_miss=0, solved=True, tall_level=0)
         # A is the CHOSEN opener → the WHOLE tree is green (root + its edges too); letters stay navy
         VGroup(full.root, full.root_edges).set_color(LIGHT_GREEN)
         full.scale_to_fit_height(6.8)
         if full.width > 15.0:
             full.scale_to_fit_width(15.0)
         full.move_to([0, -0.3, 0])
-        avg = self._avg_label(full.root, value=a_opt["avg"], direction=LEFT).set_color(LIGHT_GREEN)
-        grp = VGroup(full, avg)
-        # grow the winner from the corner cell back to full screen (letters + solved colours restored)
-        grp.save_state()
-        grp.scale(cell0.height / grp.height).move_to(cell0)
-        self.play(Restore(grp), FadeOut(cell0), run_time=run_time)
+        a_avg = next(o["avg"] for o in DATA["tree"]["options"] if o["letter"] == "a")
+        avg = self._avg_label(full.root, value=a_avg, direction=LEFT).set_color(LIGHT_GREEN)
+        # morph the winning corner cell 1:1 to the full-screen tree — nodes/edges scale up while the
+        # stripped letters + leaf blanks fade back in at their nodes (restoring the tree)
+        self._morph_trees(tree0, full, run_time, src_full=False, dst_full=True,
+                          extra_in=[FadeIn(avg)], extra_out=[FadeOut(cell0[1])])
         self.clear()
-        self.add(grp)
-        self.winner = grp
+        self.add(full, avg)
+        self.winner = VGroup(full, avg)
 
     # ── components ─────────────────────────────────────────────────────────────
     def _greedy_chart(self):
