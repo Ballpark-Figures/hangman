@@ -658,6 +658,7 @@ class Scene05(HangmanScene):
     # lurch as it rolls. No box measuring, no monospace grid, no spacer (which leaked as an underline).
     VALUE_H_RATIO = 0.47   # bare-number digit cap-height as a fraction of the node's diameter
     WORDED_H = 0.34        # worded 'Avg misses: N.NN' box height (the static g–n beats)
+    CYCLE_MAX = 3          # a root-back-up cycle shows at most this many DISTINCT letters (chosen + others)
     _NUM_REF = {}          # cached height->font_size reference + decimal-point offsets
 
     def _num_font(self, cap_h):
@@ -984,11 +985,21 @@ class Scene05(HangmanScene):
         return min((anchor[0] + fx) / loff if loff > 1e-6 else 1e9,   # left edge stays in frame
                    (fx - anchor[0]) / roff if roff > 1e-6 else 1e9)   # right edge stays in frame
 
-    def _fit_below(self, ref, anchor, down=4.0, margin=0.3):
-        """The uniform scale for a rooted `_ctree` ``ref`` pinned so its root lands at ``anchor``: big
-        enough to reach ~y=-``down`` from the anchor, but CLAMPED to the side edges (`_width_fit`). A
-        no-op — returns the height fit — whenever the tree already fits horizontally."""
-        return min((anchor[1] + down) / ref.height, self._width_fit(ref, anchor, margin))
+    def _recenter(self, run_time, margin=0.3):
+        """Pan the WHOLE on-screen tree so it's horizontally centred — as a back-up grows the tree
+        down-LEFT, this drifts the diagonal root rightward to keep everything framed instead of
+        shrinking it in place. Shrinks about the composition centre ONLY if it's still wider than the
+        frame (uniform, vertical centre preserved). Called at the end of each wide back-up."""
+        mobs = list(self.mobjects)
+        if not mobs:
+            return
+        comp = VGroup(*mobs)
+        if comp.width < 1e-6:
+            return
+        s = min(1.0, 2 * (config.frame_x_radius - margin) / comp.width)
+        c = comp.get_center()
+        self.play(*[m.animate.scale(s, about_point=c).shift([-c[0], 0, 0]) for m in mobs],
+                  run_time=run_time)
 
     def _gap_up(self, node_dot, node_lab, parent_dot, in_edge, child_pairs, run_time,
                 also=(), fade_in=(), fade_out=(), siblings=()):
@@ -1299,8 +1310,9 @@ class Scene05(HangmanScene):
         self.avg_p = None
         counter.add_updater(counter._upd)           # re-attach for the rolling cycle (tracks moved U)
         uc = u_dot.get_center()                     # U's NEW (dropped) position — candidates hang here
+        cyc = ("y", "b", "m", "p", "s")[:self.CYCLE_MAX - 1]   # show at most CYCLE_MAX distinct letters
         cand = {}
-        for c in ("y", "b", "m", "p", "s"):        # the alternative candidates (SOURCED)
+        for c in cyc:                              # the alternative candidates (SOURCED)
             # compact: at m the tall edge is E→U (above), so each candidate hangs the same tall gap
             # below E and is internally compact
             ct = self._ctree(self._subtree_spec(opts[c]["subtree"]), root_miss=1)
@@ -1315,10 +1327,10 @@ class Scene05(HangmanScene):
             self.wait(0.3)
             self._active = tree
 
-        for c in ("y", "b", "m", "p", "s"):        # U → Y → B → M → P → S
+        for c in cyc:                              # U → Y → B → … (capped)
             swap_to(cand[c], opts[c]["avg"])
         swap_to(cur, u_avg)                         # settle back on U (the minimum, 1.0)
-        self.remove(*(cand[c] for c in ("y", "b", "m", "p", "s")))
+        self.remove(*(cand[c] for c in cyc))
         # choose U: freeze the counter (drop the updater + its closure attr so the scene can
         # still pickle), then lock U's node + both outgoing edges + the value green
         counter.remove_updater(counter._upd)
@@ -1351,7 +1363,7 @@ class Scene05(HangmanScene):
         e_spec = {"g": "e", "key": "e",
                   "kids": [(True, u_sub_spec)] + [(False, sp) for sp in e_hit_specs]}
         e_ref = self._ctree(e_spec, root_miss=1, solved=False, tall_level=0)
-        scale_c = self._fit_below(e_ref, ec)          # fit below E, pinned at its diagonal node (as in k)
+        scale_c = (ec[1] + 4.0) / e_ref.height        # fit below E, pinned; _recenter reframes after
         e_ref.scale(scale_c, about_point=ORIGIN).shift(ec - e_ref.root.get_center())
         eh, uh = e_ref.node["e"], e_ref.node["u"]
         hit_handles = [k for k in eh.kids if not k.is_miss]
@@ -1397,6 +1409,7 @@ class Scene05(HangmanScene):
             run_time=0.9)
         # phase 2 — each hit branch's children SPROUT out of the (settled) reused root
         self.play(*[GrowFromPoint(kids, dot.get_center()) for kids, dot in grows], run_time=0.6)
+        self._recenter(0.6)                          # drift the root right so the wider tree stays framed
         self.e_ref, self.eu_edge = e_ref, eu_edge
         self.e_hit_trees = hit_trees                 # [(handle, green subtree), …] for solving
         self.e_hit_edges = [be for be, bd in hits]   # the ACTUAL on-screen E→M edges (transformed be)
@@ -1482,7 +1495,7 @@ class Scene05(HangmanScene):
         # the persistent E-tree (now dropped) IS the E candidate
         cur = VGroup(e_dot, e_lab, self.eu_edge, *self.e_hit_edges, self.u_subtree, *hit_cts)
         ec = e_dot.get_center()                      # E's NEW (dropped) position — candidates hang here
-        alts = [c for c in opts if c != "e"]
+        alts = [c for c in opts if c != "e"][:self.CYCLE_MAX - 1]   # at most CYCLE_MAX distinct letters
         cand = {}
         for c in alts:                               # compact (the tall gap is I→E, above)
             ct = self._ctree(self._subtree_spec(opts[c]["subtree"]), root_miss=1)
@@ -1527,7 +1540,7 @@ class Scene05(HangmanScene):
         i_spec = {"g": "i", "key": "i",
                   "kids": [(True, e_sub_spec)] + [(False, sp) for sp in i_hit_specs]}
         i_ref = self._ctree(i_spec, root_miss=1, solved=False, tall_level=0)
-        scale_c = self._fit_below(i_ref, ic)          # fit below I, pinned at its diagonal node (as in n)
+        scale_c = (ic[1] + 4.0) / i_ref.height        # fit below I, pinned; _recenter reframes after
         i_ref.scale(scale_c, about_point=ORIGIN).shift(ic - i_ref.root.get_center())
         ih, eh = i_ref.node["i"], i_ref.node["e"]
         hit_handles = [k for k in ih.kids if not k.is_miss]
@@ -1566,6 +1579,7 @@ class Scene05(HangmanScene):
             run_time=0.9)
         # phase 2 — each hit branch's children SPROUT out of the (settled) reused root
         self.play(*[GrowFromPoint(kids, dot.get_center()) for kids, dot in grows], run_time=0.6)
+        self._recenter(0.6)                          # drift the root right so the wider tree stays framed
         self.i_ref, self.ie_edge = i_ref, ie_edge
         self.i_hit_trees = hit_trees                 # [(handle, green subtree), …] for solving
         self.i_hit_edges = [be for be, bd in hits]   # the ACTUAL on-screen I→root edges (transformed be)
@@ -1610,7 +1624,7 @@ class Scene05(HangmanScene):
         # the persistent I-tree (now dropped) IS the I candidate — includes the slid E-subtree (miss)
         cur = VGroup(i_dot, i_lab, self.ie_edge, *self.i_hit_edges, self.e_subtree, *hit_cts)
         ic = i_dot.get_center()                      # I's NEW (dropped) position — candidates hang here
-        alts = [c for c in opts if c != "i"]
+        alts = [c for c in opts if c != "i"][:self.CYCLE_MAX - 1]   # at most CYCLE_MAX distinct letters
         cand = {}
         for c in alts:                               # compact (the tall gap is O→I, above)
             ct = self._ctree(self._subtree_spec(opts[c]["subtree"]), root_miss=1)
@@ -1651,7 +1665,7 @@ class Scene05(HangmanScene):
         o_spec = {"g": "o", "key": "o",
                   "kids": [(True, i_sub_spec)] + [(False, sp) for sp in o_hit_specs]}
         o_ref = self._ctree(o_spec, root_miss=1, solved=False, tall_level=0)
-        scale_c = self._fit_below(o_ref, oc)          # fit below O, pinned at its diagonal node (+ width)
+        scale_c = (oc[1] + 4.0) / o_ref.height        # fit below O, pinned; _recenter reframes after
         o_ref.scale(scale_c, about_point=ORIGIN).shift(oc - o_ref.root.get_center())
         oh, ih = o_ref.node["o"], o_ref.node["i"]
         hit_handles = [k for k in oh.kids if not k.is_miss]
@@ -1683,6 +1697,7 @@ class Scene05(HangmanScene):
             *move,
             run_time=0.9)
         self.play(*[GrowFromPoint(kids, dot.get_center()) for kids, dot in grows], run_time=0.6)
+        self._recenter(0.6)                          # drift the root right so the wider tree stays framed
         self.o_ref, self.oi_edge = o_ref, oi_edge
         self.o_hit_trees = hit_trees
         self.o_hit_edges = [be for be, bd in hits]
@@ -1724,7 +1739,7 @@ class Scene05(HangmanScene):
         # the persistent O-tree (now dropped) IS the O candidate — includes the slid I-subtree (miss)
         cur = VGroup(o_dot, o_lab, self.oi_edge, *self.o_hit_edges, self.i_subtree, *hit_cts)
         oc = o_dot.get_center()
-        alts = [c for c in opts if c != "o"]
+        alts = [c for c in opts if c != "o"][:self.CYCLE_MAX - 1]   # at most CYCLE_MAX distinct letters
         cand = {}
         for c in alts:                               # compact (the tall gap is A→O, above)
             ct = self._ctree(self._subtree_spec(opts[c]["subtree"]), root_miss=1)
@@ -1767,7 +1782,7 @@ class Scene05(HangmanScene):
         a_spec = {"g": "a", "key": "a",
                   "kids": [(True, o_sub_spec)] + [(False, sp) for sp in a_hit_specs]}
         a_ref = self._ctree(a_spec, root_miss=0, solved=False, tall_level=0)  # root reached w/ 0 misses → white
-        scale_c = self._fit_below(a_ref, ac)          # fit below A, pinned at its diagonal node (+ width)
+        scale_c = (ac[1] + 4.0) / a_ref.height        # fit below A, pinned; _recenter reframes after
         a_ref.scale(scale_c, about_point=ORIGIN).shift(ac - a_ref.root.get_center())
         ah, oh = a_ref.node["a"], a_ref.node["o"]
         hit_handles = [k for k in ah.kids if not k.is_miss]
@@ -1798,6 +1813,7 @@ class Scene05(HangmanScene):
             *move,
             run_time=0.9)
         self.play(*[GrowFromPoint(kids, dot.get_center()) for kids, dot in grows], run_time=0.6)
+        self._recenter(0.6)                          # drift the root right so the wider tree stays framed
         self.a_ref, self.ao_edge = a_ref, ao_edge
         self.a_hit_trees = hit_trees
         self.a_hit_edges = [be for be, bd in hits]
