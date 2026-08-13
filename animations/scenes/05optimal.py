@@ -64,8 +64,13 @@ Script row 05, split on '—' (voiceover ↔ animation zip 1:1). BEAT MAP:
                     (green subtree, white root). A itself left UN-chosen
   x solve_a_hit   — solve O's siblings: cycle a_ (=3.00) and _a (=2.50) through ALL their tied first-
                     guesses (T optimal for both), lock each root + edges green (solve_X_hit at the root)
+  y compare_openers — collapse the solved A-tree into the top-left grid corner (strip every letter but
+                    the root A, colours back to red-white), fill the rest of the grid with each valid
+                    opener's optimal tree (red-white shape, root lettered, 'Avg misses: N.NN' above),
+                    GREEN the winner (A = 3.88 min), fade the rest, and grow the green tree back to
+                    full screen with its letters + solved colours restored
   --- next sections (not yet built) ---
-  … choose A (or the first-letter grid recap); dedup + prune; paired chart
+  … dedup + prune (2 trees: A-then-O vs O-then-A); the can't-be-in-word single branch; paired chart
 
 BACK-UP BEAT RECIPE (the I→O→A back-ups REPEAT this — reuse, don't reinvent; k/l/m and n/o/p
 are the worked examples, each level is 3 beats):
@@ -1848,6 +1853,109 @@ class Scene05(HangmanScene):
     @subscene
     def solve_a_hit(self):
         self.a_hit_avg = self._solve_position_hits(0, self.a_hit_trees)
+
+    # ── y : compare EVERY first letter. Collapse the solved A-tree to the top-left GRID
+    #        corner (strip every letter but the root A, colours back to red-white), fill the
+    #        rest of the grid with the optimal tree for each valid starting letter (each a
+    #        red-white shape, only the root lettered, an 'Avg misses: N.NN' label above), then
+    #        GREEN the winner (A, the min avg — 3.88), fade the rest, and return the green tree
+    #        to full screen with its letters + solved colours restored. Openers sorted by avg so
+    #        the winner is the top-left corner (where A already sits). Every value SOURCED. ──────
+    def _tree_handles(self, g):
+        """Every node/leaf handle of a `_ctree`, walked from the root (`.root_h`) — includes the
+        UNkeyed interior nodes `g.node` doesn't collect. Used to strip a grid cell to just its
+        shape + root letter."""
+        out, stack = [], [g.root_h]
+        while stack:
+            h = stack.pop()
+            out.append(h)
+            stack.extend(getattr(h, "kids", []))
+        return out
+
+    def _strip_to_shape(self, g):
+        """Drop every guess-node LETTER and every leaf BLANK except the ROOT's letter — leaving the
+        tree SHAPE (dots + edges) with only the starting letter labelled. For the opener-grid recap,
+        where a full lettered tree would be illegible at 4×5 (script: 'removing letters except the
+        one in the top node')."""
+        root = g.root_h
+        rm = []
+        for h in self._tree_handles(g):
+            if h is root:
+                continue
+            rm.append(h.blk if getattr(h, "is_leaf", False) else h.lab)
+        g.remove(*rm)
+        return g
+
+    def _opener_cells(self):
+        """The 20 valid (splitting) openers' optimal trees, tiled 4×5, sorted by avg misses so the
+        WINNER is the top-left corner. Each cell = the red-white tree shape (only the root lettered)
+        + a worded 'Avg misses: N.NN' above it. Every subtree SOURCED (`_subtree_spec`); every value
+        SOURCED (`o['avg']`)."""
+        opts = sorted((o for o in DATA["tree"]["options"] if o["splits"]),
+                      key=lambda o: (o["avg"], o["letter"]))
+        cells = []
+        for o in opts:
+            g = self._ctree(self._subtree_spec(o["subtree"]), root_miss=0, solved=False)
+            self._strip_to_shape(g)
+            lab = self._value_label(o["avg"], 0.42, bare=False)   # 'Avg misses: N.NN' (worded)
+            lab.next_to(g, UP, buff=0.12).set_x(g.root.get_center()[0])
+            cells.append(VGroup(g, lab))
+        self._tile(cells, rows=GRID_ROWS, cols=GRID_COLS)
+        return cells
+
+    @subscene
+    def compare_openers(self):
+        self.op_cells = self._opener_cells()
+        self._co_to_corner(1.2)      # the solved A-tree shrinks into the top-left cell (red-white,
+                                     #   letters stripped) as that clean cell fades in there
+        self._co_fill_grid(1.4)      # the other 19 opener trees fill the rest of the grid
+        self._co_pick_winner(1.2)    # green the winning (A) cell, fade the other 19 out
+        self._co_return(1.4)         # A returns to full screen, letters + solved-green restored
+
+    def _co_to_corner(self, run_time):
+        # shrink+move the whole on-screen green A-tree toward the corner cell while its clean
+        # red-white, A-only counterpart fades in there (one play = 'move + strip + recolour')
+        cell0 = self.op_cells[0]
+        onscreen = VGroup(*[m for m in self.mobjects if isinstance(m, VMobject)])
+        ghost = onscreen.copy().scale(cell0.height / onscreen.height).move_to(cell0).set_opacity(0)
+        self.play(Transform(onscreen, ghost), FadeIn(cell0), run_time=run_time)
+        self.clear()                                  # drop the now-invisible collapsed tree…
+        self.add(cell0)                               # …keep only the clean corner cell
+
+    def _co_fill_grid(self, run_time):
+        # the rest of the grid (a bulk reference set) FADES in as a group (CLAUDE.md: enumerated
+        # sets fade, they aren't hand-drawn)
+        self.play(FadeIn(VGroup(*self.op_cells[1:])), run_time=run_time)
+
+    def _co_pick_winner(self, run_time):
+        cell0 = self.op_cells[0]
+        root_lab = cell0[0].root_h.lab                 # the navy 'A' stays navy (knocked out)
+        keep = set(root_lab.get_family())
+        greenable = VGroup(*[m for m in cell0.get_family() if m not in keep and m.has_points()])
+        self.play(greenable.animate.set_color(LIGHT_GREEN),
+                  FadeOut(VGroup(*self.op_cells[1:])), run_time=run_time)
+        self.clear()
+        self.add(cell0)
+
+    def _co_return(self, run_time):
+        cell0 = self.op_cells[0]
+        a_opt = {o["letter"]: o for o in DATA["tree"]["options"]}["a"]
+        full = self._ctree(self._subtree_spec(a_opt["subtree"]), root_miss=0, solved=True)
+        # A is the CHOSEN opener → the WHOLE tree is green (root + its edges too); letters stay navy
+        VGroup(full.root, full.root_edges).set_color(LIGHT_GREEN)
+        full.scale_to_fit_height(6.8)
+        if full.width > 15.0:
+            full.scale_to_fit_width(15.0)
+        full.move_to([0, -0.3, 0])
+        avg = self._avg_label(full.root, value=a_opt["avg"], direction=LEFT).set_color(LIGHT_GREEN)
+        grp = VGroup(full, avg)
+        # grow the winner from the corner cell back to full screen (letters + solved colours restored)
+        grp.save_state()
+        grp.scale(cell0.height / grp.height).move_to(cell0)
+        self.play(Restore(grp), FadeOut(cell0), run_time=run_time)
+        self.clear()
+        self.add(grp)
+        self.winner = grp
 
     # ── components ─────────────────────────────────────────────────────────────
     def _greedy_chart(self):
