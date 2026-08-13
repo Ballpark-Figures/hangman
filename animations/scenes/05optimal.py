@@ -59,8 +59,11 @@ Script row 05, split on '—' (voiceover ↔ animation zip 1:1). BEAT MAP:
   u solve_o_hit   — solve O's hit children (o_=2.50, _o=3.00): cycle ALL tied first-guesses, lock green
   v choose_o      — back up O: climb to A→O (the diagonal root) at the START, cycle O's candidates
                     (o=3.28 min …), choose O, lock node+edges+value green
+  w backup_a      — add O's SIBLINGS: build A's tidy subtree, slide the green O-subtree onto A's miss
+                    slot, morph the diagonal A into the (white) root, grow A's a_/_a hit branches
+                    (green). A itself left UN-chosen (no choose_a yet)
   --- next sections (not yet built) ---
-  … back up A (the root) + the first-letter grid recap; dedup + prune; paired chart
+  … choose A (or the first-letter grid recap); dedup + prune; paired chart
 
 BACK-UP BEAT RECIPE (the I→O→A back-ups REPEAT this — reuse, don't reinvent; k/l/m and n/o/p
 are the worked examples, each level is 3 beats):
@@ -1711,6 +1714,60 @@ class Scene05(HangmanScene):
         self.play(VGroup(o_dot, o_edges, counter).animate.set_color(LIGHT_GREEN), run_time=1.0)
         self.o_subtree = cur                         # hand off O's solved subtree to backing up A
         self.avg_o = counter                         # O's value label (green)
+
+    # ── w : add in O's SIBLINGS — A's two hit branches (a_, _a). SAME move as backing up O (t),
+    #        but A is the diagonal ROOT (no parent edge / no gap climb): build A's FULL tidy
+    #        subtree, slide the solved green O-subtree onto A's miss slot, morph the diagonal A
+    #        into the tidy (white) root, and GROW A's hit branches (green). Leaves A itself
+    #        UN-chosen (no choose_a yet). Mirror of backup_o at the root. ─────────────────────────
+    @subscene
+    def backup_a(self):
+        path = self.grid.path
+        a_dot, a_lab = path.levels[0]["dot"], path.levels[0]["lab"]
+        ac = a_dot.get_center()
+        ao_edge = path.levels[1]["in_edge"]           # the diagonal A→O (miss) edge
+        # A's MISS child = the resolved O-play as DRAWN (matches the on-screen green O-subtree).
+        o_sub_spec = self._resolved_play_spec(1, key="o")
+        a_hit_specs = self._position_hit_specs(0)     # A's HIT branches (a_, _a) = O's siblings, SOURCED
+        a_spec = {"g": "a", "key": "a",
+                  "kids": [(True, o_sub_spec)] + [(False, sp) for sp in a_hit_specs]}
+        a_ref = self._ctree(a_spec, root_miss=0, solved=False, tall_level=0)  # root reached w/ 0 misses → white
+        scale_c = (ac[1] + 4.0) / a_ref.height        # fit below A, pinned at its diagonal node
+        a_ref.scale(scale_c, about_point=ORIGIN).shift(ac - a_ref.root.get_center())
+        ah, oh = a_ref.node["a"], a_ref.node["o"]
+        hit_handles = [k for k in ah.kids if not k.is_miss]
+        o_now = self.o_ref.node["o"].dot
+        sfac = oh.dot.width / o_now.width
+        y0, ty = o_now.get_center(), oh.dot.get_center()
+        hits = path.levels[0]["hits"]                 # A's bare hit-sibling dots (O's siblings)
+        move, grows, hit_trees = [], [], []
+        for (be, bd), h, sp in zip(hits, hit_handles, a_hit_specs):
+            ct = self._ctree(sp, root_miss=0, solved=True)
+            ct.scale(scale_c, about_point=ORIGIN).shift(h.dot.get_center() - ct.root.get_center())
+            lab = ct.root_h.lab
+            lab.save_state()
+            lab.scale(bd.width / ct.root.width).move_to(bd.get_center()).set_opacity(0)
+            kids = VGroup(*[m for k in ct.root_h.kids for m in (k.in_edge, k.all)])
+            move += [ReplacementTransform(bd, ct.root),
+                     Transform(be, h.in_edge),
+                     Restore(lab)]
+            grows.append((kids, ct.root))
+            hit_trees.append((h, ct))
+        a_anns = VGroup(*path.leaf_text[0:len(hits)])
+        self.play(
+            self.o_subtree.animate.scale(sfac, about_point=y0).shift(ty - y0),
+            FadeOut(self.avg_o),                                      # drop O's value label
+            ReplacementTransform(VGroup(a_dot, a_lab), VGroup(ah.dot, ah.lab)),  # diagonal A → tidy A
+            Transform(ao_edge, oh.in_edge),                          # A→O (miss) redrawn tidy
+            FadeOut(a_anns),                                          # A's own bare-board annotations
+            *move,
+            run_time=0.9)
+        self.play(*[GrowFromPoint(kids, dot.get_center()) for kids, dot in grows], run_time=0.6)
+        self.a_ref, self.ao_edge = a_ref, ao_edge
+        self.a_hit_trees = hit_trees
+        self.a_hit_edges = [be for be, bd in hits]
+        # keep self.o_subtree — it's now the slid miss child of A (a later choose_a would fold it in)
+        self.avg_o = None
 
     # ── components ─────────────────────────────────────────────────────────────
     def _greedy_chart(self):
