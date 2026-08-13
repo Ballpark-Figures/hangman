@@ -18,12 +18,12 @@ SOURCED DATA
     (`scene17_chart_data.get()["uniform"]`); NOT recomputed here.
   • beats e/f word walls + the VO word counts = `assets/scene21_data.py`
     (committed `scene21_cache.json`), read from `math/wordlist.py` (cutoff zipf≥2.5):
-      words4 = FIRST 100 4-letter words (alphabetical)   — LEFT wall
-      words7 = FIRST 250 7-letter words (alphabetical)   — RIGHT wall
-      counts = {len4: 2120, len7: 5541, len7_ing: 658}   — the VO's three ___ blanks
-    100/250 are DISPLAY caps (samples); the counts are the true totals, SPOKEN in
-    the VO only (NOT rendered — voiceover ≠ on-screen). Of the 250 shown 7-letter
-    words, 9 end in -ING (survive beat f).
+      words4 = FIRST 99 4-letter words BY FREQUENCY   — LEFT wall (+ a "…" cell → 100)
+      words7 = FIRST 279 7-letter words BY FREQUENCY  — RIGHT wall (+ a "…" cell → 280)
+      counts = {len4: 2120, len7: 5541, len7_ing: 658} — the VO's three ___ blanks
+    The walls are the MOST COMMON words (a natural alphabet spread); the counts are
+    the true totals, SPOKEN in the VO only (NOT rendered). Of the 279 shown 7-letter
+    words, 42 end in -ING (survive beat f); the "…" cell fades too (not an -ING word).
 
 FLAGS (confirm)
   • beat b: chart TITLE matches the CHALKBOARD chart (scene 04 `_avg_chart` /
@@ -40,7 +40,7 @@ BEAT MAP
   b chart           — chalk line-outline graph: optimal misses per word length
   c blanks_gallows  — erase the chart; draw 7 word blanks + the gallows
   d guess_ing       — guess I, N, G → written into the LAST 3 blanks (the reduction)
-  e word_walls      — clear the demo; LEFT = 100 4-letter words, RIGHT = 250 7-letter
+  e word_walls      — clear the demo; LEFT = 100 4-letter (99+…), RIGHT = 280 7-letter (279+…), by freq
   f erase_nonings   — fade the right-wall words NOT ending in ING (only -ING survive)
   g erase_all       — erase the board (both walls)
   h gaining         — play GAINING out: I·N·G·A, all hits (extras give it away)
@@ -162,18 +162,20 @@ class Scene21(HangmanScene):
 
     def _setup_walls(self):
         d = scene21_data.get()
-        self.wall4 = self._word_wall(d["words4"], cols=5,
+        w4 = d["words4"] + ["..."]                 # "…" last cell → 100 (5×20)
+        w7 = d["words7"] + ["..."]                 # "…" last cell → 280 (7×40)
+        self.wall4 = self._word_wall(w4, cols=5,
                                      region_w=6.4, region_h=7.4, cx=-3.9, cy=0)
         # build the 7-letter grid, then split its rows into the -ING survivors
-        # (keep) and the rest (drop) as SEPARATE top-level groups. Beat f removes
-        # `drop` cleanly; beat g fades only `keep`. Fading a SUBSET of one tracked
-        # container (the old approach) let the dropped rows reappear at g's fade —
-        # so keep/drop are distinct mobjects from the start.
-        wall7 = self._word_wall(d["words7"], cols=7,
+        # (keep) and the rest (drop, incl. the "…" cell) as SEPARATE top-level
+        # groups. Beat f removes `drop` cleanly; beat g fades only `keep`. Fading a
+        # SUBSET of one tracked container (the old approach) let the dropped rows
+        # reappear at g's fade — so keep/drop are distinct mobjects from the start.
+        wall7 = self._word_wall(w7, cols=7,
                                 region_w=7.0, region_h=7.6, cx=3.6, cy=0)
-        self.wall7_keep = VGroup(*[r for r, w in zip(wall7, d["words7"])
+        self.wall7_keep = VGroup(*[r for r, w in zip(wall7, w7)
                                    if w.endswith("ing")])
-        self.wall7_drop = VGroup(*[r for r, w in zip(wall7, d["words7"])
+        self.wall7_drop = VGroup(*[r for r, w in zip(wall7, w7)
                                    if not w.endswith("ing")])
 
     @subscene
