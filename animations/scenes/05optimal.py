@@ -952,6 +952,22 @@ class Scene05(HangmanScene):
         return Line(ac + dn * a_dot.width / 2, bc - dn * b_dot.width / 2,
                     color=color, stroke_width=2.0)
 
+    def _width_fit(self, ref, anchor, margin=0.3):
+        """The largest uniform scale keeping a rooted `_ctree` ``ref`` (its natural, ORIGIN-rooted root
+        pinned at ``anchor``) within the two SIDE edges. Measured on the natural-size ref. Used to
+        clamp the backed-up subtree / a wide candidate so it doesn't spill off the left (or right)."""
+        fx = config.frame_x_radius - margin
+        rx = ref.root.get_center()[0]
+        loff, roff = rx - ref.get_left()[0], ref.get_right()[0] - rx
+        return min((anchor[0] + fx) / loff if loff > 1e-6 else 1e9,   # left edge stays in frame
+                   (fx - anchor[0]) / roff if roff > 1e-6 else 1e9)   # right edge stays in frame
+
+    def _fit_below(self, ref, anchor, down=4.0, margin=0.3):
+        """The uniform scale for a rooted `_ctree` ``ref`` pinned so its root lands at ``anchor``: big
+        enough to reach ~y=-``down`` from the anchor, but CLAMPED to the side edges (`_width_fit`). A
+        no-op — returns the height fit — whenever the tree already fits horizontally."""
+        return min((anchor[1] + down) / ref.height, self._width_fit(ref, anchor, margin))
+
     def _gap_up(self, node_dot, node_lab, parent_dot, in_edge, child_pairs, run_time,
                 also=(), fade_in=(), fade_out=(), siblings=()):
         """Climb the tall gap up one level: the avg-miss value has just backed up INTO ``node``,
@@ -1262,7 +1278,7 @@ class Scene05(HangmanScene):
             # compact: at m the tall edge is E→U (above), so each candidate hangs the same tall gap
             # below E and is internally compact
             ct = self._ctree(self._subtree_spec(opts[c]["subtree"]), root_miss=1)
-            ct.scale(scale_c, about_point=ORIGIN).shift(uc - ct.root.get_center())
+            ct.scale(min(scale_c, self._width_fit(ct, uc)), about_point=ORIGIN).shift(uc - ct.root.get_center())
             cand[c] = ct
         self._active = cur
         self.wait(0.4)                             # hold on the U candidate before cycling
@@ -1309,7 +1325,7 @@ class Scene05(HangmanScene):
         e_spec = {"g": "e", "key": "e",
                   "kids": [(True, u_sub_spec)] + [(False, sp) for sp in e_hit_specs]}
         e_ref = self._ctree(e_spec, root_miss=1, solved=False, tall_level=0)
-        scale_c = (ec[1] + 4.0) / e_ref.height        # fit below E, pinned at its diagonal node (as in k)
+        scale_c = self._fit_below(e_ref, ec)          # fit below E, pinned at its diagonal node (as in k)
         e_ref.scale(scale_c, about_point=ORIGIN).shift(ec - e_ref.root.get_center())
         eh, uh = e_ref.node["e"], e_ref.node["u"]
         hit_handles = [k for k in eh.kids if not k.is_miss]
@@ -1444,7 +1460,7 @@ class Scene05(HangmanScene):
         cand = {}
         for c in alts:                               # compact (the tall gap is I→E, above)
             ct = self._ctree(self._subtree_spec(opts[c]["subtree"]), root_miss=1)
-            ct.scale(scale_c, about_point=ORIGIN).shift(ec - ct.root.get_center())
+            ct.scale(min(scale_c, self._width_fit(ct, ec)), about_point=ORIGIN).shift(ec - ct.root.get_center())
             cand[c] = ct
         self._active = cur
         self.wait(0.4)
@@ -1485,7 +1501,7 @@ class Scene05(HangmanScene):
         i_spec = {"g": "i", "key": "i",
                   "kids": [(True, e_sub_spec)] + [(False, sp) for sp in i_hit_specs]}
         i_ref = self._ctree(i_spec, root_miss=1, solved=False, tall_level=0)
-        scale_c = (ic[1] + 4.0) / i_ref.height        # fit below I, pinned at its diagonal node (as in n)
+        scale_c = self._fit_below(i_ref, ic)          # fit below I, pinned at its diagonal node (as in n)
         i_ref.scale(scale_c, about_point=ORIGIN).shift(ic - i_ref.root.get_center())
         ih, eh = i_ref.node["i"], i_ref.node["e"]
         hit_handles = [k for k in ih.kids if not k.is_miss]
@@ -1572,7 +1588,7 @@ class Scene05(HangmanScene):
         cand = {}
         for c in alts:                               # compact (the tall gap is O→I, above)
             ct = self._ctree(self._subtree_spec(opts[c]["subtree"]), root_miss=1)
-            ct.scale(scale_c, about_point=ORIGIN).shift(ic - ct.root.get_center())
+            ct.scale(min(scale_c, self._width_fit(ct, ic)), about_point=ORIGIN).shift(ic - ct.root.get_center())
             cand[c] = ct
         self._active = cur
         self.wait(0.4)
@@ -1609,7 +1625,7 @@ class Scene05(HangmanScene):
         o_spec = {"g": "o", "key": "o",
                   "kids": [(True, i_sub_spec)] + [(False, sp) for sp in o_hit_specs]}
         o_ref = self._ctree(o_spec, root_miss=1, solved=False, tall_level=0)
-        scale_c = (oc[1] + 4.0) / o_ref.height        # fit below O, pinned at its diagonal node
+        scale_c = self._fit_below(o_ref, oc)          # fit below O, pinned at its diagonal node (+ width)
         o_ref.scale(scale_c, about_point=ORIGIN).shift(oc - o_ref.root.get_center())
         oh, ih = o_ref.node["o"], o_ref.node["i"]
         hit_handles = [k for k in oh.kids if not k.is_miss]
@@ -1686,7 +1702,7 @@ class Scene05(HangmanScene):
         cand = {}
         for c in alts:                               # compact (the tall gap is A→O, above)
             ct = self._ctree(self._subtree_spec(opts[c]["subtree"]), root_miss=1)
-            ct.scale(scale_c, about_point=ORIGIN).shift(oc - ct.root.get_center())
+            ct.scale(min(scale_c, self._width_fit(ct, oc)), about_point=ORIGIN).shift(oc - ct.root.get_center())
             cand[c] = ct
         self._active = cur
         self.wait(0.4)
@@ -1725,7 +1741,7 @@ class Scene05(HangmanScene):
         a_spec = {"g": "a", "key": "a",
                   "kids": [(True, o_sub_spec)] + [(False, sp) for sp in a_hit_specs]}
         a_ref = self._ctree(a_spec, root_miss=0, solved=False, tall_level=0)  # root reached w/ 0 misses → white
-        scale_c = (ac[1] + 4.0) / a_ref.height        # fit below A, pinned at its diagonal node
+        scale_c = self._fit_below(a_ref, ac)          # fit below A, pinned at its diagonal node (+ width)
         a_ref.scale(scale_c, about_point=ORIGIN).shift(ac - a_ref.root.get_center())
         ah, oh = a_ref.node["a"], a_ref.node["o"]
         hit_handles = [k for k in ah.kids if not k.is_miss]
