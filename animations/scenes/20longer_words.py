@@ -104,32 +104,39 @@ class Scene20(WordTablesScene):
                       crisp_text(self._sig2(d["pct"]) + "%", font_size=ROW_FS,
                                  color=INK, baseline_at=(vx, y)))
 
-    def _filter_words(self, ending, run_time):
-        """Strip words ending in `ending` from the RIGHT table's pool, then reflow — all in
-        ONE play so the stripped rows FADE OUT while, overlapping, survivors slide up to
-        their new slots and newly-promoted words RISE UP FROM BELOW the window (uniform
-        travel = window height, so they scroll in from the bottom and land exactly, no gap)."""
+    def _filter_words(self, ending, run_time, fade_rt=0.35):
+        """Strip words ending in `ending` from the RIGHT table's pool, then reflow. The
+        stripped rows FADE OUT over a SHORT `fade_rt` while, concurrently, survivors slide
+        up to their new slots and newly-promoted words RISE UP FROM BELOW the window over
+        the full `run_time` (uniform travel = window height, so they scroll in from the
+        bottom and land exactly, no gap). With NOTHING left to move (the 7-letter case) it
+        degrades to a plain fade-out over the full `run_time`."""
         tab = self.right
         pred = lambda w: w.endswith(ending)
         new_pool = [d for d in tab.pool if not pred(d["word"])]
         new_shown = new_pool[:tab.n]
         old_index = {w: i for i, w in enumerate(tab.words)}
         travel = tab.n * ROW_DY                             # > window height → starts below it
-        anims = [FadeOut(tab.row_by_word[w]) for w in tab.words if pred(w)]
-        new_row_by_word = {}
+        fades = [FadeOut(tab.row_by_word[w]) for w in tab.words if pred(w)]
+        moves, new_row_by_word = [], {}
         for i, d in enumerate(new_shown):
             w, y = d["word"], self._row_y(i)
             if w in tab.row_by_word:                        # survivor → slide up in place
                 row = tab.row_by_word[w]
                 dy = (old_index[w] - i) * ROW_DY
                 if dy:
-                    anims.append(row.animate.shift(UP * dy))
+                    moves.append(row.animate.shift(UP * dy))
             else:                                           # newcomer → rise from below
                 row = self._word_row(d, y - travel, tab.cx, tab.label_dx, tab.value_dx)
-                anims.append(row.animate.shift(UP * travel))
+                moves.append(row.animate.shift(UP * travel))
             new_row_by_word[w] = row
-        if anims:
-            self.play(*anims, run_time=run_time)
+        if moves:                                           # fast fade OVER the longer reflow
+            groups = [AnimationGroup(*moves, run_time=run_time)]
+            if fades:
+                groups.append(AnimationGroup(*fades, run_time=min(fade_rt, run_time)))
+            self.play(*groups)
+        elif fades:                                         # 7-letter: just a fade-out
+            self.play(*fades, run_time=run_time)
 
         tab.pool, tab.words = new_pool, [d["word"] for d in new_shown]
         tab.row_by_word = new_row_by_word
