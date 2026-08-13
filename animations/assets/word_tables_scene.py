@@ -9,7 +9,7 @@ and defines its OWN @subscene beats (the render tooling AST-scans the SCENE file
 MUST live there — this base holds ONLY plain helpers).
 
 Formatting conventions (routed through these single helpers so they hold everywhere):
-  - every number is 2 SIGNIFICANT FIGURES (`_sig2`) — multipliers AND word %.
+  - a MULTIPLIER is ONE DECIMAL PLACE (`_mult`); a word % is 2 SIGNIFICANT FIGURES (`_sig2`).
   - a pattern (blanked word) / a word is BOLD and MONOSPACED (`_mono`) — each letter on a
     fixed CHAR_W slot, so equal-length strings line their letters up into COLUMNS.
   - censoring a word (`_censor`) replaces it wholesale with a transparent-black box so it
@@ -52,8 +52,12 @@ class WordTablesScene(HangmanScene):
         d = 1 - math.floor(math.log10(abs(x)))
         return f"{x:.{max(d, 0)}f}"
 
+    def _mult(self, x):
+        """A multiplier, always to ONE decimal place (e.g. 18.0, 510.8)."""
+        return f"{x:.1f}"
+
     def _pat_rows(self, rows):
-        return [(r["pattern"], self._sig2(r["multiplier"])) for r in rows]
+        return [(r["pattern"], self._mult(r["multiplier"])) for r in rows]
 
     def _word_rows(self, rows):
         return [(r["word"], self._sig2(r["pct"]) + "%") for r in rows]

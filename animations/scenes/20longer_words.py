@@ -23,7 +23,8 @@ BEAT MAP (Script.md scene 20; --- delimited, 15 beats a-o):
   l eight_full      — title → "8-Letter Words"; clear; LEFT patterns + RIGHT words together.
   m nine_full       — title → "9-Letter Words"; clear; patterns + words together.
   n ten_full        — title → "10-Letter Words"; clear; patterns + words together.
-  o sixteen_full    — title → "16-Letter Words"; clear; patterns + words (top word UNDERREPRESENTED).
+  o sixteen_full    — title → "16-Letter Words"; clear; ONLY Common Words, CENTERED + bigger,
+                      10 rows, no patterns table (top word UNDERREPRESENTED).
 
 DATA (SOURCED, cached): assets.long_words_data -> long_words_cache.json. Per length:
 `common_patterns` (boosted multiplier rows, uppercased) + `words` (every word the strategy
@@ -77,31 +78,33 @@ class Scene20(WordTablesScene):
                            rows, top_y=LONG_TOP, cx=LEFT_X)
 
     # ── word table with a filter/reflow POOL underneath the visible rows ───────
-    def _word_table(self, L, *, n=ROWS_SHOWN, title="Common Words"):
+    def _word_table(self, L, *, n=ROWS_SHOWN, cx=RIGHT_X, title="Common Words"):
         pool = self.tables[str(L)]["words"]
         shown = pool[:n]
         tab = self._table(title, ("Word", "Frequency"),
-                          self._word_rows(shown), top_y=LONG_TOP, cx=RIGHT_X)
+                          self._word_rows(shown), top_y=LONG_TOP, cx=cx)
         tab.pool = list(pool)
         tab.words = [d["word"] for d in shown]
-        tab.n = n
+        tab.n, tab.cx = n, cx
         tab.row_by_word = {tab.words[i]: tab.rows[i] for i in range(len(tab.words))}
         return tab
 
     def _row_y(self, i):
         return LONG_TOP - TITLE_GAP - HDR_GAP - i * ROW_DY
 
-    def _word_row(self, d, y):
-        """One word row (mono word + plain % value) on baseline y, right side."""
-        lx, vx = RIGHT_X + LABEL_DX, RIGHT_X + VALUE_DX
+    def _word_row(self, d, y, cx=RIGHT_X):
+        """One word row (mono word + plain % value) on baseline y."""
+        lx, vx = cx + LABEL_DX, cx + VALUE_DX
         return VGroup(self._mono(d["word"], lx, y),
                       crisp_text(self._sig2(d["pct"]) + "%", font_size=ROW_FS,
                                  color=INK, baseline_at=(vx, y)))
 
     def _filter_words(self, ending, fade_rt, reflow_rt):
         """Strip words ending in `ending` from the RIGHT table's pool, then reflow:
-        (1) the stripped visible rows fade out; (2) survivors slide up + newly-promoted
-        words rise in from the bottom to refill the top-n slots."""
+        (1) the stripped visible rows fade out; (2) survivors slide up to their new slots
+        while newly-promoted words RISE UP FROM BELOW the window (a uniform travel of the
+        full window height, so they visibly scroll in from the bottom and land exactly on
+        their slots — no gap)."""
         tab = self.right
         pred = lambda w: w.endswith(ending)
         removed = [tab.row_by_word[w] for w in tab.words if pred(w)]
@@ -111,17 +114,18 @@ class Scene20(WordTablesScene):
         new_pool = [d for d in tab.pool if not pred(d["word"])]
         new_shown = new_pool[:tab.n]
         old_index = {w: i for i, w in enumerate(tab.words)}
+        travel = tab.n * ROW_DY                             # > window height → starts below it
         anims, new_row_by_word = [], {}
         for i, d in enumerate(new_shown):
             w, y = d["word"], self._row_y(i)
-            if w in tab.row_by_word:                       # survivor → slide up
+            if w in tab.row_by_word:                        # survivor → slide up in place
                 row = tab.row_by_word[w]
                 dy = (old_index[w] - i) * ROW_DY
                 if dy:
                     anims.append(row.animate.shift(UP * dy))
-            else:                                          # newcomer → rise from below
-                row = self._word_row(d, y).shift(DOWN * 0.5)
-                anims.append(FadeIn(row, shift=UP * 0.5))
+            else:                                           # newcomer → rise from below
+                row = self._word_row(d, y - travel, tab.cx)
+                anims.append(row.animate.shift(UP * travel))
             new_row_by_word[w] = row
         if anims:
             self.play(*anims, run_time=reflow_rt)
@@ -242,10 +246,11 @@ class Scene20(WordTablesScene):
         self.right = self._word_table(10)
         self._reveal_pair(self.left, self.right, 1.6)
 
-    # o : "16-Letter Words"; clear; patterns + words (top word UNDERREPRESENTED)
+    # o : "16-Letter Words"; clear; ONLY Common Words, CENTERED, 10 rows, bigger font
+    #     (top word UNDERREPRESENTED) — no patterns table here
     @subscene
     def sixteen_full(self):
         self._next_length(16, 0.6)
-        self.left = self._pat_table(16)
-        self.right = self._word_table(16)
-        self._reveal_pair(self.left, self.right, 1.6)
+        self.right = self._word_table(16, n=10, cx=0.0)
+        VGroup(self.right.title, self.right.header, self.right.rows).scale(1.25, about_edge=UP)
+        self._reveal(self.right, 1.6)

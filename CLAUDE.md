@@ -78,11 +78,23 @@ live in the scene file (render tooling AST-scans it), so the base holds only hel
   08/11 are built.** Also unresolved: all run_times are first-guess placeholders (a timing
   pass is owed), and the big letter for I / W reads as an ambiguous bar/shape.
 
-## Short-words table scenes (19 short_words · continuation for lengths 5-9 …)
-Scene `19short_words.py` presents the CHOOSING strategy per word length as TABLES on the
-brand `BG_COLOR` (a `HangmanScene` — NOT chalk, NOT navy): LEFT = letter-combo patterns +
-multipliers, RIGHT = the chosen words + their frequency share, under a "N-Letter Words"
-title. The script's continuation (lengths 5-9, "ING is king") reuses this same machinery.
+## Frequency-search table scenes (19 short_words · 20 longer_words)
+Scenes `19short_words.py` (lengths 2/3/4) and `20longer_words.py` (lengths 5-10 & 16, "ING
+is king") present the CHOOSING strategy per word length as TABLES on the brand `BG_COLOR` (a
+`HangmanScene` — NOT chalk, NOT navy): LEFT = letter-combo patterns + multipliers, RIGHT =
+the chosen words + their frequency share, under a "N-Letter Words" title.
+- **Shared base `assets/word_tables_scene.py` (`WordTablesScene`)** holds the table machinery
+  (`_table`/`_reveal`/`_mono`/`_sig2`/`_mult`/`_scene_title`/`_table_title`/`_censor` + the
+  layout constants); BOTH scenes subclass it. Their `@subscene` beats live in each scene file
+  (render tooling AST-scans the scene file), so the base holds ONLY plain helpers.
+- **Scene 20 specifics:** SOURCED via `assets/long_words_data.py` → `long_words_cache.json`
+  (same freq_search best_opener pipeline; the FULL nonzero-frequency word list for 5/6/7 so the
+  ending filters are truthful, top-12 for 8/9/10/16). Its signature move is the ENDING FILTER
+  (`_filter_words`): strip words ending in Y / ED / ER / ES / ING and REFLOW — stripped rows
+  fade, survivors slide up, newcomers RISE FROM BELOW the window (uniform travel = window
+  height, so they scroll in from the bottom and land exactly, no gap). Beats l/m/n show
+  patterns + words TOGETHER (`_reveal_pair`); beat o (len 16) is words ONLY, centered + bigger,
+  10 rows, no patterns.
 - **Data = the multiplier-based adversarial search tuned against the best-opener guesser**
   (`freq_search.FrequencySearch`, objective `best_opener` — the `data/freq_search/best_opener/
   lenNN.csv` runs; NOT the per-word `word/` variant). Sourced + cached by
@@ -96,7 +108,8 @@ title. The script's continuation (lengths 5-9, "ING is king") reuses this same m
     (mult > 1)**, **Rare = reduced (mult < 1)**; the unchanged (×1) patterns are dropped.
     Word tables are Common (highest freq) / Rare (lowest). Rare tables appear at length 2 ONLY
     (per the script); lengths 3/4/… show Common only.
-  - **Numbers = 2 SIGNIFICANT FIGURES** (`_sig2`) — multipliers AND word %, everywhere.
+  - **Number formatting:** a MULTIPLIER is ONE DECIMAL PLACE (`_mult`, e.g. `18.0`/`510.8`);
+    a word % is 2 SIGNIFICANT FIGURES (`_sig2`). Everywhere, both scenes.
   - **A pattern (blanked word) / word is BOLD and MONOSPACED** (`_mono`, fixed `CHAR_W` slot),
     so equal-length strings line their letters up into COLUMNS down the table. The
     multiplier/frequency numbers are plain (not bold, not monospaced).
