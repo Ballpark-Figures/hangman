@@ -23,7 +23,8 @@ SOURCED DATA
       counts = {len4: 2120, len7: 5541, len7_ing: 658} — the VO's three ___ blanks
     The walls are the MOST COMMON words (a natural alphabet spread); the counts are
     the true totals, SPOKEN in the VO only (NOT rendered). Of the 279 shown 7-letter
-    words, 42 end in -ING (survive beat f); the "…" cell fades too (not an -ING word).
+    words, 42 end in -ING (survive beat f); the "…" cell STAYS too (both walls keep
+    their "…" to hint the lists run on).
 
 FLAGS (confirm)
   • beat b: chart TITLE matches the CHALKBOARD chart (scene 04 `_avg_chart` /
@@ -167,16 +168,16 @@ class Scene21(HangmanScene):
         self.wall4 = self._word_wall(w4, cols=5,
                                      region_w=6.4, region_h=7.4, cx=-3.9, cy=0)
         # build the 7-letter grid, then split its rows into the -ING survivors
-        # (keep) and the rest (drop, incl. the "…" cell) as SEPARATE top-level
-        # groups. Beat f removes `drop` cleanly; beat g fades only `keep`. Fading a
-        # SUBSET of one tracked container (the old approach) let the dropped rows
-        # reappear at g's fade — so keep/drop are distinct mobjects from the start.
+        # (keep — plus the "…" cell, which stays to hint the -ING list also runs on)
+        # and the rest (drop) as SEPARATE top-level groups. Beat f removes `drop`
+        # cleanly; beat g fades only `keep`. Fading a SUBSET of one tracked container
+        # (the old approach) let the dropped rows reappear at g's fade — so keep/drop
+        # are distinct mobjects from the start.
         wall7 = self._word_wall(w7, cols=7,
                                 region_w=7.0, region_h=7.6, cx=3.6, cy=0)
-        self.wall7_keep = VGroup(*[r for r, w in zip(wall7, w7)
-                                   if w.endswith("ing")])
-        self.wall7_drop = VGroup(*[r for r, w in zip(wall7, w7)
-                                   if not w.endswith("ing")])
+        keep = lambda w: w.endswith("ing") or w == "..."
+        self.wall7_keep = VGroup(*[r for r, w in zip(wall7, w7) if keep(w)])
+        self.wall7_drop = VGroup(*[r for r, w in zip(wall7, w7) if not keep(w)])
 
     @subscene
     def word_walls(self):

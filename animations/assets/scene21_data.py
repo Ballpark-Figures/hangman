@@ -14,7 +14,7 @@ Three products:
 
 3. `words7` — the FIRST 279 7-letter words BY FREQUENCY (beat e, RIGHT wall). The
    scene adds a "…" last cell (→ 280). Beat f fades those NOT ending in "ing" (a
-   render-time string filter; the "…" cell is a non-ING item, so it fades too).
+   render-time string filter); the "…" cell is kept, to hint the -ING list runs on.
 
 The optimal-misses-per-length chart (beat b) is NOT sourced here — it reuses the
 existing committed cache via `scene17_chart_data.get()["uniform"]`.
