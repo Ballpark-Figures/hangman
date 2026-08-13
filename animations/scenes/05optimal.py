@@ -665,8 +665,9 @@ class Scene05(HangmanScene):
                            #   not tied to the node, which shrinks as the tree recenters)
     WORDED_H = 0.34        # worded 'Avg misses: N.NN' box height (the static g–n beats)
     CYCLE_MAX = 3          # a root-back-up cycle shows at most this many DISTINCT letters (chosen + others)
-    OPENER_ROOT_BIG = 2.0  # beat y: grid-cell ROOT node enlarged so its starting letter reads as a header
-    OPENER_LABEL_H  = 0.34  # beat y: grid-cell 'Avg misses: N.NN' height — FIXED on-screen size (not tiled)
+    OPENER_ROOT_BIG = 3.5  # beat y: grid-cell ROOT node enlarged so its starting letter reads as a header
+    OPENER_LABEL_H  = 0.30  # beat y: grid-cell 'Avg misses: N.NN' height — FIXED on-screen size (not tiled),
+                            #   built identically for every cell so all 20 labels are the SAME size
     _NUM_REF = {}          # cached height->font_size reference + decimal-point offsets
 
     def _num_font(self, cap_h):
@@ -1857,12 +1858,14 @@ class Scene05(HangmanScene):
     def solve_a_hit(self):
         self.a_hit_avg = self._solve_position_hits(0, self.a_hit_trees)
 
-    # ── y : compare EVERY first letter. MORPH the solved A-tree 1:1 into the top-left GRID
-    #        corner (every node/edge to its counterpart, recolouring green to red-white, every
-    #        letter but the root A riding out), fill the rest of the grid with the optimal tree
-    #        for each valid starting letter (red-white shape, an ENLARGED lettered root, a big
-    #        'Avg misses: N.NN' above), then GREEN the winner (A, min avg = 3.88), fade the rest,
-    #        and MORPH the green tree back to full screen with its letters + blanks restored.
+    # ── y : compare EVERY first letter. The leftover '2.50' fades FIRST; then MORPH the solved
+    #        A-tree 1:1 into the top-left GRID corner (every node/edge to its counterpart, green
+    #        recolouring to red-white, every letter but the root A riding out) and only AFTER it
+    #        lands does A's 'Avg misses' label appear. Fill the rest of the grid with each valid
+    #        opener's optimal tree (red-white shape, ENLARGED lettered root, a big same-size
+    #        'Avg misses: N.NN' above). GREEN the winner (A, min = 3.88) IN its slot, fade the
+    #        rest, then MORPH A back to full screen — recolouring BACK to red-white as it travels,
+    #        its letters + blanks fading in, its avg label fading out MOVING with the tree.
     #        The on-screen A-tree is a patchwork of many `_ctree`s (no single recursive handle
     #        structure), so we SWAP in a geometrically-identical clean `_ctree` replica (invisible
     #        — same spec via `self.a_spec`, aligned to `a_ref`) and morph THAT. Every value SOURCED.
@@ -1908,15 +1911,14 @@ class Scene05(HangmanScene):
             self._enlarge_root(g, self.OPENER_ROOT_BIG)
             g._opt = o
             trees.append(g)
-        # trees fill the LOWER ~78% of the box so each cell keeps a band up top for its (fixed-size,
-        # NOT tiled) avg label
-        self._tile(trees, rows=GRID_ROWS, cols=GRID_COLS, h=GRID_H * 0.78)
-        cells, cw = [], GRID_W / GRID_COLS
+        # the SAME 4×5 grid as beat d — full GRID_W×GRID_H, so the trees use the whole screen
+        self._tile(trees, rows=GRID_ROWS, cols=GRID_COLS)
+        cells = []
         for g in trees:
+            # every label built IDENTICALLY (same string length, same fixed height) → all the SAME
+            # size, and NOT part of the tiled tree so it stays big regardless of the tree's scale
             lab = self._value_label(g._opt["avg"], self.OPENER_LABEL_H, bare=False)
-            if lab.width > cw * 0.92:
-                lab.scale_to_fit_width(cw * 0.92)
-            lab.next_to(g, UP, buff=0.1).set_x(g.root.get_center()[0])
+            lab.next_to(g, UP, buff=0.06).set_x(g.root.get_center()[0])
             cells.append(VGroup(g, lab))
         return cells
 
@@ -1971,19 +1973,26 @@ class Scene05(HangmanScene):
     @subscene
     def compare_openers(self):
         self.op_cells = self._opener_cells()
-        self._co_to_corner(1.4)      # morph the solved A-tree 1:1 into the top-left cell
-        self._co_fill_grid(1.4)      # the other 19 opener trees fill the rest of the grid
-        self._co_pick_winner(1.2)    # green the winning (A) cell, fade the other 19 out
-        self._co_return(1.4)         # morph A back to full screen, letters + blanks restored
+        self._co_to_corner(0.4, 1.4, 0.5)  # '2.50' fades first, morph A into the corner, THEN its label
+        self._co_fill_grid(1.4)            # the other 19 opener trees fill the rest of the grid
+        self._co_pick_winner(1.0)          # green the winning (A) tree IN its grid slot, fade the rest
+        self._co_return(1.6)               # morph A back to full screen, greening BACK to red-white
 
-    def _co_to_corner(self, run_time):
+    def _co_to_corner(self, fade_num, morph, label_in):
         cell0, tree0 = self.op_cells[0], self.op_cells[0][0]
+        # (1) the leftover position number fades out FIRST, before anything moves
+        self.play(FadeOut(self.a_hit_avg), run_time=fade_num)
+        self.a_hit_avg = None
+        # (2) swap the on-screen patchwork tree for its geometrically-identical clean replica
+        #     (invisible — no frame renders between remove and add), then morph it 1:1 to the corner
         src = self._a_replica()
-        num = self.a_hit_avg                          # the last position number still on screen
         self.clear()
-        self.add(src, num)                            # invisible swap-in of the clean replica (+ num)
-        self._morph_trees(src, tree0, run_time, src_full=True, dst_full=False,
-                          extra_in=[FadeIn(cell0[1])], extra_out=[FadeOut(num)])
+        self.add(src)
+        self._morph_trees(src, tree0, morph, src_full=True, dst_full=False)
+        self.clear()
+        self.add(tree0)
+        # (3) A's avg label appears only AFTER the tree has arrived
+        self.play(FadeIn(cell0[1]), run_time=label_in)
         self.clear()
         self.add(cell0)
 
@@ -1993,10 +2002,10 @@ class Scene05(HangmanScene):
         self.play(FadeIn(VGroup(*self.op_cells[1:])), run_time=run_time)
 
     def _co_pick_winner(self, run_time):
-        cell0 = self.op_cells[0]
-        root_lab = cell0[0].root_h.lab                 # the navy 'A' stays navy (knocked out)
-        keep = set(root_lab.get_family())
-        greenable = VGroup(*[m for m in cell0.get_family() if m not in keep and m.has_points()])
+        # green ONLY the winning tree, IN its grid slot (its label stays as-is; it fades on return)
+        cell0, tree0 = self.op_cells[0], self.op_cells[0][0]
+        keep = set(tree0.root_h.lab.get_family())      # the navy 'A' stays navy (knocked out)
+        greenable = VGroup(*[m for m in tree0.get_family() if m not in keep and m.has_points()])
         self.play(greenable.animate.set_color(LIGHT_GREEN),
                   FadeOut(VGroup(*self.op_cells[1:])), run_time=run_time)
         self.clear()
@@ -2004,22 +2013,25 @@ class Scene05(HangmanScene):
 
     def _co_return(self, run_time):
         cell0, tree0 = self.op_cells[0], self.op_cells[0][0]
-        full = self._ctree(self.a_spec, root_miss=0, solved=True, tall_level=0)
-        # A is the CHOSEN opener → the WHOLE tree is green (root + its edges too); letters stay navy
-        VGroup(full.root, full.root_edges).set_color(LIGHT_GREEN)
+        # the destination is the full-screen tree in NEUTRAL red-white — the green "winner" colour
+        # changes BACK as the tree travels to the centre
+        full = self._ctree(self.a_spec, root_miss=0, solved=False, tall_level=0)
         full.scale_to_fit_height(6.8)
         if full.width > 15.0:
             full.scale_to_fit_width(15.0)
         full.move_to([0, -0.3, 0])
-        a_avg = next(o["avg"] for o in DATA["tree"]["options"] if o["letter"] == "a")
-        avg = self._avg_label(full.root, value=a_avg, direction=LEFT).set_color(LIGHT_GREEN)
-        # morph the winning corner cell 1:1 to the full-screen tree — nodes/edges scale up while the
-        # stripped letters + leaf blanks fade back in at their nodes (restoring the tree)
+        # the avg label fades out while MOVING (and growing) WITH the tree toward the centre
+        lab = cell0[1]
+        disp = full.root.get_center() - tree0.root.get_center()
+        k = full.root.width / tree0.root.width
+        ghost = lab.copy().scale(k).shift(disp).set_opacity(0)
+        # morph the winning corner cell 1:1 to the full-screen tree — nodes/edges recolour green to
+        # red-white while the stripped letters + leaf blanks fade back in at their nodes
         self._morph_trees(tree0, full, run_time, src_full=False, dst_full=True,
-                          extra_in=[FadeIn(avg)], extra_out=[FadeOut(cell0[1])])
+                          extra_out=[Transform(lab, ghost)])
         self.clear()
-        self.add(full, avg)
-        self.winner = VGroup(full, avg)
+        self.add(full)
+        self.winner = full
 
     # ── components ─────────────────────────────────────────────────────────────
     def _greedy_chart(self):
