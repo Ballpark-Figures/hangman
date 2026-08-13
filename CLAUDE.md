@@ -78,6 +78,38 @@ live in the scene file (render tooling AST-scans it), so the base holds only hel
   08/11 are built.** Also unresolved: all run_times are first-guess placeholders (a timing
   pass is owed), and the big letter for I / W reads as an ambiguous bar/shape.
 
+## Short-words table scenes (19 short_words · continuation for lengths 5-9 …)
+Scene `19short_words.py` presents the CHOOSING strategy per word length as TABLES on the
+brand `BG_COLOR` (a `HangmanScene` — NOT chalk, NOT navy): LEFT = letter-combo patterns +
+multipliers, RIGHT = the chosen words + their frequency share, under a "N-Letter Words"
+title. The script's continuation (lengths 5-9, "ING is king") reuses this same machinery.
+- **Data = the multiplier-based adversarial search tuned against the best-opener guesser**
+  (`freq_search.FrequencySearch`, objective `best_opener` — the `data/freq_search/best_opener/
+  lenNN.csv` runs; NOT the per-word `word/` variant). Sourced + cached by
+  `assets/short_words_data.py` → `short_words_cache.json` (render reads only the cache):
+  `tables` per length (patterns from `multipliers_df()`, words from `frequencies_df()`) +
+  `by_length` (the beat-a double plot: optimal avg misses per length, uniform vs best_opener,
+  scene-17 convention — exact where converged, mean of bounds where not). Regenerate with
+  `python3 short_words_data.py`.
+- **Table conventions (all routed through single helpers in the scene):**
+  - **Common vs Rare split:** pattern tables show ONLY multiplier != 1 — **Common = boosted
+    (mult > 1)**, **Rare = reduced (mult < 1)**; the unchanged (×1) patterns are dropped.
+    Word tables are Common (highest freq) / Rare (lowest). Rare tables appear at length 2 ONLY
+    (per the script); lengths 3/4/… show Common only.
+  - **Numbers = 2 SIGNIFICANT FIGURES** (`_sig2`) — multipliers AND word %, everywhere.
+  - **A pattern (blanked word) / word is BOLD and MONOSPACED** (`_mono`, fixed `CHAR_W` slot),
+    so equal-length strings line their letters up into COLUMNS down the table. The
+    multiplier/frequency numbers are plain (not bold, not monospaced).
+  - **Stacked (length-2) tables align by their TITLE**, not their last row — the top pair
+    (Common) share `STACK_TOP`, the bottom pair (Rare) share `STACK_BOTTOM_TITLE`, so the two
+    Rare captions sit at the same y regardless of row count.
+  - **Censoring a word** (the "guess the profanity-filtered word" gag, e.g. PIMP at length 4):
+    replace the whole word with a transparent-black box (`_censor`, `INK` @ 0.55) built INTO
+    the row so it's never shown clear — NOT a blur (manim has no native blur).
+- **The beat-a / scene-17 double plot both use the SHARED `bpkfigures.bar_graph.grouped_bar_chart`**
+  (see the shared canonical-patterns index) — a value-per-length, two-series grouped bar chart
+  with axes/labels/title/legend; the scene just passes its two series + labels + `ink_color`.
+
 ## Math / data
 - `math/data/wordlist_master.txt` — the curated frequency wordlist
   (`word<TAB>zipf`, built by `math/build_wordlist.py`: wordfreq → hunspell
