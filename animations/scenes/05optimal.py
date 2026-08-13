@@ -1334,38 +1334,53 @@ class Scene05(HangmanScene):
         self.e_hit_edges = [be for be, bd in hits]   # the ACTUAL on-screen E→M edges (transformed be)
         self.avg_u = None
 
-    # ── solve E's HIT children — each grown green with a WHITE root in n. For each position
-    #    ({EM,EN,EX}=1.00 ; {ME,BE,WE,RE,HE,YE}=2.50) show its number, cycle through ALL the other
-    #    (tied) first-guesses, settle back on M and lock the root + edges green. From scene o on:
-    #    just the NUMBER (no 'Avg misses:'), rounded to 2 dp, and only ONE number on screen at a
-    #    time (the node being dealt with). Values/subtrees SOURCED from the E-position children. ─
-    @subscene
-    def solve_e_hit(self):
-        children = self._n_miss_node(3)["children"]
+    # ── ONE place that solves a position's two HIT children (X_ and _X), shared by solve_e_hit /
+    #    solve_i_hit / solve_o_hit — so the reveal, the candidate cycle, and (critically) the
+    #    REVEALED-letter threading live in exactly one spot. ──────────────────────────────────────
+    def _solve_position_hits(self, depth, hit_trees):
+        """Solve the depth-``depth`` all-miss position's HIT children (X_ and _X): for each, show its
+        avg (bare 2 dp, ONE number on screen at a time), cycle through ALL its OTHER tied first-
+        guesses, settle on the optimal, lock root + edges green. Returns the last avg label (the
+        caller hands it to choose_X, which fades it). The position letter X is ALREADY REVEALED in a
+        hit child, so candidate subtrees are sourced with ``revealed=X`` — WITHOUT it `_subtree_spec`
+        re-guesses X as a spurious forced-hit tail on every determined word (e.g. a T-branch in the
+        _o position sprouting a bogus 'O' node under each leaf). Keys + directions derived from the
+        SOURCED children so any hit-count works."""
+        node = self._n_miss_node(depth)
+        revealed = node["optimal_letter"]                       # revealed in BOTH hit patterns (X_, _X)
+        children = node["children"]
+        hit_keys = [p for p in children if set(p) != {"_"}]     # ['x_', '_x'] — SOURCED order
+        dirs = (LEFT, RIGHT, LEFT, RIGHT)                       # each hit's number offset (avoid collisions)
         prev = None
-        for (h, ct), key, direction in zip(self.e_hit_trees, ("e_", "_e"), (LEFT, RIGHT)):
+        for (h, ct), key, direction in zip(hit_trees, hit_keys, dirs):
             child = children[key]
             opts = {o["letter"]: o for o in child["options"] if o["splits"]}
             avg = self._avg_label(ct.root, value=child["avg"], direction=direction, bare=True)
             self.play(*([FadeOut(prev)] if prev is not None else []),   # one number at a time
                       FadeIn(avg), run_time=0.4)
-            # cycle through ALL the other (tied) first-guesses, then settle back on M
             scale = ct.root.width / (2 * GRID_NODE_R)
             active = ct
-            for c in [x for x in opts if x != child["optimal_letter"]]:
-                alt = self._ctree(self._subtree_spec(opts[c]["subtree"]), root_miss=0)
+            for c in [x for x in opts if x != child["optimal_letter"]]:  # ALL the other tied guesses
+                alt = self._ctree(self._subtree_spec(opts[c]["subtree"], revealed=revealed), root_miss=0)
                 alt.scale(scale, about_point=ORIGIN).shift(ct.root.get_center() - alt.root.get_center())
                 self.play(FadeOut(active), FadeIn(alt), run_time=0.5)
                 self.wait(0.2)
                 if active is not ct:
                     self.remove(active)
                 active = alt
-            self.play(FadeOut(active), FadeIn(ct), run_time=0.5)   # back to M (the chosen guess)
+            self.play(FadeOut(active), FadeIn(ct), run_time=0.5)    # back to the chosen guess
             if active is not ct:
                 self.remove(active)
             self.play(VGroup(ct.root, ct.root_edges, avg).animate.set_color(LIGHT_GREEN), run_time=0.7)
             prev = avg
-        self.e_hit_avg = prev             # the last number on screen (_e's 2.50) — choose_e fades it
+        return prev
+
+    # ── o : solve E's HIT children — each grown green with a WHITE root in n. For each position
+    #    ({EM,EN,EX}=1.00 ; {ME,BE,WE,RE,HE,YE}=2.50) show its number, cycle ALL other tied first-
+    #    guesses, settle on M, lock the root + edges green. Bare 2-dp numbers, one at a time. ────────
+    @subscene
+    def solve_e_hit(self):
+        self.e_hit_avg = self._solve_position_hits(3, self.e_hit_trees)
 
     # ── p : back up E — the value now sits on E. Cycle E's first-guess candidates (e=2.00 the min;
     #    m/y=2.08, b=2.31, h/r/u/w=2.54, p/s=2.69, n/x=2.77 — ALL sourced), the bare 2dp counter
@@ -1494,31 +1509,7 @@ class Scene05(HangmanScene):
     #        green. Bare 2-dp numbers, ONE on screen at a time. Mirror of solve_e_hit. ───────────
     @subscene
     def solve_i_hit(self):
-        children = self._n_miss_node(2)["children"]
-        hit_keys = [p for p in children if set(p) != {"_"}]      # ['i_', '_i'] — SOURCED order
-        prev = None
-        for (h, ct), key, direction in zip(self.i_hit_trees, hit_keys, (LEFT, RIGHT)):
-            child = children[key]
-            opts = {o["letter"]: o for o in child["options"] if o["splits"]}
-            avg = self._avg_label(ct.root, value=child["avg"], direction=direction, bare=True)
-            self.play(*([FadeOut(prev)] if prev is not None else []),   # one number at a time
-                      FadeIn(avg), run_time=0.4)
-            scale = ct.root.width / (2 * GRID_NODE_R)
-            active = ct
-            for c in [x for x in opts if x != child["optimal_letter"]]:  # ALL the other tied guesses
-                alt = self._ctree(self._subtree_spec(opts[c]["subtree"]), root_miss=0)
-                alt.scale(scale, about_point=ORIGIN).shift(ct.root.get_center() - alt.root.get_center())
-                self.play(FadeOut(active), FadeIn(alt), run_time=0.5)
-                self.wait(0.2)
-                if active is not ct:
-                    self.remove(active)
-                active = alt
-            self.play(FadeOut(active), FadeIn(ct), run_time=0.5)    # back to the chosen guess
-            if active is not ct:
-                self.remove(active)
-            self.play(VGroup(ct.root, ct.root_edges, avg).animate.set_color(LIGHT_GREEN), run_time=0.7)
-            prev = avg
-        self.i_hit_avg = prev             # the last number on screen — choose_i fades it
+        self.i_hit_avg = self._solve_position_hits(2, self.i_hit_trees)
 
     # ── s : back up I — cycle I's first-guess candidates (i=2.57 the min, then e/m/y/b/…, ALL
     #        sourced), the bare 2-dp counter rolling on I; choose I, lock node + all edges + value
@@ -1634,31 +1625,7 @@ class Scene05(HangmanScene):
     #        each root + edges green. Bare 2-dp numbers, one at a time. Mirror of solve_i_hit. ─────
     @subscene
     def solve_o_hit(self):
-        children = self._n_miss_node(1)["children"]
-        hit_keys = [p for p in children if set(p) != {"_"}]      # ['o_', '_o']
-        prev = None
-        for (h, ct), key, direction in zip(self.o_hit_trees, hit_keys, (LEFT, RIGHT)):
-            child = children[key]
-            opts = {o["letter"]: o for o in child["options"] if o["splits"]}
-            avg = self._avg_label(ct.root, value=child["avg"], direction=direction, bare=True)
-            self.play(*([FadeOut(prev)] if prev is not None else []),
-                      FadeIn(avg), run_time=0.4)
-            scale = ct.root.width / (2 * GRID_NODE_R)
-            active = ct
-            for c in [x for x in opts if x != child["optimal_letter"]]:
-                alt = self._ctree(self._subtree_spec(opts[c]["subtree"]), root_miss=0)
-                alt.scale(scale, about_point=ORIGIN).shift(ct.root.get_center() - alt.root.get_center())
-                self.play(FadeOut(active), FadeIn(alt), run_time=0.5)
-                self.wait(0.2)
-                if active is not ct:
-                    self.remove(active)
-                active = alt
-            self.play(FadeOut(active), FadeIn(ct), run_time=0.5)
-            if active is not ct:
-                self.remove(active)
-            self.play(VGroup(ct.root, ct.root_edges, avg).animate.set_color(LIGHT_GREEN), run_time=0.7)
-            prev = avg
-        self.o_hit_avg = prev
+        self.o_hit_avg = self._solve_position_hits(1, self.o_hit_trees)
 
     # ── v : back up O — cycle O's first-guess candidates (o=3.28 the min, then i/e/m/y/…, ALL
     #        sourced), the bare counter rolling on O; choose O, lock node + all edges + value green.
