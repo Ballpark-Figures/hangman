@@ -98,15 +98,6 @@ class Scene18(HangmanScene):
         # long crisp_text wraps at the 240pt supersample; build small, scale to width
         return crisp_text(text, font_size=10, **kw).scale_to_fit_width(width)
 
-    def _baseline_place(self, mob, s, x, baseline_y, font_size):
-        """Move ``mob`` (glyphs of ``s``) so its TEXT BASELINE sits at ``baseline_y`` (x
-        fixed) — crisp_text centres each bbox, so descender/ascender strings otherwise
-        sit at different heights. Measured with a trailing 'x' (no descender)."""
-        probe = crisp_text(str(s) + "x", font_size=font_size)
-        off = (VGroup(*probe.submobjects[:-1]).get_center()[1]
-               - probe.submobjects[-1].get_bottom()[1])
-        return mob.move_to([x, baseline_y + off, 0])
-
     def _number_text(self, value):
         """The avg number at a FIXED height + left edge, so counting never moves/resizes it."""
         return (crisp_text(f"{value:.2f}", font_size=10, color=INK, weight=BOLD)
@@ -273,10 +264,10 @@ class Scene18(HangmanScene):
         for r, row in enumerate(top):
             by = 1.72 - r * 0.5                          # common baseline per row
             rows.add(VGroup(
-                self._baseline_place(crisp_text(row["word"], font_size=26, color=WORD_BLUE),
-                                     row["word"], -1.9, by, 26),
-                self._baseline_place(crisp_text(str(row["misses"]), font_size=26, color=INK),
-                                     row["misses"], 1.9, by, 26)))
+                place_on_baseline(crisp_text(row["word"], font_size=26, color=WORD_BLUE),
+                                  [-1.9, by], string=row["word"]),
+                place_on_baseline(crisp_text(str(row["misses"]), font_size=26, color=INK),
+                                  [1.9, by], string=row["misses"])))
         for row in rows:
             row.shift(DOWN * 0.4).set_opacity(0)          # start below + hidden → rise in
 
