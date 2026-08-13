@@ -1200,18 +1200,8 @@ class Scene05(HangmanScene):
             ct.scale(scale, about_point=ORIGIN).shift(anchor)
             return ct
 
-        b_ct, m_ct = ctree("b"), ctree("m")
-
-        def swap_to(tree):                                # swap the subtree; value stays put
-            self.play(FadeOut(self._active), FadeIn(tree), run_time=0.6)
-            self.wait(0.3)
-            self._active = tree
-
-        self._active = cur
-        swap_to(b_ct)
-        swap_to(m_ct)
-        swap_to(cur)                                      # settle back on Y
-        self.remove(b_ct, m_ct)
+        # cross-fade Y → B → M → back to Y (the value stays 0.5 — all three are equal here)
+        self._cycle_candidates(cur, ["b", "m"], ctree, run_time=0.6, hold=0.3)
         # 3) choose Y: lock it — Y node + edge + value turn green
         self.play(VGroup(sub.discs["y"], sub.edges["yb"], avg_y).animate.set_color(LIGHT_GREEN),
                   run_time=0.9)
@@ -1338,27 +1328,15 @@ class Scene05(HangmanScene):
         self.avg_p = None
         counter.add_updater(counter._upd)           # re-attach for the rolling cycle (tracks moved U)
         uc = u_dot.get_center()                     # U's NEW (dropped) position — candidates hang here
-        cyc = ("y", "b", "m", "p", "s")[:self.CYCLE_MAX - 1]   # show at most CYCLE_MAX distinct letters
-        cand = {}
-        for c in cyc:                              # the alternative candidates (SOURCED)
-            # compact: at m the tall edge is E→U (above), so each candidate hangs the same tall gap
-            # below E and is internally compact
-            ct = self._ctree(self._subtree_spec(opts[c]["subtree"]), root_miss=1)
-            ct.scale(min(scale_c, self._width_fit(ct, uc)), about_point=ORIGIN).shift(uc - ct.root.get_center())
-            cand[c] = ct
-        self._active = cur
         self.wait(0.4)                             # hold on the U candidate before cycling
 
-        def swap_to(tree, val):                    # cross-fade the subtree; counter rolls
-            self.play(FadeOut(self._active), FadeIn(tree),
-                      uval.animate.set_value(val), run_time=0.7)
-            self.wait(0.3)
-            self._active = tree
-
-        for c in cyc:                              # U → Y → B → … (capped)
-            swap_to(cand[c], opts[c]["avg"])
-        swap_to(cur, u_avg)                         # settle back on U (the minimum, 1.0)
-        self.remove(*(cand[c] for c in cyc))
+        def make(c):                               # a candidate first-guess subtree hanging below U
+            # compact: at m the tall edge is E→U (above), so each candidate hangs the same tall gap
+            ct = self._ctree(self._subtree_spec(opts[c]["subtree"]), root_miss=1)
+            return ct.scale(min(scale_c, self._width_fit(ct, uc)), about_point=ORIGIN).shift(uc - ct.root.get_center())
+        # cross-fade U → Y → B → … (capped at CYCLE_MAX) → back to U, the counter rolling to each avg
+        self._cycle_candidates(cur, [c for c in opts if c != "u"], make, run_time=0.7, hold=0.3,
+                               extra=lambda c: [uval.animate.set_value(opts[c]["avg"] if c else u_avg)])
         # choose U: freeze the counter (drop the updater + its `.animate` target so the scene can
         # still pickle), then lock U's node + both outgoing edges + the value green
         self._freeze(counter)
@@ -1447,9 +1425,31 @@ class Scene05(HangmanScene):
         self.e_hit_edges = [be for be, bd in hits]   # the ACTUAL on-screen E→M edges (transformed be)
         self.avg_u = None
 
+    def _cycle_candidates(self, home, letters, make_ct, run_time, hold, extra=None):
+        """Cross-fade a node's ``home`` subtree through up to ``CYCLE_MAX``-1 alternative candidate
+        subtrees (each built + positioned by ``make_ct(letter)``), then settle back on ``home``.
+        ``extra(letter | None)`` -> extra anims played WITH each cross-fade (a candidate letter, then
+        None for the settle-back) — e.g. rolling a value counter. THE ONE place the candidate-cycle
+        cross-fade AND the ``CYCLE_MAX`` cap live, so the solve cycle and the choose cycles cap and
+        animate identically (change it once, everywhere follows)."""
+        letters = list(letters)[:self.CYCLE_MAX - 1]
+        if not letters:
+            return
+        active = home
+        for c in letters:
+            alt = make_ct(c)
+            self.play(FadeOut(active), FadeIn(alt), *(extra(c) if extra else []), run_time=run_time)
+            self.wait(hold)
+            if active is not home:
+                self.remove(active)
+            active = alt
+        self.play(FadeOut(active), FadeIn(home), *(extra(None) if extra else []), run_time=run_time)
+        if active is not home:
+            self.remove(active)
+
     # ── ONE place that solves a position's two HIT children (X_ and _X), shared by solve_e_hit /
-    #    solve_i_hit / solve_o_hit — so the reveal, the candidate cycle, and (critically) the
-    #    REVEALED-letter threading live in exactly one spot. ──────────────────────────────────────
+    #    solve_i_hit / solve_o_hit — so the reveal, the candidate cycle (via _cycle_candidates), and
+    #    (critically) the REVEALED-letter threading live in exactly one spot. ──────────────────────
     def _solve_position_hits(self, depth, hit_trees):
         """Solve the depth-``depth`` all-miss position's HIT children (X_ and _X): for each, show its
         avg (bare 2 dp, ONE number on screen at a time), cycle through ALL its OTHER tied first-
@@ -1472,18 +1472,12 @@ class Scene05(HangmanScene):
             self.play(*([FadeOut(prev)] if prev is not None else []),   # one number at a time
                       FadeIn(avg), run_time=0.4)
             scale = ct.root.width / (2 * GRID_NODE_R)
-            active = ct
-            for c in [x for x in opts if x != child["optimal_letter"]]:  # ALL the other tied guesses
+
+            def make(c):                                        # a candidate guess subtree at ct's slot
                 alt = self._ctree(self._subtree_spec(opts[c]["subtree"], revealed=revealed), root_miss=0)
-                alt.scale(scale, about_point=ORIGIN).shift(ct.root.get_center() - alt.root.get_center())
-                self.play(FadeOut(active), FadeIn(alt), run_time=0.5)
-                self.wait(0.2)
-                if active is not ct:
-                    self.remove(active)
-                active = alt
-            self.play(FadeOut(active), FadeIn(ct), run_time=0.5)    # back to the chosen guess
-            if active is not ct:
-                self.remove(active)
+                return alt.scale(scale, about_point=ORIGIN).shift(ct.root.get_center() - alt.root.get_center())
+            self._cycle_candidates(ct, [x for x in opts if x != child["optimal_letter"]], make,
+                                   run_time=0.5, hold=0.2)
             self.play(VGroup(ct.root, ct.root_edges, avg).animate.set_color(LIGHT_GREEN), run_time=0.7)
             prev = avg
         return prev
@@ -1527,25 +1521,14 @@ class Scene05(HangmanScene):
         # the persistent E-tree (now dropped) IS the E candidate
         cur = VGroup(e_dot, e_lab, self.eu_edge, *self.e_hit_edges, self.u_subtree, *hit_cts)
         ec = e_dot.get_center()                      # E's NEW (dropped) position — candidates hang here
-        alts = [c for c in opts if c != "e"][:self.CYCLE_MAX - 1]   # at most CYCLE_MAX distinct letters
-        cand = {}
-        for c in alts:                               # compact (the tall gap is I→E, above)
-            ct = self._ctree(self._subtree_spec(opts[c]["subtree"]), root_miss=1)
-            ct.scale(min(scale_c, self._width_fit(ct, ec)), about_point=ORIGIN).shift(ec - ct.root.get_center())
-            cand[c] = ct
-        self._active = cur
         self.wait(0.4)
 
-        def swap_to(tree, val):                      # cross-fade the subtree; counter rolls
-            self.play(FadeOut(self._active), FadeIn(tree),
-                      eval_.animate.set_value(val), run_time=0.6)
-            self.wait(0.25)
-            self._active = tree
-
-        for c in alts:                               # E → every other first guess → back to E
-            swap_to(cand[c], opts[c]["avg"])
-        swap_to(cur, e_avg)                          # settle back on E (the minimum, 2.00)
-        self.remove(*(cand[c] for c in alts))
+        def make(c):                                 # compact (the tall gap is I→E, above)
+            ct = self._ctree(self._subtree_spec(opts[c]["subtree"]), root_miss=1)
+            return ct.scale(min(scale_c, self._width_fit(ct, ec)), about_point=ORIGIN).shift(ec - ct.root.get_center())
+        # cross-fade E → other first guesses (capped) → back to E, the counter rolling to each avg
+        self._cycle_candidates(cur, [c for c in opts if c != "e"], make, run_time=0.6, hold=0.25,
+                               extra=lambda c: [eval_.animate.set_value(opts[c]["avg"] if c else e_avg)])
         # choose E: freeze the counter, green E node + ALL its outgoing edges + the value
         self._freeze(counter)
         e_edges = VGroup(self.eu_edge, *self.e_hit_edges)
@@ -1661,25 +1644,14 @@ class Scene05(HangmanScene):
         # the persistent I-tree (now dropped) IS the I candidate — includes the slid E-subtree (miss)
         cur = VGroup(i_dot, i_lab, self.ie_edge, *self.i_hit_edges, self.e_subtree, *hit_cts)
         ic = i_dot.get_center()                      # I's NEW (dropped) position — candidates hang here
-        alts = [c for c in opts if c != "i"][:self.CYCLE_MAX - 1]   # at most CYCLE_MAX distinct letters
-        cand = {}
-        for c in alts:                               # compact (the tall gap is O→I, above)
-            ct = self._ctree(self._subtree_spec(opts[c]["subtree"]), root_miss=1)
-            ct.scale(min(scale_c, self._width_fit(ct, ic)), about_point=ORIGIN).shift(ic - ct.root.get_center())
-            cand[c] = ct
-        self._active = cur
         self.wait(0.4)
 
-        def swap_to(tree, val):
-            self.play(FadeOut(self._active), FadeIn(tree),
-                      ival.animate.set_value(val), run_time=0.6)
-            self.wait(0.25)
-            self._active = tree
-
-        for c in alts:                               # I → every other first guess → back to I
-            swap_to(cand[c], opts[c]["avg"])
-        swap_to(cur, i_avg)                          # settle back on I (the minimum)
-        self.remove(*(cand[c] for c in alts))
+        def make(c):                                 # compact (the tall gap is O→I, above)
+            ct = self._ctree(self._subtree_spec(opts[c]["subtree"]), root_miss=1)
+            return ct.scale(min(scale_c, self._width_fit(ct, ic)), about_point=ORIGIN).shift(ic - ct.root.get_center())
+        # cross-fade I → other first guesses (capped) → back to I, the counter rolling to each avg
+        self._cycle_candidates(cur, [c for c in opts if c != "i"], make, run_time=0.6, hold=0.25,
+                               extra=lambda c: [ival.animate.set_value(opts[c]["avg"] if c else i_avg)])
         self._freeze(counter)
         i_edges = VGroup(self.ie_edge, *self.i_hit_edges)
         self.play(VGroup(i_dot, i_edges).animate.set_color(LIGHT_GREEN),
@@ -1783,25 +1755,14 @@ class Scene05(HangmanScene):
         # the persistent O-tree (now dropped) IS the O candidate — includes the slid I-subtree (miss)
         cur = VGroup(o_dot, o_lab, self.oi_edge, *self.o_hit_edges, self.i_subtree, *hit_cts)
         oc = o_dot.get_center()
-        alts = [c for c in opts if c != "o"][:self.CYCLE_MAX - 1]   # at most CYCLE_MAX distinct letters
-        cand = {}
-        for c in alts:                               # compact (the tall gap is A→O, above)
-            ct = self._ctree(self._subtree_spec(opts[c]["subtree"]), root_miss=1)
-            ct.scale(min(scale_c, self._width_fit(ct, oc)), about_point=ORIGIN).shift(oc - ct.root.get_center())
-            cand[c] = ct
-        self._active = cur
         self.wait(0.4)
 
-        def swap_to(tree, val):
-            self.play(FadeOut(self._active), FadeIn(tree),
-                      oval.animate.set_value(val), run_time=0.6)
-            self.wait(0.25)
-            self._active = tree
-
-        for c in alts:                               # O → every other first guess → back to O
-            swap_to(cand[c], opts[c]["avg"])
-        swap_to(cur, o_avg)                          # settle back on O (the minimum)
-        self.remove(*(cand[c] for c in alts))
+        def make(c):                                 # compact (the tall gap is A→O, above)
+            ct = self._ctree(self._subtree_spec(opts[c]["subtree"]), root_miss=1)
+            return ct.scale(min(scale_c, self._width_fit(ct, oc)), about_point=ORIGIN).shift(oc - ct.root.get_center())
+        # cross-fade O → other first guesses (capped) → back to O, the counter rolling to each avg
+        self._cycle_candidates(cur, [c for c in opts if c != "o"], make, run_time=0.6, hold=0.25,
+                               extra=lambda c: [oval.animate.set_value(opts[c]["avg"] if c else o_avg)])
         self._freeze(counter)
         o_edges = VGroup(self.oi_edge, *self.o_hit_edges)
         self.play(VGroup(o_dot, o_edges).animate.set_color(LIGHT_GREEN),
