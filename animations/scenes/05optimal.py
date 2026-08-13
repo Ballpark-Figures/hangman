@@ -990,7 +990,9 @@ class Scene05(HangmanScene):
         down-LEFT, this drifts the diagonal root rightward to keep everything framed instead of
         shrinking it in place. Shrinks about the composition centre ONLY if it's still wider than the
         frame (uniform, vertical centre preserved). Called at the end of each wide back-up."""
-        mobs = list(self.mobjects)
+        # only VISUAL mobjects — self.mobjects also holds non-visual Mobjects (a lingering
+        # ValueTracker), which VGroup rejects AND must not be scaled (scaling corrupts its value)
+        mobs = [m for m in self.mobjects if isinstance(m, VMobject)]
         if not mobs:
             return
         comp = VGroup(*mobs)
@@ -1124,6 +1126,18 @@ class Scene05(HangmanScene):
         lab.add_updater(upd := (lambda m: m.become(place())))
         lab._upd = upd
         return lab
+
+    def _freeze(self, mob):
+        """Freeze a rolling counter so the scene can SNAPSHOT (pickle): clear its updater AND drop the
+        stale `.animate` ``target`` — a leftover copy of the mob that still references the updater
+        lambda, so it survives remove_updater/clear_updaters and is what skipped the choose-beat
+        snapshots (PicklingError). Walk the family; also drop the `_upd` closure attr."""
+        for m in mob.get_family():
+            m.clear_updaters()
+            if getattr(m, "target", None) is not None:
+                m.target = None
+        if hasattr(mob, "_upd"):
+            del mob._upd
 
     # ── j : back up the Y node (the {by,my} position). B's value fades out; a fresh WHITE
     #        value appears next to Y. The first guess then cycles Y → B → M, each shown as its
@@ -1331,10 +1345,9 @@ class Scene05(HangmanScene):
             swap_to(cand[c], opts[c]["avg"])
         swap_to(cur, u_avg)                         # settle back on U (the minimum, 1.0)
         self.remove(*(cand[c] for c in cyc))
-        # choose U: freeze the counter (drop the updater + its closure attr so the scene can
+        # choose U: freeze the counter (drop the updater + its `.animate` target so the scene can
         # still pickle), then lock U's node + both outgoing edges + the value green
-        counter.remove_updater(counter._upd)
-        del counter._upd
+        self._freeze(counter)
         self.play(VGroup(u_dot, yedge, uedge, counter).animate.set_color(LIGHT_GREEN),
                   run_time=1.0)
         self.u_subtree = cur                        # hand off U's solved subtree to backing up E
@@ -1515,8 +1528,7 @@ class Scene05(HangmanScene):
         swap_to(cur, e_avg)                          # settle back on E (the minimum, 2.00)
         self.remove(*(cand[c] for c in alts))
         # choose E: freeze the counter, green E node + ALL its outgoing edges + the value
-        counter.remove_updater(counter._upd)
-        del counter._upd
+        self._freeze(counter)
         e_edges = VGroup(self.eu_edge, *self.e_hit_edges)
         self.play(VGroup(e_dot, e_edges, counter).animate.set_color(LIGHT_GREEN), run_time=1.0)
         self.e_subtree = cur                         # hand off E's solved subtree to backing up I
@@ -1643,8 +1655,7 @@ class Scene05(HangmanScene):
             swap_to(cand[c], opts[c]["avg"])
         swap_to(cur, i_avg)                          # settle back on I (the minimum)
         self.remove(*(cand[c] for c in alts))
-        counter.remove_updater(counter._upd)
-        del counter._upd
+        self._freeze(counter)
         i_edges = VGroup(self.ie_edge, *self.i_hit_edges)
         self.play(VGroup(i_dot, i_edges, counter).animate.set_color(LIGHT_GREEN), run_time=1.0)
         self.i_subtree = cur                         # hand off I's solved subtree to backing up O
@@ -1758,8 +1769,7 @@ class Scene05(HangmanScene):
             swap_to(cand[c], opts[c]["avg"])
         swap_to(cur, o_avg)                          # settle back on O (the minimum)
         self.remove(*(cand[c] for c in alts))
-        counter.remove_updater(counter._upd)
-        del counter._upd
+        self._freeze(counter)
         o_edges = VGroup(self.oi_edge, *self.o_hit_edges)
         self.play(VGroup(o_dot, o_edges, counter).animate.set_color(LIGHT_GREEN), run_time=1.0)
         self.o_subtree = cur                         # hand off O's solved subtree to backing up A
