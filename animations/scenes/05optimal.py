@@ -685,8 +685,17 @@ class Scene05(HangmanScene):
     def _place_value(self, lab, node_dot, direction, gap, cap_h):
         """Anchor a bare 'N.NN' number beside ``node_dot`` by its DECIMAL POINT (glyph index 1 — every
         value here is < 10) so it doesn't shift as the digits change; y-centred on the node, hugging
-        its left/right edge via the reference decimal offsets. Returns ``lab``."""
+        its left/right edge via the reference decimal offsets. If the requested side would run the
+        number off the frame (e.g. A's rightmost hit child sits at the edge), FLIP to the inner side.
+        Returns ``lab``."""
         left_to_dot, dot_to_right = (x * cap_h for x in self._num_dot_offsets())
+        fx = config.frame_x_radius - 0.15
+        if np.array_equal(direction, RIGHT) and \
+                node_dot.get_right()[0] + gap + left_to_dot + dot_to_right > fx:
+            direction = LEFT                                    # would spill right → put it on the left
+        elif np.array_equal(direction, LEFT) and \
+                node_dot.get_left()[0] - gap - dot_to_right - left_to_dot < -fx:
+            direction = RIGHT                                   # would spill left → put it on the right
         y = node_dot.get_center()[1]
         if np.array_equal(direction, LEFT):
             dot_x = node_dot.get_left()[0] - gap - dot_to_right
