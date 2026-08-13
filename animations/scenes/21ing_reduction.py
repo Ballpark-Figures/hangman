@@ -18,12 +18,12 @@ SOURCED DATA
     (`scene17_chart_data.get()["uniform"]`); NOT recomputed here.
   • beats e/f word walls + the VO word counts = `assets/scene21_data.py`
     (committed `scene21_cache.json`), read from `math/wordlist.py` (cutoff zipf≥2.5):
-      words4 = first 100 4-letter words (alphabetical)   — LEFT wall
-      words7 = first 500 7-letter words (alphabetical)   — RIGHT wall
-      counts = {len4: 2120, len7: 5541, len7_ing: 658}   — the VO's three ___ blanks
-    100/500 are the SCRIPT's DISPLAY caps (samples); the counts are the true totals,
-    SPOKEN in the VO only (NOT rendered — voiceover ≠ on-screen). Of the 500 shown
-    7-letter words, 43 end in -ING (survive beat f).
+      words4 = EVERY 20th 4-letter word (alphabetical, 106)   — LEFT wall
+      words7 = EVERY 20th 7-letter word (alphabetical, 278)   — RIGHT wall
+      counts = {len4: 2120, len7: 5541, len7_ing: 658}        — the VO's three ___ blanks
+    The walls are A–Z SAMPLES (every 20th); the counts are the true totals, SPOKEN
+    in the VO only (NOT rendered — voiceover ≠ on-screen). Of the 278 shown 7-letter
+    words, 35 end in -ING (survive beat f).
 
 FLAGS (confirm)
   • beat b: chart named to match scene 17's OPTIMAL chart — title "Optimal Misses
@@ -38,7 +38,7 @@ BEAT MAP
   b chart           — chalk line-outline graph: optimal misses per word length
   c blanks_gallows  — erase the chart; draw 7 word blanks + the gallows
   d guess_ing       — guess I, N, G → written into the LAST 3 blanks (the reduction)
-  e word_walls      — clear the demo; LEFT = 100 4-letter words, RIGHT = 500 7-letter
+  e word_walls      — clear the demo; LEFT = every-20th 4-letter, RIGHT = every-20th 7-letter
   f erase_nonings   — fade the right-wall words NOT ending in ING (only -ING survive)
   g erase_all       — erase the board (both walls)
   h gaining         — play GAINING out: I·N·G·A, all hits (extras give it away)
@@ -106,6 +106,7 @@ class Scene21(HangmanScene):
         chart.axes = VGroup(chart.x_axis, chart.y_axis)
         xt = chalk_phrase("Word Length", height=0.28)     # x-axis title (scene 17)
         xt.next_to(chart.labels, DOWN, buff=0.22).set_x(chart.x_axis.get_center()[0])
+        chart.add(xt)              # a submobject so FadeOut(chart) in beat c clears it
         chart.xtitle = xt
         self.chart = chart
 
@@ -164,11 +165,19 @@ class Scene21(HangmanScene):
 
     def _setup_walls(self):
         d = scene21_data.get()
-        self.words7 = d["words7"]
         self.wall4 = self._word_wall(d["words4"], cols=5,
                                      region_w=6.4, region_h=7.4, cx=-3.9, cy=0)
-        self.wall7 = self._word_wall(d["words7"], cols=10,
-                                     region_w=7.0, region_h=7.6, cx=3.6, cy=0)
+        # build the 7-letter grid, then split its rows into the -ING survivors
+        # (keep) and the rest (drop) as SEPARATE top-level groups. Beat f removes
+        # `drop` cleanly; beat g fades only `keep`. Fading a SUBSET of one tracked
+        # container (the old approach) let the dropped rows reappear at g's fade —
+        # so keep/drop are distinct mobjects from the start.
+        wall7 = self._word_wall(d["words7"], cols=7,
+                                region_w=7.0, region_h=7.6, cx=3.6, cy=0)
+        self.wall7_keep = VGroup(*[r for r, w in zip(wall7, d["words7"])
+                                   if w.endswith("ing")])
+        self.wall7_drop = VGroup(*[r for r, w in zip(wall7, d["words7"])
+                                   if not w.endswith("ing")])
 
     @subscene
     def word_walls(self):
@@ -178,20 +187,20 @@ class Scene21(HangmanScene):
         self.play(FadeOut(self.rules7), FadeOut(self.hang7), FadeOut(self.rev7),
                   run_time=0.6)
         self.rules7 = self.hang7 = self.hang7_parts = self.rev7 = None
-        self.play(FadeIn(self.wall4), FadeIn(self.wall7), run_time=1.2)
+        self.play(FadeIn(self.wall4), FadeIn(self.wall7_keep),
+                  FadeIn(self.wall7_drop), run_time=1.2)
 
     # ── f : fade the right-wall words NOT ending in ING (only -ING survive) ────
     @subscene
     def erase_nonings(self):
-        drop = VGroup(*[row for row, w in zip(self.wall7, self.words7)
-                        if not w.endswith("ing")])
-        self.play(FadeOut(drop), run_time=1.5)
+        self.play(FadeOut(self.wall7_drop), run_time=1.5)
+        self.wall7_drop = None
 
     # ── g : erase the board (both walls) ──────────────────────────────────────
     @subscene
     def erase_all(self):
-        self.play(FadeOut(self.wall4), FadeOut(self.wall7), run_time=0.8)
-        self.wall4 = self.wall7 = self.words7 = None
+        self.play(FadeOut(self.wall4), FadeOut(self.wall7_keep), run_time=0.8)
+        self.wall4 = self.wall7_keep = None
 
     # ── h : play GAINING out — I·N·G·A, all hits (extras give the word away) ───
     def _setup_gaining(self):

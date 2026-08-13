@@ -9,14 +9,13 @@ Three products:
    7-letter words ending in ING. These are `len(wordlist.load(...))` filtered by
    length / `endswith("ing")` — a plain data extraction, not an invented metric.
 
-2. `words4` — the FIRST 100 4-letter words in ALPHABETICAL order (beat e, LEFT
-   wall). A DISPLAY SAMPLE: the on-screen count (100) is a cap the script names,
-   NOT the true total (that is `counts["len4"]`, said in the VO).
+2. `words4` — EVERY 20th 4-letter word in ALPHABETICAL order (beat e, LEFT wall).
+   A DISPLAY SAMPLE that spans the whole alphabet (not just the early letters); the
+   true total is `counts["len4"]`, said in the VO.
 
-3. `words7` — the FIRST 500 7-letter words in ALPHABETICAL order (beat e, RIGHT
-   wall). Same display-sample caveat: 500 is the script's display cap, `counts`
-   holds the true totals. Beat f fades those NOT ending in "ing" (a render-time
-   string filter, no computation).
+3. `words7` — EVERY 20th 7-letter word in ALPHABETICAL order (beat e, RIGHT wall).
+   Same display-sample caveat: `counts` holds the true totals. Beat f fades those
+   NOT ending in "ing" (a render-time string filter, no computation).
 
 The optimal-misses-per-length chart (beat b) is NOT sourced here — it reuses the
 existing committed cache via `scene17_chart_data.get()["uniform"]`.
@@ -31,10 +30,9 @@ _ASSETS = Path(__file__).resolve().parent
 _MATH = _ASSETS.parents[1] / "math"
 CACHE = _ASSETS / "scene21_cache.json"
 
-# display caps the SCRIPT names for beat e (first N, alphabetical) — a sample, not
-# the true totals (those live in `counts`, and are spoken in the VO only).
-DISPLAY_4 = 100
-DISPLAY_7 = 500
+# beat e shows EVERY STRIDE-th word (alphabetical) — a sample spanning A–Z, not the
+# true totals (those live in `counts`, spoken in the VO only).
+STRIDE = 20
 
 
 def get():
@@ -57,8 +55,8 @@ def build():
             "len7": len(seven),
             "len7_ing": len(seven_ing),
         },
-        "words4": four[:DISPLAY_4],
-        "words7": seven[:DISPLAY_7],
+        "words4": four[::STRIDE],
+        "words7": seven[::STRIDE],
     }
     CACHE.write_text(json.dumps(out, indent=1))
     _report(out)
@@ -73,8 +71,8 @@ def _report(out):
     print(f"  7-letter words total ........ {c['len7']}")
     print(f"  7-letter -ING words left .... {c['len7_ing']}")
     print()
-    print(f"DISPLAY: {len(out['words4'])} 4-letter words (LEFT), "
-          f"{len(out['words7'])} 7-letter words (RIGHT), alphabetical.")
+    print(f"DISPLAY (every {STRIDE}th, alphabetical): {len(out['words4'])} "
+          f"4-letter words (LEFT), {len(out['words7'])} 7-letter words (RIGHT).")
     ing_in_display = sum(1 for w in out["words7"] if w.endswith("ing"))
     print(f"  of the {len(out['words7'])} displayed 7-letter words, "
           f"{ing_in_display} end in -ING (survive beat f).")
