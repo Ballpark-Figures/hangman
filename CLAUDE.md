@@ -125,6 +125,21 @@ the chosen words + their frequency share, under a "N-Letter Words" title.
   (see the shared canonical-patterns index) — a value-per-length, two-series grouped bar chart
   with axes/labels/title/legend; the scene just passes its two series + labels + `ink_color`.
 
+## The "misses by word length" chart recurs in TWO forms — match by MEDIUM, not by grep
+The avg-misses-per-length bar chart appears more than once; a scene RECAPPING it ("bring
+back that chart") must reuse the form from the SAME background, not the first title a grep
+turns up (this bit us on scene 21: matched scene 17's title when the user meant the
+CHALKBOARD one — one round-trip). The two established forms:
+- **CHALKBOARD** — `get_bar_chart` line-outline chalk bars titled **"Average Misses by Word
+  Length"** (no x-axis title), GREEDY data (`greedy_data["avg_misses_by_length"]`): scene 04
+  (chalk) + its scene 05 navy recap (crisp, same title/data).
+- **BRAND bg** — `grouped_bar_chart` filled bars titled **"Optimal Misses per Word"** with
+  x-axis **"Word Length"**, OPTIMAL data (`scene17_chart_cache.json`): scene 17.
+Scene 21 (chalkboard) "brings back" this chart with the CHALKBOARD title ("Average Misses by
+Word Length") but OPTIMAL data — a deliberate title/data mismatch the user chose (the script
+says "optimal misses", scene 04's chalkboard chart is greedy). So when several named versions
+of one chart exist, SURFACE them (or match by medium) rather than silently pick one.
+
 ## Math / data
 - `math/data/wordlist_master.txt` — the curated frequency wordlist
   (`word<TAB>zipf`, built by `math/build_wordlist.py`: wordfreq → hunspell
