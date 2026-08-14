@@ -68,15 +68,17 @@ from assets.chalkboard import chalkboard, chalk_phrase, chalk_number, CHALK
 # ── beat b : the "too high" reference line ────────────────────────────────────
 LIMIT_MISSES = 6
 
-# ── beat c : chalkboard table (LEFT) ──────────────────────────────────────────
-CB_CX, CB_W, CB_H = -3.8, 7.5, 7.7           # chalkboard prop, left half
-COL_LEN_X, COL_FAIR_X, COL_GAL_X = -6.0, -3.8, -1.6     # 3 columns, centred on CB_CX
-RULE_HALF = 3.1                              # underline half-width (centred on CB_CX)
+# ── beat c : layout ───────────────────────────────────────────────────────────
+# ONE equal gap separates frame-left | board | graph | frame-right, AND is the
+# board's left/top/bottom margin — so the board's width + the graph's placement are
+# DERIVED from this margin + the measured graph width (see fair_setup).
+MARGIN = 0.6
+COL_DX = (-2.2, 0.0, 2.2)                     # table column x-offsets from board centre
 HEADER_Y = 2.85                              # header baseline band
 RULE_Y = 2.15                                # underline below headers
 ROW_Y0, ROW_DY = 1.35, -1.05                 # first data row, per-row step (future rows)
 
-# ── beat c : survival CDF (RIGHT) ─────────────────────────────────────────────
+# ── beat c : survival CDF (RIGHT) — nominal box; placed by fair_setup ──────────
 GRAPH_CX, GRAPH_CY, GRAPH_W, GRAPH_H = 4.2, -0.35, 5.2, 3.9
 
 
@@ -105,8 +107,10 @@ class Scene23(HangmanScene):
         self.line6 = None
         self.cb = None
         self.table = None            # headers + rule (built in c)
+        self.col_x = None            # the 3 table column x's (set when the board is placed)
         self.cdf = None              # the right-side survival-CDF chart group
-        self.cdf_extra = None        # its axis titles + 50% line + chart title
+        self.cdf_extra = None        # its axis titles
+        self.fifty = None            # the dashed 50% line
         self.row1 = None
 
     # ── a : recall scene 19's by-length double bar chart ──────────────────────
@@ -141,18 +145,20 @@ class Scene23(HangmanScene):
         self.play(Create(self.line6), run_time=0.8)
 
     # ── chalkboard table (LEFT) ───────────────────────────────────────────────
-    def _setup_board(self):
-        self.cb = chalkboard(CB_W, CB_H, center=[CB_CX, 0, 0])
+    def _setup_board(self, cx, w, h):
+        self.cb = chalkboard(w, h, center=[cx, 0, 0])
         self.cb.set_z_index(-10)
+        self.col_x = [cx + dx for dx in COL_DX]
         # two-line chalk headers so each fits its narrow column
         def header(lines, x):
             g = VGroup(*[chalk_phrase(t, height=0.24, stroke_width=2.8, space=0.18)
                          for t in lines])
             g.arrange(DOWN, buff=0.10).move_to([x, HEADER_Y, 0])
             return g
-        h_len = header(["WORD", "LENGTH"], COL_LEN_X)
-        h_fair = header(["FAIR # OF", "MISSES"], COL_FAIR_X)
-        rule = Line([CB_CX - RULE_HALF, RULE_Y, 0], [CB_CX + RULE_HALF, RULE_Y, 0],
+        h_len = header(["WORD", "LENGTH"], self.col_x[0])
+        h_fair = header(["FAIR # OF", "MISSES"], self.col_x[1])
+        half = w / 2 - 0.5
+        rule = Line([cx - half, RULE_Y, 0], [cx + half, RULE_Y, 0],
                     color=CHALK, stroke_width=3)
         self.table = VGroup(h_len, h_fair, rule)
 
@@ -189,7 +195,7 @@ class Scene23(HangmanScene):
         y50 = base + 0.5 * GRAPH_H                         # y_max=1 → 50% at cy
         return DashedLine([GRAPH_CX - GRAPH_W / 2, y50, 0],
                           [GRAPH_CX + GRAPH_W / 2, y50, 0],
-                          color=INK, stroke_width=3, dash_length=0.14)
+                          color=CRIMSON, stroke_width=3, dash_length=0.14)
 
     # ── c : chart out; chalkboard + empty table, "1-Letter Words" CDF + 50% line
     @subscene
@@ -197,22 +203,31 @@ class Scene23(HangmanScene):
         self.play(FadeOut(self.chart), FadeOut(self.line6), run_time=0.6)
         self.chart = self.line6 = None
 
-        self._setup_board()
+        m = MARGIN
+        # build the graph, MEASURE it, then derive the board width + graph placement so
+        # frame-left|board|graph|frame-right are separated by equal gaps m and the
+        # board's left/top/bottom margins are all m too (board vertically centred).
+        self.cdf = self._cdf_chart(1)
+        self.cdf_extra = self._cdf_axis_titles(self.cdf)
+        self.fifty = self._fifty_line()
+        graph = VGroup(self.cdf, self.cdf_extra, self.fifty)
+        cb_w, cb_h = 16 - 3 * m - graph.width, 9 - 2 * m
+        board_cx = -8 + m + cb_w / 2
+        graph.shift(RIGHT * ((-8 + 2 * m + cb_w) - graph.get_left()[0]))   # left edge = board_right + m
+
+        self._setup_board(board_cx, cb_w, cb_h)
         self.play(FadeIn(self.cb), run_time=0.6)
         h_len, h_fair, rule = self.table
         self.play(LaggedStartMap(Create, _strokes(*h_len, *h_fair), lag_ratio=0.5),
                   run_time=1.4)
         self.play(Create(rule), run_time=0.5)
 
-        self.cdf = self._cdf_chart(1)
-        self.cdf_extra = self._cdf_axis_titles(self.cdf)
         rest = VGroup(self.cdf.labels, self.cdf.x_axis, self.cdf.y_axis,
                       self.cdf.yticks, self.cdf.title, self.cdf_extra)
         rest.set_opacity(0)
-        self.add(self.cdf, self.cdf_extra)
+        self.add(self.cdf, self.cdf_extra)      # fifty is added by its Create below
         grow_bars(self, self.cdf.bars, 1.2, lag=0.08,
                   extra=[rest.animate.set_opacity(1)])
-        self.fifty = self._fifty_line()
         self.play(Create(self.fifty), run_time=0.7)
 
     # ── mini gallows with one tall body oval, for the table's gallows column ──
@@ -231,11 +246,12 @@ class Scene23(HangmanScene):
 
     # ── d : fill the length-1 row (1 | 1) + gallows with a tall purple oval ───
     def _setup_row1(self):
+        cx_len, cx_fair, cx_gal = self.col_x
         n_len = chalk_number(1, height=0.42, stroke_width=3.2).move_to(
-            [COL_LEN_X, ROW_Y0, 0])
+            [cx_len, ROW_Y0, 0])
         n_fair = chalk_number(1, height=0.42, stroke_width=3.2).move_to(
-            [COL_FAIR_X, ROW_Y0, 0])
-        gal = self._mini_gallows(_miss_color(1)).move_to([COL_GAL_X, ROW_Y0, 0])
+            [cx_fair, ROW_Y0, 0])
+        gal = self._mini_gallows(_miss_color(1)).move_to([cx_gal, ROW_Y0, 0])
         self.row1 = VGroup(n_len, n_fair, gal)
 
     @subscene
