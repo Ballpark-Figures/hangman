@@ -47,10 +47,15 @@ BEAT MAP
   a double_plot  — recall scene 19's by-length double bar chart (uniform vs better choosing)
   b line_at_6    — dashed reference line at y=6 misses across that chart
   c fair_setup   — chart out; LEFT chalkboard + empty table, RIGHT "1-Letter Words" survival
-                   CDF (# of Misses vs Chance of Surviving) + a dashed 50% line
+                   CDF (Misses before Losing vs Chance of Surviving) + a dashed 50% line
   d fill_row_1   — fill the length-1 row (1 | 1) + draw a gallows with a tall purple oval
+  e switch_to_2  — switch to 2-letter words: morph the CDF 1->2 letters (title crossfades)
+                   and write ONLY the "2" in the Word Length column (row 2, nothing else)
 
-Render:  render 23a --fast   (…23d)   /   render 23 sub  for the whole scene
+NB beat e runs AHEAD of Script.md's animation column (still 4 segments); it animates the
+length-2 part of beat-d's voiceover ("With 2 letters, the closest we can get is …").
+
+Render:  render 23a --fast   (…23e)   /   render 23 sub  for the whole scene
 """
 from pathlib import Path
 import sys
@@ -59,7 +64,8 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from config import *
-from bpkfigures.bar_graph import grouped_bar_chart, get_bar_chart, grow_bars
+from bpkfigures.bar_graph import (grouped_bar_chart, get_bar_chart, grow_bars,
+                                  morph_bar_chart)
 from assets import short_words_data
 from assets import scene23_data
 from assets.word_tables_scene import UNIFORM_COLOR, BESTOP_COLOR, INK
@@ -108,10 +114,11 @@ class Scene23(HangmanScene):
         self.cb = None
         self.table = None            # headers + rule (built in c)
         self.col_x = None            # the 3 table column x's (set when the board is placed)
-        self.cdf = None              # the right-side survival-CDF chart group
+        self.cdf = None              # the right-side survival-CDF chart group (current length)
         self.cdf_extra = None        # its axis titles
         self.fifty = None            # the dashed 50% line
         self.row1 = None
+        self.len2 = None             # the length-2 row label (beat e)
 
     # ── a : recall scene 19's by-length double bar chart ──────────────────────
     def _double_chart(self):
@@ -262,3 +269,23 @@ class Scene23(HangmanScene):
         self.play(LaggedStartMap(Create, _strokes(n_fair), lag_ratio=0.5), run_time=0.6)
         self.play(LaggedStartMap(Create, gal.frame, lag_ratio=0.8), run_time=1.0)
         self.play(Create(gal.oval), run_time=0.6)
+
+    # ── e : switch to 2-letter words — morph the CDF, write only the length-2 row ─
+    def _setup_switch_2(self):
+        new = self._cdf_chart(2)                       # 2-letter CDF, same box/center
+        # align the new plot box onto the current (shifted) chart, then morph in place
+        new.shift(self.cdf.y_axis.get_center() - new.y_axis.get_center())
+        self._cdf2 = new
+        self.len2 = chalk_number(2, height=0.42, stroke_width=3.2).move_to(
+            [self.col_x[0], ROW_Y0 + ROW_DY, 0])       # Word Length column, row 2
+
+    @subscene
+    def switch_to_2(self):
+        self._setup_switch_2()
+        # morph the length-1 bars/labels/title into the length-2 ones (axis titles +
+        # the 50% line are unchanged); the chart title crossfades 1- -> 2-Letter Words
+        self.play(*morph_bar_chart(self.cdf, self._cdf2), run_time=1.4)
+        self.cdf = self._cdf2
+        self._cdf2 = None
+        self.play(LaggedStartMap(Create, _strokes(self.len2), lag_ratio=0.5),
+                  run_time=0.6)
