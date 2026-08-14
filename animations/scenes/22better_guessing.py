@@ -24,7 +24,7 @@ REUSE MAP (element → shared source)
     `build_rules` / `build_gallows` / `bubble` / `reveal_letter` + `chalkboard`
     (same as scene 21's reduction demo — bubble-then-write each hit).
   • bar charts (b/c) → `bpkfigures.bar_graph.get_bar_chart` (new `y_min` zoomed axis) +
-    `grow_bars` entrance; ACCENT_FILL bars, BLACK ink (brand bg), a scaled crisp title.
+    `grow_bars` entrance; ACCENT_FILL bars, BLACK ink (brand bg), a crisp_text title.
   • tier lists + morph (d) → `tier_list.filled_list` + `tier_list.morph_into` (the shared
     scene-17 comparison), `BEST_OPENER_TIER_LETTERS`; titles + arrow == scene 17's style.
   • emphasis (e/f) → dim the OTHER tiles (house "dim the rest"), `tier_list.tile_map`
@@ -116,22 +116,11 @@ class Scene22(HangmanScene):
             self.play(LaggedStartMap(Create, L, lag_ratio=0.5), run_time=0.9)
             self.play(FadeOut(bub), run_time=0.4)
 
-    # ── one-line crisp title (word-by-word to dodge the render-time wrap) ──────
-    def _phrase(self, text, *, font_size, color):
-        """A one-line crisp bold phrase laid out WORD-BY-WORD. A full-string crisp_text
-        of title length WRAPS unpredictably at render (Pango on the supersampled text —
-        bit scene 17's neighbours too); each short word can't. Tops aligned so all words
-        share a baseline (uniform cap height); any descenders hang below."""
-        words = VGroup(*[crisp_text(w, font_size=font_size, color=color, weight=BOLD)
-                         for w in text.split()])
-        words.arrange(RIGHT, buff=font_size * 0.006, aligned_edge=UP)
-        return words
-
     # ── bar-chart helper (beats b/c) ──────────────────────────────────────────
     def _bar_chart(self, key, title, *, cy, y_min, y_max, y_ticks):
         d = scene22_data.get()[key]
         items = [(x["letter"], x["misses"]) for x in d["letters"]]
-        title_mob = self._phrase(title, font_size=26, color=BAR_INK)
+        title_mob = crisp_text(title, font_size=26, color=BAR_INK, weight=BOLD)
         chart = get_bar_chart(
             items, center=[0, cy, 0], width=CHART_W, height=CHART_H,
             y_min=y_min, y_max=y_max, bar_color=ACCENT_FILL, ink_color=BAR_INK,
@@ -173,9 +162,9 @@ class Scene22(HangmanScene):
     # ── d : original tier list → arrow → the best_opener tier list ────────────
     def _title(self, text, x):
         """A tier-list title in scene 17's style (crisp black bold font_size 30, at
-        TITLE_Y), laid out word-by-word (see _phrase)."""
-        return self._phrase(text, font_size=30, color=TITLE_COLOR).move_to(
-            [x, TITLE_Y, 0])
+        TITLE_Y)."""
+        return crisp_text(text, font_size=30, color=TITLE_COLOR,
+                          weight=BOLD).move_to([x, TITLE_Y, 0])
 
     @subscene
     def tier_morph(self):
