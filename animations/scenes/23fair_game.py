@@ -69,8 +69,9 @@ from assets.chalkboard import chalkboard, chalk_phrase, chalk_number, CHALK
 LIMIT_MISSES = 6
 
 # ── beat c : chalkboard table (LEFT) ──────────────────────────────────────────
-CB_CX, CB_W, CB_H = -4.15, 7.5, 7.7          # chalkboard prop, left half
-COL_LEN_X, COL_FAIR_X, COL_GAL_X = -6.5, -4.35, -2.05   # 3 column centres
+CB_CX, CB_W, CB_H = -3.8, 7.5, 7.7           # chalkboard prop, left half
+COL_LEN_X, COL_FAIR_X, COL_GAL_X = -6.0, -3.8, -1.6     # 3 columns, centred on CB_CX
+RULE_HALF = 3.1                              # underline half-width (centred on CB_CX)
 HEADER_Y = 2.85                              # header baseline band
 RULE_Y = 2.15                                # underline below headers
 ROW_Y0, ROW_DY = 1.35, -1.05                 # first data row, per-row step (future rows)
@@ -145,26 +146,29 @@ class Scene23(HangmanScene):
         self.cb.set_z_index(-10)
         # two-line chalk headers so each fits its narrow column
         def header(lines, x):
-            g = VGroup(*[chalk_phrase(t, height=0.24, stroke_width=2.8) for t in lines])
+            g = VGroup(*[chalk_phrase(t, height=0.24, stroke_width=2.8, space=0.18)
+                         for t in lines])
             g.arrange(DOWN, buff=0.10).move_to([x, HEADER_Y, 0])
             return g
         h_len = header(["WORD", "LENGTH"], COL_LEN_X)
         h_fair = header(["FAIR # OF", "MISSES"], COL_FAIR_X)
-        rule = Line([COL_LEN_X - 0.95, RULE_Y, 0], [COL_GAL_X + 0.95, RULE_Y, 0],
+        rule = Line([CB_CX - RULE_HALF, RULE_Y, 0], [CB_CX + RULE_HALF, RULE_Y, 0],
                     color=CHALK, stroke_width=3)
         self.table = VGroup(h_len, h_fair, rule)
 
     # ── survival CDF (RIGHT) ──────────────────────────────────────────────────
     def _cdf_chart(self, length):
         pts = scene23_data.get()["cdf"][str(length)]
-        items = [(str(p["misses"]), p["p_win"]) for p in pts]
+        # x-axis = "misses before losing" = miss budget + 1 (a game that ENDS at m
+        # misses lets the guesser survive within m-1), so budget 0 -> label 1, etc.
+        items = [(str(p["misses"] + 1), p["p_win"]) for p in pts]
         # inexact (greedy-tail) bars go crimson; exact bars stay blue
-        highlight = {str(p["misses"]): CRIMSON for p in pts if not p["exact"]}
+        highlight = {str(p["misses"] + 1): CRIMSON for p in pts if not p["exact"]}
         title = crisp_text(f"{length}-Letter Words", font_size=28, color=INK, weight=BOLD)
         chart = get_bar_chart(
             items, center=[GRAPH_CX, GRAPH_CY, 0], width=GRAPH_W, height=GRAPH_H,
             y_min=0.0, y_max=1.0, bar_color=ACCENT_FILL, ink_color=INK,
-            highlight=highlight, bar_ratio=0.55,
+            highlight=highlight, bar_ratio=1.0,
             label_factory=lambda s: crisp_text(s, font_size=20, color=INK),
             label_buff=0.14, x_axis=True, y_axis=True, y_ticks=[0.0, 0.5, 1.0],
             y_tick_factory=lambda t: crisp_text(f"{int(t * 100)}%", font_size=18,
@@ -174,7 +178,7 @@ class Scene23(HangmanScene):
 
     def _cdf_axis_titles(self, chart):
         g = chart.chart_geom
-        xt = crisp_text("# of Misses", font_size=20, color=INK)
+        xt = crisp_text("Misses before Losing", font_size=20, color=INK)
         xt.next_to(chart.labels, DOWN, buff=0.22).set_x(GRAPH_CX)
         yt = crisp_text("Chance of Surviving", font_size=20, color=INK).rotate(PI / 2)
         yt.next_to(chart.yticks, LEFT, buff=0.2).set_y(GRAPH_CY)
@@ -218,8 +222,9 @@ class Scene23(HangmanScene):
         post = Line([-0.30, -0.46, 0], [-0.30, 0.46, 0], color=CHALK, stroke_width=sw)
         beam = Line([-0.30, 0.46, 0], [0.12, 0.46, 0], color=CHALK, stroke_width=sw)
         rope = Line([0.12, 0.46, 0], [0.12, 0.30, 0], color=CHALK, stroke_width=sw)
-        oval = Ellipse(width=0.17, height=0.36, color=color, fill_color=color,
-                       fill_opacity=1.0, stroke_width=2).move_to([0.12, 0.11, 0])
+        # like the hangman head but a taller OVAL, outlined (not filled), in purple
+        oval = Ellipse(width=0.26, height=0.46, color=color, fill_opacity=0.0,
+                       stroke_width=sw).move_to([0.12, 0.07, 0])
         g = VGroup(base, post, beam, rope, oval)
         g.frame, g.oval = VGroup(base, post, beam, rope), oval
         return g
@@ -240,4 +245,4 @@ class Scene23(HangmanScene):
         self.play(LaggedStartMap(Create, _strokes(n_len), lag_ratio=0.5), run_time=0.6)
         self.play(LaggedStartMap(Create, _strokes(n_fair), lag_ratio=0.5), run_time=0.6)
         self.play(LaggedStartMap(Create, gal.frame, lag_ratio=0.8), run_time=1.0)
-        self.play(GrowFromCenter(gal.oval), run_time=0.5)
+        self.play(Create(gal.oval), run_time=0.6)
