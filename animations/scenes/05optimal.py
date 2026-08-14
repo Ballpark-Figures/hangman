@@ -69,9 +69,9 @@ Script row 05, split on '—' (voiceover ↔ animation zip 1:1). BEAT MAP:
                     opener's optimal tree (red-white shape, root lettered, 'Avg misses: N.NN' above),
                     GREEN the winner (A = 3.88 min), fade the rest, and grow the green tree back to
                     full screen with its letters + solved colours restored
-  z dedup         — DEDUP: two parallel miss-order trees (LEFT A→O, RIGHT O→A) reach the SAME position
-                    ('_ _' + missed {A,O}); the right board's misses reorder to match the left + both
-                    highlight (same letters, different order → same strategy, solve once)
+  z dedup         — DEDUP: two parallel miss-spine trees (LEFT A→O, RIGHT O→A), each guess node fanning
+                    its hit branches as BARE dots, ending in a bare position node with '_ _' below;
+                    both reach the same position (same letters, different order → solve once)
   --- next sections (not yet built) ---
   … za the can't-be-in-word single branch; zb paired greedy-vs-optimal chart
 
@@ -2056,59 +2056,59 @@ class Scene05(HangmanScene):
         self.winner = full
 
     # ── z : DEDUP — the same letters in a different ORDER reach the same position, so a solved
-    #        position isn't re-solved. Two parallel miss-order trees: LEFT guesses A then O, RIGHT
-    #        guesses O then A; each ends in the board it reaches ('_ _' with the two misses in red).
-    #        Both boards are the SAME position (missed {A, O}) — after both draw, the RIGHT board's
-    #        misses reorder (O A to A O) to land identical to the LEFT, and both boards highlight.
-    #        The position (missed A and O → 23 words) is SOURCED from `_n_miss_node(2)`; here only its
-    #        board STATE is shown (2 blanks + the miss set), per column 2 ('show 2 trees'). ──────────
-    DEDUP_NODE_R = 0.45
+    #        position isn't re-solved. Two parallel miss-spine trees: LEFT guesses A then O, RIGHT
+    #        guesses O then A. Each guess node (lettered; first white, then red-via-miss) also shows
+    #        its OTHER children — the hit branches — as BARE dots (no letters, no blanks). The spine
+    #        ends in a bare position NODE with the '_ _' board hanging below it (a gap wide enough
+    #        that a revealed letter would fit above each rule). The hit-child COUNT is SOURCED
+    #        (`_hit_count`: A and O each hit at pos 1 and pos 2 → 2 bare children). ──────────────────
+    DEDUP_NODE_R = 0.42
+    def _hit_count(self, letter):
+        """How many HIT branches a first-guess ``letter`` splits into (positions it can occupy) —
+        SOURCED from the tree's option branches (A, O → 2 each: pos1, pos2)."""
+        opt = {o["letter"]: o for o in DATA["tree"]["options"]}[letter]
+        return sum(1 for p in opt["subtree"]["branches"] if set(p) != {"_"})
+
     def _dedup_tree(self, guesses, cx):
-        """One miss-order tree: guess1 (white, reached with 0 misses) --miss--> guess2 (red) --miss-->
-        the board it reaches ('_ _' + the running red miss tally, in GUESSED order). ``guesses`` is the
-        two letters in the order played; ``cx`` centres the column. Returns a handle namespace."""
+        """One miss-spine tree at column ``cx``: guess1 (white) --miss--> guess2 (red) --miss-->
+        position (bare red node) with '_ _' blanks below. Each guess node ALSO fans its hit children
+        as bare white dots (the 'other children', no letters/blanks). Returns a handle namespace."""
         r = self.DEDUP_NODE_R
-        g1 = self._node_dot([cx, 2.6, 0], r=r, misses=0)
-        g1l = self._node_letter(guesses[0], g1)
-        g2 = self._node_dot([cx, 0.6, 0], r=r, misses=1)
-        g2l = self._node_letter(guesses[1], g2)
-        e1 = self._edge_line(g1, g2, LIGHT_RED)                      # guess1 missed → red edge
-        blanks = self._blanks("__", h=0.5).move_to([cx, -1.4, 0])   # the 2-letter board, unrevealed
-        e2 = Line(g2.get_bottom(), blanks.get_top(), color=LIGHT_RED, stroke_width=2.0)
-        misses = self._miss_row([c.upper() for c in guesses], h=0.34)  # red tally, in guessed order
-        misses.next_to(blanks, DOWN, buff=0.28).set_x(cx)
-        ns = SimpleNamespace(g1=g1, g1l=g1l, g2=g2, g2l=g2l, e1=e1, e2=e2,
-                             blanks=blanks, misses=misses, board=VGroup(blanks, misses),
-                             miss_letters=list(misses))
-        return ns
+        cr = r * GRID_CHILD_RF                       # bare hit-child radius
+        SPREAD, DY = 1.2, 1.85                       # hit-child half-spread, spine level drop
+        ys = [2.6, 2.6 - DY, 2.6 - 2 * DY]           # guess1, guess2, position
+        grp = VGroup()
+        d0 = self._node_dot([cx, ys[0], 0], r=r, misses=0)   # guess1 — white (0 misses)
+        l0 = self._node_letter(guesses[0], d0)
+        d1 = self._node_dot([cx, ys[1], 0], r=r, misses=1)   # guess2 — red (reached via a miss)
+        l1 = self._node_letter(guesses[1], d1)
+        d2 = self._node_dot([cx, ys[2], 0], r=r, misses=1)   # position — bare red node (no letter)
+        grp.add(self._edge_line(d0, d1, LIGHT_RED), self._edge_line(d1, d2, LIGHT_RED),
+                d0, l0, d1, l1, d2)
+        # each guess node's OTHER children = its hit branches, as BARE white dots at ±SPREAD
+        for pd, g, py in [(d0, guesses[0], ys[0]), (d1, guesses[1], ys[1])]:
+            n = self._hit_count(g)
+            for x in [-SPREAD, SPREAD][:n]:
+                hd = Dot([cx + x, py - DY, 0], radius=cr, color=_miss_color(0))
+                grp.add(self._edge_line(pd, hd, _miss_color(0)), hd)
+        # the '_ _' board hangs below the position node, far enough for a letter to fit above each rule
+        blanks = self._blanks("__", h=0.5)
+        blanks.next_to(d2, DOWN, buff=0.5).set_x(cx)
+        grp.add(blanks)
+        return SimpleNamespace(all=grp, d0=d0, d1=d1, d2=d2, blanks=blanks)
 
     def _setup_dedup(self):
-        self.dd_left = self._dedup_tree(["a", "o"], -3.8)    # A missed, then O
-        self.dd_right = self._dedup_tree(["o", "a"], 3.8)    # O missed, then A
+        self.dd_left = self._dedup_tree(["a", "o"], -4.0)    # A missed, then O
+        self.dd_right = self._dedup_tree(["o", "a"], 4.0)    # O missed, then A
 
     @subscene
     def dedup(self):
         self._setup_dedup()
-        # clear the full A-tree carried in from beat y before the dedup illustration
+        # clear the full A-tree carried in from beat y, then show the two trees
         self.play(FadeOut(self.winner), run_time=0.6)
         self.winner = None
-        L, R = self.dd_left, self.dd_right
-        # LEFT tree grows top-down: guess A, miss → guess O, miss → the board it reaches
-        self.play(GrowFromCenter(L.g1), FadeIn(L.g1l), run_time=0.5)
-        self.play(GrowFromPoint(L.e1, L.g1.get_center()),
-                  GrowFromCenter(L.g2), FadeIn(L.g2l), run_time=0.5)
-        self.play(GrowFromPoint(L.e2, L.g2.get_center()), FadeIn(L.board), run_time=0.6)
-        # RIGHT tree: the SAME letters, other order (O then A)
-        self.play(GrowFromCenter(R.g1), FadeIn(R.g1l), run_time=0.5)
-        self.play(GrowFromPoint(R.e1, R.g1.get_center()),
-                  GrowFromCenter(R.g2), FadeIn(R.g2l), run_time=0.5)
-        self.play(GrowFromPoint(R.e2, R.g2.get_center()), FadeIn(R.board), run_time=0.6)
-        # show the two boards are IDENTICAL: reorder the right board's misses (O A → A O) so it matches
-        # the left (order doesn't matter — same set = same position), then highlight both boards
-        r_o, r_a = R.miss_letters                    # right guessed O then A → [O, A]
-        ox, ax = r_o.get_center(), r_a.get_center()
-        self.play(r_o.animate.move_to(ax), r_a.animate.move_to(ox), run_time=0.6)
-        highlight(self, [L.board, R.board], hold=1.2)
+        self.play(FadeIn(self.dd_left.all), run_time=0.8)
+        self.play(FadeIn(self.dd_right.all), run_time=0.8)
 
     # ── components ─────────────────────────────────────────────────────────────
     def _greedy_chart(self):
