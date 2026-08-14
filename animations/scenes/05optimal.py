@@ -673,24 +673,28 @@ class Scene05(HangmanScene):
                             #   built identically for every cell so all 20 labels are the SAME size
     _NUM_REF = {}          # cached height->font_size reference + decimal-point offsets
 
+    # NB the cache is read via ``self._NUM_REF``, NOT ``Scene05._NUM_REF``: naming the CLASS in a
+    # method makes the snapshot-digest machinery hash the WHOLE class source, so every avg-number beat
+    # (g onward) would be invalidated by an edit to ANY method. ``self._NUM_REF`` is the same shared
+    # class dict (item-assignment mutates it) but references only an attribute name, not the class.
     def _num_font(self, cap_h):
         """The font_size whose digit cap-height is ``cap_h``, from a cached reference '0'. A number's
         size then comes ONLY from ``cap_h`` (never from measuring its own glyphs)."""
-        ref = Scene05._NUM_REF.get("h0")
+        ref = self._NUM_REF.get("h0")
         if ref is None:
             ref = crisp_text("0", font_size=24, weight=BOLD).height
-            Scene05._NUM_REF["h0"] = ref
+            self._NUM_REF["h0"] = ref
         return 24 * cap_h / ref
 
     def _num_dot_offsets(self):
         """(left-edge→'.', '.'→right-edge) of a reference 'N.NN' PER UNIT cap-height (they scale with
         the number's size). Cached — pins a rolling number by its decimal point instead of its box."""
-        o = Scene05._NUM_REF.get("dot")
+        o = self._NUM_REF.get("dot")
         if o is None:
             ref = crisp_text("0.00", font_size=self._num_font(1.0), weight=BOLD)
             o = (ref[1].get_center()[0] - ref.get_left()[0],
                  ref.get_right()[0] - ref[1].get_center()[0])
-            Scene05._NUM_REF["dot"] = o
+            self._NUM_REF["dot"] = o
         return o
 
     def _place_value(self, lab, node_dot, direction, gap, cap_h):
