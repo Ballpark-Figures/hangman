@@ -2085,32 +2085,54 @@ class Scene05(HangmanScene):
         return sum(1 for p in opt["subtree"]["branches"] if set(p) != {"_"})
 
     def _dedup_tree(self, guesses, cx):
-        """One miss-spine tree at column ``cx``: guess1 (white) --miss--> guess2 (red) --miss-->
-        position (bare red node) with '_ _' blanks below. Each guess node ALSO fans its hit children
-        as bare white dots (the 'other children', no letters/blanks). Returns a handle namespace."""
+        """One miss-spine tree at column ``cx``, exposed as per-level handles so it can EXTEND out
+        level by level: guess1 (white) --miss--> guess2 (red) --miss--> position (bare red node), each
+        guess node fanning its hit branches as bare white dots. Below the position, the '_ _' board
+        with the two missed letters (red, in guessed order) tallied UNDER the blanks."""
         r = self.DEDUP_NODE_R
         cr = r * GRID_CHILD_RF                       # bare hit-child radius
         SPREAD, DY = 1.2, 1.85                       # hit-child half-spread, spine level drop
         ys = [2.6, 2.6 - DY, 2.6 - 2 * DY]           # guess1, guess2, position
-        grp = VGroup()
         d0 = self._node_dot([cx, ys[0], 0], r=r, misses=0)   # guess1 — white (0 misses)
         l0 = self._node_letter(guesses[0], d0)
         d1 = self._node_dot([cx, ys[1], 0], r=r, misses=1)   # guess2 — red (reached via a miss)
         l1 = self._node_letter(guesses[1], d1)
         d2 = self._node_dot([cx, ys[2], 0], r=r, misses=1)   # position — bare red node (no letter)
-        grp.add(self._edge_line(d0, d1, LIGHT_RED), self._edge_line(d1, d2, LIGHT_RED),
-                d0, l0, d1, l1, d2)
-        # each guess node's OTHER children = its hit branches, as BARE white dots at ±SPREAD
-        for pd, g, py in [(d0, guesses[0], ys[0]), (d1, guesses[1], ys[1])]:
-            n = self._hit_count(g)
-            for x in [-SPREAD, SPREAD][:n]:
+        e1 = self._edge_line(d0, d1, LIGHT_RED)
+        e2 = self._edge_line(d1, d2, LIGHT_RED)
+
+        def hits(parent, g, py):                     # a guess node's hit branches: bare white dots
+            edges, dots = VGroup(), VGroup()
+            for x in [-SPREAD, SPREAD][:self._hit_count(g)]:
                 hd = Dot([cx + x, py - DY, 0], radius=cr, color=_miss_color(0))
-                grp.add(self._edge_line(pd, hd, _miss_color(0)), hd)
-        # the '_ _' board hangs below the position node, far enough for a letter to fit above each rule
-        blanks = self._blanks("__", h=0.5)
-        blanks.next_to(d2, DOWN, buff=0.5).set_x(cx)
-        grp.add(blanks)
-        return SimpleNamespace(all=grp, d0=d0, d1=d1, d2=d2, blanks=blanks)
+                edges.add(self._edge_line(parent, hd, _miss_color(0)))
+                dots.add(hd)
+            return edges, dots
+        h0e, h0d = hits(d0, guesses[0], ys[0])
+        h1e, h1d = hits(d1, guesses[1], ys[1])
+        # the board hangs WELL below the position node (room for a letter above each rule), with the
+        # two missed letters (red, in the order guessed) tallied under the blanks
+        blanks = self._blanks("__", h=0.5).next_to(d2, DOWN, buff=0.85).set_x(cx)
+        tally = self._miss_row([c.upper() for c in guesses], h=0.34)
+        tally.next_to(blanks, DOWN, buff=0.28).set_x(cx)
+        board = VGroup(blanks, tally)
+        return SimpleNamespace(
+            all=VGroup(d0, l0, e1, h0e, h0d, d1, l1, e2, h1e, h1d, d2, board),
+            d0=d0, l0=l0, e1=e1, h0e=h0e, h0d=h0d, d1=d1, l1=l1,
+            e2=e2, h1e=h1e, h1d=h1d, d2=d2, board=board)
+
+    def _dedup_level(self, T, lvl):
+        """Animations that EXTEND tree ``T`` out by one level — the edges + hit dots + the miss child
+        emanate from the level's parent, and the guess letter fades in. lvl 1 grows off guess1, lvl 2
+        off guess2 (down to the bare position node — no letter)."""
+        if lvl == 1:
+            parent, group, letter = T.d0, VGroup(T.e1, T.h0e, T.h0d, T.d1), T.l1
+        else:
+            parent, group, letter = T.d1, VGroup(T.e2, T.h1e, T.h1d, T.d2), None
+        anims = [GrowFromPoint(group, parent.get_center())]
+        if letter is not None:
+            anims.append(FadeIn(letter))
+        return anims
 
     def _setup_dedup(self):
         self.dd_left = self._dedup_tree(["a", "o"], -4.0)    # A missed, then O
@@ -2119,11 +2141,16 @@ class Scene05(HangmanScene):
     @subscene
     def dedup(self):
         self._setup_dedup()
-        # clear the full A-tree carried in from beat y, then show the two trees
+        # clear the full A-tree carried in from beat y, then EXTEND both trees out TOGETHER, level by
+        # level: the roots, then each guess's children, then the boards
         self.play(FadeOut(self.winner), run_time=0.6)
         self.winner = None
-        self.play(FadeIn(self.dd_left.all), run_time=0.8)
-        self.play(FadeIn(self.dd_right.all), run_time=0.8)
+        L, R = self.dd_left, self.dd_right
+        self.play(GrowFromCenter(L.d0), FadeIn(L.l0),
+                  GrowFromCenter(R.d0), FadeIn(R.l0), run_time=0.6)
+        self.play(*self._dedup_level(L, 1), *self._dedup_level(R, 1), run_time=0.6)
+        self.play(*self._dedup_level(L, 2), *self._dedup_level(R, 2), run_time=0.6)
+        self.play(FadeIn(L.board), FadeIn(R.board), run_time=0.6)
 
     # ── components ─────────────────────────────────────────────────────────────
     def _greedy_chart(self):
