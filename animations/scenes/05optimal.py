@@ -175,6 +175,18 @@ PATH_SCALE       = 0.5     # the drilled-past path (A→O→…) is shrunk vs th
 # rows colliding). Only the drilled-past diagonal uses this; grafted subtrees use CHILD_DY.
 PATH_DY          = GRID_CHILD_DY * 1.55
 
+# ── avg-miss value labels + per-beat sizing (see _fmt / _value_label) ────────────
+# MODULE-level (not class attrs) so the snapshot digest captures their VALUE → tuning them
+# invalidates correctly. A bare number is built at a FIXED font size for a target cap-height
+# (never scaled to fit its own box) and anchored by its DECIMAL POINT — so digit composition
+# can't change its size and it doesn't lurch as it rolls.
+VALUE_CAP_H      = 0.26   # bare-number digit cap-height (a FIXED world size → consistent throughout)
+WORDED_H         = 0.34   # worded 'Avg misses: N.NN' box height (the static g–n beats)
+CYCLE_MAX        = 3      # a root-back-up cycle shows at most this many DISTINCT letters (chosen + others)
+OPENER_ROOT_BIG  = 4.5    # beat y: grid-cell ROOT node enlarged so its starting letter reads as a header
+OPENER_LABEL_H   = 0.32   # beat y: grid-cell 'Avg misses: N.NN' height — FIXED on-screen size (not tiled)
+DEDUP_NODE_R     = 0.42   # beat z: dedup miss-diagonal node radius
+
 
 class Scene05(HangmanScene):
     """Optimal strategy as a search on the length-2 tree.
@@ -660,18 +672,11 @@ class Scene05(HangmanScene):
         """The canonical avg-miss value string: 2 decimals, rounded HALF UP (1.245 → 1.25)."""
         return f"{int(v * 100 + 0.5) / 100:.2f}"
 
-    # A bare number is built at a FIXED font size for a target cap-height (never scaled to fit its own
-    # box) and anchored by its DECIMAL POINT — so digit composition can't change its size (round
-    # digits render taller than 1/4/7; measuring that was the old "two sizes" flip) and it doesn't
-    # lurch as it rolls. No box measuring, no monospace grid, no spacer (which leaked as an underline).
-    VALUE_CAP_H = 0.26     # bare-number digit cap-height (a FIXED world size → consistent throughout,
-                           #   not tied to the node, which shrinks as the tree recenters)
-    WORDED_H = 0.34        # worded 'Avg misses: N.NN' box height (the static g–n beats)
-    CYCLE_MAX = 3          # a root-back-up cycle shows at most this many DISTINCT letters (chosen + others)
-    OPENER_ROOT_BIG = 4.5  # beat y: grid-cell ROOT node enlarged so its starting letter reads as a header
-    OPENER_LABEL_H  = 0.32  # beat y: grid-cell 'Avg misses: N.NN' height — FIXED on-screen size (not tiled),
-                            #   built identically for every cell so all 20 labels are the SAME size
-    _NUM_REF = {}          # cached height->font_size reference + decimal-point offsets
+    # tunable sizing constants (VALUE_CAP_H / WORDED_H / … / DEDUP_NODE_R) live at MODULE level so the
+    # snapshot digest captures their VALUE (tuning them invalidates); a self.-read CLASS attr would NOT
+    # be captured. Only the runtime CACHE below stays a class attr (read via self._NUM_REF, never
+    # Scene05._NUM_REF — naming the class would make the digest hash the whole class source).
+    _NUM_REF = {}          # cached height->font_size reference + decimal-point offsets (runtime cache)
 
     # NB the cache is read via ``self._NUM_REF``, NOT ``Scene05._NUM_REF``: naming the CLASS in a
     # method makes the snapshot-digest machinery hash the WHOLE class source, so every avg-number beat
@@ -736,9 +741,9 @@ class Scene05(HangmanScene):
         g–n label it worded 'Avg misses: N.NN' (fixed size); from scene o on a bare number sized to
         the node and decimal-anchored so it stays steady."""
         if not bare:
-            return self._value_label(value, self.WORDED_H, False).next_to(
-                node_dot, direction, buff=self.WORDED_H * 0.6)
-        cap = self.VALUE_CAP_H
+            return self._value_label(value, WORDED_H, False).next_to(
+                node_dot, direction, buff=WORDED_H * 0.6)
+        cap = VALUE_CAP_H
         return self._place_value(self._value_label(value, cap, True), node_dot, direction, cap * 0.9, cap)
 
     # ── f : keep drilling — expand the top-left (greedy pick O) tree's all-miss leaf
@@ -1159,9 +1164,9 @@ class Scene05(HangmanScene):
         def place():
             v = tracker.get_value()
             if not bare:
-                return self._value_label(v, self.WORDED_H, False).next_to(
-                    node_dot, direction, buff=self.WORDED_H * 0.6)
-            cap = self.VALUE_CAP_H
+                return self._value_label(v, WORDED_H, False).next_to(
+                    node_dot, direction, buff=WORDED_H * 0.6)
+            cap = VALUE_CAP_H
             return self._place_value(self._value_label(v, cap, True), node_dot, direction, cap * 0.9, cap)
         lab = place()
         lab.add_updater(upd := (lambda m: m.become(place())))
@@ -1459,7 +1464,7 @@ class Scene05(HangmanScene):
         None for the settle-back) — e.g. rolling a value counter. THE ONE place the candidate-cycle
         cross-fade AND the ``CYCLE_MAX`` cap live, so the solve cycle and the choose cycles cap and
         animate identically (change it once, everywhere follows)."""
-        letters = list(letters)[:self.CYCLE_MAX - 1]
+        letters = list(letters)[:CYCLE_MAX - 1]
         if not letters:
             return
         active = home
@@ -1929,7 +1934,7 @@ class Scene05(HangmanScene):
             spec = self.a_spec if o["letter"] == "a" else self._subtree_spec(o["subtree"])
             g = self._ctree(spec, root_miss=0, solved=False)
             self._strip_to_shape(g)
-            self._enlarge_root(g, self.OPENER_ROOT_BIG)
+            self._enlarge_root(g, OPENER_ROOT_BIG)
             g._opt = o
             trees.append(g)
         # the SAME 4×5 grid as beat d — full GRID_W×GRID_H, so the trees use the whole screen
@@ -1943,7 +1948,7 @@ class Scene05(HangmanScene):
             r, c = divmod(idx, GRID_COLS)
             # every label built IDENTICALLY (same string length, same fixed height) → all the SAME
             # size, and NOT part of the tiled tree so it stays big regardless of the tree's scale
-            lab = self._value_label(g._opt["avg"], self.OPENER_LABEL_H, bare=False)
+            lab = self._value_label(g._opt["avg"], OPENER_LABEL_H, bare=False)
             lab.move_to([tlx + c * cw + inset, tly - r * ch - inset, 0], aligned_edge=UL)
             cells.append(VGroup(g, lab))
         return cells
@@ -2082,7 +2087,6 @@ class Scene05(HangmanScene):
     #        The spine ends in a bare position NODE with the '_ _' board hanging below it (a gap wide
     #        enough that a revealed letter would fit above each rule) and the misses tallied under it.
     #        The hit-child COUNT is SOURCED (`_hit_count`: A and O each hit at pos 1 and pos 2). ───────
-    DEDUP_NODE_R = 0.42
     def _hit_count(self, letter):
         """How many HIT branches a first-guess ``letter`` splits into (positions it can occupy) —
         SOURCED from the tree's option branches (A, O → 2 each: pos1, pos2)."""
@@ -2095,7 +2099,7 @@ class Scene05(HangmanScene):
         position, a bare red node), while each guess node's hit branches fan DOWN-RIGHT as bare white
         dots. The '_ _' board hangs below the position with the two missed letters (red, guessed order)
         tallied under the blanks. Exposed as per-level handles so it can EXTEND out level by level."""
-        r = self.DEDUP_NODE_R
+        r = DEDUP_NODE_R
         cr = r * GRID_CHILD_RF                       # bare hit-child radius
         SPREAD, DY = 1.2, 1.85                       # horizontal step, level drop
         p0 = np.array([cx, 2.6, 0.0])
