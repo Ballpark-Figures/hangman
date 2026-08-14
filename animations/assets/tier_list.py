@@ -57,6 +57,18 @@ FREQ_TIER_LETTERS = ["EI", "RTNAOS", "LCD", "UPGHM", "YVFBW", "KXQJZ"]
 # passes I in TOP (EIA→EAI) and Z drops to the bottom of LOW↓ (XZJQ→XJQZ).
 GB_TIER_LETTERS   = ["EAI", "SR", "TNO", "LDC", "PUGMBH", "FYVWK", "XJQZ"]
 
+# The IMPROVED CHOOSING strategy (scene 22): the guess-order ranking when the opponent
+# uses the best_opener adversarial word distribution and the guesser plays OPTIMAL —
+# STRATEGY="optimal", WEIGHTING="best_opener" (US dictionary). HAND-COPIED from
+# letter_analysis.ipynb's `greedy_min_pairs()` cell (the last cell, "Greedily grow the
+# set to minimise outside-before-set pairs"): its `added` column top→bottom is the full
+# 26-letter order  i e t n o r g a l p d s c m u b f k h y w v j z x q. The tiers are cut
+# at the cell's `top2_diff > 0.5` breaks (the blank-line groups {i}{e}{tno}{rgal}
+# {pdscmu}{bfkh}{y}{wvjzxq}), with the two singletons i,e merged into TOP → the default
+# SEVEN tiers. Sourced, never invented; keep in sync with the notebook. vs the uniform
+# TIER_LETTERS: I,N,G move UP (G jumps two tiers — "ING is king"); S,R move way DOWN.
+BEST_OPENER_TIER_LETTERS = ["IE", "TNO", "RGAL", "PDSCMU", "BFKH", "Y", "WVJZXQ"]
+
 # Letter layout inside a panel: fixed slot pitch + edge buff. The default panel
 # width is sized so the FULLEST tier (most letters) sits with EQUAL left/right
 # margins (the letters fill a symmetric block; shorter tiers stay left-aligned).
