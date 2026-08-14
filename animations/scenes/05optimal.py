@@ -69,8 +69,11 @@ Script row 05, split on '—' (voiceover ↔ animation zip 1:1). BEAT MAP:
                     opener's optimal tree (red-white shape, root lettered, 'Avg misses: N.NN' above),
                     GREEN the winner (A = 3.88 min), fade the rest, and grow the green tree back to
                     full screen with its letters + solved colours restored
+  z dedup         — DEDUP: two parallel miss-order trees (LEFT A→O, RIGHT O→A) reach the SAME position
+                    ('_ _' + missed {A,O}); the right board's misses reorder to match the left + both
+                    highlight (same letters, different order → same strategy, solve once)
   --- next sections (not yet built) ---
-  … dedup + prune (2 trees: A-then-O vs O-then-A); the can't-be-in-word single branch; paired chart
+  … za the can't-be-in-word single branch; zb paired greedy-vs-optimal chart
 
 BACK-UP BEAT RECIPE (the I→O→A back-ups REPEAT this — reuse, don't reinvent; k/l/m and n/o/p
 are the worked examples, each level is 3 beats):
@@ -2051,6 +2054,61 @@ class Scene05(HangmanScene):
         self.clear()
         self.add(full)
         self.winner = full
+
+    # ── z : DEDUP — the same letters in a different ORDER reach the same position, so a solved
+    #        position isn't re-solved. Two parallel miss-order trees: LEFT guesses A then O, RIGHT
+    #        guesses O then A; each ends in the board it reaches ('_ _' with the two misses in red).
+    #        Both boards are the SAME position (missed {A, O}) — after both draw, the RIGHT board's
+    #        misses reorder (O A to A O) to land identical to the LEFT, and both boards highlight.
+    #        The position (missed A and O → 23 words) is SOURCED from `_n_miss_node(2)`; here only its
+    #        board STATE is shown (2 blanks + the miss set), per column 2 ('show 2 trees'). ──────────
+    DEDUP_NODE_R = 0.45
+    def _dedup_tree(self, guesses, cx):
+        """One miss-order tree: guess1 (white, reached with 0 misses) --miss--> guess2 (red) --miss-->
+        the board it reaches ('_ _' + the running red miss tally, in GUESSED order). ``guesses`` is the
+        two letters in the order played; ``cx`` centres the column. Returns a handle namespace."""
+        r = self.DEDUP_NODE_R
+        g1 = self._node_dot([cx, 2.6, 0], r=r, misses=0)
+        g1l = self._node_letter(guesses[0], g1)
+        g2 = self._node_dot([cx, 0.6, 0], r=r, misses=1)
+        g2l = self._node_letter(guesses[1], g2)
+        e1 = self._edge_line(g1, g2, LIGHT_RED)                      # guess1 missed → red edge
+        blanks = self._blanks("__", h=0.5).move_to([cx, -1.4, 0])   # the 2-letter board, unrevealed
+        e2 = Line(g2.get_bottom(), blanks.get_top(), color=LIGHT_RED, stroke_width=2.0)
+        misses = self._miss_row([c.upper() for c in guesses], h=0.34)  # red tally, in guessed order
+        misses.next_to(blanks, DOWN, buff=0.28).set_x(cx)
+        ns = SimpleNamespace(g1=g1, g1l=g1l, g2=g2, g2l=g2l, e1=e1, e2=e2,
+                             blanks=blanks, misses=misses, board=VGroup(blanks, misses),
+                             miss_letters=list(misses))
+        return ns
+
+    def _setup_dedup(self):
+        self.dd_left = self._dedup_tree(["a", "o"], -3.8)    # A missed, then O
+        self.dd_right = self._dedup_tree(["o", "a"], 3.8)    # O missed, then A
+
+    @subscene
+    def dedup(self):
+        self._setup_dedup()
+        # clear the full A-tree carried in from beat y before the dedup illustration
+        self.play(FadeOut(self.winner), run_time=0.6)
+        self.winner = None
+        L, R = self.dd_left, self.dd_right
+        # LEFT tree grows top-down: guess A, miss → guess O, miss → the board it reaches
+        self.play(GrowFromCenter(L.g1), FadeIn(L.g1l), run_time=0.5)
+        self.play(GrowFromPoint(L.e1, L.g1.get_center()),
+                  GrowFromCenter(L.g2), FadeIn(L.g2l), run_time=0.5)
+        self.play(GrowFromPoint(L.e2, L.g2.get_center()), FadeIn(L.board), run_time=0.6)
+        # RIGHT tree: the SAME letters, other order (O then A)
+        self.play(GrowFromCenter(R.g1), FadeIn(R.g1l), run_time=0.5)
+        self.play(GrowFromPoint(R.e1, R.g1.get_center()),
+                  GrowFromCenter(R.g2), FadeIn(R.g2l), run_time=0.5)
+        self.play(GrowFromPoint(R.e2, R.g2.get_center()), FadeIn(R.board), run_time=0.6)
+        # show the two boards are IDENTICAL: reorder the right board's misses (O A → A O) so it matches
+        # the left (order doesn't matter — same set = same position), then highlight both boards
+        r_o, r_a = R.miss_letters                    # right guessed O then A → [O, A]
+        ox, ax = r_o.get_center(), r_a.get_center()
+        self.play(r_o.animate.move_to(ax), r_a.animate.move_to(ox), run_time=0.6)
+        highlight(self, [L.board, R.board], hold=1.2)
 
     # ── components ─────────────────────────────────────────────────────────────
     def _greedy_chart(self):
