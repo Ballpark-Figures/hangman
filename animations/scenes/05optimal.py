@@ -1559,6 +1559,8 @@ class Scene05(HangmanScene):
                   counter.animate.set_color(LIGHT_GREEN), run_time=1.0)   # counter TOP-LEVEL (rides out later)
         self.e_subtree = cur                         # hand off E's solved subtree to backing up I
         self.avg_e = counter                         # E's value label (green 2.00)
+        self.u_ref = None                            # U's layout scaffolding — last used here; drop it
+                                                     #   from every later snapshot (keeps them light)
 
     # ── q : start backing up I. SAME move as backing up E (n), one level up. Build I's FULL
     #        tidy subtree as a _ctree (I → its i_/_i HIT branches + the E-position as the MISS
@@ -1681,6 +1683,7 @@ class Scene05(HangmanScene):
                   counter.animate.set_color(LIGHT_GREEN), run_time=1.0)   # counter TOP-LEVEL (rides out later)
         self.i_subtree = cur                         # hand off I's solved subtree to backing up O
         self.avg_i = counter                         # I's value label (green)
+        self.e_ref = None                            # E's layout scaffolding — last used here; drop it
 
     # ── t : start backing up O. SAME move as backing up I (q), one level up. Build O's FULL tidy
     #        subtree, slide the solved green I-subtree onto O's miss slot, morph the diagonal O
@@ -1792,6 +1795,7 @@ class Scene05(HangmanScene):
                   counter.animate.set_color(LIGHT_GREEN), run_time=1.0)   # counter TOP-LEVEL (rides out later)
         self.o_subtree = cur                         # hand off O's solved subtree to backing up A
         self.avg_o = counter                         # O's value label (green)
+        self.i_ref = None                            # I's layout scaffolding — last used here; drop it
 
     # ── w : add in O's SIBLINGS — A's two hit branches (a_, _a). SAME move as backing up O (t),
     #        but A is the diagonal ROOT (no parent edge / no gap climb): build A's FULL tidy
@@ -1850,11 +1854,14 @@ class Scene05(HangmanScene):
             *[m.animate.scale(s, about_point=c).shift(dx) for m in above],   # reframe the diagonal above
             run_time=0.9)
         self.play(*[GrowFromPoint(kids, dot.get_center()) for kids, dot in grows], run_time=0.6)
-        self.a_ref, self.ao_edge = a_ref, ao_edge
+        # beat y's _a_replica needs ONLY the on-screen A node (to align the replica) — keep that dot,
+        # not the whole a_ref layout tree, so a_ref (scaffolding) is collected when this beat returns.
+        self.a_root, self.ao_edge = ah.dot, ao_edge
         self.a_hit_trees = hit_trees
         self.a_hit_edges = [be for be, bd in hits]
         # keep self.o_subtree — it's now the slid miss child of A (a later choose_a would fold it in)
         self.avg_o = None
+        self.o_ref = None                            # O's layout scaffolding — last used here; drop it
 
     # ── x : solve O's SIBLINGS — A's HIT children a_ ({…}=3.0) and _a ({…}=2.5), grown white-rooted
     #        in w. Just like every other node: show each one's avg, cycle ALL its tied first-guesses,
@@ -1942,7 +1949,7 @@ class Scene05(HangmanScene):
         beat x's end state (solved=True → subtree green, root A white, A→O red, A→hit edges white) and
         aligned to OVERLAY the on-screen patchwork A-tree (`a_ref` is a uniform transform of the same
         origin layout, so matching the root pins everything). Swapped in invisibly, then morphed 1:1."""
-        a_root = self.a_ref.node["a"].dot
+        a_root = self.a_root
         src = self._ctree(self.a_spec, root_miss=0, solved=True, tall_level=0)
         k = a_root.width / src.root.width
         src.scale(k, about_point=src.root.get_center()).shift(a_root.get_center() - src.root.get_center())
@@ -2054,6 +2061,14 @@ class Scene05(HangmanScene):
         self.clear()
         self.add(full)
         self.winner = full
+        # the whole back-up scaffolding + the 20-cell grid are now off-screen and dead — drop every
+        # handle so this (and every later) snapshot pickles only the on-screen winner tree, not ~5
+        # reference trees + 20 opener trees (that hoarding ballooned the beat-y snapshot to ~64 MB)
+        self.a_root = self.op_cells = None
+        self.o_subtree = self.i_subtree = self.e_subtree = self.u_subtree = None
+        self.u_spine = self.ups = None
+        self.a_hit_trees = self.o_hit_trees = self.i_hit_trees = self.e_hit_trees = None
+        self.grid = None
 
     # ── z : DEDUP — the same letters in a different ORDER reach the same position, so a solved
     #        position isn't re-solved. Two parallel miss-spine trees: LEFT guesses A then O, RIGHT
