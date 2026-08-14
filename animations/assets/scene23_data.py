@@ -12,15 +12,17 @@ Two sources, stitched at the top solved budget:
     `math/data/shared/winprob/lenNN_best_opener_nNN.json`, one file per budget n, each
     holding the exact `p_win`. winprob solves each budget independently and exactly, so
     every one of these points is exact. Read straight across n.
-  • GREEDY TAIL (exact=False) — for lengths whose top solved budget has p_win < 1 (3–7),
-    the winprob tree TRUNCATES at its budget (dumps un-winnable words into a flat "lost"
-    list, no further guessing). To extend the CDF past the top budget we greedy-COMPLETE
-    those lost branches (the repo's standard capped-leaf finish, reusing
-    strategy_view.TreeStrategyView._fill_capped) and read off the additional survival at
-    each higher k. These are NOT exact — greedy-from-the-give-up-point is an achievable
-    LOWER BOUND on the true budget-k optimum, not the optimum. The scene draws them in
-    crimson with a "values not exact" asterisk. Regenerate exact values by solving higher
-    winprob budgets: `python math/winprob.py <L> --weighted best_opener`.
+  • TAIL (exact=False) — for lengths whose top solved budget has p_win < 1 (3–7), past
+    that budget each point is the MAX survival P(misses <= k) of TWO achievable strategies:
+    (a) the top-budget winprob tree with its abandoned 'lost' branches greedy-completed,
+    and (b) the OPTIMAL strategy (min avg misses vs best_opener, greedy-completed where
+    unconverged). Both are real strategies, so each survival is a lower bound on the true
+    budget-k optimum, and the max is the best of the two. It is monotone by construction —
+    the max of two monotone-in-k survivals is monotone, and (a) starts at the seam value
+    p_win(top) so the tail never dips below the exact part (no clamp/flat needed). We stop
+    the tail as soon as EITHER strategy reaches 100%. These are drawn crimson with a
+    "*values not exact" note. Get exact tail values by solving higher winprob budgets:
+    `python math/winprob.py <L> --weighted best_opener`.
 
 Regenerate: `python3 scene23_data.py` (from the assets dir).
 """
@@ -36,7 +38,7 @@ CACHE = _ASSETS / "scene23_cache.json"
 
 WEIGHTING = "best_opener"
 LENGTHS = range(1, 21)
-RESOLVED_EPS = 1e-9          # p_win >= 1 - eps counts as fully resolved (CDF complete)
+RESOLVED_EPS = 1e-6          # p_win >= 1 - eps counts as "hit 100%" (CDF complete)
 
 
 def get():
@@ -53,17 +55,18 @@ def _win_budgets(L):
     return sorted(out)
 
 
-def _greedy_tail(np, sview, L):
-    """Per-word (misses, weights) from the TOP-budget winprob tree with its 'lost'
-    branches greedy-completed, so every word gets a finite miss count. Reuses the
-    existing capped-leaf machinery by relabelling 'lost' leaves as 'capped'."""
-    sv = sview.make_strategy("winprob", L, weighting=WEIGHTING)   # None budget = top
+def _winprob_tail(np, sview, L):
+    """Per-word (misses, weights): the TOP-budget winprob tree with its abandoned
+    'lost' branches greedy-completed (relabel 'lost'->'capped' to reuse the standard
+    capped-leaf finish). This strategy's survival CONTINUES the winprob curve smoothly
+    from the seam (it starts at exactly p_win(top))."""
+    sv = sview.make_strategy("winprob", L, weighting=WEIGHTING)   # None = top budget
     if not sv.available:
         return None, None
 
     def relabel(node):
         if "lost" in node:
-            node["capped"] = node.pop("lost")        # trigger the greedy finish
+            node["capped"] = node.pop("lost")
             return
         for child in node.get("branches", {}).values():
             relabel(child)
@@ -72,6 +75,15 @@ def _greedy_tail(np, sview, L):
     sv._greedy_mask = np.zeros(sv.g.N, dtype=bool)
     sv.tree = sv._fill_capped(sv.tree, 0, np.arange(sv.g.N))
     sv._pw = None
+    return sv.per_word_misses(), sv.word_freq()
+
+
+def _optimal_tail(np, sview, L):
+    """Per-word (misses, weights) for the OPTIMAL strategy (min avg misses vs
+    best_opener), greedy-completed where the solve did not converge (fill_capped=True)."""
+    sv = sview.make_strategy("optimal", L, weighting=WEIGHTING, fill_capped=True)
+    if not sv.available:
+        return None, None
     return sv.per_word_misses(), sv.word_freq()
 
 
@@ -88,15 +100,20 @@ def build():
             continue
         pts = [{"misses": n, "p_win": round(p, 6), "exact": True} for n, p in budgets]
         top_n, top_p = budgets[-1]
-        if top_p < 1 - RESOLVED_EPS:                 # unresolved -> greedy tail
-            misses, w = _greedy_tail(np, sview, L)
-            if misses is not None:
-                total = float(w.sum())
-                hi = int(np.nanmax(misses))
+        if top_p < 1 - RESOLVED_EPS:                 # unresolved -> stitch a tail
+            wm, ww = _winprob_tail(np, sview, L)     # winprob-greedy continuation
+            om, ow = _optimal_tail(np, sview, L)     # optimal strategy
+            if wm is not None and om is not None:
+                total = float(ww.sum())              # ww == ow (both best_opener weights)
+                hi = int(max(np.nanmax(wm), np.nanmax(om)))
                 for k in range(top_n + 1, hi + 1):
-                    pk = float(w[misses <= k].sum() / total)
+                    # each tail point = the BEST (max survival) of the two achievable
+                    # strategies. Both are monotone in k and the winprob continuation
+                    # starts at the seam value, so the max is monotone and never dips.
+                    pk = max(float(ww[wm <= k].sum() / total),
+                             float(ow[om <= k].sum() / total))
                     pts.append({"misses": k, "p_win": round(pk, 6), "exact": False})
-                    if pk >= 1 - RESOLVED_EPS:
+                    if pk >= 1 - RESOLVED_EPS:        # stop when EITHER strategy hits 100%
                         break
         cdf[str(L)] = pts
 
@@ -109,7 +126,7 @@ def build():
 def _report(out):
     print(f"scene 23 data -> {CACHE.name}\n")
     print("SURVIVAL CDF  P(win within k misses)  winprob vs best_opener  "
-          "(* = greedy tail, not exact)")
+          "(* = tail: max(winprob-cont, optimal), not exact)")
     for L, pts in out["cdf"].items():
         cells = " ".join(f"{p['misses']}:{p['p_win']:.3f}{'' if p['exact'] else '*'}"
                           for p in pts)

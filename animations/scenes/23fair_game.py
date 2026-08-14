@@ -17,9 +17,10 @@ SOURCED DATA
     length, P(surviving within k misses) for the WINPROB (survival-optimal) guesser vs
     the BEST_OPENER word-choice distribution. Exact points come straight from the
     committed winprob solves `math/data/shared/winprob/lenNN_best_opener_nNN.json`; the
-    tail past the top solved budget (lengths 3–7 only) is greedy-completed and flagged
-    `exact=False` (drawn crimson + a "values not exact" note). Length 1 is fully exact
-    (0.5 at 0 misses → the 50-50 the voiceover cites → 1.0 at 1 miss).
+    tail past the top solved budget (lengths 3–7 only) is the MAX of two achievable
+    strategies (winprob-continuation + optimal), flagged `exact=False` (drawn crimson +
+    a "*values not exact" note). Length 1 is fully exact (0.5 at 0 misses → the 50-50 the
+    voiceover cites → 1.0 at 1 miss).
   • beat-a double chart = the SAME numbers as scene 19 (`short_words_data.by_length`,
     optimal avg misses per length, uniform vs better choosing).
 
@@ -53,8 +54,8 @@ BEAT MAP
                    and write ONLY the "2" in the Word Length column (row 2, nothing else)
   f fill_row_2   — length-2 fair number (4) + the colour-coded gallows (head purple, body
                    blue, arms green, legs yellow — each part = the intro tree's miss colour)
-  g switch_to_3  — switch to 3-letter words: morph the CDF 2->3; the first INEXACT (greedy-
-                   tail) bars appear crimson with a "*values not exact" caption; write "3"
+  g switch_to_3  — switch to 3-letter words: morph the CDF 2->3; the first INEXACT (estimated-
+                   tail) bars appear crimson (50% line turns blue over them) + caption; write "3"
 
 NB beats e–g run AHEAD of Script.md's animation column (still 4 segments); they animate the
 length-2/3 part of beat-d's voiceover ("With 2 letters, the closest we can get is …").
@@ -87,7 +88,7 @@ MARGIN = 0.6
 COL_DX = (-2.2, 0.0, 2.2)                     # table column x-offsets from board centre
 HEADER_Y = 2.85                              # header baseline band
 RULE_Y = 2.15                                # underline below headers
-ROW_Y0, ROW_DY = 1.35, -1.1                  # first data row, per-row step (future rows)
+ROW_Y0, ROW_DY = 1.35, -1.05                 # first data row, per-row step (future rows)
 
 # ── beat c : survival CDF (RIGHT) — nominal box; placed by fair_setup ──────────
 GRAPH_CX, GRAPH_CY, GRAPH_W, GRAPH_H = 4.2, -0.35, 5.2, 3.9
@@ -183,7 +184,7 @@ class Scene23(HangmanScene):
         # x-axis = "misses before losing" = miss budget + 1 (a game that ENDS at m
         # misses lets the guesser survive within m-1), so budget 0 -> label 1, etc.
         items = [(str(p["misses"] + 1), p["p_win"]) for p in pts]
-        # inexact (greedy-tail) bars go crimson; exact bars stay blue
+        # inexact (estimated tail) bars go crimson; exact bars stay blue
         highlight = {str(p["misses"] + 1): CRIMSON for p in pts if not p["exact"]}
         title = crisp_text(f"{length}-Letter Words", font_size=28, color=INK, weight=BOLD)
         chart = get_bar_chart(
@@ -205,14 +206,27 @@ class Scene23(HangmanScene):
         yt.next_to(chart.yticks, LEFT, buff=0.2).set_y(GRAPH_CY)
         return VGroup(xt, yt)
 
-    def _fifty_line(self):
-        base = GRAPH_CY - GRAPH_H / 2                      # y=0 axis
-        y50 = base + 0.5 * GRAPH_H                         # y_max=1 → 50% at cy
-        line = DashedLine([GRAPH_CX - GRAPH_W / 2, y50, 0],
-                          [GRAPH_CX + GRAPH_W / 2, y50, 0],
-                          color=CRIMSON, stroke_width=3, dash_length=0.14)
-        line.set_z_index(10)                              # always ABOVE the bars
-        return line
+    def _fifty_line(self, length):
+        """Dashed 50% reference line across the plot (read off the positioned chart);
+        the stretch over the crimson (inexact) bars is drawn BLUE, the rest CRIMSON.
+        z-indexed above the bars."""
+        xa = self.cdf.x_axis
+        left, right = xa.get_left()[0], xa.get_right()[0]
+        y = xa.get_center()[1] + 0.5 * GRAPH_H            # y_min 0, y_max 1 → 50% halfway
+        crim = [i for i, p in enumerate(scene23_data.get()["cdf"][str(length)])
+                if not p["exact"]]
+
+        def dash(x0, x1, col):
+            return DashedLine([x0, y, 0], [x1, y, 0], color=col, stroke_width=3,
+                              dash_length=0.14)
+        seg = VGroup()
+        if crim:
+            split = self.cdf.bars[crim[0]].get_left()[0]  # left edge of the 1st crimson bar
+            seg.add(dash(left, split, CRIMSON), dash(split, right, ACCENT_FILL))
+        else:
+            seg.add(dash(left, right, CRIMSON))
+        seg.set_z_index(10)
+        return seg
 
     # ── c : chart out; chalkboard + empty table, "1-Letter Words" CDF + 50% line
     @subscene
@@ -226,11 +240,11 @@ class Scene23(HangmanScene):
         # board's left/top/bottom margins are all m too (board vertically centred).
         self.cdf = self._cdf_chart(1)
         self.cdf_extra = self._cdf_axis_titles(self.cdf)
-        self.fifty = self._fifty_line()
-        graph = VGroup(self.cdf, self.cdf_extra, self.fifty)
+        graph = VGroup(self.cdf, self.cdf_extra)
         cb_w, cb_h = 16 - 3 * m - graph.width, 9 - 2 * m
         board_cx = -8 + m + cb_w / 2
         graph.shift(RIGHT * ((-8 + 2 * m + cb_w) - graph.get_left()[0]))   # left edge = board_right + m
+        self.fifty = self._fifty_line(1)                  # 50% line (built after positioning)
 
         self._setup_board(board_cx, cb_w, cb_h)
         self.play(FadeIn(self.cb), run_time=0.6)
@@ -253,36 +267,42 @@ class Scene23(HangmanScene):
 
     # ── mini gallows: chalk frame + the first n body parts, colour-coded by miss ──
     def _mini_gallows(self, n):
-        """A small chalk gallows hanging the first ``n`` body parts. Parts, in draw
-        order, each tinted by the intro tree's per-miss colour (1 head=purple, 2 body=
-        blue, 3 arms=green, 4 legs=yellow): a tall OUTLINED oval head, a torso, ONE
-        line THROUGH the torso for arms, ONE line ACROSS its bottom for legs.
-        Handles: ``.frame`` (chalk gallows), ``.parts`` (the n drawn parts, in order)."""
+        """A small chalk gallows hanging the first ``n`` body parts, each tinted by the
+        intro tree's per-miss colour (1=purple, 2=blue, 3=green, 4=yellow). At n==1 the
+        single part is the tall OUTLINED purple oval (the length-1 design — unchanged).
+        For a fuller figure (n>=2) the head is a NORMAL round head, then a torso, ONE line
+        THROUGH the torso for arms, ONE line ACROSS its bottom for legs. Handles:
+        ``.frame`` (chalk gallows), ``.parts`` (the n drawn parts, in order)."""
         sw = 3.0
-        post = Line([-0.30, 0.48, 0], [-0.30, -0.44, 0], color=CHALK, stroke_width=sw)
-        beam = Line([-0.30, 0.48, 0], [0.12, 0.48, 0], color=CHALK, stroke_width=sw)
-        rope = Line([0.12, 0.48, 0], [0.12, 0.36, 0], color=CHALK, stroke_width=sw)
-        base = Line([-0.34, -0.44, 0], [0.16, -0.44, 0], color=CHALK, stroke_width=sw)
-        frame = VGroup(post, beam, rope, base)
-        head = Ellipse(width=0.24, height=0.28, fill_opacity=0.0, stroke_width=sw,
-                       color=_miss_color(1)).move_to([0.12, 0.22, 0])
-        body = Line([0.12, 0.08, 0], [0.12, -0.26, 0], color=_miss_color(2),
-                    stroke_width=sw)
-        arms = Line([-0.04, -0.04, 0], [0.28, -0.04, 0], color=_miss_color(3),
-                    stroke_width=sw)
-        legs = Line([-0.02, -0.26, 0], [0.26, -0.26, 0], color=_miss_color(4),
-                    stroke_width=sw)
-        parts = [head, body, arms, legs][:n]
+        base = Line([-0.34, -0.46, 0], [0.06, -0.46, 0], color=CHALK, stroke_width=sw)
+        post = Line([-0.30, -0.46, 0], [-0.30, 0.46, 0], color=CHALK, stroke_width=sw)
+        beam = Line([-0.30, 0.46, 0], [0.12, 0.46, 0], color=CHALK, stroke_width=sw)
+        rope = Line([0.12, 0.46, 0], [0.12, 0.30, 0], color=CHALK, stroke_width=sw)
+        frame = VGroup(base, post, beam, rope)
+        if n == 1:
+            parts = [Ellipse(width=0.26, height=0.46, fill_opacity=0.0, stroke_width=sw,
+                             color=_miss_color(1)).move_to([0.12, 0.07, 0])]
+        else:
+            head = Circle(radius=0.11, fill_opacity=0.0, stroke_width=sw,
+                          color=_miss_color(1)).move_to([0.12, 0.19, 0])
+            body = Line([0.12, 0.08, 0], [0.12, -0.28, 0], color=_miss_color(2),
+                        stroke_width=sw)
+            arms = Line([-0.06, -0.06, 0], [0.30, -0.06, 0], color=_miss_color(3),
+                        stroke_width=sw)
+            legs = Line([-0.04, -0.28, 0], [0.28, -0.28, 0], color=_miss_color(4),
+                        stroke_width=sw)
+            parts = [head, body, arms, legs][:n]
         g = VGroup(frame, *parts)
         g.frame, g.parts = frame, parts
         return g
 
     # ── morph the current CDF into a new-length one, then GROW the brand-new bars ──
-    def _morph_cdf(self, new, move_rt, grow_rt):
+    def _morph_cdf(self, new, length, move_rt, grow_rt):
         """Align ``new`` onto the current CDF (self.cdf) and morph in two phases: the
         SHARED bars move/reshape while the framing (x-labels, ticks, axes, title)
         crossfades; THEN the brand-new bars grow up from the axis (labels fading in
-        with them) — so the new bars grow only AFTER the old ones finish moving."""
+        with them, and the 50% line recolouring blue over any new crimson bars) — so
+        the new bars grow only AFTER the old ones finish moving."""
         old = self.cdf
         new.shift(old.y_axis.get_center() - new.y_axis.get_center())
         k = min(len(old.bars), len(new.bars))
@@ -296,16 +316,21 @@ class Scene23(HangmanScene):
             if o is not None and nw is not None:
                 move.append(FadeTransform(o, nw))
         self.play(*move, run_time=move_rt)
-        extra = list(new.bars[k:])
-        if extra:
+        self.cdf = new
+        new_fifty = self._fifty_line(length)               # recolour 50% line for the
+        extra = [FadeTransform(self.fifty, new_fifty)]     # new crimson region (blue over)
+        self.fifty = new_fifty
+        tail = list(new.bars[k:])
+        if tail:
             elabels = VGroup(*new.labels[k:])
             elabels.set_opacity(0)
-            grow_bars(self, extra, grow_rt, lag=0.05,
-                      extra=[elabels.animate.set_opacity(1)])
-        self.cdf = new
+            extra.append(elabels.animate.set_opacity(1))
+            grow_bars(self, tail, grow_rt, lag=0.05, extra=extra)
+        else:
+            self.play(*extra, run_time=grow_rt)
 
     def _asterisk_note(self, length):
-        """A crimson '*values not exact' caption under the inexact (greedy-tail) bars,
+        """A crimson '*values not exact' caption under the inexact (estimated-tail) bars,
         or None if this length is fully exact."""
         pts = scene23_data.get()["cdf"][str(length)]
         if all(p["exact"] for p in pts):
@@ -342,7 +367,7 @@ class Scene23(HangmanScene):
     @subscene
     def switch_to_2(self):
         self._setup_switch_2()
-        self._morph_cdf(self._cdf_chart(2), 1.2, 1.0)  # 1- -> 2-Letter (title crossfades)
+        self._morph_cdf(self._cdf_chart(2), 2, 1.2, 1.0)  # 1- -> 2-Letter (title crossfades)
         self.play(LaggedStartMap(Create, _strokes(self.len2), lag_ratio=0.5),
                   run_time=0.6)
 
@@ -370,7 +395,7 @@ class Scene23(HangmanScene):
     @subscene
     def switch_to_3(self):
         self._setup_switch_3()
-        self._morph_cdf(self._cdf_chart(3), 1.2, 1.0)  # 2- -> 3-Letter (crimson tail appears)
+        self._morph_cdf(self._cdf_chart(3), 3, 1.2, 1.0)  # 2- -> 3-Letter (crimson tail appears)
         self.play(LaggedStartMap(Create, _strokes(self.len3), lag_ratio=0.5),
                   run_time=0.6)
         self.asterisk = self._asterisk_note(3)
