@@ -75,8 +75,9 @@ Script row 05, split on '—' (voiceover ↔ animation zip 1:1). BEAT MAP:
   za bad_guess    — a BAD guess that can only miss: after a successful A gives '_A' (A in pos 2),
                     guessing U (can't be in any '_A' word) yields a SINGLE miss branch (straight down);
                     show ALL of A's branches, each with its board (SOURCED: U splits=False at _a)
-  --- next sections (not yet built) ---
-  … zb paired greedy-vs-optimal chart
+  zb paired_chart — the PAIRED greedy-vs-optimal avg-misses-by-length chart: greedy (left) vs optimal
+                    (right); unsolved lengths RED to the lower bound + a lighter band up to the upper
+                    (grouped_bar_chart + series_highlight/bands). Every value SOURCED. [LAST beat]
 
 BACK-UP BEAT RECIPE (the I→O→A back-ups REPEAT this — reuse, don't reinvent; k/l/m and n/o/p
 are the worked examples, each level is 3 beats):
@@ -112,13 +113,15 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from config import *
-from bpkfigures.bar_graph import get_bar_chart
+from bpkfigures.bar_graph import get_bar_chart, grouped_bar_chart, grow_bars
 from assets.chalkboard import CHALK, BOARD_NAVY
 from assets import tree2_data
 from assets import greedy_data
+from assets import scene17_chart_data
 
 DATA = tree2_data.get()
 GDATA = greedy_data.get()
+ODATA = scene17_chart_data.get()   # optimal avg-misses by length (uniform): {avg, lower, upper, converged}
 
 # ── recap chart (beat a) — crisp labels + FILLED bars on navy (NOT chalk / not
 #    line-outline: navy is not the chalkboard — see hangman CLAUDE.md) ───────────
@@ -2231,6 +2234,46 @@ class Scene05(HangmanScene):
         # we're at '_A'; guessing U here can ONLY miss → a single branch straight down
         self.play(GrowFromPoint(VGroup(bg.e_um, bg.d_um), bg.u.get_center()), run_time=0.5)
         self.play(FadeIn(bg.b_um), run_time=0.4)
+
+    # ── zb : the PAIRED greedy-vs-optimal chart — avg misses by word length. LEFT bar = greedy
+    #        (SOURCED greedy_data), RIGHT = optimal uniform (SOURCED scene17_chart_data). Solved
+    #        lengths: solid green right bar. UNSOLVED lengths (converged=False): a RED bar to the
+    #        LOWER bound + a lighter red BAND up to the UPPER bound (the un-narrowed range). Uses the
+    #        shared grouped_bar_chart (extended with series_highlight + bands). Every value SOURCED. ──
+    def _setup_paired_chart(self):
+        greedy, opt = GDATA["avg_misses_by_length"], ODATA["uniform"]
+        lengths = sorted(int(L) for L in opt if str(L) in greedy)
+        cats = [str(L) for L in lengths]
+        g_vals = [greedy[str(L)]["avg_misses"] for L in lengths]
+        # optimal solid bar → the exact avg (solved) or the LOWER bound (unsolved); unsolved bars go
+        # RED with a lighter band up to the UPPER bound
+        o_vals, hl, bands = [], {}, []
+        for L in lengths:
+            o = opt[str(L)]
+            o_vals.append(o["avg"] if o["converged"] else o["lower"])
+            if not o["converged"]:
+                hl[str(L)] = LIGHT_RED
+                bands.append((1, str(L), o["upper"], LIGHT_RED, 0.35))
+        chart = grouped_bar_chart(
+            cats, [("Greedy", CHART_COLOR, g_vals), ("Optimal", LIGHT_GREEN, o_vals)],
+            x_title="Word Length", ink_color=WHITE, series_highlight=[None, hl], bands=bands)
+        gm = chart.chart_geom
+        # long title wraps if passed to grouped_bar_chart (240pt cap) — build it small + scale up
+        title = crisp_text("Average Misses by Word Length", font_size=10, color=WHITE, weight=BOLD)
+        title.scale_to_fit_width(7.0).move_to([0, gm["cy"] + gm["height"] / 2 + 0.95, 0])
+        self.paired = chart
+        self.paired_title = title
+
+    @subscene
+    def paired_chart(self):
+        self._setup_paired_chart()
+        # clear beat za's bad-guess tree, then grow the bars while the axes/labels/legend/title fade
+        # in; the uncertainty bands rise on top of the unsolved (red) optimal bars after
+        self.play(FadeOut(VGroup(*[m for m in self.mobjects if isinstance(m, VMobject)])), run_time=0.6)
+        chart = self.paired
+        grow_bars(self, chart.bars, run_time=1.6,
+                  extra=[FadeIn(chart.rest), FadeIn(self.paired_title)])
+        self.play(FadeIn(chart.bands), run_time=0.5)
 
     # ── components ─────────────────────────────────────────────────────────────
     def _greedy_chart(self):
