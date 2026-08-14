@@ -62,21 +62,23 @@ BEAT MAP
   j fill_row_4   — length-4 fair number (7) + DRAWING: the whole gallows as ONE stroke
                    (no bottom-left stub) then a standard hangman (7 elements)
   k switch_to_5  — switch to 5-letter words: morph the CDF 4->5; write "5" (nothing else)
-  l fill_row_5   — length-5 fair number (5) + DRAWING: no gallows — head/torso/arm-line/
+  l fill_row_5   — length-5 fair number (5) + DRAWING: chalk gallows + head/torso/arm-line/
                    two legs (5 elements)
   m switch_to_6  — switch to 6-letter words: morph the CDF 5->6; write "6" (nothing else)
+  n fill_row_6   — length-6 fair number (4 — bar 4 is nearest 50%) + the fair-4 drawing
+  o switch_to_7  — switch to 7-letter words: morph the CDF 6->7; write "7" (nothing else)
 
 Every DRAWING is coloured to END at red (see _draw_colors): an N-element drawing uses the
 last N of [deep-red, deep-purple, purple, blue, green, yellow, orange, red]. Drawings are
 STAGGERED — odd word lengths on the left of the Drawing column, even on the right.
 
-NB beats e–m run AHEAD of Script.md's animation column (still 4 segments); they animate the
-length-2..6 part of beat-d's voiceover ("With 2 letters, the closest we can get is …").
+NB beats e–o run AHEAD of Script.md's animation column (still 4 segments); they animate the
+length-2..7 part of beat-d's voiceover ("With 2 letters, the closest we can get is …").
 The dashed 50%/y=6 reference lines are z-indexed ABOVE the bars and turn BLUE where they
 pass over crimson bars; a CDF morph moves the shared bars first, then GROWS the brand-new
 bars up from the axis (not a simultaneous fade-in).
 
-Render:  render 23a --fast   (…23m)   /   render 23 sub  for the whole scene
+Render:  render 23a --fast   (…23o)   /   render 23 sub  for the whole scene
 """
 from pathlib import Path
 import sys
@@ -103,7 +105,7 @@ COL_DX = (-2.2, 0.0, 2.2)                     # table column x-offsets from boar
 DRAW_DX = 0.55                                # stagger: odd lengths LEFT, even lengths RIGHT
 HEADER_Y = 2.85                              # header baseline band
 RULE_Y = 2.15                                # underline below headers
-ROW_Y0, ROW_DY = 1.5, -0.92                  # first data row, per-row step (fits 6 rows)
+ROW_Y0, ROW_DY = 1.55, -0.8                  # first data row, per-row step (fits 7 rows)
 
 # ── beat c : survival CDF (RIGHT) — nominal box; placed by fair_setup ──────────
 GRAPH_CX, GRAPH_CY, GRAPH_W, GRAPH_H = 4.2, -0.35, 5.2, 3.9
@@ -162,6 +164,8 @@ class Scene23(HangmanScene):
         self.len5 = None             # length-5 row label (k)
         self.fair5 = self.draw5 = None   # length-5 fair number + drawing (l)
         self.len6 = None             # length-6 row label (m)
+        self.fair6 = self.gal6 = None    # length-6 fair number + drawing (n)
+        self.len7 = None             # length-7 row label (o)
 
     # ── a : recall scene 19's by-length double bar chart ──────────────────────
     def _double_chart(self):
@@ -323,6 +327,14 @@ class Scene23(HangmanScene):
         even lengths go RIGHT — so consecutive drawings don't collide vertically."""
         return self.col_x[2] + (-DRAW_DX if i % 2 == 0 else DRAW_DX)
 
+    def _chalk_frame(self, sw=3.0):
+        """The white (chalk) gallows frame: base, post, beam, rope."""
+        return VGroup(
+            Line([-0.34, -0.46, 0], [0.06, -0.46, 0], color=CHALK, stroke_width=sw),
+            Line([-0.30, -0.46, 0], [-0.30, 0.46, 0], color=CHALK, stroke_width=sw),
+            Line([-0.30, 0.46, 0], [0.12, 0.46, 0], color=CHALK, stroke_width=sw),
+            Line([0.12, 0.46, 0], [0.12, 0.30, 0], color=CHALK, stroke_width=sw))
+
     # ── mini gallows: chalk frame + the first n body parts, colour-coded by miss ──
     def _mini_gallows(self, n):
         """A small CHALK gallows frame hanging ``n`` coloured body parts (coloured to END
@@ -330,11 +342,7 @@ class Scene23(HangmanScene):
         torso + one arm-line + one leg-line. Handles: ``.frame`` (chalk gallows),
         ``.parts`` (the n drawn parts, in order)."""
         sw = 3.0
-        base = Line([-0.34, -0.46, 0], [0.06, -0.46, 0], color=CHALK, stroke_width=sw)
-        post = Line([-0.30, -0.46, 0], [-0.30, 0.46, 0], color=CHALK, stroke_width=sw)
-        beam = Line([-0.30, 0.46, 0], [0.12, 0.46, 0], color=CHALK, stroke_width=sw)
-        rope = Line([0.12, 0.46, 0], [0.12, 0.30, 0], color=CHALK, stroke_width=sw)
-        frame = VGroup(base, post, beam, rope)
+        frame = self._chalk_frame(sw)
         if n == 1:
             parts = [Ellipse(width=0.26, height=0.58, fill_opacity=0.0,
                              stroke_width=sw).move_to([0.12, 0.01, 0])]
@@ -490,9 +498,10 @@ class Scene23(HangmanScene):
         g.parts = parts
         return g
 
-    # ── length-5 "Drawing": no gallows — head, torso, one arm-line, two legs (5) ────
+    # ── length-5 "Drawing": CHALK gallows + head, torso, one arm-line, two legs (5) ──
     def _body_drawing(self):
         sw = 3.0
+        frame = self._chalk_frame(sw)
         head = Circle(radius=0.10, fill_opacity=0.0, stroke_width=sw).move_to([0.12, 0.20, 0])
         torso = Line([0.12, 0.10, 0], [0.12, -0.15, 0], stroke_width=sw)
         arms = Line([-0.04, -0.02, 0], [0.28, -0.02, 0], stroke_width=sw)   # one arm-line
@@ -501,8 +510,8 @@ class Scene23(HangmanScene):
         parts = [head, torso, arms, leg1, leg2]
         for p, col in zip(parts, _draw_colors(len(parts))):  # colour to end at red
             p.set_color(col)
-        g = VGroup(*parts)
-        g.parts = parts
+        g = VGroup(frame, *parts)
+        g.frame, g.parts = frame, parts
         return g
 
     # ── h : length-3 fair number (8) + split-gallows standard hangman (8 elements) ──
@@ -571,6 +580,7 @@ class Scene23(HangmanScene):
         self._setup_row5_fill()
         self.play(LaggedStartMap(Create, _strokes(self.fair5), lag_ratio=0.5),
                   run_time=0.6)
+        self.play(LaggedStartMap(Create, self.draw5.frame, lag_ratio=0.8), run_time=1.0)
         for p in self.draw5.parts:                            # 5 elements, one per miss
             self.play(Create(p), run_time=0.4)
 
@@ -584,4 +594,32 @@ class Scene23(HangmanScene):
         self._setup_switch_6()
         self._morph_cdf(self._cdf_chart(6), 6, 1.2, 1.0)  # 5- -> 6-Letter
         self.play(LaggedStartMap(Create, _strokes(self.len6), lag_ratio=0.5),
+                  run_time=0.6)
+
+    # ── n : length-6 fair number (4, = bar 4 nearest 50%) + fair-4 drawing ─────────
+    def _setup_row6_fill(self):
+        y = self._row_y(5)
+        self.fair6 = chalk_number(4, height=0.42, stroke_width=3.2).move_to(
+            [self.col_x[1], y, 0])
+        self.gal6 = self._mini_gallows(4).move_to([self._draw_x(5), y, 0])
+
+    @subscene
+    def fill_row_6(self):
+        self._setup_row6_fill()
+        self.play(LaggedStartMap(Create, _strokes(self.fair6), lag_ratio=0.5),
+                  run_time=0.6)
+        self.play(LaggedStartMap(Create, self.gal6.frame, lag_ratio=0.8), run_time=1.0)
+        for p in self.gal6.parts:                             # head, body, arm-line, leg-line
+            self.play(Create(p), run_time=0.45)
+
+    # ── o : switch to 7-letter words — morph the CDF, write only the length-7 row ──
+    def _setup_switch_7(self):
+        self.len7 = chalk_number(7, height=0.42, stroke_width=3.2).move_to(
+            [self.col_x[0], self._row_y(6), 0])        # Word Length column, row 7
+
+    @subscene
+    def switch_to_7(self):
+        self._setup_switch_7()
+        self._morph_cdf(self._cdf_chart(7), 7, 1.2, 1.0)  # 6- -> 7-Letter
+        self.play(LaggedStartMap(Create, _strokes(self.len7), lag_ratio=0.5),
                   run_time=0.6)
