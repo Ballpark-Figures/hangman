@@ -306,6 +306,29 @@ greedy, greedy_word, best_opener, best_opener_word):
     tree while fading (not a fade-in-place); THEN the drilled node's letter fades in and its
     children grow (d-style sprout). Ends with `clear()`+`add(cells)` to re-track clean
     groups. (This design cost ~10 rounds to converge — see the e/f postmortem; keep it.)
+  - **Scene 05 is COMPLETE (beats a…zb).** The tail: y compare-openers, z dedup, za the
+    single-branch bad-guess, zb the paired chart.
+  - **Morphing the on-screen A-tree (beat y `compare_openers`): SWAP-then-morph, don't
+    crossfade or blob-morph.** By beat x the visible A-tree is a PATCHWORK assembled across
+    ~14 beats from pieces of five `_ctree`s (a_ref root + slid o/i/e/u subtrees + separate hit
+    branches + transformed diagonal edges) — there's no single recursive handle structure to
+    pair. But it's GEOMETRICALLY identical to a fresh `_ctree` of the same stored `self.a_spec`.
+    So `_a_replica` builds that clean single `_ctree` (aligned to the on-screen A node via
+    `self.a_root`), swaps it in INVISIBLY (`self.clear()`+`add` — no frame renders between), and
+    `_morph_trees` does a true 1:1 role-handle morph (dots→dots, edges→edges, letters ride in on
+    their nodes). Same trick powers the return to full screen. Don't reach for a crossfade when a
+    clean equivalent is one build call away.
+  - **za `bad_guess` = a letter that can only MISS.** After a successful A gives `_A` (A in pos
+    2), guessing U — impossible in any `_A` word (FA/LA/MA/PA/TA/YA) — has a SINGLE miss branch
+    (straight DOWN, the forced single-child convention). Shows all of A's branches, each with its
+    board. SOURCED: `_a` is A's pos-2 hit; U's option there has `splits=False`.
+  - **zb `paired_chart` = greedy-vs-optimal avg misses by length.** Left bar greedy
+    (`greedy_data['avg_misses_by_length']`), right bar optimal uniform — SOURCED from
+    `scene17_chart_data['uniform'][L]` = `{avg, lower, upper, converged}` (REUSED, not a new data
+    module; its bounds come from `math/data/shared/optimal/lenNN_uniform.csv` — `lower`=capped_avg,
+    `upper`=cap-tree greedy-finished). UNSOLVED lengths (`converged: False`) → a RED bar to `lower`
+    + a lighter band up to `upper`, via the extended `grouped_bar_chart(series_highlight=…, bands=…)`.
+    (Peak drop for the VO: ~6% at length 11, greedy 0.500→optimal 0.469, exact.)
 - **Win/loss recolour tints the WHOLE board** — revealed letters, the blanks, the miss
   row, AND the gallows (`self.hang` includes it) → green on a win, red on a loss.
 
