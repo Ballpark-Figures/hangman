@@ -56,13 +56,17 @@ BEAT MAP
                    blue, arms green, legs yellow — each part = the intro tree's miss colour)
   g switch_to_3  — switch to 3-letter words: morph the CDF 2->3; the first INEXACT (estimated-
                    tail) bars appear crimson (50% line turns blue over them) + caption; write "3"
+  h fill_row_3   — length-3 fair number (8) + the full 8-element coloured DRAWING (gallows
+                   base purple + rest blue, then a hangman + two feet through 8 colours)
+  i switch_to_4  — switch to 4-letter words: morph the CDF 3->4; write "4" (nothing else)
 
-NB beats e–g run AHEAD of Script.md's animation column (still 4 segments); they animate the
-length-2/3 part of beat-d's voiceover ("With 2 letters, the closest we can get is …").
-The dashed 50% line is z-indexed ABOVE the bars; a CDF morph moves the shared bars first,
-then GROWS the brand-new bars up from the axis (not a simultaneous fade-in).
+NB beats e–i run AHEAD of Script.md's animation column (still 4 segments); they animate the
+length-2/3/4 part of beat-d's voiceover ("With 2 letters, the closest we can get is …").
+The dashed 50%/y=6 reference lines are z-indexed ABOVE the bars and turn BLUE where they
+pass over crimson bars; a CDF morph moves the shared bars first, then GROWS the brand-new
+bars up from the axis (not a simultaneous fade-in).
 
-Render:  render 23a --fast   (…23g)   /   render 23 sub  for the whole scene
+Render:  render 23a --fast   (…23i)   /   render 23 sub  for the whole scene
 """
 from pathlib import Path
 import sys
@@ -99,6 +103,13 @@ def _miss_color(n):
     return LIGHT_PALETTE[len(LIGHT_PALETTE) - n]
 
 
+# the length-3 "Drawing" is an 8-element hangman coloured by an 8-colour sequence: the
+# 6 miss colours (purple→red) then two DEEPER shades for the feet.
+DEEP_RED = interpolate_color(LIGHT_RED, BLACK, 0.4)
+DEEP_PURPLE = interpolate_color(LIGHT_PURPLE, BLACK, 0.4)
+DRAW_COLORS = [_miss_color(k) for k in range(1, 7)] + [DEEP_RED, DEEP_PURPLE]
+
+
 def _strokes(*chalk_mobs):
     """Flatten chalk phrases/numbers to their individual STROKES (phrase→glyph→
     stroke) so `LaggedStartMap(Create, …)` writes them one stroke at a time — Create
@@ -128,6 +139,8 @@ class Scene23(HangmanScene):
         self.fair2 = self.gal2 = None    # length-2 fair number + gallows (f)
         self.len3 = None             # length-3 row label (g)
         self.asterisk = None         # "values not exact" crimson-tail caption (g)
+        self.fair3 = self.draw3 = None   # length-3 fair number + full drawing (h)
+        self.len4 = None             # length-4 row label (i)
 
     # ── a : recall scene 19's by-length double bar chart ──────────────────────
     def _double_chart(self):
@@ -152,8 +165,12 @@ class Scene23(HangmanScene):
     def _setup_line_at_6(self):
         g = self.chart.chart_geom
         y = g["base_y"] + LIMIT_MISSES / g["ymax"] * g["height"]
-        self.line6 = DashedLine([-g["width"] / 2, y, 0], [g["width"] / 2, y, 0],
-                                color=CRIMSON, stroke_width=4, dash_length=0.16)
+        # blue where the line passes over a crimson (best_opener) bar tall enough to reach it
+        crimson_bars = self.chart.series[1].bars
+        blue = [(b.get_left()[0], b.get_right()[0]) for b in crimson_bars
+                if b.get_top()[1] >= y - 1e-3]
+        self.line6 = self._split_dashed(y, -g["width"] / 2, g["width"] / 2, blue,
+                                        stroke_width=4, dash_length=0.16)
 
     @subscene
     def line_at_6(self):
@@ -173,10 +190,11 @@ class Scene23(HangmanScene):
             return g
         h_len = header(["WORD", "LENGTH"], self.col_x[0])
         h_fair = header(["FAIR # OF", "MISSES"], self.col_x[1])
+        h_draw = header(["DRAWING"], self.col_x[2])
         half = w / 2 - 0.5
         rule = Line([cx - half, RULE_Y, 0], [cx + half, RULE_Y, 0],
                     color=CHALK, stroke_width=3)
-        self.table = VGroup(h_len, h_fair, rule)
+        self.table = VGroup(h_len, h_fair, h_draw, rule)
 
     # ── survival CDF (RIGHT) ──────────────────────────────────────────────────
     def _cdf_chart(self, length):
@@ -206,27 +224,41 @@ class Scene23(HangmanScene):
         yt.next_to(chart.yticks, LEFT, buff=0.2).set_y(GRAPH_CY)
         return VGroup(xt, yt)
 
+    def _split_dashed(self, y, x_left, x_right, blue_intervals, *, stroke_width=3,
+                      dash_length=0.14):
+        """A dashed horizontal line at height ``y`` from ``x_left`` to ``x_right``, drawn
+        BLUE (ACCENT_FILL) across the given ``blue_intervals`` (x-ranges over crimson bars)
+        and CRIMSON elsewhere. z-indexed above the bars."""
+        def dash(a, b, col):
+            return DashedLine([a, y, 0], [b, y, 0], color=col, stroke_width=stroke_width,
+                              dash_length=dash_length)
+        ivs = sorted((max(a, x_left), min(b, x_right))
+                     for a, b in blue_intervals if min(b, x_right) > max(a, x_left))
+        seg = VGroup()
+        x = x_left
+        for a, b in ivs:
+            if b <= x:
+                continue
+            a = max(a, x)
+            if a > x:
+                seg.add(dash(x, a, CRIMSON))
+            seg.add(dash(a, b, ACCENT_FILL))
+            x = b
+        if x < x_right:
+            seg.add(dash(x, x_right, CRIMSON))
+        seg.set_z_index(10)
+        return seg
+
     def _fifty_line(self, length):
-        """Dashed 50% reference line across the plot (read off the positioned chart);
-        the stretch over the crimson (inexact) bars is drawn BLUE, the rest CRIMSON.
-        z-indexed above the bars."""
+        """Dashed 50% reference line across the positioned CDF chart; blue over the
+        crimson (inexact) bars, crimson elsewhere."""
         xa = self.cdf.x_axis
         left, right = xa.get_left()[0], xa.get_right()[0]
         y = xa.get_center()[1] + 0.5 * GRAPH_H            # y_min 0, y_max 1 → 50% halfway
         crim = [i for i, p in enumerate(scene23_data.get()["cdf"][str(length)])
                 if not p["exact"]]
-
-        def dash(x0, x1, col):
-            return DashedLine([x0, y, 0], [x1, y, 0], color=col, stroke_width=3,
-                              dash_length=0.14)
-        seg = VGroup()
-        if crim:
-            split = self.cdf.bars[crim[0]].get_left()[0]  # left edge of the 1st crimson bar
-            seg.add(dash(left, split, CRIMSON), dash(split, right, ACCENT_FILL))
-        else:
-            seg.add(dash(left, right, CRIMSON))
-        seg.set_z_index(10)
-        return seg
+        blue = [(self.cdf.bars[crim[0]].get_left()[0], right)] if crim else []
+        return self._split_dashed(y, left, right, blue)
 
     # ── c : chart out; chalkboard + empty table, "1-Letter Words" CDF + 50% line
     @subscene
@@ -248,9 +280,9 @@ class Scene23(HangmanScene):
 
         self._setup_board(board_cx, cb_w, cb_h)
         self.play(FadeIn(self.cb), run_time=0.6)
-        h_len, h_fair, rule = self.table
-        self.play(LaggedStartMap(Create, _strokes(*h_len, *h_fair), lag_ratio=0.5),
-                  run_time=1.4)
+        h_len, h_fair, h_draw, rule = self.table
+        self.play(LaggedStartMap(Create, _strokes(*h_len, *h_fair, *h_draw),
+                                 lag_ratio=0.5), run_time=1.6)
         self.play(Create(rule), run_time=0.5)
 
         rest = VGroup(self.cdf.labels, self.cdf.x_axis, self.cdf.y_axis,
@@ -280,8 +312,8 @@ class Scene23(HangmanScene):
         rope = Line([0.12, 0.46, 0], [0.12, 0.30, 0], color=CHALK, stroke_width=sw)
         frame = VGroup(base, post, beam, rope)
         if n == 1:
-            parts = [Ellipse(width=0.26, height=0.46, fill_opacity=0.0, stroke_width=sw,
-                             color=_miss_color(1)).move_to([0.12, 0.07, 0])]
+            parts = [Ellipse(width=0.26, height=0.58, fill_opacity=0.0, stroke_width=sw,
+                             color=_miss_color(1)).move_to([0.12, 0.01, 0])]
         else:
             head = Circle(radius=0.11, fill_opacity=0.0, stroke_width=sw,
                           color=_miss_color(1)).move_to([0.12, 0.19, 0])
@@ -401,3 +433,52 @@ class Scene23(HangmanScene):
         self.asterisk = self._asterisk_note(3)
         if self.asterisk is not None:
             self.play(FadeIn(self.asterisk), run_time=0.5)
+
+    # ── length-3 "Drawing": 8 colour-coded elements (gallows base+rest, then a hangman
+    #    with two feet), each = one miss ───────────────────────────────────────────
+    def _full_drawing(self):
+        sw = 3.0
+        c = DRAW_COLORS
+        base = Line([-0.34, -0.46, 0], [0.06, -0.46, 0], color=c[0], stroke_width=sw)
+        rest = VGroup(                                        # post + beam + rope, blue
+            Line([-0.30, -0.46, 0], [-0.30, 0.46, 0], color=c[1], stroke_width=sw),
+            Line([-0.30, 0.46, 0], [0.12, 0.46, 0], color=c[1], stroke_width=sw),
+            Line([0.12, 0.46, 0], [0.12, 0.30, 0], color=c[1], stroke_width=sw))
+        head = Circle(radius=0.10, fill_opacity=0.0, stroke_width=sw,
+                      color=c[2]).move_to([0.12, 0.19, 0])
+        body = Line([0.12, 0.09, 0], [0.12, -0.22, 0], color=c[3], stroke_width=sw)
+        arms = Line([-0.06, -0.04, 0], [0.30, -0.04, 0], color=c[4], stroke_width=sw)
+        legs = Line([-0.04, -0.22, 0], [0.28, -0.22, 0], color=c[5], stroke_width=sw)
+        foot1 = Line([-0.04, -0.22, 0], [-0.13, -0.32, 0], color=c[6], stroke_width=sw)
+        foot2 = Line([0.28, -0.22, 0], [0.37, -0.32, 0], color=c[7], stroke_width=sw)
+        parts = [base, rest, head, body, arms, legs, foot1, foot2]
+        g = VGroup(*parts)
+        g.parts = parts
+        return g
+
+    # ── h : length-3 fair number (8) + the full 8-element coloured drawing ─────────
+    def _setup_row3_fill(self):
+        y = self._row_y(2)
+        self.fair3 = chalk_number(8, height=0.42, stroke_width=3.2).move_to(
+            [self.col_x[1], y, 0])
+        self.draw3 = self._full_drawing().move_to([self.col_x[2], y, 0])
+
+    @subscene
+    def fill_row_3(self):
+        self._setup_row3_fill()
+        self.play(LaggedStartMap(Create, _strokes(self.fair3), lag_ratio=0.5),
+                  run_time=0.6)
+        for p in self.draw3.parts:                            # 8 elements, one per miss
+            self.play(Create(p), run_time=0.4)
+
+    # ── i : switch to 4-letter words — morph the CDF, write only the length-4 row ──
+    def _setup_switch_4(self):
+        self.len4 = chalk_number(4, height=0.42, stroke_width=3.2).move_to(
+            [self.col_x[0], self._row_y(3), 0])        # Word Length column, row 4
+
+    @subscene
+    def switch_to_4(self):
+        self._setup_switch_4()
+        self._morph_cdf(self._cdf_chart(4), 4, 1.2, 1.0)  # 3- -> 4-Letter
+        self.play(LaggedStartMap(Create, _strokes(self.len4), lag_ratio=0.5),
+                  run_time=0.6)
