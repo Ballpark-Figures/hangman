@@ -8,7 +8,7 @@ scene lives in the brand tier-list world:
   • the original tier list morphing into the best_opener one (d), with the moved
     letters emphasised (e: I·N·G up, f: S·R down), then cleared (g).
 
-Script row 22 splits on '—' → 7 beats, one @subscene each (a–g).
+Script row 22 splits on '—' → 8 beats, one @subscene each (a–h).
 
 SOURCED DATA
   • beats b/c bar values = `assets/scene22_data.py` (committed `scene22_cache.json`):
@@ -45,7 +45,8 @@ BEAT MAP
   d tier_morph  — original tier list → arrow → the best_opener tier list (both stay)
   e emph_ing    — emphasise I·N·G on both lists (they move UP)
   f emph_sr     — emphasise S·R on both lists (they move DOWN)
-  g clear       — fade both tier lists out
+  g emph_a      — emphasise A on both lists (moves DOWN — absent from ING endings)
+  h clear       — fade both tier lists out
 
 Render:  render 22a --fast   (…22g)   /   render 22 sub  for the whole scene
 """
@@ -115,14 +116,22 @@ class Scene22(HangmanScene):
             self.play(LaggedStartMap(Create, L, lag_ratio=0.5), run_time=0.9)
             self.play(FadeOut(bub), run_time=0.4)
 
+    # ── one-line crisp title (word-by-word to dodge the render-time wrap) ──────
+    def _phrase(self, text, *, font_size, color):
+        """A one-line crisp bold phrase laid out WORD-BY-WORD. A full-string crisp_text
+        of title length WRAPS unpredictably at render (Pango on the supersampled text —
+        bit scene 17's neighbours too); each short word can't. Tops aligned so all words
+        share a baseline (uniform cap height); any descenders hang below."""
+        words = VGroup(*[crisp_text(w, font_size=font_size, color=color, weight=BOLD)
+                         for w in text.split()])
+        words.arrange(RIGHT, buff=font_size * 0.006, aligned_edge=UP)
+        return words
+
     # ── bar-chart helper (beats b/c) ──────────────────────────────────────────
     def _bar_chart(self, key, title, *, cy, y_min, y_max, y_ticks):
         d = scene22_data.get()[key]
         items = [(x["letter"], x["misses"]) for x in d["letters"]]
-        # long title → build small and scale to a fixed HEIGHT so both read the same
-        # size (crisp_text wraps a long string built large)
-        title_mob = crisp_text(title, font_size=10, color=BAR_INK,
-                               weight=BOLD).scale_to_fit_height(0.34)
+        title_mob = self._phrase(title, font_size=26, color=BAR_INK)
         chart = get_bar_chart(
             items, center=[0, cy, 0], width=CHART_W, height=CHART_H,
             y_min=y_min, y_max=y_max, bar_color=ACCENT_FILL, ink_color=BAR_INK,
@@ -163,12 +172,10 @@ class Scene22(HangmanScene):
 
     # ── d : original tier list → arrow → the best_opener tier list ────────────
     def _title(self, text, x):
-        """A tier-list title in scene 17's style (crisp black bold ~font_size 30, at
-        TITLE_Y). Built SMALL then scaled to a font_size-30 reference height so the
-        long string never wraps (crisp_text wraps a long string built large)."""
-        ref = crisp_text("Word", font_size=30, color=TITLE_COLOR, weight=BOLD).height
-        t = crisp_text(text, font_size=10, color=TITLE_COLOR, weight=BOLD)
-        return t.scale_to_fit_height(ref).move_to([x, TITLE_Y, 0])
+        """A tier-list title in scene 17's style (crisp black bold font_size 30, at
+        TITLE_Y), laid out word-by-word (see _phrase)."""
+        return self._phrase(text, font_size=30, color=TITLE_COLOR).move_to(
+            [x, TITLE_Y, 0])
 
     @subscene
     def tier_morph(self):
@@ -215,7 +222,12 @@ class Scene22(HangmanScene):
     def emph_sr(self):
         self._emphasize("SR", 1.0)
 
-    # ── g : fade both tier lists out ──────────────────────────────────────────
+    # ── g : emphasise A on both lists (it moves DOWN — absent from ING endings) ─
+    @subscene
+    def emph_a(self):
+        self._emphasize("A", 1.0)
+
+    # ── h : fade both tier lists out ──────────────────────────────────────────
     @subscene
     def clear(self):
         self.play(FadeOut(self.left, self.right, self.arrow,
