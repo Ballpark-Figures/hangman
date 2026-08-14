@@ -1,0 +1,614 @@
+{
+  "cdf": {
+    "1": [
+      {
+        "misses": 0,
+        "p_win": 0.5,
+        "exact": true
+      },
+      {
+        "misses": 1,
+        "p_win": 1.0,
+        "exact": true
+      }
+    ],
+    "2": [
+      {
+        "misses": 0,
+        "p_win": 0.106061,
+        "exact": true
+      },
+      {
+        "misses": 1,
+        "p_win": 0.251515,
+        "exact": true
+      },
+      {
+        "misses": 2,
+        "p_win": 0.393939,
+        "exact": true
+      },
+      {
+        "misses": 3,
+        "p_win": 0.509091,
+        "exact": true
+      },
+      {
+        "misses": 4,
+        "p_win": 0.654545,
+        "exact": true
+      },
+      {
+        "misses": 5,
+        "p_win": 0.790909,
+        "exact": true
+      },
+      {
+        "misses": 6,
+        "p_win": 0.927273,
+        "exact": true
+      },
+      {
+        "misses": 7,
+        "p_win": 1.0,
+        "exact": true
+      }
+    ],
+    "3": [
+      {
+        "misses": 0,
+        "p_win": 0.013746,
+        "exact": true
+      },
+      {
+        "misses": 1,
+        "p_win": 0.046353,
+        "exact": true
+      },
+      {
+        "misses": 2,
+        "p_win": 0.092386,
+        "exact": true
+      },
+      {
+        "misses": 3,
+        "p_win": 0.158239,
+        "exact": true
+      },
+      {
+        "misses": 4,
+        "p_win": 0.238637,
+        "exact": true
+      },
+      {
+        "misses": 5,
+        "p_win": 0.335398,
+        "exact": true
+      },
+      {
+        "misses": 6,
+        "p_win": 0.44145,
+        "exact": true
+      },
+      {
+        "misses": 7,
+        "p_win": 0.556632,
+        "exact": true
+      },
+      {
+        "misses": 8,
+        "p_win": 0.67663,
+        "exact": true
+      },
+      {
+        "misses": 9,
+        "p_win": 0.780544,
+        "exact": true
+      },
+      {
+        "misses": 10,
+        "p_win": 0.874748,
+        "exact": true
+      },
+      {
+        "misses": 11,
+        "p_win": 0.923538,
+        "exact": false
+      },
+      {
+        "misses": 12,
+        "p_win": 0.957903,
+        "exact": false
+      },
+      {
+        "misses": 13,
+        "p_win": 0.982678,
+        "exact": false
+      },
+      {
+        "misses": 14,
+        "p_win": 0.994885,
+        "exact": false
+      },
+      {
+        "misses": 15,
+        "p_win": 1.0,
+        "exact": false
+      }
+    ],
+    "4": [
+      {
+        "misses": 0,
+        "p_win": 0.016952,
+        "exact": true
+      },
+      {
+        "misses": 1,
+        "p_win": 0.056805,
+        "exact": true
+      },
+      {
+        "misses": 2,
+        "p_win": 0.123016,
+        "exact": true
+      },
+      {
+        "misses": 3,
+        "p_win": 0.210727,
+        "exact": true
+      },
+      {
+        "misses": 4,
+        "p_win": 0.317787,
+        "exact": true
+      },
+      {
+        "misses": 5,
+        "p_win": 0.434051,
+        "exact": true
+      },
+      {
+        "misses": 6,
+        "p_win": 0.554338,
+        "exact": true
+      },
+      {
+        "misses": 7,
+        "p_win": 0.682951,
+        "exact": true
+      },
+      {
+        "misses": 8,
+        "p_win": 0.763471,
+        "exact": false
+      },
+      {
+        "misses": 9,
+        "p_win": 0.833867,
+        "exact": false
+      },
+      {
+        "misses": 10,
+        "p_win": 0.891741,
+        "exact": false
+      },
+      {
+        "misses": 11,
+        "p_win": 0.939129,
+        "exact": false
+      },
+      {
+        "misses": 12,
+        "p_win": 0.973032,
+        "exact": false
+      },
+      {
+        "misses": 13,
+        "p_win": 0.994007,
+        "exact": false
+      },
+      {
+        "misses": 14,
+        "p_win": 1.0,
+        "exact": false
+      }
+    ],
+    "5": [
+      {
+        "misses": 0,
+        "p_win": 0.027885,
+        "exact": true
+      },
+      {
+        "misses": 1,
+        "p_win": 0.095767,
+        "exact": true
+      },
+      {
+        "misses": 2,
+        "p_win": 0.203865,
+        "exact": true
+      },
+      {
+        "misses": 3,
+        "p_win": 0.336836,
+        "exact": true
+      },
+      {
+        "misses": 4,
+        "p_win": 0.49198,
+        "exact": true
+      },
+      {
+        "misses": 5,
+        "p_win": 0.648173,
+        "exact": true
+      },
+      {
+        "misses": 6,
+        "p_win": 0.788567,
+        "exact": true
+      },
+      {
+        "misses": 7,
+        "p_win": 0.899144,
+        "exact": true
+      },
+      {
+        "misses": 8,
+        "p_win": 0.939996,
+        "exact": false
+      },
+      {
+        "misses": 9,
+        "p_win": 0.978544,
+        "exact": false
+      },
+      {
+        "misses": 10,
+        "p_win": 0.992056,
+        "exact": false
+      },
+      {
+        "misses": 11,
+        "p_win": 0.999631,
+        "exact": false
+      },
+      {
+        "misses": 12,
+        "p_win": 1.0,
+        "exact": false
+      }
+    ],
+    "6": [
+      {
+        "misses": 0,
+        "p_win": 0.039638,
+        "exact": true
+      },
+      {
+        "misses": 1,
+        "p_win": 0.124497,
+        "exact": true
+      },
+      {
+        "misses": 2,
+        "p_win": 0.255483,
+        "exact": true
+      },
+      {
+        "misses": 3,
+        "p_win": 0.423085,
+        "exact": true
+      },
+      {
+        "misses": 4,
+        "p_win": 0.592232,
+        "exact": true
+      },
+      {
+        "misses": 5,
+        "p_win": 0.750415,
+        "exact": true
+      },
+      {
+        "misses": 6,
+        "p_win": 0.879048,
+        "exact": true
+      },
+      {
+        "misses": 7,
+        "p_win": 0.963953,
+        "exact": true
+      },
+      {
+        "misses": 8,
+        "p_win": 0.988633,
+        "exact": false
+      },
+      {
+        "misses": 9,
+        "p_win": 0.997101,
+        "exact": false
+      },
+      {
+        "misses": 10,
+        "p_win": 1.0,
+        "exact": false
+      }
+    ],
+    "7": [
+      {
+        "misses": 0,
+        "p_win": 0.054392,
+        "exact": true
+      },
+      {
+        "misses": 1,
+        "p_win": 0.143317,
+        "exact": true
+      },
+      {
+        "misses": 2,
+        "p_win": 0.275322,
+        "exact": true
+      },
+      {
+        "misses": 3,
+        "p_win": 0.445984,
+        "exact": true
+      },
+      {
+        "misses": 4,
+        "p_win": 0.618607,
+        "exact": true
+      },
+      {
+        "misses": 5,
+        "p_win": 0.778225,
+        "exact": true
+      },
+      {
+        "misses": 6,
+        "p_win": 0.908168,
+        "exact": true
+      },
+      {
+        "misses": 7,
+        "p_win": 0.978832,
+        "exact": true
+      },
+      {
+        "misses": 8,
+        "p_win": 0.994557,
+        "exact": false
+      },
+      {
+        "misses": 9,
+        "p_win": 1.0,
+        "exact": false
+      }
+    ],
+    "8": [
+      {
+        "misses": 0,
+        "p_win": 0.105508,
+        "exact": true
+      },
+      {
+        "misses": 1,
+        "p_win": 0.293666,
+        "exact": true
+      },
+      {
+        "misses": 2,
+        "p_win": 0.543522,
+        "exact": true
+      },
+      {
+        "misses": 3,
+        "p_win": 0.794698,
+        "exact": true
+      },
+      {
+        "misses": 4,
+        "p_win": 0.948772,
+        "exact": true
+      },
+      {
+        "misses": 5,
+        "p_win": 0.997286,
+        "exact": true
+      },
+      {
+        "misses": 6,
+        "p_win": 1.0,
+        "exact": true
+      }
+    ],
+    "9": [
+      {
+        "misses": 0,
+        "p_win": 0.249036,
+        "exact": true
+      },
+      {
+        "misses": 1,
+        "p_win": 0.602025,
+        "exact": true
+      },
+      {
+        "misses": 2,
+        "p_win": 0.879582,
+        "exact": true
+      },
+      {
+        "misses": 3,
+        "p_win": 0.99649,
+        "exact": true
+      },
+      {
+        "misses": 4,
+        "p_win": 1.0,
+        "exact": true
+      }
+    ],
+    "10": [
+      {
+        "misses": 0,
+        "p_win": 0.344762,
+        "exact": true
+      },
+      {
+        "misses": 1,
+        "p_win": 0.729762,
+        "exact": true
+      },
+      {
+        "misses": 2,
+        "p_win": 0.944444,
+        "exact": true
+      },
+      {
+        "misses": 3,
+        "p_win": 0.993603,
+        "exact": true
+      },
+      {
+        "misses": 4,
+        "p_win": 1.0,
+        "exact": true
+      }
+    ],
+    "11": [
+      {
+        "misses": 0,
+        "p_win": 0.4324,
+        "exact": true
+      },
+      {
+        "misses": 1,
+        "p_win": 0.835993,
+        "exact": true
+      },
+      {
+        "misses": 2,
+        "p_win": 0.98848,
+        "exact": true
+      },
+      {
+        "misses": 3,
+        "p_win": 1.0,
+        "exact": true
+      }
+    ],
+    "12": [
+      {
+        "misses": 0,
+        "p_win": 0.528168,
+        "exact": true
+      },
+      {
+        "misses": 1,
+        "p_win": 0.882981,
+        "exact": true
+      },
+      {
+        "misses": 2,
+        "p_win": 0.99827,
+        "exact": true
+      },
+      {
+        "misses": 3,
+        "p_win": 1.0,
+        "exact": true
+      }
+    ],
+    "13": [
+      {
+        "misses": 0,
+        "p_win": 0.53731,
+        "exact": true
+      },
+      {
+        "misses": 1,
+        "p_win": 0.942895,
+        "exact": true
+      },
+      {
+        "misses": 2,
+        "p_win": 1.0,
+        "exact": true
+      }
+    ],
+    "14": [
+      {
+        "misses": 0,
+        "p_win": 0.592911,
+        "exact": true
+      },
+      {
+        "misses": 1,
+        "p_win": 0.967144,
+        "exact": true
+      },
+      {
+        "misses": 2,
+        "p_win": 1.0,
+        "exact": true
+      }
+    ],
+    "15": [
+      {
+        "misses": 0,
+        "p_win": 0.749061,
+        "exact": true
+      },
+      {
+        "misses": 1,
+        "p_win": 1.0,
+        "exact": true
+      }
+    ],
+    "16": [
+      {
+        "misses": 0,
+        "p_win": 0.714286,
+        "exact": true
+      },
+      {
+        "misses": 1,
+        "p_win": 1.0,
+        "exact": true
+      }
+    ],
+    "17": [
+      {
+        "misses": 0,
+        "p_win": 1.0,
+        "exact": true
+      }
+    ],
+    "18": [
+      {
+        "misses": 0,
+        "p_win": 1.0,
+        "exact": true
+      }
+    ],
+    "19": [
+      {
+        "misses": 0,
+        "p_win": 1.0,
+        "exact": true
+      }
+    ],
+    "20": [
+      {
+        "misses": 0,
+        "p_win": 1.0,
+        "exact": true
+      }
+    ]
+  }
+}
