@@ -2123,16 +2123,14 @@ class Scene05(HangmanScene):
 
     def _dedup_level(self, T, lvl):
         """Animations that EXTEND tree ``T`` out by one level — the edges + hit dots + the miss child
-        emanate from the level's parent, and the guess letter fades in. lvl 1 grows off guess1, lvl 2
-        off guess2 (down to the bare position node — no letter)."""
+        emanate from the level's parent. The guess LETTER is INCLUDED in the grown group (z-index keeps
+        it above its dot), so it rides IN on the node as it grows, rather than fading in already placed.
+        lvl 1 grows off guess1, lvl 2 off guess2 (down to the bare position node — no letter)."""
         if lvl == 1:
-            parent, group, letter = T.d0, VGroup(T.e1, T.h0e, T.h0d, T.d1), T.l1
+            parent, group = T.d0, VGroup(T.e1, T.h0e, T.h0d, T.d1, T.l1)
         else:
-            parent, group, letter = T.d1, VGroup(T.e2, T.h1e, T.h1d, T.d2), None
-        anims = [GrowFromPoint(group, parent.get_center())]
-        if letter is not None:
-            anims.append(FadeIn(letter))
-        return anims
+            parent, group = T.d1, VGroup(T.e2, T.h1e, T.h1d, T.d2)
+        return [GrowFromPoint(group, parent.get_center())]
 
     def _setup_dedup(self):
         self.dd_left = self._dedup_tree(["a", "o"], -4.0)    # A missed, then O
@@ -2146,8 +2144,9 @@ class Scene05(HangmanScene):
         self.play(FadeOut(self.winner), run_time=0.6)
         self.winner = None
         L, R = self.dd_left, self.dd_right
-        self.play(GrowFromCenter(L.d0), FadeIn(L.l0),
-                  GrowFromCenter(R.d0), FadeIn(R.l0), run_time=0.6)
+        # the root letter grows WITH its node (not a separate fade-in), like every level below
+        self.play(GrowFromCenter(VGroup(L.d0, L.l0)),
+                  GrowFromCenter(VGroup(R.d0, R.l0)), run_time=0.6)
         self.play(*self._dedup_level(L, 1), *self._dedup_level(R, 1), run_time=0.6)
         self.play(*self._dedup_level(L, 2), *self._dedup_level(R, 2), run_time=0.6)
         self.play(FadeIn(L.board), FadeIn(R.board), run_time=0.6)
