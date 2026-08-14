@@ -59,17 +59,24 @@ BEAT MAP
   h fill_row_3   — length-3 fair number (8) + DRAWING: split gallows (base purple + rest
                    blue) then a standard 6-part hangman, through all 8 colours
   i switch_to_4  — switch to 4-letter words: morph the CDF 3->4; write "4" (nothing else)
-  j fill_row_4   — length-4 fair number (7) + DRAWING: the whole gallows as ONE purple
-                   stroke (no bottom-left stub) then a standard hangman, up to deep red (7)
+  j fill_row_4   — length-4 fair number (7) + DRAWING: the whole gallows as ONE stroke
+                   (no bottom-left stub) then a standard hangman (7 elements)
   k switch_to_5  — switch to 5-letter words: morph the CDF 4->5; write "5" (nothing else)
+  l fill_row_5   — length-5 fair number (5) + DRAWING: no gallows — head/torso/arm-line/
+                   two legs (5 elements)
+  m switch_to_6  — switch to 6-letter words: morph the CDF 5->6; write "6" (nothing else)
 
-NB beats e–k run AHEAD of Script.md's animation column (still 4 segments); they animate the
-length-2..5 part of beat-d's voiceover ("With 2 letters, the closest we can get is …").
+Every DRAWING is coloured to END at red (see _draw_colors): an N-element drawing uses the
+last N of [deep-red, deep-purple, purple, blue, green, yellow, orange, red]. Drawings are
+STAGGERED — odd word lengths on the left of the Drawing column, even on the right.
+
+NB beats e–m run AHEAD of Script.md's animation column (still 4 segments); they animate the
+length-2..6 part of beat-d's voiceover ("With 2 letters, the closest we can get is …").
 The dashed 50%/y=6 reference lines are z-indexed ABOVE the bars and turn BLUE where they
 pass over crimson bars; a CDF morph moves the shared bars first, then GROWS the brand-new
 bars up from the axis (not a simultaneous fade-in).
 
-Render:  render 23a --fast   (…23k)   /   render 23 sub  for the whole scene
+Render:  render 23a --fast   (…23m)   /   render 23 sub  for the whole scene
 """
 from pathlib import Path
 import sys
@@ -93,9 +100,10 @@ LIMIT_MISSES = 6
 # DERIVED from this margin + the measured graph width (see fair_setup).
 MARGIN = 0.6
 COL_DX = (-2.2, 0.0, 2.2)                     # table column x-offsets from board centre
+DRAW_DX = 0.55                                # stagger: odd lengths LEFT, even lengths RIGHT
 HEADER_Y = 2.85                              # header baseline band
 RULE_Y = 2.15                                # underline below headers
-ROW_Y0, ROW_DY = 1.35, -1.05                 # first data row, per-row step (future rows)
+ROW_Y0, ROW_DY = 1.5, -0.92                  # first data row, per-row step (fits 6 rows)
 
 # ── beat c : survival CDF (RIGHT) — nominal box; placed by fair_setup ──────────
 GRAPH_CX, GRAPH_CY, GRAPH_W, GRAPH_H = 4.2, -0.35, 5.2, 3.9
@@ -106,11 +114,17 @@ def _miss_color(n):
     return LIGHT_PALETTE[len(LIGHT_PALETTE) - n]
 
 
-# the length-3 "Drawing" is an 8-element hangman coloured by an 8-colour sequence: the
-# 6 miss colours (purple→red) then two DEEPER shades for the feet.
+# Drawing colours: a drawing ALWAYS ENDS at red. FULL_COLORS is the full 8-long ramp
+# ending at red — two DEEPER shades, then the rainbow (purple→red). An N-element drawing
+# uses the LAST N of these (n<=6 = a rainbow suffix; 7 prepends deep purple; 8 deep red too).
 DEEP_RED = interpolate_color(LIGHT_RED, BLACK, 0.4)
 DEEP_PURPLE = interpolate_color(LIGHT_PURPLE, BLACK, 0.4)
-DRAW_COLORS = [_miss_color(k) for k in range(1, 7)] + [DEEP_RED, DEEP_PURPLE]
+FULL_COLORS = [DEEP_RED, DEEP_PURPLE] + [_miss_color(k) for k in range(1, 7)]
+
+
+def _draw_colors(n):
+    """The n drawing colours in draw order, always ending at red (LIGHT_RED)."""
+    return FULL_COLORS[-n:]
 
 
 def _strokes(*chalk_mobs):
@@ -146,6 +160,8 @@ class Scene23(HangmanScene):
         self.len4 = None             # length-4 row label (i)
         self.fair4 = self.draw4 = None   # length-4 fair number + drawing (j)
         self.len5 = None             # length-5 row label (k)
+        self.fair5 = self.draw5 = None   # length-5 fair number + drawing (l)
+        self.len6 = None             # length-6 row label (m)
 
     # ── a : recall scene 19's by-length double bar chart ──────────────────────
     def _double_chart(self):
@@ -302,14 +318,17 @@ class Scene23(HangmanScene):
         """Baseline y of table row i (row 0 = length 1, row 1 = length 2, …)."""
         return ROW_Y0 + i * ROW_DY
 
+    def _draw_x(self, i):
+        """Staggered x for row i's drawing: odd word lengths (even row index) go LEFT,
+        even lengths go RIGHT — so consecutive drawings don't collide vertically."""
+        return self.col_x[2] + (-DRAW_DX if i % 2 == 0 else DRAW_DX)
+
     # ── mini gallows: chalk frame + the first n body parts, colour-coded by miss ──
     def _mini_gallows(self, n):
-        """A small chalk gallows hanging the first ``n`` body parts, each tinted by the
-        intro tree's per-miss colour (1=purple, 2=blue, 3=green, 4=yellow). At n==1 the
-        single part is the tall OUTLINED purple oval (the length-1 design — unchanged).
-        For a fuller figure (n>=2) the head is a NORMAL round head, then a torso, ONE line
-        THROUGH the torso for arms, ONE line ACROSS its bottom for legs. Handles:
-        ``.frame`` (chalk gallows), ``.parts`` (the n drawn parts, in order)."""
+        """A small CHALK gallows frame hanging ``n`` coloured body parts (coloured to END
+        at red via _draw_colors). n==1 is the tall outlined oval; n>=2 is a round head +
+        torso + one arm-line + one leg-line. Handles: ``.frame`` (chalk gallows),
+        ``.parts`` (the n drawn parts, in order)."""
         sw = 3.0
         base = Line([-0.34, -0.46, 0], [0.06, -0.46, 0], color=CHALK, stroke_width=sw)
         post = Line([-0.30, -0.46, 0], [-0.30, 0.46, 0], color=CHALK, stroke_width=sw)
@@ -317,18 +336,17 @@ class Scene23(HangmanScene):
         rope = Line([0.12, 0.46, 0], [0.12, 0.30, 0], color=CHALK, stroke_width=sw)
         frame = VGroup(base, post, beam, rope)
         if n == 1:
-            parts = [Ellipse(width=0.26, height=0.58, fill_opacity=0.0, stroke_width=sw,
-                             color=_miss_color(1)).move_to([0.12, 0.01, 0])]
+            parts = [Ellipse(width=0.26, height=0.58, fill_opacity=0.0,
+                             stroke_width=sw).move_to([0.12, 0.01, 0])]
         else:
-            head = Circle(radius=0.11, fill_opacity=0.0, stroke_width=sw,
-                          color=_miss_color(1)).move_to([0.12, 0.19, 0])
-            body = Line([0.12, 0.08, 0], [0.12, -0.28, 0], color=_miss_color(2),
-                        stroke_width=sw)
-            arms = Line([-0.06, -0.06, 0], [0.30, -0.06, 0], color=_miss_color(3),
-                        stroke_width=sw)
-            legs = Line([-0.04, -0.28, 0], [0.28, -0.28, 0], color=_miss_color(4),
-                        stroke_width=sw)
+            head = Circle(radius=0.11, fill_opacity=0.0,
+                          stroke_width=sw).move_to([0.12, 0.19, 0])
+            body = Line([0.12, 0.08, 0], [0.12, -0.28, 0], stroke_width=sw)
+            arms = Line([-0.06, -0.06, 0], [0.30, -0.06, 0], stroke_width=sw)
+            legs = Line([-0.04, -0.28, 0], [0.28, -0.28, 0], stroke_width=sw)
             parts = [head, body, arms, legs][:n]
+        for p, col in zip(parts, _draw_colors(len(parts))):  # colour to end at red
+            p.set_color(col)
         g = VGroup(frame, *parts)
         g.frame, g.parts = frame, parts
         return g
@@ -377,13 +395,13 @@ class Scene23(HangmanScene):
         note.align_to(self.cdf.x_axis, RIGHT)              # right edge at the plot edge
         return note
 
-    # ── d : fill the length-1 row (1 | 1) + gallows with a tall purple oval ───
+    # ── d : fill the length-1 row (1 | 1) + gallows with a tall oval (now red) ───
     def _setup_row1(self):
-        cx_len, cx_fair, cx_gal = self.col_x
+        cx_len, cx_fair, _ = self.col_x
         y = self._row_y(0)
         n_len = chalk_number(1, height=0.42, stroke_width=3.2).move_to([cx_len, y, 0])
         n_fair = chalk_number(1, height=0.42, stroke_width=3.2).move_to([cx_fair, y, 0])
-        gal = self._mini_gallows(1).move_to([cx_gal, y, 0])
+        gal = self._mini_gallows(1).move_to([self._draw_x(0), y, 0])
         self.row1 = VGroup(n_len, n_fair, gal)
 
     @subscene
@@ -413,7 +431,7 @@ class Scene23(HangmanScene):
         y = self._row_y(1)
         self.fair2 = chalk_number(4, height=0.42, stroke_width=3.2).move_to(
             [self.col_x[1], y, 0])
-        self.gal2 = self._mini_gallows(4).move_to([self.col_x[2], y, 0])
+        self.gal2 = self._mini_gallows(4).move_to([self._draw_x(1), y, 0])
 
     @subscene
     def fill_row_2(self):
@@ -439,11 +457,11 @@ class Scene23(HangmanScene):
         if self.asterisk is not None:
             self.play(FadeIn(self.asterisk), run_time=0.5)
 
-    # ── the table "Drawing": a standard hangman coloured element-by-element (one per
-    #    miss) through DRAW_COLORS. gallows="split" = base (purple) + rest (blue) as two
-    #    elements (8 total, uses all 8 colours). gallows="single" = the WHOLE gallows as
-    #    one purple stroke, ignoring the bottom-left stub (7 total, up to deep red). Body
-    #    is the 6 standard parts: head, torso, two arms, two legs. ───────────────────
+    # ── the table "Drawing": a standard hangman coloured element-by-element via
+    #    _draw_colors (always ending at red). gallows="split" = base + rest as two elements
+    #    (8 total); gallows="single" = the WHOLE gallows as ONE stroke, ignoring the
+    #    bottom-left stub (7 total). Body = the 6 standard parts: head, torso, 2 arms,
+    #    2 legs. ─────────────────────────────────────────────────────────────────────
     def _hangman_drawing(self, gallows):
         sw = 3.0
         if gallows == "split":
@@ -466,8 +484,23 @@ class Scene23(HangmanScene):
         leg1 = Line([0.12, -0.15, 0], [0.00, -0.32, 0], stroke_width=sw)
         leg2 = Line([0.12, -0.15, 0], [0.24, -0.32, 0], stroke_width=sw)
         parts = gall + [head, torso, arm1, arm2, leg1, leg2]
-        for i, p in enumerate(parts):
-            p.set_color(DRAW_COLORS[i])                       # colour by draw order
+        for p, col in zip(parts, _draw_colors(len(parts))):  # colour to end at red
+            p.set_color(col)
+        g = VGroup(*parts)
+        g.parts = parts
+        return g
+
+    # ── length-5 "Drawing": no gallows — head, torso, one arm-line, two legs (5) ────
+    def _body_drawing(self):
+        sw = 3.0
+        head = Circle(radius=0.10, fill_opacity=0.0, stroke_width=sw).move_to([0.12, 0.20, 0])
+        torso = Line([0.12, 0.10, 0], [0.12, -0.15, 0], stroke_width=sw)
+        arms = Line([-0.04, -0.02, 0], [0.28, -0.02, 0], stroke_width=sw)   # one arm-line
+        leg1 = Line([0.12, -0.15, 0], [0.00, -0.32, 0], stroke_width=sw)
+        leg2 = Line([0.12, -0.15, 0], [0.24, -0.32, 0], stroke_width=sw)
+        parts = [head, torso, arms, leg1, leg2]
+        for p, col in zip(parts, _draw_colors(len(parts))):  # colour to end at red
+            p.set_color(col)
         g = VGroup(*parts)
         g.parts = parts
         return g
@@ -477,7 +510,7 @@ class Scene23(HangmanScene):
         y = self._row_y(2)
         self.fair3 = chalk_number(8, height=0.42, stroke_width=3.2).move_to(
             [self.col_x[1], y, 0])
-        self.draw3 = self._hangman_drawing("split").move_to([self.col_x[2], y, 0])
+        self.draw3 = self._hangman_drawing("split").move_to([self._draw_x(2), y, 0])
 
     @subscene
     def fill_row_3(self):
@@ -504,7 +537,7 @@ class Scene23(HangmanScene):
         y = self._row_y(3)
         self.fair4 = chalk_number(7, height=0.42, stroke_width=3.2).move_to(
             [self.col_x[1], y, 0])
-        self.draw4 = self._hangman_drawing("single").move_to([self.col_x[2], y, 0])
+        self.draw4 = self._hangman_drawing("single").move_to([self._draw_x(3), y, 0])
 
     @subscene
     def fill_row_4(self):
@@ -524,4 +557,31 @@ class Scene23(HangmanScene):
         self._setup_switch_5()
         self._morph_cdf(self._cdf_chart(5), 5, 1.2, 1.0)  # 4- -> 5-Letter
         self.play(LaggedStartMap(Create, _strokes(self.len5), lag_ratio=0.5),
+                  run_time=0.6)
+
+    # ── l : length-5 fair number (5) + body-only drawing (head/torso/arm-line/2 legs) ─
+    def _setup_row5_fill(self):
+        y = self._row_y(4)
+        self.fair5 = chalk_number(5, height=0.42, stroke_width=3.2).move_to(
+            [self.col_x[1], y, 0])
+        self.draw5 = self._body_drawing().move_to([self._draw_x(4), y, 0])
+
+    @subscene
+    def fill_row_5(self):
+        self._setup_row5_fill()
+        self.play(LaggedStartMap(Create, _strokes(self.fair5), lag_ratio=0.5),
+                  run_time=0.6)
+        for p in self.draw5.parts:                            # 5 elements, one per miss
+            self.play(Create(p), run_time=0.4)
+
+    # ── m : switch to 6-letter words — morph the CDF, write only the length-6 row ──
+    def _setup_switch_6(self):
+        self.len6 = chalk_number(6, height=0.42, stroke_width=3.2).move_to(
+            [self.col_x[0], self._row_y(5), 0])        # Word Length column, row 6
+
+    @subscene
+    def switch_to_6(self):
+        self._setup_switch_6()
+        self._morph_cdf(self._cdf_chart(6), 6, 1.2, 1.0)  # 5- -> 6-Letter
+        self.play(LaggedStartMap(Create, _strokes(self.len6), lag_ratio=0.5),
                   run_time=0.6)
