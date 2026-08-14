@@ -69,9 +69,9 @@ Script row 05, split on '—' (voiceover ↔ animation zip 1:1). BEAT MAP:
                     opener's optimal tree (red-white shape, root lettered, 'Avg misses: N.NN' above),
                     GREEN the winner (A = 3.88 min), fade the rest, and grow the green tree back to
                     full screen with its letters + solved colours restored
-  z dedup         — DEDUP: two parallel miss-spine trees (LEFT A→O, RIGHT O→A), each guess node fanning
-                    its hit branches as BARE dots, ending in a bare position node with '_ _' below;
-                    both reach the same position (same letters, different order → solve once)
+  z dedup         — DEDUP: two parallel miss-DIAGONAL trees (miss=LEFT child, down-left; LEFT A→O, RIGHT
+                    O→A), each guess node fanning its hit branches as BARE dots down-right, ending in a
+                    bare position node with '_ _' + misses below; same position → solve once
   --- next sections (not yet built) ---
   … za the can't-be-in-word single branch; zb paired greedy-vs-optimal chart
 
@@ -2071,12 +2071,13 @@ class Scene05(HangmanScene):
         self.grid = None
 
     # ── z : DEDUP — the same letters in a different ORDER reach the same position, so a solved
-    #        position isn't re-solved. Two parallel miss-spine trees: LEFT guesses A then O, RIGHT
-    #        guesses O then A. Each guess node (lettered; first white, then red-via-miss) also shows
-    #        its OTHER children — the hit branches — as BARE dots (no letters, no blanks). The spine
-    #        ends in a bare position NODE with the '_ _' board hanging below it (a gap wide enough
-    #        that a revealed letter would fit above each rule). The hit-child COUNT is SOURCED
-    #        (`_hit_count`: A and O each hit at pos 1 and pos 2 → 2 bare children). ──────────────────
+    #        position isn't re-solved. Two parallel miss-DIAGONAL trees (the MISS branch is the LEFT
+    #        child, matching the rest of the scene — spine grows DOWN-LEFT): LEFT guesses A then O,
+    #        RIGHT guesses O then A. Each guess node (lettered; first white, then red-via-miss) fans its
+    #        OTHER children — the hit branches — as BARE white dots DOWN-RIGHT (no letters, no blanks).
+    #        The spine ends in a bare position NODE with the '_ _' board hanging below it (a gap wide
+    #        enough that a revealed letter would fit above each rule) and the misses tallied under it.
+    #        The hit-child COUNT is SOURCED (`_hit_count`: A and O each hit at pos 1 and pos 2). ───────
     DEDUP_NODE_R = 0.42
     def _hit_count(self, letter):
         """How many HIT branches a first-guess ``letter`` splits into (positions it can occupy) —
@@ -2085,36 +2086,40 @@ class Scene05(HangmanScene):
         return sum(1 for p in opt["subtree"]["branches"] if set(p) != {"_"})
 
     def _dedup_tree(self, guesses, cx):
-        """One miss-spine tree at column ``cx``, exposed as per-level handles so it can EXTEND out
-        level by level: guess1 (white) --miss--> guess2 (red) --miss--> position (bare red node), each
-        guess node fanning its hit branches as bare white dots. Below the position, the '_ _' board
-        with the two missed letters (red, in guessed order) tallied UNDER the blanks."""
+        """One miss-DIAGONAL tree rooted at ``cx`` — matching the rest of the scene, the MISS branch is
+        the LEFT child, so the spine grows DOWN-LEFT (guess1 white --miss--> guess2 red --miss-->
+        position, a bare red node), while each guess node's hit branches fan DOWN-RIGHT as bare white
+        dots. The '_ _' board hangs below the position with the two missed letters (red, guessed order)
+        tallied under the blanks. Exposed as per-level handles so it can EXTEND out level by level."""
         r = self.DEDUP_NODE_R
         cr = r * GRID_CHILD_RF                       # bare hit-child radius
-        SPREAD, DY = 1.2, 1.85                       # hit-child half-spread, spine level drop
-        ys = [2.6, 2.6 - DY, 2.6 - 2 * DY]           # guess1, guess2, position
-        d0 = self._node_dot([cx, ys[0], 0], r=r, misses=0)   # guess1 — white (0 misses)
+        SPREAD, DY = 1.2, 1.85                       # horizontal step, level drop
+        p0 = np.array([cx, 2.6, 0.0])
+        p1 = p0 + np.array([-SPREAD, -DY, 0.0])      # guess2 — miss child, DOWN-LEFT
+        p2 = p1 + np.array([-SPREAD, -DY, 0.0])      # position — miss child, DOWN-LEFT
+        d0 = self._node_dot(p0, r=r, misses=0)       # guess1 — white (0 misses)
         l0 = self._node_letter(guesses[0], d0)
-        d1 = self._node_dot([cx, ys[1], 0], r=r, misses=1)   # guess2 — red (reached via a miss)
+        d1 = self._node_dot(p1, r=r, misses=1)       # guess2 — red (reached via a miss)
         l1 = self._node_letter(guesses[1], d1)
-        d2 = self._node_dot([cx, ys[2], 0], r=r, misses=1)   # position — bare red node (no letter)
+        d2 = self._node_dot(p2, r=r, misses=1)       # position — bare red node (no letter)
         e1 = self._edge_line(d0, d1, LIGHT_RED)
         e2 = self._edge_line(d1, d2, LIGHT_RED)
 
-        def hits(parent, g, py):                     # a guess node's hit branches: bare white dots
+        def hits(parent, ppos, g):                   # hit branches fan DOWN-RIGHT, bare white dots
             edges, dots = VGroup(), VGroup()
-            for x in [-SPREAD, SPREAD][:self._hit_count(g)]:
-                hd = Dot([cx + x, py - DY, 0], radius=cr, color=_miss_color(0))
+            for j in range(self._hit_count(g)):
+                hd = Dot(ppos + np.array([SPREAD * (j + 1), -DY, 0.0]), radius=cr,
+                         color=_miss_color(0))
                 edges.add(self._edge_line(parent, hd, _miss_color(0)))
                 dots.add(hd)
             return edges, dots
-        h0e, h0d = hits(d0, guesses[0], ys[0])
-        h1e, h1d = hits(d1, guesses[1], ys[1])
+        h0e, h0d = hits(d0, p0, guesses[0])
+        h1e, h1d = hits(d1, p1, guesses[1])
         # the board hangs WELL below the position node (room for a letter above each rule), with the
         # two missed letters (red, in the order guessed) tallied under the blanks
-        blanks = self._blanks("__", h=0.5).next_to(d2, DOWN, buff=0.85).set_x(cx)
+        blanks = self._blanks("__", h=0.5).next_to(d2, DOWN, buff=0.85).set_x(p2[0])
         tally = self._miss_row([c.upper() for c in guesses], h=0.34)
-        tally.next_to(blanks, DOWN, buff=0.28).set_x(cx)
+        tally.next_to(blanks, DOWN, buff=0.28).set_x(p2[0])
         board = VGroup(blanks, tally)
         return SimpleNamespace(
             all=VGroup(d0, l0, e1, h0e, h0d, d1, l1, e2, h1e, h1d, d2, board),
