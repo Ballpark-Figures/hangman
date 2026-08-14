@@ -148,7 +148,7 @@ class Scene22(HangmanScene):
         self.cb = self.rules7 = self.hang7 = self.hang7_parts = self.rev7 = None
         self.top = self._bar_chart(
             "uniform", "Average Guesses by Opener (5 Letters)",
-            cy=TOP_CY, y_min=3.875, y_max=5.125, y_ticks=[4.0, 4.5, 5.0])
+            cy=TOP_CY, y_min=3, y_max=7, y_ticks=[3, 5, 7])
         self._grow_chart(self.top, 1.2)
 
     # ── c : BOTTOM-half bar chart (best_opener) — the same chart, harder ───────
@@ -156,7 +156,7 @@ class Scene22(HangmanScene):
     def bestop_bar(self):
         self.bot = self._bar_chart(
             "best_opener", "Improved Word Choice Strategy",
-            cy=BOT_CY, y_min=5.25, y_max=6.5, y_ticks=[5.5, 6.0, 6.5])
+            cy=BOT_CY, y_min=3, y_max=7, y_ticks=[3, 5, 7])
         self._grow_chart(self.bot, 1.2)
 
     # ── d : original tier list → arrow → the best_opener tier list ────────────
