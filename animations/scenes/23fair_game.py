@@ -66,19 +66,25 @@ BEAT MAP
                    two legs (5 elements)
   m switch_to_6  — switch to 6-letter words: morph the CDF 5->6; write "6" (nothing else)
   n fill_row_6   — length-6 fair number (4 — bar 4 is nearest 50%) + the fair-4 drawing
-  o switch_to_7  — switch to 7-letter words: morph the CDF 6->7; write "7" (nothing else)
+  o switch_to_7  — length 7 has the SAME fair # (4): MERGE — append "-7" to make "6-7"
+  p switch_to_8  — switch to 8-letter words; write "8" (crimson caption clears — len 8+ exact)
+  q fill_row_8   — length-8 fair number (3) + a little 3-circle SNOWMAN (no gallows)
+  r switch_to_9  — switch to 9-letter words; write "9"
+  s fill_row_9   — length-9 fair number (2) + a 2-circle SNOWMAN
+  t switch_to_10plus — morph the CDF to length 10; write "10+"
+  u fill_row_10plus  — length-10+ fair number (1) + a single-circle SNOWMAN
 
 Every DRAWING is coloured to END at red (see _draw_colors): an N-element drawing uses the
 last N of [deep-red, deep-purple, purple, blue, green, yellow, orange, red]. Drawings are
 STAGGERED — odd word lengths on the left of the Drawing column, even on the right.
 
-NB beats e–o run AHEAD of Script.md's animation column (still 4 segments); they animate the
-length-2..7 part of beat-d's voiceover ("With 2 letters, the closest we can get is …").
+NB beats e–u run AHEAD of Script.md's animation column (still 4 segments); they animate the
+length-2..10+ part of beat-d's voiceover ("With 2 letters, the closest we can get is …").
 The dashed 50%/y=6 reference lines are z-indexed ABOVE the bars and turn BLUE where they
 pass over crimson bars; a CDF morph moves the shared bars first, then GROWS the brand-new
 bars up from the axis (not a simultaneous fade-in).
 
-Render:  render 23a --fast   (…23o)   /   render 23 sub  for the whole scene
+Render:  render 23a --fast   (…23u)   /   render 23 sub  for the whole scene
 """
 from pathlib import Path
 import sys
@@ -105,7 +111,7 @@ COL_DX = (-2.2, 0.0, 2.2)                     # table column x-offsets from boar
 DRAW_DX = 0.55                                # stagger: odd lengths LEFT, even lengths RIGHT
 HEADER_Y = 2.85                              # header baseline band
 RULE_Y = 2.15                                # underline below headers
-ROW_Y0, ROW_DY = 1.55, -0.8                  # first data row, per-row step (fits 7 rows)
+ROW_Y0, ROW_DY = 1.55, -0.6                  # first data row, per-row step (fits 9 rows)
 
 # ── beat c : survival CDF (RIGHT) — nominal box; placed by fair_setup ──────────
 GRAPH_CX, GRAPH_CY, GRAPH_W, GRAPH_H = 4.2, -0.35, 5.2, 3.9
@@ -165,7 +171,10 @@ class Scene23(HangmanScene):
         self.fair5 = self.draw5 = None   # length-5 fair number + drawing (l)
         self.len6 = None             # length-6 row label (m)
         self.fair6 = self.gal6 = None    # length-6 fair number + drawing (n)
-        self.len7 = None             # length-7 row label (o)
+        self.dash7 = None            # "-7" merged into the "6" label (o)
+        self.len8 = self.fair8 = self.snow8 = None    # length-8 row (p/q)
+        self.len9 = self.fair9 = self.snow9 = None    # length-9 row (r/s)
+        self.len10 = self.fair10 = self.snow10 = None  # length-10+ row (t/u)
 
     # ── a : recall scene 19's by-length double bar chart ──────────────────────
     def _double_chart(self):
@@ -383,6 +392,14 @@ class Scene23(HangmanScene):
         new_fifty = self._fifty_line(length)               # recolour 50% line for the
         extra = [FadeTransform(self.fifty, new_fifty)]     # new crimson region (blue over)
         self.fifty = new_fifty
+        # "*values not exact" caption: present iff this length has crimson (inexact) bars
+        note = self._asterisk_note(length)
+        if note is not None and self.asterisk is None:
+            self.asterisk = note
+            extra.append(FadeIn(note))
+        elif note is None and self.asterisk is not None:
+            extra.append(FadeOut(self.asterisk))
+            self.asterisk = None
         tail = list(new.bars[k:])
         if tail:
             elabels = VGroup(*new.labels[k:])
@@ -458,12 +475,9 @@ class Scene23(HangmanScene):
     @subscene
     def switch_to_3(self):
         self._setup_switch_3()
-        self._morph_cdf(self._cdf_chart(3), 3, 1.2, 1.0)  # 2- -> 3-Letter (crimson tail appears)
+        self._morph_cdf(self._cdf_chart(3), 3, 1.2, 1.0)  # 2- -> 3-Letter (crimson tail + caption)
         self.play(LaggedStartMap(Create, _strokes(self.len3), lag_ratio=0.5),
                   run_time=0.6)
-        self.asterisk = self._asterisk_note(3)
-        if self.asterisk is not None:
-            self.play(FadeIn(self.asterisk), run_time=0.5)
 
     # ── the table "Drawing": a standard hangman coloured element-by-element via
     #    _draw_colors (always ending at red). gallows="split" = base + rest as two elements
@@ -512,6 +526,23 @@ class Scene23(HangmanScene):
             p.set_color(col)
         g = VGroup(frame, *parts)
         g.frame, g.parts = frame, parts
+        return g
+
+    # ── snowman "Drawing" (lengths 8/9/10+): a stack of n circles, bottom biggest,
+    #    each = one miss, coloured to end at red. No gallows. ────────────────────────
+    def _snowman(self, n):
+        sw = 3.0
+        radii = [0.16, 0.13, 0.10][:n]                   # bottom -> top
+        circles, cy, prev = [], 0.0, 0.0
+        for i, r in enumerate(radii):
+            cy = r if i == 0 else cy + prev + r          # stack touching
+            circles.append(Circle(radius=r, fill_opacity=0.0,
+                                   stroke_width=sw).move_to([0.12, cy, 0]))
+            prev = r
+        for c, col in zip(circles, _draw_colors(len(circles))):
+            c.set_color(col)
+        g = VGroup(*circles).move_to([0.12, 0, 0])       # centre vertically in the cell
+        g.parts = circles
         return g
 
     # ── h : length-3 fair number (8) + split-gallows standard hangman (8 elements) ──
@@ -612,14 +643,96 @@ class Scene23(HangmanScene):
         for p in self.gal6.parts:                             # head, body, arm-line, leg-line
             self.play(Create(p), run_time=0.45)
 
-    # ── o : switch to 7-letter words — morph the CDF, write only the length-7 row ──
+    # ── o : switch to 7-letter words — same fair # (4), so MERGE into the "6" row: append
+    #    "-7" to make "6-7" (no new row) ─────────────────────────────────────────────
     def _setup_switch_7(self):
-        self.len7 = chalk_number(7, height=0.42, stroke_width=3.2).move_to(
-            [self.col_x[0], self._row_y(6), 0])        # Word Length column, row 7
+        self.dash7 = chalk_phrase("-7", height=0.42, stroke_width=3.2, buff=0.06)
+        self.dash7.next_to(self.len6, RIGHT, buff=0.08, aligned_edge=DOWN)
 
     @subscene
     def switch_to_7(self):
         self._setup_switch_7()
-        self._morph_cdf(self._cdf_chart(7), 7, 1.2, 1.0)  # 6- -> 7-Letter
-        self.play(LaggedStartMap(Create, _strokes(self.len7), lag_ratio=0.5),
+        self._morph_cdf(self._cdf_chart(7), 7, 1.2, 1.0)  # 6- -> 7-Letter (merges into "6-7")
+        self.play(LaggedStartMap(Create, _strokes(self.dash7), lag_ratio=0.5),
                   run_time=0.6)
+
+    # ── p : switch to 8-letter words — morph the CDF, write only the length-8 row ──
+    def _setup_switch_8(self):
+        self.len8 = chalk_number(8, height=0.42, stroke_width=3.2).move_to(
+            [self.col_x[0], self._row_y(6), 0])        # Word Length column, row for len 8
+
+    @subscene
+    def switch_to_8(self):
+        self._setup_switch_8()
+        self._morph_cdf(self._cdf_chart(8), 8, 1.2, 1.0)  # 7- -> 8-Letter (caption clears)
+        self.play(LaggedStartMap(Create, _strokes(self.len8), lag_ratio=0.5),
+                  run_time=0.6)
+
+    # ── q : length-8 fair number (3) + a little 3-circle SNOWMAN (no gallows) ──────
+    def _setup_row8_fill(self):
+        y = self._row_y(6)
+        self.fair8 = chalk_number(3, height=0.42, stroke_width=3.2).move_to(
+            [self.col_x[1], y, 0])
+        self.snow8 = self._snowman(3).move_to([self._draw_x(6), y, 0])
+
+    @subscene
+    def fill_row_8(self):
+        self._setup_row8_fill()
+        self.play(LaggedStartMap(Create, _strokes(self.fair8), lag_ratio=0.5),
+                  run_time=0.6)
+        for c in self.snow8.parts:                            # 3 circles, one per miss
+            self.play(Create(c), run_time=0.4)
+
+    # ── r : switch to 9-letter words — morph the CDF, write only the length-9 row ──
+    def _setup_switch_9(self):
+        self.len9 = chalk_number(9, height=0.42, stroke_width=3.2).move_to(
+            [self.col_x[0], self._row_y(7), 0])
+
+    @subscene
+    def switch_to_9(self):
+        self._setup_switch_9()
+        self._morph_cdf(self._cdf_chart(9), 9, 1.2, 1.0)  # 8- -> 9-Letter
+        self.play(LaggedStartMap(Create, _strokes(self.len9), lag_ratio=0.5),
+                  run_time=0.6)
+
+    # ── s : length-9 fair number (2) + a 2-circle SNOWMAN ─────────────────────────
+    def _setup_row9_fill(self):
+        y = self._row_y(7)
+        self.fair9 = chalk_number(2, height=0.42, stroke_width=3.2).move_to(
+            [self.col_x[1], y, 0])
+        self.snow9 = self._snowman(2).move_to([self._draw_x(7), y, 0])
+
+    @subscene
+    def fill_row_9(self):
+        self._setup_row9_fill()
+        self.play(LaggedStartMap(Create, _strokes(self.fair9), lag_ratio=0.5),
+                  run_time=0.6)
+        for c in self.snow9.parts:                            # 2 circles, one per miss
+            self.play(Create(c), run_time=0.4)
+
+    # ── t : switch to 10+ (morph the CDF to length 10; label "10+") ───────────────
+    def _setup_switch_10(self):
+        self.len10 = chalk_phrase("10+", height=0.42, stroke_width=3.2, buff=0.06).move_to(
+            [self.col_x[0], self._row_y(8), 0])
+
+    @subscene
+    def switch_to_10plus(self):
+        self._setup_switch_10()
+        self._morph_cdf(self._cdf_chart(10), 10, 1.2, 1.0)  # 9- -> 10-Letter (label "10+")
+        self.play(LaggedStartMap(Create, _strokes(self.len10), lag_ratio=0.5),
+                  run_time=0.6)
+
+    # ── u : length-10+ fair number (1) + a single-circle SNOWMAN ──────────────────
+    def _setup_row10_fill(self):
+        y = self._row_y(8)
+        self.fair10 = chalk_number(1, height=0.42, stroke_width=3.2).move_to(
+            [self.col_x[1], y, 0])
+        self.snow10 = self._snowman(1).move_to([self._draw_x(8), y, 0])
+
+    @subscene
+    def fill_row_10plus(self):
+        self._setup_row10_fill()
+        self.play(LaggedStartMap(Create, _strokes(self.fair10), lag_ratio=0.5),
+                  run_time=0.6)
+        for c in self.snow10.parts:                           # 1 circle
+            self.play(Create(c), run_time=0.4)
