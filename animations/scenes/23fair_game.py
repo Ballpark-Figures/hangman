@@ -48,14 +48,20 @@ BEAT MAP
   b line_at_6    — dashed reference line at y=6 misses across that chart
   c fair_setup   — chart out; LEFT chalkboard + empty table, RIGHT "1-Letter Words" survival
                    CDF (Misses before Losing vs Chance of Surviving) + a dashed 50% line
-  d fill_row_1   — fill the length-1 row (1 | 1) + draw a gallows with a tall purple oval
+  d fill_row_1   — fill the length-1 row (1 | 1) + gallows with a tall purple-oval head
   e switch_to_2  — switch to 2-letter words: morph the CDF 1->2 letters (title crossfades)
                    and write ONLY the "2" in the Word Length column (row 2, nothing else)
+  f fill_row_2   — length-2 fair number (4) + the colour-coded gallows (head purple, body
+                   blue, arms green, legs yellow — each part = the intro tree's miss colour)
+  g switch_to_3  — switch to 3-letter words: morph the CDF 2->3; the first INEXACT (greedy-
+                   tail) bars appear crimson with a "*values not exact" caption; write "3"
 
-NB beat e runs AHEAD of Script.md's animation column (still 4 segments); it animates the
-length-2 part of beat-d's voiceover ("With 2 letters, the closest we can get is …").
+NB beats e–g run AHEAD of Script.md's animation column (still 4 segments); they animate the
+length-2/3 part of beat-d's voiceover ("With 2 letters, the closest we can get is …").
+The dashed 50% line is z-indexed ABOVE the bars; a CDF morph moves the shared bars first,
+then GROWS the brand-new bars up from the axis (not a simultaneous fade-in).
 
-Render:  render 23a --fast   (…23e)   /   render 23 sub  for the whole scene
+Render:  render 23a --fast   (…23g)   /   render 23 sub  for the whole scene
 """
 from pathlib import Path
 import sys
@@ -64,8 +70,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from config import *
-from bpkfigures.bar_graph import (grouped_bar_chart, get_bar_chart, grow_bars,
-                                  morph_bar_chart)
+from bpkfigures.bar_graph import grouped_bar_chart, get_bar_chart, grow_bars
 from assets import short_words_data
 from assets import scene23_data
 from assets.word_tables_scene import UNIFORM_COLOR, BESTOP_COLOR, INK
@@ -82,7 +87,7 @@ MARGIN = 0.6
 COL_DX = (-2.2, 0.0, 2.2)                     # table column x-offsets from board centre
 HEADER_Y = 2.85                              # header baseline band
 RULE_Y = 2.15                                # underline below headers
-ROW_Y0, ROW_DY = 1.35, -1.05                 # first data row, per-row step (future rows)
+ROW_Y0, ROW_DY = 1.35, -1.1                  # first data row, per-row step (future rows)
 
 # ── beat c : survival CDF (RIGHT) — nominal box; placed by fair_setup ──────────
 GRAPH_CX, GRAPH_CY, GRAPH_W, GRAPH_H = 4.2, -0.35, 5.2, 3.9
@@ -118,7 +123,10 @@ class Scene23(HangmanScene):
         self.cdf_extra = None        # its axis titles
         self.fifty = None            # the dashed 50% line
         self.row1 = None
-        self.len2 = None             # the length-2 row label (beat e)
+        self.len2 = None             # length-2 row label (e)
+        self.fair2 = self.gal2 = None    # length-2 fair number + gallows (f)
+        self.len3 = None             # length-3 row label (g)
+        self.asterisk = None         # "values not exact" crimson-tail caption (g)
 
     # ── a : recall scene 19's by-length double bar chart ──────────────────────
     def _double_chart(self):
@@ -200,9 +208,11 @@ class Scene23(HangmanScene):
     def _fifty_line(self):
         base = GRAPH_CY - GRAPH_H / 2                      # y=0 axis
         y50 = base + 0.5 * GRAPH_H                         # y_max=1 → 50% at cy
-        return DashedLine([GRAPH_CX - GRAPH_W / 2, y50, 0],
+        line = DashedLine([GRAPH_CX - GRAPH_W / 2, y50, 0],
                           [GRAPH_CX + GRAPH_W / 2, y50, 0],
                           color=CRIMSON, stroke_width=3, dash_length=0.14)
+        line.set_z_index(10)                              # always ABOVE the bars
+        return line
 
     # ── c : chart out; chalkboard + empty table, "1-Letter Words" CDF + 50% line
     @subscene
@@ -237,28 +247,81 @@ class Scene23(HangmanScene):
                   extra=[rest.animate.set_opacity(1)])
         self.play(Create(self.fifty), run_time=0.7)
 
-    # ── mini gallows with one tall body oval, for the table's gallows column ──
-    def _mini_gallows(self, color):
+    def _row_y(self, i):
+        """Baseline y of table row i (row 0 = length 1, row 1 = length 2, …)."""
+        return ROW_Y0 + i * ROW_DY
+
+    # ── mini gallows: chalk frame + the first n body parts, colour-coded by miss ──
+    def _mini_gallows(self, n):
+        """A small chalk gallows hanging the first ``n`` body parts. Parts, in draw
+        order, each tinted by the intro tree's per-miss colour (1 head=purple, 2 body=
+        blue, 3 arms=green, 4 legs=yellow): a tall OUTLINED oval head, a torso, ONE
+        line THROUGH the torso for arms, ONE line ACROSS its bottom for legs.
+        Handles: ``.frame`` (chalk gallows), ``.parts`` (the n drawn parts, in order)."""
         sw = 3.0
-        base = Line([-0.34, -0.46, 0], [0.06, -0.46, 0], color=CHALK, stroke_width=sw)
-        post = Line([-0.30, -0.46, 0], [-0.30, 0.46, 0], color=CHALK, stroke_width=sw)
-        beam = Line([-0.30, 0.46, 0], [0.12, 0.46, 0], color=CHALK, stroke_width=sw)
-        rope = Line([0.12, 0.46, 0], [0.12, 0.30, 0], color=CHALK, stroke_width=sw)
-        # like the hangman head but a taller OVAL, outlined (not filled), in purple
-        oval = Ellipse(width=0.26, height=0.46, color=color, fill_opacity=0.0,
-                       stroke_width=sw).move_to([0.12, 0.07, 0])
-        g = VGroup(base, post, beam, rope, oval)
-        g.frame, g.oval = VGroup(base, post, beam, rope), oval
+        post = Line([-0.30, 0.48, 0], [-0.30, -0.44, 0], color=CHALK, stroke_width=sw)
+        beam = Line([-0.30, 0.48, 0], [0.12, 0.48, 0], color=CHALK, stroke_width=sw)
+        rope = Line([0.12, 0.48, 0], [0.12, 0.36, 0], color=CHALK, stroke_width=sw)
+        base = Line([-0.34, -0.44, 0], [0.16, -0.44, 0], color=CHALK, stroke_width=sw)
+        frame = VGroup(post, beam, rope, base)
+        head = Ellipse(width=0.24, height=0.28, fill_opacity=0.0, stroke_width=sw,
+                       color=_miss_color(1)).move_to([0.12, 0.22, 0])
+        body = Line([0.12, 0.08, 0], [0.12, -0.26, 0], color=_miss_color(2),
+                    stroke_width=sw)
+        arms = Line([-0.04, -0.04, 0], [0.28, -0.04, 0], color=_miss_color(3),
+                    stroke_width=sw)
+        legs = Line([-0.02, -0.26, 0], [0.26, -0.26, 0], color=_miss_color(4),
+                    stroke_width=sw)
+        parts = [head, body, arms, legs][:n]
+        g = VGroup(frame, *parts)
+        g.frame, g.parts = frame, parts
         return g
+
+    # ── morph the current CDF into a new-length one, then GROW the brand-new bars ──
+    def _morph_cdf(self, new, move_rt, grow_rt):
+        """Align ``new`` onto the current CDF (self.cdf) and morph in two phases: the
+        SHARED bars move/reshape while the framing (x-labels, ticks, axes, title)
+        crossfades; THEN the brand-new bars grow up from the axis (labels fading in
+        with them) — so the new bars grow only AFTER the old ones finish moving."""
+        old = self.cdf
+        new.shift(old.y_axis.get_center() - new.y_axis.get_center())
+        k = min(len(old.bars), len(new.bars))
+        move = [ReplacementTransform(old.bars[i], new.bars[i]) for i in range(k)]
+        move += [FadeOut(old.bars[i]) for i in range(k, len(old.bars))]
+        lk = min(len(old.labels), len(new.labels))
+        move += [FadeTransform(old.labels[i], new.labels[i]) for i in range(lk)]
+        move += [FadeOut(old.labels[i]) for i in range(len(new.labels), len(old.labels))]
+        for attr in ("x_axis", "y_axis", "yticks", "title"):
+            o, nw = getattr(old, attr, None), getattr(new, attr, None)
+            if o is not None and nw is not None:
+                move.append(FadeTransform(o, nw))
+        self.play(*move, run_time=move_rt)
+        extra = list(new.bars[k:])
+        if extra:
+            elabels = VGroup(*new.labels[k:])
+            elabels.set_opacity(0)
+            grow_bars(self, extra, grow_rt, lag=0.05,
+                      extra=[elabels.animate.set_opacity(1)])
+        self.cdf = new
+
+    def _asterisk_note(self, length):
+        """A crimson '*values not exact' caption under the inexact (greedy-tail) bars,
+        or None if this length is fully exact."""
+        pts = scene23_data.get()["cdf"][str(length)]
+        if all(p["exact"] for p in pts):
+            return None
+        note = crisp_text("*values not exact", font_size=16, color=CRIMSON)
+        note.next_to(self.cdf_extra[0], DOWN, buff=0.18)   # below the x-axis title
+        note.align_to(self.cdf.x_axis, RIGHT)              # right edge at the plot edge
+        return note
 
     # ── d : fill the length-1 row (1 | 1) + gallows with a tall purple oval ───
     def _setup_row1(self):
         cx_len, cx_fair, cx_gal = self.col_x
-        n_len = chalk_number(1, height=0.42, stroke_width=3.2).move_to(
-            [cx_len, ROW_Y0, 0])
-        n_fair = chalk_number(1, height=0.42, stroke_width=3.2).move_to(
-            [cx_fair, ROW_Y0, 0])
-        gal = self._mini_gallows(_miss_color(1)).move_to([cx_gal, ROW_Y0, 0])
+        y = self._row_y(0)
+        n_len = chalk_number(1, height=0.42, stroke_width=3.2).move_to([cx_len, y, 0])
+        n_fair = chalk_number(1, height=0.42, stroke_width=3.2).move_to([cx_fair, y, 0])
+        gal = self._mini_gallows(1).move_to([cx_gal, y, 0])
         self.row1 = VGroup(n_len, n_fair, gal)
 
     @subscene
@@ -268,24 +331,48 @@ class Scene23(HangmanScene):
         self.play(LaggedStartMap(Create, _strokes(n_len), lag_ratio=0.5), run_time=0.6)
         self.play(LaggedStartMap(Create, _strokes(n_fair), lag_ratio=0.5), run_time=0.6)
         self.play(LaggedStartMap(Create, gal.frame, lag_ratio=0.8), run_time=1.0)
-        self.play(Create(gal.oval), run_time=0.6)
+        for p in gal.parts:                            # just the head (purple) at len 1
+            self.play(Create(p), run_time=0.5)
 
     # ── e : switch to 2-letter words — morph the CDF, write only the length-2 row ─
     def _setup_switch_2(self):
-        new = self._cdf_chart(2)                       # 2-letter CDF, same box/center
-        # align the new plot box onto the current (shifted) chart, then morph in place
-        new.shift(self.cdf.y_axis.get_center() - new.y_axis.get_center())
-        self._cdf2 = new
         self.len2 = chalk_number(2, height=0.42, stroke_width=3.2).move_to(
-            [self.col_x[0], ROW_Y0 + ROW_DY, 0])       # Word Length column, row 2
+            [self.col_x[0], self._row_y(1), 0])        # Word Length column, row 2
 
     @subscene
     def switch_to_2(self):
         self._setup_switch_2()
-        # morph the length-1 bars/labels/title into the length-2 ones (axis titles +
-        # the 50% line are unchanged); the chart title crossfades 1- -> 2-Letter Words
-        self.play(*morph_bar_chart(self.cdf, self._cdf2), run_time=1.4)
-        self.cdf = self._cdf2
-        self._cdf2 = None
+        self._morph_cdf(self._cdf_chart(2), 1.2, 1.0)  # 1- -> 2-Letter (title crossfades)
         self.play(LaggedStartMap(Create, _strokes(self.len2), lag_ratio=0.5),
                   run_time=0.6)
+
+    # ── f : length-2 fair number (4) + the colour-coded gallows (4 parts) ─────────
+    def _setup_row2_fill(self):
+        y = self._row_y(1)
+        self.fair2 = chalk_number(4, height=0.42, stroke_width=3.2).move_to(
+            [self.col_x[1], y, 0])
+        self.gal2 = self._mini_gallows(4).move_to([self.col_x[2], y, 0])
+
+    @subscene
+    def fill_row_2(self):
+        self._setup_row2_fill()
+        self.play(LaggedStartMap(Create, _strokes(self.fair2), lag_ratio=0.5),
+                  run_time=0.6)
+        self.play(LaggedStartMap(Create, self.gal2.frame, lag_ratio=0.8), run_time=1.0)
+        for p in self.gal2.parts:                      # head, body, arms, legs (coloured)
+            self.play(Create(p), run_time=0.45)
+
+    # ── g : switch to 3-letter words — morph the CDF (first inexact/crimson tail) ──
+    def _setup_switch_3(self):
+        self.len3 = chalk_number(3, height=0.42, stroke_width=3.2).move_to(
+            [self.col_x[0], self._row_y(2), 0])        # Word Length column, row 3
+
+    @subscene
+    def switch_to_3(self):
+        self._setup_switch_3()
+        self._morph_cdf(self._cdf_chart(3), 1.2, 1.0)  # 2- -> 3-Letter (crimson tail appears)
+        self.play(LaggedStartMap(Create, _strokes(self.len3), lag_ratio=0.5),
+                  run_time=0.6)
+        self.asterisk = self._asterisk_note(3)
+        if self.asterisk is not None:
+            self.play(FadeIn(self.asterisk), run_time=0.5)
