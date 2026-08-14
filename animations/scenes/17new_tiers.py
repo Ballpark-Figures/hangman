@@ -99,11 +99,8 @@ class Scene17(HangmanScene):
     # ── tier-list helpers ─────────────────────────────────────────────────────
     def _filled_list(self, letters, *, names=None):
         """A tier list (default 7-tier named; `names` for a custom structure) with its
-        `letters` filled in, scaled + ready to place."""
-        t = tl.get_tier_list("name") if names is None else tl.get_tier_list(names=names)
-        for i, lets in enumerate(letters):
-            tl.fill_tier(t, i, lets)
-        return t.scale(LIST_SCALE)
+        `letters` filled in, scaled + ready to place. (Shared builder in tier_list.)"""
+        return tl.filled_list(letters, names=names, scale=LIST_SCALE)
 
     def _title(self, text, x):
         return crisp_text(text, font_size=30, color=TITLE_COLOR,
@@ -123,28 +120,11 @@ class Scene17(HangmanScene):
 
     def _morph_into(self, src, dst, src_letters, dst_letters, row_map, run_time, *,
                     extra=()):
-        """Transform a COPY of tier list `src` into `dst`: per-role structure
-        (cell/panel/label of src row i → dst row `row_map[i]`, so two rows can MERGE
-        onto one) + per-LETTER moves (each letter slides to its dst tile). `src` stays
-        put; `dst` is left on screen at the end. `extra` plays ALONGSIDE (e.g. the right
-        title fading in as the list moves). Piece-by-piece (role handles), never a blob
-        morph — see bpkfigures CLAUDE.md."""
-        dst_tile = {ch: dst.contents[i][k]
-                    for i, lets in enumerate(dst_letters) for k, ch in enumerate(lets)}
-        pairs = []
-        for i, j in enumerate(row_map):
-            pairs += [(src.cells[i], dst.cells[j]), (src.panels[i], dst.panels[j]),
-                      (src.labels[i], dst.labels[j])]
-        for i, lets in enumerate(src_letters):
-            for k, ch in enumerate(lets):
-                pairs.append((src.contents[i][k], dst_tile[ch]))
-        movers = [a.copy() for a, _ in pairs]
-        for m in movers:
-            self.add(m)
-        self.play(*[Transform(m, b.copy()) for m, (_, b) in zip(movers, pairs)],
-                  *extra, run_time=run_time)
-        self.remove(*movers)
-        self.add(dst)
+        """Transform a COPY of tier list `src` into `dst` (shared in tier_list): per-role
+        cell/panel/label pairing (row i → row_map[i], so tiers can MERGE) + per-letter
+        slides. `src` stays; `dst` is left on screen. `extra` plays alongside."""
+        tl.morph_into(self, src, dst, src_letters, dst_letters, row_map, run_time,
+                      extra=extra)
 
     # ── beats ─────────────────────────────────────────────────────────────────
     # a : all 49 length-2 words as equal-height bars (3 rows, desc-freq order) + title

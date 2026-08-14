@@ -314,6 +314,51 @@ def fill_tier(tl, i, letters=None, *, height=0.5, buff=LETTER_BUFF,
     return tiles
 
 
+# ── comparison (a filled list, and a piece-by-piece morph between two) ─────────
+def filled_list(letters, *, names=None, scale=1.0):
+    """A tier list with each tier's `letters` filled in — default the 7-tier NAMED
+    structure, or a custom `names` (list of (word, arrow)) — scaled and ready to
+    `.move_to(...)`. `letters` is one string per tier, top→bottom. The shared builder
+    behind the scene-17 / scene-22 tier COMPARISONS."""
+    tl = get_tier_list("name") if names is None else get_tier_list(names=names)
+    for i, lets in enumerate(letters):
+        fill_tier(tl, i, lets)
+    return tl.scale(scale)
+
+
+def tile_map(tl, letters):
+    """{letter_char (UPPER): its tile mobject} for a list filled with `letters`
+    (contents[i][k] == letters[i][k]). For emphasising specific letters."""
+    return {ch.upper(): tl.contents[i][k]
+            for i, lets in enumerate(letters) for k, ch in enumerate(lets)}
+
+
+def morph_into(scene, src, dst, src_letters, dst_letters, row_map, run_time, *,
+               extra=()):
+    """Transform a COPY of filled tier list `src` into `dst`: per-role structure
+    (cell/panel/label of src row i → dst row `row_map[i]`, so two rows can MERGE onto
+    one) + per-LETTER moves (each letter slides to its dst tile). `src` stays put; `dst`
+    is left on screen at the end. `extra` plays ALONGSIDE (e.g. a title fading in).
+    Piece-by-piece via role handles, never a blob morph — see bpkfigures CLAUDE.md.
+    (Promoted verbatim from scene 17's `_morph_into`.)"""
+    dst_tile = {ch: dst.contents[i][k]
+                for i, lets in enumerate(dst_letters) for k, ch in enumerate(lets)}
+    pairs = []
+    for i, j in enumerate(row_map):
+        pairs += [(src.cells[i], dst.cells[j]), (src.panels[i], dst.panels[j]),
+                  (src.labels[i], dst.labels[j])]
+    for i, lets in enumerate(src_letters):
+        for k, ch in enumerate(lets):
+            pairs.append((src.contents[i][k], dst_tile[ch]))
+    movers = [a.copy() for a, _ in pairs]
+    for m in movers:
+        scene.add(m)
+    scene.play(*[Transform(m, b.copy()) for m, (_, b) in zip(movers, pairs)],
+               *extra, run_time=run_time)
+    scene.remove(*movers)
+    scene.add(dst)
+
+
 # ── emphasis (resting state is FULL; emphasise by DIMMING THE REST) ────────────
 
 
