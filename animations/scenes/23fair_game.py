@@ -72,7 +72,7 @@ BEAT MAP
   r switch_to_9  — switch to 9-letter words; write "9"
   s fill_row_9   — length-9 fair number (2) + a 2-circle SNOWMAN
   t switch_to_10plus — morph the CDF to length 10; write "10+"
-  u fill_row_10plus  — length-10+ fair number (1) + a single-circle SNOWMAN
+  u fill_row_10plus  — length-10+ fair number (1) + the OVAL (same as the length-1 row)
 
 Every DRAWING is coloured to END at red (see _draw_colors): an N-element drawing uses the
 last N of [deep-red, deep-purple, purple, blue, green, yellow, orange, red]. Drawings are
@@ -109,9 +109,10 @@ LIMIT_MISSES = 6
 MARGIN = 0.6
 COL_DX = (-2.2, 0.0, 2.2)                     # table column x-offsets from board centre
 DRAW_DX = 0.55                                # stagger: odd lengths LEFT, even lengths RIGHT
+DRAW_SCALE = 0.85                             # shrink drawings so 9 rows fit the board
 HEADER_Y = 2.85                              # header baseline band
 RULE_Y = 2.15                                # underline below headers
-ROW_Y0, ROW_DY = 1.55, -0.6                  # first data row, per-row step (fits 9 rows)
+ROW_Y0, ROW_DY = 1.6, -0.58                  # first data row, per-row step (fits 9 rows)
 
 # ── beat c : survival CDF (RIGHT) — nominal box; placed by fair_setup ──────────
 GRAPH_CX, GRAPH_CY, GRAPH_W, GRAPH_H = 4.2, -0.35, 5.2, 3.9
@@ -174,7 +175,7 @@ class Scene23(HangmanScene):
         self.dash7 = None            # "-7" merged into the "6" label (o)
         self.len8 = self.fair8 = self.snow8 = None    # length-8 row (p/q)
         self.len9 = self.fair9 = self.snow9 = None    # length-9 row (r/s)
-        self.len10 = self.fair10 = self.snow10 = None  # length-10+ row (t/u)
+        self.len10 = self.fair10 = self.draw10 = None  # length-10+ row (t/u)
 
     # ── a : recall scene 19's by-length double bar chart ──────────────────────
     def _double_chart(self):
@@ -366,7 +367,7 @@ class Scene23(HangmanScene):
             p.set_color(col)
         g = VGroup(frame, *parts)
         g.frame, g.parts = frame, parts
-        return g
+        return g.scale(DRAW_SCALE)
 
     # ── morph the current CDF into a new-length one, then GROW the brand-new bars ──
     def _morph_cdf(self, new, length, move_rt, grow_rt):
@@ -510,7 +511,7 @@ class Scene23(HangmanScene):
             p.set_color(col)
         g = VGroup(*parts)
         g.parts = parts
-        return g
+        return g.scale(DRAW_SCALE)
 
     # ── length-5 "Drawing": CHALK gallows + head, torso, one arm-line, two legs (5) ──
     def _body_drawing(self):
@@ -526,7 +527,7 @@ class Scene23(HangmanScene):
             p.set_color(col)
         g = VGroup(frame, *parts)
         g.frame, g.parts = frame, parts
-        return g
+        return g.scale(DRAW_SCALE)
 
     # ── snowman "Drawing" (lengths 8/9/10+): a stack of n circles, bottom biggest,
     #    each = one miss, coloured to end at red. No gallows. ────────────────────────
@@ -543,7 +544,7 @@ class Scene23(HangmanScene):
             c.set_color(col)
         g = VGroup(*circles).move_to([0.12, 0, 0])       # centre vertically in the cell
         g.parts = circles
-        return g
+        return g.scale(DRAW_SCALE)
 
     # ── h : length-3 fair number (8) + split-gallows standard hangman (8 elements) ──
     def _setup_row3_fill(self):
@@ -722,17 +723,18 @@ class Scene23(HangmanScene):
         self.play(LaggedStartMap(Create, _strokes(self.len10), lag_ratio=0.5),
                   run_time=0.6)
 
-    # ── u : length-10+ fair number (1) + a single-circle SNOWMAN ──────────────────
+    # ── u : length-10+ fair number (1) + the OVAL (same as the length-1 row) ───────
     def _setup_row10_fill(self):
         y = self._row_y(8)
         self.fair10 = chalk_number(1, height=0.42, stroke_width=3.2).move_to(
             [self.col_x[1], y, 0])
-        self.snow10 = self._snowman(1).move_to([self._draw_x(8), y, 0])
+        self.draw10 = self._mini_gallows(1).move_to([self._draw_x(8), y, 0])
 
     @subscene
     def fill_row_10plus(self):
         self._setup_row10_fill()
         self.play(LaggedStartMap(Create, _strokes(self.fair10), lag_ratio=0.5),
                   run_time=0.6)
-        for c in self.snow10.parts:                           # 1 circle
-            self.play(Create(c), run_time=0.4)
+        self.play(LaggedStartMap(Create, self.draw10.frame, lag_ratio=0.8), run_time=1.0)
+        for p in self.draw10.parts:                           # the red oval
+            self.play(Create(p), run_time=0.5)
