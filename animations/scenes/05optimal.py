@@ -2164,6 +2164,50 @@ class Scene05(HangmanScene):
         self.play(*self._dedup_level(L, 2), *self._dedup_level(R, 2), run_time=0.6)
         self.play(FadeIn(L.board), FadeIn(R.board), run_time=0.6)
 
+    # ── za : a BAD guess that can only miss. After a successful A gives '_A' (A in pos 2 — the words
+    #        FA/LA/MA/PA/TA/YA), guessing U — which can't be in any '_A' word — yields a SINGLE (miss)
+    #        branch, so it's a wasted check we can skip. Show ALL of A's branches (miss + both hits, the
+    #        _a hit is the one we follow) for context. SOURCED: `_a` is A's pos-2 hit; U's option there
+    #        has only the '__' branch (splits=False). Miss=LEFT / hits=RIGHT, matching the scene. ───────
+    def _setup_badguess(self):
+        r = DEDUP_NODE_R
+        cr = r * GRID_CHILD_RF
+        SPREAD, DY = 1.7, 1.9
+        ax, ay = -1.7, 2.6
+        a = self._node_dot([ax, ay, 0], r=r, misses=0)          # guess A (root, white)
+        al = self._node_letter("a", a)
+        # A's three branches: miss down-LEFT (red), the two hits down-RIGHT (white); the 2nd hit (_a,
+        # A in pos 2) leads to the U guess node — the others are shown as bare sibling dots
+        d_miss = self._node_dot([ax - SPREAD, ay - DY, 0], r=cr, misses=1)   # __  (A missed)
+        d_a_ = self._node_dot([ax + SPREAD, ay - DY, 0], r=cr, misses=0)     # a_  (A in pos 1)
+        u = self._node_dot([ax + 2 * SPREAD, ay - DY, 0], r=r, misses=0)     # guess U at state '_A'
+        ul = self._node_letter("u", u)
+        e_miss = self._edge_line(a, d_miss, LIGHT_RED)
+        e_a_ = self._edge_line(a, d_a_, _miss_color(0))
+        e_ua = self._edge_line(a, u, _miss_color(0))            # the _a hit → U
+        board = self._blanks("_a", h=0.6).next_to(u, RIGHT, buff=0.45)   # '_A' (A revealed in pos 2)
+        # U's SINGLE branch — a miss (down-LEFT, red); U can only miss
+        d_um = self._node_dot([ax + SPREAD, ay - 2 * DY, 0], r=cr, misses=1)
+        e_um = self._edge_line(u, d_um, LIGHT_RED)
+        self.bg = SimpleNamespace(
+            a=a, al=al, d_miss=d_miss, d_a_=d_a_, u=u, ul=ul, board=board, d_um=d_um,
+            e_miss=e_miss, e_a_=e_a_, e_ua=e_ua, e_um=e_um)
+
+    @subscene
+    def bad_guess(self):
+        self._setup_badguess()
+        # clear the two dedup trees carried in from beat z
+        self.play(FadeOut(VGroup(self.dd_left.all, self.dd_right.all)), run_time=0.6)
+        self.dd_left = self.dd_right = None
+        bg = self.bg
+        # A + all three branches (miss + both hits — 'all of A's siblings'); the _a hit reaches U
+        self.play(GrowFromCenter(VGroup(bg.a, bg.al)), run_time=0.5)
+        self.play(GrowFromPoint(VGroup(bg.e_miss, bg.d_miss, bg.e_a_, bg.d_a_,
+                                       bg.e_ua, bg.u, bg.ul), bg.a.get_center()), run_time=0.7)
+        # we're at '_A'; guessing U here can ONLY miss → a single branch
+        self.play(FadeIn(bg.board), run_time=0.4)
+        self.play(GrowFromPoint(VGroup(bg.e_um, bg.d_um), bg.u.get_center()), run_time=0.5)
+
     # ── components ─────────────────────────────────────────────────────────────
     def _greedy_chart(self):
         """Greedy avg misses by word length. Non-chalkboard scene → crisp labels +
