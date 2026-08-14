@@ -665,8 +665,8 @@ class Scene05(HangmanScene):
                            #   not tied to the node, which shrinks as the tree recenters)
     WORDED_H = 0.34        # worded 'Avg misses: N.NN' box height (the static g–n beats)
     CYCLE_MAX = 3          # a root-back-up cycle shows at most this many DISTINCT letters (chosen + others)
-    OPENER_ROOT_BIG = 3.5  # beat y: grid-cell ROOT node enlarged so its starting letter reads as a header
-    OPENER_LABEL_H  = 0.30  # beat y: grid-cell 'Avg misses: N.NN' height — FIXED on-screen size (not tiled),
+    OPENER_ROOT_BIG = 4.5  # beat y: grid-cell ROOT node enlarged so its starting letter reads as a header
+    OPENER_LABEL_H  = 0.32  # beat y: grid-cell 'Avg misses: N.NN' height — FIXED on-screen size (not tiled),
                             #   built identically for every cell so all 20 labels are the SAME size
     _NUM_REF = {}          # cached height->font_size reference + decimal-point offsets
 
@@ -717,7 +717,10 @@ class Scene05(HangmanScene):
         on) — NOT scaled to fit its own box, so digit composition can't change its size. crisp_text
         supersamples to a 240pt cap; the worded phrase is built small to avoid a wrap."""
         if not bare:
-            full = crisp_text(f"Avg misses: {self._fmt(v)}", font_size=12, color=color, weight=BOLD)
+            # build at a LOW font_size (→ low underlying supersample pt) so pango never wraps the
+            # phrase to 2 lines — at font_size=12 (120pt underlying) most of the grid's labels
+            # wrapped, rendering tiny; scale_to_fit_height gives the same final size either way.
+            full = crisp_text(f"Avg misses: {self._fmt(v)}", font_size=6, color=color, weight=BOLD)
             return full.scale_to_fit_height(height)
         return crisp_text(self._fmt(v), font_size=self._num_font(height), color=color, weight=BOLD)
 
@@ -1906,19 +1909,28 @@ class Scene05(HangmanScene):
                       key=lambda o: (o["avg"], o["letter"]))
         trees = []
         for o in opts:
-            g = self._ctree(self._subtree_spec(o["subtree"]), root_miss=0, solved=False)
+            # A's cell uses the SAME spec as the replica/return target (self.a_spec) so the morph is
+            # a true 1:1 pairing (a mismatched spec leaves unpaired edges as strays); the other 19 are
+            # never morphed, so their raw _subtree_spec is fine.
+            spec = self.a_spec if o["letter"] == "a" else self._subtree_spec(o["subtree"])
+            g = self._ctree(spec, root_miss=0, solved=False)
             self._strip_to_shape(g)
             self._enlarge_root(g, self.OPENER_ROOT_BIG)
             g._opt = o
             trees.append(g)
         # the SAME 4×5 grid as beat d — full GRID_W×GRID_H, so the trees use the whole screen
         self._tile(trees, rows=GRID_ROWS, cols=GRID_COLS)
+        # each label sits in the TOP-LEFT corner of its grid BOX (not above its tree) — so every
+        # label is aligned + left-justified regardless of its tree's height/width
+        cw, ch = GRID_W / GRID_COLS, GRID_H / GRID_ROWS
+        tlx, tly, inset = GRID_CENTER[0] - GRID_W / 2, GRID_CENTER[1] + GRID_H / 2, 0.12
         cells = []
-        for g in trees:
+        for idx, g in enumerate(trees):
+            r, c = divmod(idx, GRID_COLS)
             # every label built IDENTICALLY (same string length, same fixed height) → all the SAME
             # size, and NOT part of the tiled tree so it stays big regardless of the tree's scale
             lab = self._value_label(g._opt["avg"], self.OPENER_LABEL_H, bare=False)
-            lab.next_to(g, UP, buff=0.06).set_x(g.root.get_center()[0])
+            lab.move_to([tlx + c * cw + inset, tly - r * ch - inset, 0], aligned_edge=UL)
             cells.append(VGroup(g, lab))
         return cells
 
@@ -1963,11 +1975,18 @@ class Scene05(HangmanScene):
             if s_show and d_show:
                 anims.append(ReplacementTransform(s_txt, d_txt))
             elif s_show and not d_show:
+                # ride OUT: shrink toward the dst node while fading (moves WITH the tree)
                 ghost = s_txt.copy().scale(max(1e-3, dh.dot.width / max(sh.dot.width, 1e-6))) \
                     .move_to(dh.dot).set_opacity(0)
                 anims.append(Transform(s_txt, ghost))
             elif d_show and not s_show:
-                anims.append(FadeIn(d_txt))
+                # ride IN: start small + transparent AT the src node (z-index keeps it ABOVE the
+                # dot), then Restore to its final pose — so it develops ON TOP of the node and
+                # travels WITH the tree, NOT a fade-in-place the arriving dot then covers
+                d_txt.save_state()
+                d_txt.scale(max(1e-3, sh.dot.width / max(dh.dot.width, 1e-6))) \
+                    .move_to(sh.dot).set_opacity(0)
+                anims.append(Restore(d_txt))
         self.play(*anims, *extra_in, run_time=run_time)
 
     @subscene
