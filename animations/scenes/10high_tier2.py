@@ -7,18 +7,26 @@ heatmap + n-gram views per letter (no common-uses, like 96), returns the tier li
 CENTRE, then CLEARS it — scene 11 is the (animated) intermission, NOT a talking head, so
 10 must end blank (like 07 before the 08 interlude), not hand a centred list forward.
 
-Beats a–k:
+Unlike scene 09's HIGH↑ tier, only N and O carry common-uses beats here (script row
+10) — T is heatmap + n-gram only. Each common-uses state is SOURCED from
+letter_analysis.ipynb's `guesses_of_letter_all_lengths(<letter>)` at STRATEGY=optimal /
+WEIGHTING=uniform, sorted by n_words descending; "first 6 examples" = .head(6).
+Reproduced by `math/common_uses_scene10.py`, which prints these exact rows.
+
+Beats a–m:
   a T intro     fill T into HIGH↓; tier list → top-left; copy of T → ↙
   b T heatmap   position-frequency heatmaps
   c T ngram     add the n-gram view
   d N intro     remove T's views, T's copy returns AS N fades in, copy of N → ↙
   e N heatmap   heatmaps for N
   f N ngram     add the n-gram view for N
-  g O intro     remove N's views, N's copy returns AS O fades in, copy of O → ↙
-  h O heatmap   heatmaps for O
-  i O ngram     add the n-gram view for O
-  j recenter    clear views + big letter; tier list returns to CENTRE (completed HIGH tier)
-  k clear_list  TRANSITION: fade the tier list out → blank, for the intermission (11)
+  g N common    common-uses — first 6 examples from the table (N_COMMON)
+  h O intro     remove N's views, N's copy returns AS O fades in, copy of O → ↙
+  i O heatmap   heatmaps for O
+  j O ngram     add the n-gram view for O
+  k O common    common-uses — first 6 examples from the table (O_COMMON)
+  l recenter    clear views + big letter; tier list returns to CENTRE (completed HIGH tier)
+  m clear_list  TRANSITION: fade the tier list out → blank, for the intermission (11)
 
 TIMING KNOBS LEFT AT A GUESS (feel — judge from the video): every run_time below.
 
@@ -32,6 +40,30 @@ sys.path.append(str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from config import *
 from assets.tier_letter_scene import TierLetterScene
+
+# N and O common-uses states pull straight from letter_analysis.ipynb's
+# guesses_of_letter_all_lengths(<letter>) at STRATEGY=optimal / WEIGHTING=uniform,
+# sorted by n_words DESCENDING. "first 6 examples" = .head(6). SOURCED + reproducible
+# via math/common_uses_scene10.py (prints these exact rows). Each spec is
+# (length, board, missed).
+#   N — the table's first 6 rows.
+N_COMMON = [
+    (7, "____i__",   ["e"]),
+    (8, "_____i__",  ["e"]),
+    (7, "_e_____",   []),
+    (9, "______i__", ["e"]),
+    (6, "_a____",    ["e"]),
+    (8, "___e____",  []),
+]
+#   O — the table's first 6 rows.
+O_COMMON = [
+    (5, "_____",     ["a", "e"]),
+    (6, "______",    ["a", "e"]),
+    (4, "____",      ["a", "e"]),
+    (3, "___",       ["a", "e"]),
+    (5, "____e",     ["a"]),
+    (7, "_______",   ["a", "e", "i"]),
+]
 
 
 class Scene10(TierLetterScene):
@@ -76,28 +108,38 @@ class Scene10(TierLetterScene):
     def n_ngram(self):
         self.add_ngram("n", 0.8)
 
+    # g : common-uses — first 6 examples from the table
+    @subscene
+    def n_common(self):
+        self.show_common(N_COMMON, 0.9)
+
     # ── O ───────────────────────────────────────────────────────────────────────
-    # g : remove N's views, N's copy returns AS O fades in, then a copy of O ↙
+    # h : remove N's views, N's copy returns AS O fades in, then a copy of O ↙
     @subscene
     def o_intro(self):
         self.advance_letter(2, 0.9, 1.0)
 
-    # h : heatmaps for O
+    # i : heatmaps for O
     @subscene
     def o_heat(self):
         self.show_heat("o", 1.0)
 
-    # i : add the n-gram view for O
+    # j : add the n-gram view for O
     @subscene
     def o_ngram(self):
         self.add_ngram("o", 0.8)
 
-    # j : clear views + big letter; tier list returns to CENTRE (the completed HIGH tier)
+    # k : common-uses — first 6 examples from the table
+    @subscene
+    def o_common(self):
+        self.show_common(O_COMMON, 0.9)
+
+    # l : clear views + big letter; tier list returns to CENTRE (the completed HIGH tier)
     @subscene
     def recenter(self):
         self.recenter_board(1.0)
 
-    # k : TRANSITION to scene 11 — fade the completed tier list off, ending BLANK.
+    # m : TRANSITION to scene 11 — fade the completed tier list off, ending BLANK.
     #     Scene 11 (the intermission) opens on a navy interlude with no tier list, so
     #     10 must not leave the list on screen (cf. 07, which close_all's before 08).
     @subscene
