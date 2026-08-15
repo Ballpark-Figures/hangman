@@ -9,7 +9,7 @@ so we repeatedly strip an ending (Y / ED / ER / ES / ING) and REFLOW the list in
 the stripped words fade out while, overlapping, survivors slide up and new words rise in
 from the bottom to refill the slots.
 
-BEAT MAP (Script.md scene 20; --- delimited, 14 beats a-n):
+BEAT MAP (Script.md scene 20; --- delimited, 14 beats a-n + a transition beat o):
   a five_patterns   — title "5-Letter Words"; LEFT Common Letter Patterns.
   b five_words      — RIGHT Common Words (almost all end in Y).
   c remove_y        — strip Y-ending words + reflow → what's left usually ends in S.
@@ -25,6 +25,7 @@ BEAT MAP (Script.md scene 20; --- delimited, 14 beats a-n):
   m nine_full       — title → "9-Letter Words"; clear; patterns + words together.
   n sixteen_full    — title → "16-Letter Words"; clear; ONLY Common Words, CENTERED + bigger,
                       10 rows, columns spread WIDER, no patterns table (top word UNDERREPRESENTED).
+  o clear_all       — TRANSITION (not a script beat): fade the table out → blank, for scene 21.
 
 DATA (SOURCED, cached): assets.long_words_data -> long_words_cache.json. Per length:
 `common_patterns` (boosted multiplier rows, uppercased) + `words` (every word the strategy
@@ -46,7 +47,7 @@ FLAGS (owned by a human — tune/decide in the timing+polish pass):
   - Length-9 (beat m) is only partly ING (dominance is strongest at 7/8) — shown faithfully; the
     script's beat-m VO was updated to match ("not as many clear patterns for even longer words").
 
-Render:  render 20a --fast (…20n)  /  render 20 sub  for the whole scene
+Render:  render 20a --fast (…20o)  /  render 20 sub  for the whole scene
 """
 from pathlib import Path
 import sys
@@ -254,3 +255,9 @@ class Scene20(WordTablesScene):
         self.right = self._word_table(16, n=10, cx=0.0, label_dx=-1.9, value_dx=1.9)
         VGroup(self.right.title, self.right.header, self.right.rows).scale(1.25, about_edge=UP)
         self._reveal(self.right, 1.6)
+
+    # o : TRANSITION to scene 21 — fade the table(s) out to the blank brand background;
+    #     scene 21 then fades the chalkboard IN on that clean frame (its `bring_board`).
+    @subscene
+    def clear_all(self):
+        self.play(*[FadeOut(m) for m in list(self.mobjects)], run_time=1.0)
