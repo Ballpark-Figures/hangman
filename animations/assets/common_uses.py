@@ -27,10 +27,11 @@ from assets.hangman_board import blanked_board, missed_letters
 ROW_PITCH   = 0.62        # vertical centre-to-centre between rows
 BOARD_SLOT  = 0.26        # one underscore rule width
 BOARD_GAP   = 0.12        # gap between blanks
-BOARD_FS    = 22          # revealed-letter font size
+BOARD_FS    = 30          # revealed-letter font size (== MISS_FS so the two align)
+BOARD_COLOR = BLACK       # revealed letters on the blanks (BLACK here, not the board blue)
 LABEL_FS    = 24          # the length number, left of each row
 LABEL_BUFF  = 0.35
-MISS_FS     = 22          # the red missed-letter tally, right of the word
+MISS_FS     = 30          # the crimson missed-letter tally, right of the word (== BOARD_FS)
 MISS_BUFF   = 0.45
 
 
@@ -56,9 +57,10 @@ def _letter_cy(slot, gap, board_fs):
     return ref[0][1].get_center()[1] - ref.get_bottom()[1]
 
 
-def _row(spec, *, slot, gap, board_fs, miss_fs, miss_buff, letter_cy):
+def _row(spec, *, slot, gap, board_fs, board_color, miss_fs, miss_buff, letter_cy):
     length, pattern, missed = _spec(spec)
-    brd = blanked_board(pattern, slot=slot, gap=gap, font_size=board_fs)
+    brd = blanked_board(pattern, slot=slot, gap=gap, font_size=board_fs,
+                        color=board_color)
     row = VGroup(brd)
     if missed:
         miss = missed_letters(missed, font_size=miss_fs)
@@ -70,7 +72,8 @@ def _row(spec, *, slot, gap, board_fs, miss_fs, miss_buff, letter_cy):
 
 
 def common_uses(rows, *, board_left_x=0.0, center_y=0.0, row_pitch=ROW_PITCH,
-                slot=BOARD_SLOT, gap=BOARD_GAP, board_fs=BOARD_FS, label_fs=LABEL_FS,
+                slot=BOARD_SLOT, gap=BOARD_GAP, board_fs=BOARD_FS,
+                board_color=BOARD_COLOR, label_fs=LABEL_FS,
                 label_buff=LABEL_BUFF, miss_fs=MISS_FS, miss_buff=MISS_BUFF):
     """Build the vertical common-uses list for `rows` (each a spec, top→bottom).
     The board LEFT edges align at `board_left_x` (so lists of different word lengths
@@ -79,8 +82,8 @@ def common_uses(rows, *, board_left_x=0.0, center_y=0.0, row_pitch=ROW_PITCH,
     label + any misses align to the LETTER band (not the blanks). Stack centred
     vertically on `center_y`. Returns a VGroup with `.rows` (top→bottom) + `.labels`."""
     off = _letter_cy(slot, gap, board_fs)
-    built = [_row(s, slot=slot, gap=gap, board_fs=board_fs, miss_fs=miss_fs,
-                  miss_buff=miss_buff, letter_cy=off) for s in rows]
+    built = [_row(s, slot=slot, gap=gap, board_fs=board_fs, board_color=board_color,
+                  miss_fs=miss_fs, miss_buff=miss_buff, letter_cy=off) for s in rows]
 
     group, rowgrp, labels = VGroup(), VGroup(), VGroup()
     for i, row in enumerate(built):
