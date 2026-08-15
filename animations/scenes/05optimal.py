@@ -481,13 +481,17 @@ class Scene05(HangmanScene):
         self.clear()                                      # drop the transform's stray copies…
         self.add(*cells)                                  # …and re-track clean cell groups
 
-    def _setup_grid(self):
-        # only the letters that actually SPLIT (appear in some 2-letter word); the 6
-        # always-miss letters (c/j/k/q/v/z) are dropped → 20 openers, a clean 4×5,
-        # in GREEDY order (most words containing the letter first).
-        opts = sorted((o for o in DATA["tree"]["options"] if o["splits"]),
+    def _split_openers(self):
+        """The splitting openers in GREEDY order (most words containing the letter first) —
+        the letters that actually SPLIT (appear in some 2-letter word); the 6 always-miss
+        letters (c/j/k/q/v/z) are dropped → 20 openers. The ONE source of this order, shared
+        by beat c's letter-cycle and beat d's grid so the two agree."""
+        return sorted((o for o in DATA["tree"]["options"] if o["splits"]),
                       key=lambda o: (-_greedy_score(o), o["letter"]))
-        self.grid = self._grid_of(opts, rows=GRID_ROWS, cols=GRID_COLS)
+
+    def _setup_grid(self):
+        # the 20 splitting openers in greedy order (shared with beat c), a clean 4×5
+        self.grid = self._grid_of(self._split_openers(), rows=GRID_ROWS, cols=GRID_COLS)
 
     # ── a : recap the greedy avg-misses-by-length chart (from scene 04) ────────
     @subscene
@@ -515,13 +519,16 @@ class Scene05(HangmanScene):
         self.play(GrowFromCenter(self.node), run_time=0.7)
         self.play(FadeIn(self.node_letter), run_time=0.3)
 
-    # ── c : cycle every letter A–Z through the node (which opener is best?) ─────
+    # ── c : cycle the candidate openers through the node (which opener is best?) ─
     @subscene
     def cycle_letters(self):
-        # lockstep cycle (one continuous VO) — settle back on A
-        for ch in "bcdefghijklmnopqrstuvwxyza":
+        # cycle ONLY the letters that appear as roots in beat d's grid, in the SAME
+        # (greedy) order. The node already shows the first opener (A), so run through the
+        # rest and settle back on A. One continuous VO → lockstep.
+        order = [o["letter"] for o in self._split_openers()]
+        for ch in order[1:] + order[:1]:
             self.play(Transform(self.node_letter, self._node_letter(ch, self.node)),
-                      run_time=0.09)
+                      run_time=0.07)
 
     # ── d : spread 28 copies into a 4×7 grid, then each opener sprouts its next
     #        level (try every first letter, see every situation) ─────────────────
@@ -749,8 +756,8 @@ class Scene05(HangmanScene):
         src = self.grid[0]                               # the top-left (A→O) tree from e
         # fade everything else out first, then piece-by-piece transform the top-left tree
         # into the cells (O shrinks into the path, O-miss becomes each new drilled node)
-        self.play(FadeOut(VGroup(*self.grid[1:])), run_time=0.6)
-        self._transform_into(src, cells, 2.2)
+        self.play(FadeOut(VGroup(*self.grid[1:])), run_time=0.45)
+        self._transform_into(src, cells, 1.5)
         self.grid = VGroup(*cells)
         self._resolve()                                   # keep drilling to the {BY,MY} base
 
@@ -762,9 +769,9 @@ class Scene05(HangmanScene):
     #        B-miss (the recursion base case we back up from in h). "Leaf" = the FINAL
     #        GUESS — see hangman CLAUDE.md. (Sub-step of beat f — the tail of the drill.) ─
     def _resolve(self):
-        self._g_expand(3, cols=4, run_time=2.4)           # depth-3 grid: 12 options → 3×4
-        self._g_expand(4, cols=3, run_time=2.4)           # depth-4 grid: 6 options → 2×3
-        self._g_resolve_final(3.4)                        # depth-4 top-left → the Y-first spine
+        self._g_expand(3, cols=4, run_time=1.6)           # depth-3 grid: 12 options → 3×4
+        self._g_expand(4, cols=3, run_time=1.6)           # depth-4 grid: 6 options → 2×3
+        self._g_resolve_final(2.3)                        # depth-4 top-left → the Y-first spine
 
     def _g_expand(self, depth, cols, run_time):
         """Fade all but the current grid's top-left, then piece-by-piece transform its
@@ -1443,9 +1450,9 @@ class Scene05(HangmanScene):
             FadeOut(e_anns),                                          # E's own bare-board annotation
             *move,
             *[m.animate.scale(s, about_point=c).shift(dx) for m in above],   # reframe the diagonal above
-            run_time=0.9)
+            run_time=0.6)
         # phase 2 — each hit branch's children SPROUT out of the (settled) reused root (reframed)
-        self.play(*[GrowFromPoint(kids, dot.get_center()) for kids, dot in grows], run_time=0.6)
+        self.play(*[GrowFromPoint(kids, dot.get_center()) for kids, dot in grows], run_time=0.4)
         self.e_ref, self.eu_edge = e_ref, eu_edge
         self.e_hit_trees = hit_trees                 # [(handle, green subtree), …] for solving
         self.e_hit_edges = [be for be, bd in hits]   # the ACTUAL on-screen E→M edges (transformed be)
@@ -1568,7 +1575,7 @@ class Scene05(HangmanScene):
         self._freeze(counter)
         e_edges = VGroup(self.eu_edge, *self.e_hit_edges)
         self.play(VGroup(e_dot, e_edges).animate.set_color(LIGHT_GREEN),
-                  counter.animate.set_color(LIGHT_GREEN), run_time=1.0)   # counter TOP-LEVEL (rides out later)
+                  counter.animate.set_color(LIGHT_GREEN), run_time=0.65)   # counter TOP-LEVEL (rides out later)
         self.e_subtree = cur                         # hand off E's solved subtree to backing up I
         self.avg_e = counter                         # E's value label (green 2.00)
         self.u_ref = None                            # U's layout scaffolding — last used here; drop it
@@ -1633,9 +1640,9 @@ class Scene05(HangmanScene):
             FadeOut(i_anns),                                          # I's own bare-board annotations
             *move,
             *[m.animate.scale(s, about_point=c).shift(dx) for m in above],   # reframe the diagonal above
-            run_time=0.9)
+            run_time=0.6)
         # phase 2 — each hit branch's children SPROUT out of the (settled) reused root (reframed)
-        self.play(*[GrowFromPoint(kids, dot.get_center()) for kids, dot in grows], run_time=0.6)
+        self.play(*[GrowFromPoint(kids, dot.get_center()) for kids, dot in grows], run_time=0.4)
         self.i_ref, self.ie_edge = i_ref, ie_edge
         self.i_hit_trees = hit_trees                 # [(handle, green subtree), …] for solving
         self.i_hit_edges = [be for be, bd in hits]   # the ACTUAL on-screen I→root edges (transformed be)
@@ -1689,7 +1696,7 @@ class Scene05(HangmanScene):
         self._freeze(counter)
         i_edges = VGroup(self.ie_edge, *self.i_hit_edges)
         self.play(VGroup(i_dot, i_edges).animate.set_color(LIGHT_GREEN),
-                  counter.animate.set_color(LIGHT_GREEN), run_time=1.0)   # counter TOP-LEVEL (rides out later)
+                  counter.animate.set_color(LIGHT_GREEN), run_time=0.65)   # counter TOP-LEVEL (rides out later)
         self.i_subtree = cur                         # hand off I's solved subtree to backing up O
         self.avg_i = counter                         # I's value label (green)
         self.e_ref = None                            # E's layout scaffolding — last used here; drop it
@@ -1746,8 +1753,8 @@ class Scene05(HangmanScene):
             FadeOut(o_anns),                                          # O's own bare-board annotations
             *move,
             *[m.animate.scale(s, about_point=c).shift(dx) for m in above],   # reframe the diagonal above
-            run_time=0.9)
-        self.play(*[GrowFromPoint(kids, dot.get_center()) for kids, dot in grows], run_time=0.6)
+            run_time=0.6)
+        self.play(*[GrowFromPoint(kids, dot.get_center()) for kids, dot in grows], run_time=0.4)
         self.o_ref, self.oi_edge = o_ref, oi_edge
         self.o_hit_trees = hit_trees
         self.o_hit_edges = [be for be, bd in hits]
@@ -1799,7 +1806,7 @@ class Scene05(HangmanScene):
         self._freeze(counter)
         o_edges = VGroup(self.oi_edge, *self.o_hit_edges)
         self.play(VGroup(o_dot, o_edges).animate.set_color(LIGHT_GREEN),
-                  counter.animate.set_color(LIGHT_GREEN), run_time=1.0)   # counter TOP-LEVEL (rides out later)
+                  counter.animate.set_color(LIGHT_GREEN), run_time=0.65)   # counter TOP-LEVEL (rides out later)
         self.o_subtree = cur                         # hand off O's solved subtree to backing up A
         self.avg_o = counter                         # O's value label (green)
         self.i_ref = None                            # I's layout scaffolding — last used here; drop it
@@ -1858,8 +1865,8 @@ class Scene05(HangmanScene):
             FadeOut(a_anns),                                          # A's own bare-board annotations
             *move,
             *[m.animate.scale(s, about_point=c).shift(dx) for m in above],   # reframe the diagonal above
-            run_time=0.9)
-        self.play(*[GrowFromPoint(kids, dot.get_center()) for kids, dot in grows], run_time=0.6)
+            run_time=0.6)
+        self.play(*[GrowFromPoint(kids, dot.get_center()) for kids, dot in grows], run_time=0.4)
         # beat y's _a_replica needs ONLY the on-screen A node (to align the replica) — keep that dot,
         # not the whole a_ref layout tree, so a_ref (scaffolding) is collected when this beat returns.
         self.a_root, self.ao_edge = ah.dot, ao_edge
