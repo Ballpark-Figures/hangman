@@ -166,6 +166,9 @@ class Scene08(HangmanScene):
         grid = self.d["grid"]
         reds, blues, num_labels = [], [], []
         EPS = 1e-3
+        OV = 0.04          # widen each block a hair so abutting blocks overlap (no
+                           # hairline navy gaps between them) — centres are unchanged,
+                           # so the coalesced bar's length grows by just this once
         for i, L in enumerate(self.d["grid_lengths"]):
             # read geometry off the actual CELL squares, NOT hm's bbox: get_heatmap
             # returns VGroup(cells, values) with an EMPTY values group at the origin,
@@ -183,14 +186,14 @@ class Scene08(HangmanScene):
                 v, c = vf[p], 1 - vf[p]
                 cell_l = left + p * cs
                 if v > EPS:
-                    r = Rectangle(width=cs * v, height=cs, fill_color=VOWEL_C,
-                                  fill_opacity=1.0, stroke_color=WHITE, stroke_width=1.0)
+                    r = Rectangle(width=cs * v + OV, height=cs, fill_color=VOWEL_C,
+                                  fill_opacity=1.0, stroke_width=0)
                     r.move_to([cell_l + cs * v / 2, y, 0])
                     reds.append((r, [left + cs * red_acc + cs * v / 2, y, 0]))
                     red_acc += v
                 if c > EPS:
-                    b = Rectangle(width=cs * c, height=cs, fill_color=CONS_C,
-                                  fill_opacity=1.0, stroke_color=WHITE, stroke_width=1.0)
+                    b = Rectangle(width=cs * c + OV, height=cs, fill_color=CONS_C,
+                                  fill_opacity=1.0, stroke_width=0)
                     b.move_to([cell_l + cs * v + cs * c / 2, y, 0])
                     blues.append((b, [boundary + cs * blue_acc + cs * c / 2, y, 0]))
                     blue_acc += c
