@@ -1062,7 +1062,7 @@ class Scene05(HangmanScene):
         return s, c, np.array([-c[0], 0.0, 0.0])
 
     def _gap_up(self, node_dot, node_lab, parent_dot, in_edge, child_pairs, run_time,
-                also=(), fade_in=(), fade_out=(), siblings=()):
+                also=(), fade_in=(), fade_out=(), siblings=(), fade_shift=()):
         """Climb the tall gap up one level: the avg-miss value has just backed up INTO ``node``,
         so the tall edge becomes the one COMING IN to it (``in_edge``, parent→node) and the edges
         going OUT of it (``child_pairs`` = [(edge, child_dot), …]) revert to compact. Implemented
@@ -1072,7 +1072,9 @@ class Scene05(HangmanScene):
         drop by the SAME delta WITH their whole subtree/annotation so all of the parent's children
         stay ALIGNED (each sibling's in-edge lengthens too). ``also`` = mobjects that shift down
         WITH the node; ``fade_in`` = the NEW avg label, which fades in WHILE travelling down with
-        the node; ``fade_out`` = the old (below) avg labels, which fade out in the same motion."""
+        the node; ``fade_out`` = the old (below) avg labels, which fade out in the same motion;
+        ``fade_shift`` = the siblings' board-state letters, which RIDE DOWN with the descent while
+        FADING OUT — so they clear during THIS drop, not during the next beat's spreading."""
         delta = DOWN * (GRID_ROOT_DY - GRID_CHILD_DY) * (node_dot.width / (2 * GRID_NODE_R))
         new_c = node_dot.get_center() + delta
         moved = node_dot.copy().move_to(new_c)
@@ -1083,6 +1085,8 @@ class Scene05(HangmanScene):
         for m in fade_in:                      # travels down with the node AND fades in
             m.set_opacity(0)
             anims.append(m.animate.set_opacity(1).shift(delta))
+        for m in fade_shift:                   # rides DOWN with the descent while FADING OUT
+            anims.append(m.animate.set_opacity(0).shift(delta))
         for edge, child_dot in child_pairs:
             anims.append(Transform(edge, self._edge_line(moved, child_dot, edge.get_color())))
         for sib_group, sib_dot, sib_in_edge in siblings:   # other children drop the SAME, stay aligned
@@ -1383,10 +1387,13 @@ class Scene05(HangmanScene):
         # rides down with U. Those siblings are grown + solved next (backup_e / solve_e_hit).
         n_before = sum(len(path.levels[i]["hits"]) for i in range(3))
         e_hits, e_anns = path.levels[3]["hits"], path.leaf_text[n_before:]
-        e_sibs = [(VGroup(hd, ann), hd, he) for (he, hd), ann in zip(e_hits, e_anns)]
+        # the sibling DOTS drop with the descent; their board-state letters FADE OUT as they descend
+        # (not later, during backup_e's spreading)
+        e_sibs = [(hd, hd, he) for (he, hd), _ in zip(e_hits, e_anns)]
+        e_ann_mobs = [ann for (he, hd), ann in zip(e_hits, e_anns)]
         self._gap_up(u_dot, u_lab, path.levels[3]["dot"], path.levels[4]["in_edge"],
                      [(yedge, self.u_spine.gdot), (uedge, self.ups.root)],
-                     run_time=0.7, also=[counter], siblings=e_sibs)
+                     run_time=0.7, also=[counter], siblings=e_sibs, fade_shift=e_ann_mobs)
         self.u_subtree = cur                        # hand off U's solved subtree to backing up E
         self.avg_u = counter                        # U's value label (green 1.0)
 
@@ -1447,17 +1454,14 @@ class Scene05(HangmanScene):
                      Restore(lab)]                        # …letter develops ON the node as it travels
             grows.append((kids, ct.root))
             hit_trees.append((h, ct))
-        # only E's OWN bare-board annotation fades (replaced by the real subtree); the drilled-past
-        # A/O/I annotations STAY — they're re-expanded when each of those levels is later backed up
-        n_before = sum(len(path.levels[i]["hits"]) for i in range(3))
-        e_anns = VGroup(*path.leaf_text[n_before:n_before + len(hits)])
+        # E's OWN bare-board annotation already FADED during choose_u's descent (see _gap_up
+        # fade_shift); the drilled-past A/O/I annotations STAY — re-expanded when each is backed up
         # phase 1 — slide/morph/reveal to the REFRAMED targets AND reframe the diagonal above, together
         self.play(
             self.u_subtree.animate.scale(sfac, about_point=y0).shift(ty - y0),
             FadeOut(self.avg_u, shift=ty - y0),                      # rides out (fade + move) with U
             ReplacementTransform(VGroup(e_dot, e_lab), VGroup(eh.dot, eh.lab)),  # diagonal E → tidy E
             Transform(eu_edge, uh.in_edge),                          # E→U (miss) redrawn tidy
-            FadeOut(e_anns),                                          # E's own bare-board annotation
             *move,
             *[m.animate.scale(s, about_point=c).shift(dx) for m in above],   # reframe the diagonal above
             run_time=0.6)
@@ -1583,11 +1587,15 @@ class Scene05(HangmanScene):
         # counter rides down with E. Those siblings are grown + solved next (backup_i / solve_i_hit).
         n_before = sum(len(path.levels[i]["hits"]) for i in range(2))
         i_hits, i_anns = path.levels[2]["hits"], path.leaf_text[n_before:]
-        i_sibs = [(VGroup(hd, ann), hd, he) for (he, hd), ann in zip(i_hits, i_anns)]
+        # the sibling DOTS drop with the descent; their board-state letters FADE OUT as they descend
+        # (not later, during backup_i's spreading)
+        i_sibs = [(hd, hd, he) for (he, hd), _ in zip(i_hits, i_anns)]
+        i_ann_mobs = [ann for (he, hd), ann in zip(i_hits, i_anns)]
         child_pairs = [(self.eu_edge, self.u_ref.node["u"].dot)] + \
                       [(e, ct.root) for e, ct in zip(self.e_hit_edges, hit_cts)]
         self._gap_up(e_dot, e_lab, path.levels[2]["dot"], path.levels[3]["in_edge"],
-                     child_pairs, run_time=0.7, also=[counter], siblings=i_sibs)
+                     child_pairs, run_time=0.7, also=[counter], siblings=i_sibs,
+                     fade_shift=i_ann_mobs)
         self.e_subtree = cur                         # hand off E's solved subtree to backing up I
         self.avg_e = counter                         # E's value label (green 2.00)
         self.u_ref = None                            # U's layout scaffolding — last used here; drop it
@@ -1641,15 +1649,13 @@ class Scene05(HangmanScene):
                      Restore(lab)]
             grows.append((kids, ct.root))
             hit_trees.append((h, ct))
-        n_before = sum(len(path.levels[i]["hits"]) for i in range(2))
-        i_anns = VGroup(*path.leaf_text[n_before:n_before + len(hits)])
+        # I's bare-board annotations already FADED during choose_e's descent (see _gap_up fade_shift)
         # phase 1 — slide/morph/reveal to the REFRAMED targets AND reframe the diagonal above, together
         self.play(
             self.e_subtree.animate.scale(sfac, about_point=y0).shift(ty - y0),
             FadeOut(self.avg_e, shift=ty - y0),                      # rides out (fade + move) with E
             ReplacementTransform(VGroup(i_dot, i_lab), VGroup(ih.dot, ih.lab)),  # diagonal I → tidy I
             Transform(ie_edge, eh.in_edge),                          # I→E (miss) redrawn tidy
-            FadeOut(i_anns),                                          # I's own bare-board annotations
             *move,
             *[m.animate.scale(s, about_point=c).shift(dx) for m in above],   # reframe the diagonal above
             run_time=0.6)
@@ -1708,11 +1714,15 @@ class Scene05(HangmanScene):
         # counter rides down with I. Those siblings are grown + solved next (backup_o / solve_o_hit).
         n_before = sum(len(path.levels[i]["hits"]) for i in range(1))
         o_hits, o_anns = path.levels[1]["hits"], path.leaf_text[n_before:]
-        o_sibs = [(VGroup(hd, ann), hd, he) for (he, hd), ann in zip(o_hits, o_anns)]
+        # the sibling DOTS drop with the descent; their board-state letters FADE OUT as they descend
+        # (not later, during backup_o's spreading)
+        o_sibs = [(hd, hd, he) for (he, hd), _ in zip(o_hits, o_anns)]
+        o_ann_mobs = [ann for (he, hd), ann in zip(o_hits, o_anns)]
         child_pairs = [(self.ie_edge, self.e_ref.node["e"].dot)] + \
                       [(e, ct.root) for e, ct in zip(self.i_hit_edges, hit_cts)]
         self._gap_up(i_dot, i_lab, path.levels[1]["dot"], path.levels[2]["in_edge"],
-                     child_pairs, run_time=0.7, also=[counter], siblings=o_sibs)
+                     child_pairs, run_time=0.7, also=[counter], siblings=o_sibs,
+                     fade_shift=o_ann_mobs)
         self.i_subtree = cur                         # hand off I's solved subtree to backing up O
         self.avg_i = counter                         # I's value label (green)
         self.e_ref = None                            # E's layout scaffolding — last used here; drop it
@@ -1758,15 +1768,13 @@ class Scene05(HangmanScene):
                      Restore(lab)]
             grows.append((kids, ct.root))
             hit_trees.append((h, ct))
-        n_before = sum(len(path.levels[i]["hits"]) for i in range(1))
-        o_anns = VGroup(*path.leaf_text[n_before:n_before + len(hits)])
+        # O's bare-board annotations already FADED during choose_i's descent (see _gap_up fade_shift)
         # phase 1 — slide/morph/reveal to the REFRAMED targets AND reframe the diagonal above, together
         self.play(
             self.i_subtree.animate.scale(sfac, about_point=y0).shift(ty - y0),
             FadeOut(self.avg_i, shift=ty - y0),                      # rides out (fade + move) with I
             ReplacementTransform(VGroup(o_dot, o_lab), VGroup(oh.dot, oh.lab)),  # diagonal O → tidy O
             Transform(oi_edge, ih.in_edge),                          # O→I (miss) redrawn tidy
-            FadeOut(o_anns),                                          # O's own bare-board annotations
             *move,
             *[m.animate.scale(s, about_point=c).shift(dx) for m in above],   # reframe the diagonal above
             run_time=0.6)
@@ -1823,11 +1831,15 @@ class Scene05(HangmanScene):
         # counter rides down with O. Those siblings are grown + solved next (backup_a / solve_a_hit).
         # A is level 0 → no offset.
         a_hits, a_anns = path.levels[0]["hits"], path.leaf_text
-        a_sibs = [(VGroup(hd, ann), hd, he) for (he, hd), ann in zip(a_hits, a_anns)]
+        # the sibling DOTS drop with the descent; their board-state letters FADE OUT as they descend
+        # (not later, during backup_a's spreading)
+        a_sibs = [(hd, hd, he) for (he, hd), _ in zip(a_hits, a_anns)]
+        a_ann_mobs = [ann for (he, hd), ann in zip(a_hits, a_anns)]
         child_pairs = [(self.oi_edge, self.i_ref.node["i"].dot)] + \
                       [(e, ct.root) for e, ct in zip(self.o_hit_edges, hit_cts)]
         self._gap_up(o_dot, o_lab, path.levels[0]["dot"], path.levels[1]["in_edge"],
-                     child_pairs, run_time=0.7, also=[counter], siblings=a_sibs)
+                     child_pairs, run_time=0.7, also=[counter], siblings=a_sibs,
+                     fade_shift=a_ann_mobs)
         self.o_subtree = cur                         # hand off O's solved subtree to backing up A
         self.avg_o = counter                         # O's value label (green)
         self.i_ref = None                            # I's layout scaffolding — last used here; drop it
@@ -1876,14 +1888,13 @@ class Scene05(HangmanScene):
                      Restore(lab)]
             grows.append((kids, ct.root))
             hit_trees.append((h, ct))
-        a_anns = VGroup(*path.leaf_text[0:len(hits)])
+        # A's bare-board annotations already FADED during choose_o's descent (see _gap_up fade_shift)
         # phase 1 — slide/morph/reveal to the REFRAMED targets AND reframe the diagonal above, together
         self.play(
             self.o_subtree.animate.scale(sfac, about_point=y0).shift(ty - y0),
             FadeOut(self.avg_o, shift=ty - y0),                      # rides out (fade + move) with O
             ReplacementTransform(VGroup(a_dot, a_lab), VGroup(ah.dot, ah.lab)),  # diagonal A → tidy A
             Transform(ao_edge, oh.in_edge),                          # A→O (miss) redrawn tidy
-            FadeOut(a_anns),                                          # A's own bare-board annotations
             *move,
             *[m.animate.scale(s, about_point=c).shift(dx) for m in above],   # reframe the diagonal above
             run_time=0.6)
