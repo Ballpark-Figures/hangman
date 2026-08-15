@@ -12,7 +12,7 @@ Script row 09, split on '—' → 9 beats a–i (voiceover ↔ animation zip 1:1
   b S intro     fill S into HIGH↑; tier list → top-left; copy of S → ↙
   c S heatmap   position-frequency heatmaps
   d S ngram     add the n-gram view
-  e S common    common-uses — first 10 examples from the table (S_COMMON)
+  e S common    common-uses — first 8 table examples with NO missed R (S_COMMON)
   f R intro     remove S's views, S's copy returns AS R fades in, copy of R → ↙
   g R heatmap   heatmaps for R
   h R ngram     add the n-gram view
@@ -43,15 +43,14 @@ from assets.tier_letter_scene import TierLetterScene
 # sorted by n_words DESCENDING (the notebook's display sort). "first N examples" =
 # .head(N). SOURCED + reproducible via math/common_uses_scene09.py (prints these rows).
 # Each spec is (length, board, missed).
-#   S — the table's first 10 rows.
+#   S — the table's first 8 rows whose `missed` has NO R (the two missed-R rows of
+#   the raw top-10 dropped: S rarely follows a missed R, a strong opener).
 S_COMMON = [
     (7, "_____e_",   []),
-    (6, "____e_",    ["r"]),
     (8, "______e_",  []),
     (7, "____e__",   []),
     (4, "_a__",      []),
     (8, "_____e__",  []),
-    (5, "___e_",     ["r"]),
     (6, "___e__",    []),
     (5, "__a__",     ["e"]),
     (9, "______e__", []),
@@ -100,7 +99,7 @@ class Scene09(TierLetterScene):
     def s_ngram(self):
         self.add_ngram("s", 0.8)
 
-    # e : common-uses — first 10 examples from the table
+    # e : common-uses — first 8 table examples with no missed R
     @subscene
     def s_common(self):
         self.show_common(S_COMMON, 0.9)

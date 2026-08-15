@@ -1,7 +1,9 @@
 """Provenance / sourcing for SCENE 09's common-uses views (S and R).
 
 Scene 09's script (animations/Script.md, row 09) adds two common-uses beats:
-  - S: "Add common uses view with first 10 examples from table"
+  - S: "first 10 examples from table" — later refined to drop the rows with a missed R
+        (a strong opener you'd rarely have missed before S), leaving 8. Equivalently:
+        the first 8 rows whose `missed` has NO R.
   - R: "Add common uses view with first 8 examples from table that don't have a
         missing T"
 
@@ -117,5 +119,5 @@ def dump(letter, n, *, exclude_missing=None):
 
 
 if __name__ == "__main__":
-    dump("s", 10)
+    dump("s", 8, exclude_missing="r")
     dump("r", 8, exclude_missing="t")
