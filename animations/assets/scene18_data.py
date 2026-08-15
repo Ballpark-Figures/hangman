@@ -48,7 +48,7 @@ CACHE = Path(__file__).resolve().parent / "scene18_cache.json"
 # ── length-2 best-opener choosing strategy (beats c-f) ─────────────────────────
 BO_LENGTH = 2
 OBJECTIVE = "best_opener"
-TRACK_N = 16          # FLAG: # of combo bars + word bars shown (2 rows of 8)
+TRACK_N = 30          # FLAG: # of combo bars + word bars shown (3 rows of 10)
 # beat f uses ONE step per accepted change (len-2 has only ~15), not fixed buckets.
 
 # ── beat 1 (most misses under optimal play) ───────────────────────────────────

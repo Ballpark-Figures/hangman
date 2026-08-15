@@ -11,17 +11,20 @@ BEAT MAP (Script.md scene 18; --- delimited, 6 beats a-f + a transition beat g):
                    lagged upward cascade; only the top (14-miss) words are listed.
                    SOURCED scene18_data.most_misses (greedy-completed upper bound at the
                    unconverged short lengths — a NEAR-OPTIMAL number, per the user).
-  b opt_tree     — the optimal length-2 tree + "*See blog post for more information".
-                   >>> PLACEHOLDER: meant to be the SAME tree as the END of scene 05
-                   (tree2_data.py), not built yet. Roughed as a labelled card.
+  b opt_tree     — the optimal length-2 tree (LETTERED, binary red/white) + "*See blog post
+                   for more information". The SAME tree as the END of scene 05, sourced from
+                   tree2_data via a standalone `_opt_tree_mob` (a self-contained copy of scene
+                   05's `_ctree`/`_blanks`/`_subtree_spec`), on a navy card.
   c strategy     — "Average Misses: N" (counter, top); LEFT = the most common real
                    4-letter words (by zipf), RIGHT = the most common letter-combos in the
-                   wordlist, each a MULTI-ROW block of bars (scene-17 style, bold labels).
-                   Starts UNIFORM (every bar equal). SOURCED scene18_data.
+                   wordlist, each a MULTI-ROW block of bars (3 rows of 10, scene-17 style,
+                   bold labels). Starts UNIFORM (every bar equal). SOURCED scene18_data.
   d try_keep     — one combo bar rises → the WORDS exhibiting it rise too → the avg
-                   counts UP; we KEEP it. Rising bars flash GREEN.
-  e try_undo     — a DIFFERENT change → the avg counts DOWN (a failure) → undo → reset
-                   the whole thing back to the uniform start. Falling bars flash CRIMSON.
+                   counts UP; we KEEP it. Rising bars flash GREEN + the number flashes GREEN.
+  e try_undo     — a DIFFERENT change → the avg counts DOWN (a failure, number CRIMSON) →
+                   undo (NO number colour) → reset to the uniform start (NO number colour).
+                   Rule: the avg number flashes green on a RISE, crimson on a DROP, but an
+                   UNDO/reset counts with no colour change.
   f replay       — replay the optimization uniform→final in N_BUCKETS steps: each step
                    morphs the combo bars, then the word bars, then the avg (grow = green,
                    shrink = crimson).
@@ -34,8 +37,9 @@ REUSE MAP (styling sources):
   - colours : ACCENT_FILL bars; grow = ACCENT_GREEN, shrink = CRIMSON; blue words
 
 FLAGS (owned by a human — tune/decide in the timing+polish pass):
-  - beat b background: the tree world is navy (scenes 01/05); roughed on a navy card.
-  - TRACK_N / PER_ROW / row geometry / BAR_LABEL_FS / all run_times = guesses.
+  - beat b: the lettered optimal tree sits on a navy card (the tree world is navy, scenes
+    01/05); OT_BOX_W/H + card sizing are layout guesses.
+  - TRACK_N (30) / PER_ROW (10) / row geometry / BAR_LABEL_FS / all run_times = guesses.
 """
 from pathlib import Path
 import sys
@@ -45,6 +49,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from config import *
 from assets import scene18_data
+from assets import tree2_data                # beat b: the optimal length-2 tree (end of scene 05)
 from bpkfigures.chalkboard import BOARD_NAVY, CHALK
 from bpkfigures.bar_graph import get_bar_chart, grow_bars
 
@@ -54,15 +59,15 @@ GROW_GREEN = ACCENT_GREEN         # a bar flashes green while it GROWS
 SHRINK_CRIMSON = CRIMSON          # a bar flashes crimson while it SHRINKS
 TITLE_Y = 3.7                     # beat-a table title
 
-# ── beat-c/d/e/f bar composition (length 2 → 2 rows of 8) ─────────────────────
+# ── beat-c/d/e/f bar composition (length 2 → 3 rows of 10) ────────────────────
 WORD_CX, COMBO_CX = -4.0, 4.0     # left = words, right = combos
-ROW_W = 6.8                       # each side's row width
-PER_ROW = 8                       # bars per row
-ROW_H = 1.0                       # bar height at y_max
-BASE_YS = [-1.18, -2.98]          # the 2 row BASELINES (bars grow up); lowered so the gap
-                                  # from a full top bar to the card ≈ the gap from the
-                                  # bottom labels to the frame edge
-BAR_LABEL_FS = 20                 # bold, scene-17-word-bar sized
+ROW_W = 7.0                       # each side's row width (a touch wider for 10 bars/row)
+PER_ROW = 10                      # bars per row
+ROW_H = 0.72                      # bar height at y_max (shrunk to fit a 3rd row)
+BASE_YS = [-0.80, -2.15, -3.50]   # the 3 row BASELINES (bars grow up); spaced so a full top
+                                  # bar clears the card above and the bottom labels clear the
+                                  # frame edge below
+BAR_LABEL_FS = 16                 # bold, scene-17-word-bar sized (smaller for 10 bars/row)
 
 # ── the mini best-opener greedy TREE (whole tree, no letters) on a navy card ───
 TREE_C = (WORD_CX, 2.35)          # card centre: x over the LEFT bars, y lowered from top
@@ -73,6 +78,29 @@ TREE_DOT_R = 0.03
 TREE_EDGE_W = 1.3
 TREE_MISS_COL = CRIMSON           # miss edges (the deep "spine")
 TREE_HIT_COL = CHALK              # hit edges + nodes (off-white)
+
+# ── beat b : the OPTIMAL length-2 tree (the LETTERED tree from the end of scene 05),
+#    sourced from tree2_data. Standalone binary renderer (miss = red, hit = off-white),
+#    a self-contained copy of scene 05's `_ctree`/`_blanks`/`_subtree_spec` (contour-packed
+#    layout) — NOT the shape-only `_tree_mob` used by the c–f mini trees. Built at these
+#    natural GRID sizes rooted at ORIGIN, then scaled to fit the beat-b navy card. ─────────
+OT_NODE_R    = 0.16               # guess-node radius (natural; whole tree scaled to fit)
+OT_CHILD_RF  = 0.68               # leaf radius as a fraction of a guess node
+OT_CHILD_DY  = 0.55               # parent → child vertical drop
+OT_CHILD_SPR = 0.72              # leaf column width / min sibling separation (contour packing)
+OT_LETTER_H  = 1.3                # guess-letter height as a multiple of node radius
+OT_BLANK_H   = 0.13               # leaf blank-row height (rule + revealed letter)
+OT_BLANK_DROP = 0.36              # leaf centre → blank RULE baseline
+OT_EDGE_Z    = -1                 # edges sit below the nodes they touch
+OT_MISS_COL  = LIGHT_RED          # a MISS edge/node/leaf (binary scene-05 colouring)
+OT_HIT_COL   = CHALK              # a HIT edge/node/leaf (off-white)
+OT_BOX_W, OT_BOX_H = 12.4, 5.6    # the plotting box the whole tree is scaled into
+OT_BOX_C = (0.0, 0.35)            # its centre on screen
+
+
+def _ot_color(miss):
+    """Binary tree colour (scene 05): a MISS edge/node/leaf is red, a HIT is off-white."""
+    return OT_MISS_COL if miss else OT_HIT_COL
 
 
 class Scene18(HangmanScene):
@@ -102,13 +130,32 @@ class Scene18(HangmanScene):
         # long crisp_text wraps at the 240pt supersample; build small, scale to width
         return crisp_text(text, font_size=10, **kw).scale_to_fit_width(width)
 
-    def _avg_readout(self, value):
+    def _avg_readout(self, value, color=INK):
         """The WHOLE 'Average Misses: N.NN' as ONE text (label + number inherently share a
         baseline — no two-mobject alignment). Fixed left edge + scale, so counting never
-        shifts/resizes it; the fixed prefix keeps its height (and baseline) constant."""
-        return (crisp_text(f"Average Misses: {value:.2f}", font_size=10, color=INK,
+        shifts/resizes it; the fixed prefix keeps its height (and baseline) constant.
+        ``color`` flashes the whole readout while it counts (green up / crimson down)."""
+        return (crisp_text(f"Average Misses: {value:.2f}", font_size=10, color=color,
                            weight=BOLD).scale(self.avg_scale)
                 .move_to([0, self.avg_y, 0]).align_to([self.avg_left, 0, 0], LEFT))
+
+    def _avg_updater(self, v0, v1, flash):
+        """The become()-from-tracker updater for a count from ``v0`` to ``v1``. When misses
+        go UP the readout flashes green, DOWN crimson, then eases back to INK — UNLESS
+        ``flash='none'`` (an UNDO/reset: count with no colour change). Mirrors the bars'
+        flash-then-settle (`_grow_anim`)."""
+        col = None if flash == "none" else \
+            (GROW_GREEN if v1 > v0 + 1e-9 else SHRINK_CRIMSON if v1 < v0 - 1e-9 else None)
+
+        def upd(m):
+            v = self.avg_tracker.get_value()
+            c = INK
+            if col is not None and abs(v1 - v0) > 1e-9:
+                a = (v - v0) / (v1 - v0)                       # 0..1 count progress
+                t = 0.0 if a < 0.72 else (a - 0.72) / 0.28     # hold flash colour, then ease to INK
+                c = interpolate_color(col, INK, t)
+            m.become(self._avg_readout(v, color=c))
+        return upd
 
     def _setup_avg(self, value):
         ref = crisp_text("Average Misses: 0.00", font_size=10, color=INK, weight=BOLD)
@@ -118,19 +165,21 @@ class Scene18(HangmanScene):
         self.avg_readout = self._avg_readout(value)
         self.avg_tracker.set_value(value)
 
-    def _count_to(self, value, run_time):
-        """Animate the avg readout to ``value`` with a counter (become() from the tracker)."""
-        self.avg_readout.add_updater(
-            lambda m: m.become(self._avg_readout(self.avg_tracker.get_value())))
+    def _count_to(self, value, run_time, flash="auto"):
+        """Animate the avg readout to ``value`` with a counter (become() from the tracker);
+        flashes green/crimson by direction (``flash='none'`` → no colour, for an undo)."""
+        v0 = self.avg_tracker.get_value()
+        self.avg_readout.add_updater(self._avg_updater(v0, value, flash))
         self.play(self.avg_tracker.animate.set_value(value), run_time=run_time)
         self.avg_readout.clear_updaters()
 
-    def _count_and_tree(self, state, run_time):
+    def _count_and_tree(self, state, run_time, flash="auto"):
         """Count the avg AND crossfade the mini tree to ``state``'s tree, together — the
-        tree updates every time the avg does."""
+        tree updates every time the avg does. The number flashes green (misses up) / crimson
+        (down); ``flash='none'`` counts with NO colour change (an UNDO/reset)."""
+        v0 = self.avg_tracker.get_value()
         new_tree = self._tree_mob(state["tree"])
-        self.avg_readout.add_updater(
-            lambda m: m.become(self._avg_readout(self.avg_tracker.get_value())))
+        self.avg_readout.add_updater(self._avg_updater(v0, state["avg_misses"], flash))
         self.play(FadeOut(self.tree_mob), FadeIn(new_tree),
                   self.avg_tracker.animate.set_value(state["avg_misses"]), run_time=run_time)
         self.avg_readout.clear_updaters()
@@ -180,6 +229,129 @@ class Scene18(HangmanScene):
         return RoundedRectangle(width=TREE_W + 0.7, height=TREE_H + 0.7, corner_radius=0.15,
                                 fill_color=BOARD_NAVY, fill_opacity=1.0,
                                 stroke_color=WHITE, stroke_width=2).move_to([*TREE_C, 0])
+
+    # ── beat b: the OPTIMAL length-2 tree (LETTERED, binary red/white) from tree2_data ─
+    #    Standalone copy of scene 05's `_ctree`/`_blanks`/`_subtree_spec` (kept here so
+    #    beat b re-renders the same tree without touching scene 05). NOT `_tree_mob` — that
+    #    draws the shape-only best-opener greedy tree the c–f mini trees use.
+    def _subtree_spec(self, tree, revealed=""):
+        """A tree2 solver option-subtree ({guess, branches} / {word}) as a tree spec,
+        APPENDING the forced-tail guesses that finish a determined word (a game keeps
+        guessing until the word is fully up — see hangman CLAUDE.md 'Game / guess-order').
+        Emits the N-ary 'kids' form (a length-2 guess can hit at pos 1, pos 2, or both)."""
+        if "word" in tree:
+            word = tree["word"]
+            remaining = []
+            for ch in word:
+                if ch not in revealed and ch not in remaining:
+                    remaining.append(ch)
+            spec = {"leaf": word}
+            for ch in reversed(remaining):
+                spec = {"g": ch, "hit": spec}
+            return spec
+        g = tree["guess"]
+        items = sorted(tree["branches"].items(),
+                       key=lambda kv: 0 if set(kv[0]) == {"_"} else 1)   # miss-first (LEFT)
+        kids = [(set(pat) == {"_"},
+                 self._subtree_spec(child, revealed if set(pat) == {"_"} else revealed + g))
+                for pat, child in items]
+        return {"g": g, "kids": kids}
+
+    def _ot_blanks(self, pattern, h=OT_BLANK_H):
+        """A row of blank rules for a length-N pattern, each revealed HIT letter written
+        above its slot (ported from scene 05's `_blanks`)."""
+        slot, gap = h * 0.9, h * 0.5
+        row = VGroup()
+        for ch in pattern:
+            rule = Line([-slot / 2, 0, 0], [slot / 2, 0, 0], color=OT_HIT_COL, stroke_width=2.0)
+            cell = VGroup(rule)
+            if ch != "_":
+                t = crisp_text(ch.upper(), color=OT_HIT_COL, weight=BOLD)
+                t.scale_to_fit_height(h).next_to(rule, UP, buff=h * 0.22)
+                cell.add(t)
+            row.add(cell)
+        row.arrange(RIGHT, buff=gap, aligned_edge=DOWN)
+        return row
+
+    def _ot_kids(self, sp):
+        """A node's children as [(is_miss, childspec), …], miss-first — accepts the N-ary
+        'kids' form or the binary {'g','hit','miss'?} form."""
+        if "kids" in sp:
+            return sp["kids"]
+        ks = [(True, sp["miss"])] if "miss" in sp else []
+        return ks + [(False, sp["hit"])]
+
+    def _opt_tree_mob(self):
+        """The whole OPTIMAL length-2 tree as a lettered, binary-coloured mobject (miss =
+        red, hit = off-white), sourced from tree2_data (the optimal option's played-out
+        subtree). Layout = scene 05's contour packing: miss subtree LEFT / hit RIGHT, each
+        node centred over its children. Built at natural sizes then scaled to the beat-b box."""
+        data = tree2_data.get()["tree"]
+        opt = next(o for o in data["options"] if o["letter"] == data["optimal_letter"])
+        spec = self._subtree_spec(opt["subtree"])
+
+        r, cr = OT_NODE_R, OT_NODE_R * OT_CHILD_RF
+        MIN_SEP, INF = OT_CHILD_SPR, float("inf")
+
+        def shift_x(node, dx):
+            node["x"] += dx
+            for _, c in node["kids"]:
+                shift_x(c, dx)
+
+        def layout(sp, depth):
+            node = {"spec": sp, "y": -depth * OT_CHILD_DY, "kids": []}
+            kids = [] if "leaf" in sp else self._ot_kids(sp)
+            if not kids:
+                node["x"] = 0.0
+                return node, {depth: 0.0}, {depth: 0.0}
+            lcont, rcont = {}, {}
+            for i, (is_miss, cs) in enumerate(kids):
+                cnode, cl, crc = layout(cs, depth + 1)
+                off = 0.0
+                if i:
+                    off = max([0.0] + [rcont[d] - x + MIN_SEP for d, x in cl.items() if d in rcont])
+                    shift_x(cnode, off)
+                node["kids"].append((is_miss, cnode))
+                for d, x in cl.items():
+                    lcont[d] = min(lcont.get(d, INF), x + off)
+                for d, x in crc.items():
+                    rcont[d] = max(rcont.get(d, -INF), x + off)
+            node["x"] = sum(c["x"] for _, c in node["kids"]) / len(node["kids"])
+            lcont[depth] = min(lcont.get(depth, INF), node["x"])
+            rcont[depth] = max(rcont.get(depth, -INF), node["x"])
+            return node, lcont, rcont
+
+        root, _, _ = layout(spec, 0)
+        x0 = root["x"]
+        edges, dots, labels, blanks = VGroup(), VGroup(), VGroup(), VGroup()
+
+        def build(node, in_miss):
+            pos = np.array([node["x"] - x0, node["y"], 0.0])
+            sp = node["spec"]
+            col = _ot_color(in_miss)
+            if "leaf" in sp:
+                dots.add(Dot(pos, radius=cr, color=col, z_index=2))
+                blk = self._ot_blanks(sp["leaf"]).set_x(pos[0]).set_color(col)
+                blk.shift([0, (pos[1] - OT_BLANK_DROP) - blk.get_bottom()[1], 0])
+                blanks.add(blk)
+                return cr
+            dots.add(Dot(pos, radius=r, color=col, z_index=2))
+            lab = crisp_text(sp["g"].upper(), color=BOARD_NAVY, weight=BOLD)
+            lab.scale_to_fit_height(OT_LETTER_H * r).move_to(pos).set_z_index(3)
+            labels.add(lab)
+            for is_miss, child in node["kids"]:
+                crad = build(child, 1 if is_miss else 0)
+                cc = np.array([child["x"] - x0, child["y"], 0.0])
+                dn = normalize(cc - pos)
+                edges.add(Line(pos + dn * r, cc - dn * crad, color=_ot_color(is_miss),
+                               stroke_width=2.0, z_index=OT_EDGE_Z))
+            return r
+
+        build(root, 0)
+        tree = VGroup(edges, dots, labels, blanks)     # edges behind, letters on top
+        tree.scale(min(OT_BOX_W / tree.width, OT_BOX_H / tree.height))
+        tree.move_to([OT_BOX_C[0], OT_BOX_C[1], 0])
+        return tree
 
     # ── bar helpers ───────────────────────────────────────────────────────────
     def _build_side(self, cx, labels, values, y_max):
@@ -244,8 +416,9 @@ class Scene18(HangmanScene):
                   for b, by, v0, v1 in zip(self.word_bars, self.word_base,
                                            self.word_vals, state["word_freq"])]
         new_tree = self._tree_mob(state["tree"])
+        # reset (an UNDO) → count with NO colour change (flash='none')
         self.avg_readout.add_updater(
-            lambda m: m.become(self._avg_readout(self.avg_tracker.get_value())))
+            self._avg_updater(self.avg_tracker.get_value(), state["avg_misses"], "none"))
         self.play(*anims, FadeOut(self.tree_mob), FadeIn(new_tree),
                   self.avg_tracker.animate.set_value(state["avg_misses"]), run_time=run_time)
         self.avg_readout.clear_updaters()
@@ -278,24 +451,23 @@ class Scene18(HangmanScene):
         self.play(LaggedStart(*[row.animate.shift(UP * 0.4).set_opacity(1) for row in rows],
                               lag_ratio=0.18), run_time=1.4)
 
-    # ── b : optimal length-2 tree (PLACEHOLDER — mirrors the end of scene 05) ──
+    # ── b : the optimal length-2 tree (the LETTERED tree from the end of scene 05) ──
     @subscene
     def opt_tree(self):
         self.play(FadeOut(self.table), run_time=0.5)
         self.table = None
 
-        card = RoundedRectangle(width=9.0, height=4.6, corner_radius=0.2,
-                                fill_color=BOARD_NAVY, fill_opacity=1.0,
-                                stroke_color=WHITE, stroke_width=2).move_to([0, 0.5, 0])
-        note = VGroup(crisp_text("Optimal length-2 tree", font_size=30, color=WHITE),
-                      crisp_text("(mirrors the end of scene 05)", font_size=24, color=WHITE))
-        note.arrange(DOWN, buff=0.3).move_to(card.get_center())
-        # footnote with a RAISED asterisk (a superscript footnote marker), not a mid-line one
+        tree = self._opt_tree_mob()                   # lettered, binary red/white (sourced)
+        card = RoundedRectangle(width=tree.width + 0.8, height=tree.height + 0.8,
+                                corner_radius=0.2, fill_color=BOARD_NAVY, fill_opacity=1.0,
+                                stroke_color=WHITE, stroke_width=2, z_index=-5)
+        card.move_to(tree.get_center())
+        # footnote with a RAISED asterisk (a superscript footnote marker), below the card
         body = crisp_text("See blog post for more information", font_size=10, color=INK)
         star = crisp_text("*", font_size=10, color=INK).next_to(body, LEFT, buff=0.04)
         star.set_y(body.get_top()[1])                 # centre it at the cap line → clearly raised
-        foot = VGroup(star, body).scale_to_fit_width(6.0).move_to([0, -3.2, 0])
-        self.tree_card = VGroup(card, note, foot)
+        foot = VGroup(star, body).scale_to_fit_width(6.0).move_to([0, card.get_bottom()[1] - 0.4, 0])
+        self.tree_card = VGroup(card, tree, foot)
         self.play(FadeIn(self.tree_card), run_time=0.8)
 
     # ── c : the choosing strategy composition — starts UNIFORM (every bar equal) ──
@@ -339,10 +511,10 @@ class Scene18(HangmanScene):
         undo = self.data["example_undo"]
         # try the failing change: RAISE the e combo → GREEN (direction rule); avg drops
         self._apply_state(undo["worse"], combo_rt=0.9, word_rt=0.9)
-        self._count_and_tree(undo["worse"], 0.8)               # DOWN = failure (+ tree)
+        self._count_and_tree(undo["worse"], 0.8)               # DOWN = failure → number CRIMSON
         # undo it: LOWER the e combo back → CRIMSON (direction rule)
         self._apply_state(undo["base"], combo_rt=0.7, word_rt=0.7)
-        self._count_and_tree(undo["base"], 0.6)
+        self._count_and_tree(undo["base"], 0.6, flash="none")  # UNDO → number stays INK
         # reset the kept beat-d change (lower u) — JUST resetting: bars + avg + tree
         # together in ONE play, kept BLUE
         self._apply_state_at_once(undo["reset"], run_time=0.9, flash=WORD_BLUE)
