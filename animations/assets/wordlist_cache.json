@@ -588,70 +588,72 @@
   }
  ],
  "cutoff_region": {
-  "n_at_cutoff": 237,
-  "n_below_cutoff": 276,
+  "list": "preprocessed",
+  "n_list": 53572,
+  "n_at_cutoff": 619,
+  "n_below_cutoff": 619,
   "above": [
    {
     "word": "abbess",
     "pct": 3.1622776601683795e-05,
-    "rank": 34247
+    "rank": 52954
    },
    {
     "word": "airmail",
     "pct": 3.1622776601683795e-05,
-    "rank": 34247
+    "rank": 52954
    },
    {
     "word": "defrost",
     "pct": 3.1622776601683795e-05,
-    "rank": 34247
+    "rank": 52954
    },
    {
     "word": "laminar",
     "pct": 3.1622776601683795e-05,
-    "rank": 34247
+    "rank": 52954
    },
    {
     "word": "phylogeny",
     "pct": 3.1622776601683795e-05,
-    "rank": 34247
+    "rank": 52954
    },
    {
     "word": "seahorse",
     "pct": 3.1622776601683795e-05,
-    "rank": 34247
+    "rank": 52954
    }
   ],
   "below": [
    {
     "word": "bijou",
     "pct": 3.090295432513592e-05,
-    "rank": 34484
+    "rank": 53573
    },
    {
     "word": "cookout",
     "pct": 3.090295432513592e-05,
-    "rank": 34484
+    "rank": 53573
    },
    {
     "word": "iguanas",
     "pct": 3.090295432513592e-05,
-    "rank": 34484
+    "rank": 53573
    },
    {
     "word": "oriel",
     "pct": 3.090295432513592e-05,
-    "rank": 34484
+    "rank": 53573
    },
    {
     "word": "semiotics",
     "pct": 3.090295432513592e-05,
-    "rank": 34484
+    "rank": 53573
    },
    {
     "word": "warthog",
     "pct": 3.090295432513592e-05,
-    "rank": 34484
+    "rank": 53573
    }
   ]
  },

@@ -114,8 +114,10 @@ def build():
     pct = lambda z: 10.0 ** (z - 7.0)                 # % of all English text
     per_n = lambda z: round(10.0 ** (9.0 - z))        # ~1 appearance per N words
 
-    # raw wordfreq list at the cutoff, most-common first (rank = 1-based position);
-    # used only to place the cutoff-region words on the ~54,000 boundary.
+    # the PREPROCESSED list — raw wordfreq @ zipf>=cutoff, most-common first
+    # (~53,572 words, = anchors["start"], BEFORE hunspell/curation). This is the
+    # list the frequency cutoff is drawn on, so the cutoff-region RANKS (beats c/d)
+    # are positions in HERE, not the final curated 34,483.
     freqs = get_frequency_dict("en", wordlist="large")
     ranked = sorted(((w, zf(w)) for w in freqs if zf(w) >= cutoff),
                     key=lambda wz: -wz[1])
@@ -139,12 +141,23 @@ def build():
     for w in CUTOFF_BELOW:
         assert zof.get(w) == round(cutoff - 0.01, 2), \
             f"{w!r} not at zipf {cutoff - 0.01} (got {zof.get(w)})"
-    n_at_cut = sum(1 for w in wordlist._raw() if w.zipf == cutoff)
-    above_rank = 34483 - n_at_cut + 1        # shared rank of the last tie block IN
-    below_rank = 34483 + 1                    # shared rank of the first tie block OUT
+    # RANKS ARE ON THE ORIGINAL PREPROCESSED LIST — raw wordfreq @ zipf>=cutoff
+    # (`ranked`, = anchors["start"] ≈ 53,572, BEFORE hunspell/curation) — NOT the
+    # final curated 34,483, because the frequency cutoff is drawn on THAT list.
+    # wordfreq quantises zipf to 2 dp, so words tie at 2.50 (least common still IN)
+    # and 2.49 (first ones CUT). Competition ranking: a tie block shares the rank
+    # just past everything strictly more common, so the 2.50 block sits at the very
+    # bottom of the preprocessed list and the 2.49 block is the first one over the edge.
+    below_cut = round(cutoff - 0.01, 2)
+    n_pre = len(ranked)                                    # preprocessed list size
+    assert n_pre == steps["anchors"]["start"], (n_pre, steps["anchors"]["start"])
+    n_at_cut = sum(1 for _w, z in ranked if round(z, 2) == cutoff)
+    n_below = sum(1 for w in freqs if round(zf(w), 2) == below_cut)
+    above_rank = n_pre - n_at_cut + 1        # shared rank of the last tie block IN (kept)
+    below_rank = n_pre + 1                    # shared rank of the first tie block OUT (cut)
     cutoff_region = {
-        "n_at_cutoff": n_at_cut, "n_below_cutoff":
-            sum(1 for w in wordlist._raw() if w.zipf == round(cutoff - 0.01, 2)),
+        "list": "preprocessed", "n_list": n_pre,
+        "n_at_cutoff": n_at_cut, "n_below_cutoff": n_below,
         "above": [{"word": w, "pct": pct(cutoff), "rank": above_rank}
                   for w in CUTOFF_ABOVE],
         "below": [{"word": w, "pct": pct(cutoff - 0.01), "rank": below_rank}
