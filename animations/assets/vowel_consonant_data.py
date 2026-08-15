@@ -24,8 +24,12 @@ Keys in the cache:
                          current letter is a vowel and not word-final).
   grid[L]                length L in 2..10: per-position fraction that is a VOWEL
                          (blue->red heatmap scale; consonant fraction = 1 - this)
+  avg_vowels[L]          length L in 2..10: mean number of VOWELS per length-L word
+                         (== sum of grid[L] by linearity of expectation)
+  avg_consonants[L]      length L in 2..10: mean number of CONSONANTS = L - avg_vowels[L]
 """
 from pathlib import Path
+from collections import defaultdict
 import json
 import sys
 
@@ -52,6 +56,9 @@ def build():
     total_letters = vowel_letters = 0
     n_words = start_cons = end_cons = 0
     pos2_total = pos2_vowel = 0
+    # per-length vowel-count totals -> mean vowels/consonants per word of that length
+    len_words = defaultdict(int)
+    len_vowel_sum = defaultdict(int)
     # adjacency counts: acc[cls][side] = {"v":…, "c":…} counts of the neighbour class
     acc = {c: {"after": {"v": 0, "c": 0}, "before": {"v": 0, "c": 0}}
            for c in ("v", "c")}
@@ -71,6 +78,9 @@ def build():
             if t[1] in vowels:
                 pos2_vowel += 1
         L = len(t)
+        if L in GRID_LENGTHS:
+            len_words[L] += 1
+            len_vowel_sum[L] += sum(1 for ch in t if ch in vowels)
         for i, ch in enumerate(t):
             cls = "v" if ch in vowels else "c"
             if i < L - 1:
@@ -87,10 +97,14 @@ def build():
                                      "consonant": _frac(c, v + c)}
 
     grid = {}
+    avg_vowels, avg_consonants = {}, {}
     for Ln in GRID_LENGTHS:
         shares, _n = letter_patterns.position_share(Ln)
         grid[str(Ln)] = [round(sum(shares[v][p] for v in vowels), 4)
                          for p in range(Ln)]
+        av = _frac(len_vowel_sum[Ln], len_words[Ln])   # mean vowels / length-Ln word
+        avg_vowels[str(Ln)] = av
+        avg_consonants[str(Ln)] = round(Ln - av, 4)
 
     data = {
         "weighting": "uniform",
@@ -104,6 +118,8 @@ def build():
         "pct_pos2_vowel": _frac(pos2_vowel, pos2_total),
         "adjacency": adjacency,
         "grid": grid,
+        "avg_vowels": avg_vowels,
+        "avg_consonants": avg_consonants,
     }
     CACHE.write_text(json.dumps(data, indent=1))
     return data
@@ -113,6 +129,8 @@ def get():
     """The whole cached stats dict (grid keys coerced back to int)."""
     d = json.loads(CACHE.read_text())
     d["grid"] = {int(k): v for k, v in d["grid"].items()}
+    d["avg_vowels"] = {int(k): v for k, v in d["avg_vowels"].items()}
+    d["avg_consonants"] = {int(k): v for k, v in d["avg_consonants"].items()}
     return d
 
 
@@ -133,3 +151,10 @@ if __name__ == "__main__":
     print("\n  vowel-fraction grid (blue 0 -> red 1), by length:")
     for L in d["grid_lengths"]:
         print(f"    len {L:2d}: " + " ".join(f"{v:.2f}" for v in d["grid"][str(L)]))
+    print("\n  mean vowels / consonants per word, by length "
+          "(avg_vowels == sum of grid row):")
+    for L in d["grid_lengths"]:
+        av, ac = d["avg_vowels"][str(L)], d["avg_consonants"][str(L)]
+        gsum = sum(d["grid"][str(L)])
+        print(f"    len {L:2d}: vowels {av:.2f} (grid sum {gsum:.2f})  "
+              f"consonants {ac:.2f}")

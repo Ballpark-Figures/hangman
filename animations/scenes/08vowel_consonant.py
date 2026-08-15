@@ -13,14 +13,16 @@ Script row 08, split on '—' → beats (voiceover ↔ animation zip 1:1):
   c color_letters  turn the vowels red, the consonants blue
   d letters_pie    pie: % of all letters that are vowels vs consonants (clears the grid)
   e freq           the vowel/consonant position-frequency grid, titled (stats NARRATED)
-  f vowel_row      VOWEL (⅓ down): before-pie ← VOWEL → after-pie (letters adjacent)
-  g consonant_row  CONSONANT (⅔ down): before-pie ← CONSONANT → after-pie
-  h to_light       clear + turn the background back to light blue
+  f vc_bars        split each box red(vowel)|blue(consonant), coalesce into a red bar
+                   then a blue bar per length; label avg #vowels (1dp, if fits) + #cons
+  g vowel_row      VOWEL (⅓ down): before-pie ← VOWEL → after-pie (letters adjacent)
+  h consonant_row  CONSONANT (⅔ down): before-pie ← CONSONANT → after-pie
+  i to_light       clear + turn the background back to light blue
 
 ROUGH first pass — LAYOUT + TIMING are guesses (the beat-c callout placement and the
 pie sizes/positions especially). Judge from the video; tune freely.
 
-Render:  render 08a --fast  (…08f)  /  render 08 sub  for the whole scene
+Render:  render 08a --fast  (…08i)  /  render 08 sub  for the whole scene
 """
 from pathlib import Path
 import sys
@@ -50,6 +52,7 @@ class Scene08(HangmanScene):
         self.alpha = None
         self.pie = None
         self.view = self.view_title = None
+        self.bars = None
 
     def _navy(self):
         r = Rectangle(width=config.frame_width, height=config.frame_height,
@@ -138,33 +141,102 @@ class Scene08(HangmanScene):
                                  stroke_color=WHITE)
         self.pie.fan_all(self, 1.6)
 
-    # c : the vowel/consonant position-frequency grid, titled like the letter views
+    # e : the vowel/consonant position-frequency grid, titled like the letter views
     #     (the start/end/2nd-position stats are NARRATED, not captioned — see column 2)
     @subscene
     def freq(self):
         self.play(FadeOut(self.pie), run_time=0.5)
         self.pie = None
         self.view = vowel_consonant_heatmaps(center=[0.0, -0.4, 0])
-        self.view_title = crisp_paragraph("Location", "Frequencies", font_size=30,
-                                          color=WHITE, alignment="center")
+        self.view_title = crisp_text("Position Frequencies", font_size=30,
+                                     color=WHITE)
         self.view_title.next_to(self.view, UP, buff=0.5)
         rows = [VGroup(lab, hm)
                 for lab, hm in zip(self.view.labels, self.view.heatmaps)]
         self.play(FadeIn(self.view_title), self._rise(self.view, rows), run_time=1.2)
 
-    # d : VOWEL (⅓ down) with before ← VOWEL → after adjacency pies
+    def _split_bars(self):
+        """Overlay each freq CELL with a red (vowel) block on the left + blue
+        (consonant) block on the right, sized by that position's vowel fraction; and
+        compute each block's COALESCE target — reds packed to the row's left edge into
+        one red bar, blues packed to the right into one blue bar, so the row's total
+        width (= L cells) is unchanged. Also the avg-#vowels / avg-#consonants labels,
+        centred on each bar (vowel label kept only if it fits in the red bar). Builds
+        from the carried-in `self.view` geometry, so it lives here, not in setup."""
+        grid = self.d["grid"]
+        reds, blues, num_labels = [], [], []
+        EPS = 1e-3
+        for i, L in enumerate(self.d["grid_lengths"]):
+            # read geometry off the actual CELL squares, NOT hm's bbox: get_heatmap
+            # returns VGroup(cells, values) with an EMPTY values group at the origin,
+            # so hm.height / hm.get_center() are polluted by that origin point
+            row_cells = self.view.heatmaps[i].cells[0]        # L squares, left->right
+            cs = row_cells[0].width                           # cell size (== height)
+            left = row_cells[0].get_left()[0]
+            y = row_cells[0].get_center()[1]
+            vf = grid[L]
+            total_v = sum(vf)                   # == avg_vowels[L] (within rounding)
+            red_w, blue_w = cs * total_v, cs * (L - total_v)
+            boundary = left + red_w             # red bar ends / blue bar starts here
+            red_acc = blue_acc = 0.0
+            for p in range(L):
+                v, c = vf[p], 1 - vf[p]
+                cell_l = left + p * cs
+                if v > EPS:
+                    r = Rectangle(width=cs * v, height=cs, fill_color=VOWEL_C,
+                                  fill_opacity=1.0, stroke_color=WHITE, stroke_width=1.0)
+                    r.move_to([cell_l + cs * v / 2, y, 0])
+                    reds.append((r, [left + cs * red_acc + cs * v / 2, y, 0]))
+                    red_acc += v
+                if c > EPS:
+                    b = Rectangle(width=cs * c, height=cs, fill_color=CONS_C,
+                                  fill_opacity=1.0, stroke_color=WHITE, stroke_width=1.0)
+                    b.move_to([cell_l + cs * v + cs * c / 2, y, 0])
+                    blues.append((b, [boundary + cs * blue_acc + cs * c / 2, y, 0]))
+                    blue_acc += c
+            vt = crisp_text(f"{self.d['avg_vowels'][L]:.1f}", font_size=20, color=WHITE)
+            vt.move_to([left + red_w / 2, y, 0])
+            if vt.width < red_w - 0.08:                      # "if it fits" (script)
+                num_labels.append(vt)
+            ct = crisp_text(f"{self.d['avg_consonants'][L]:.1f}", font_size=20,
+                            color=WHITE)
+            ct.move_to([boundary + blue_w / 2, y, 0])
+            num_labels.append(ct)
+        return reds, blues, num_labels
+
+    # f : split each box red|blue, coalesce into a red bar then a blue bar per length;
+    #     label avg #vowels (1dp, if it fits) + avg #consonants (VO: "vowels and
+    #     consonants per word")
+    @subscene
+    def vc_bars(self):
+        reds, blues, num_labels = self._split_bars()
+        length_labels = self.view.labels                     # keep the length numbers
+        split = VGroup(*[r for r, _ in reds], *[b for b, _ in blues])
+        # break each box up: title goes (no longer "position frequencies"), the blended
+        # heatmap cells cross-fade out as the red|blue split fades in over them
+        self.play(FadeOut(self.view.heatmaps), FadeOut(self.view_title),
+                  FadeIn(split), run_time=1.0)
+        self.view = self.view_title = None
+        # move the red blocks left, the blue blocks right, into one red then one blue bar
+        self.play(*[r.animate.move_to(t) for r, t in reds],
+                  *[b.animate.move_to(t) for b, t in blues], run_time=1.5)
+        nums = VGroup(*num_labels)
+        self.play(FadeIn(nums), run_time=0.6)
+        self.bars = VGroup(split, nums, length_labels)
+
+    # g : VOWEL (⅓ down) with before ← VOWEL → after adjacency pies
     @subscene
     def vowel_row(self):
-        self.play(FadeOut(self.view), FadeOut(self.view_title), run_time=0.5)
-        self.view = self.view_title = None
+        self.play(FadeOut(self.bars), run_time=0.5)
+        self.bars = None
         self._adjacency_row("VOWEL", self.d["adjacency"]["vowel"], ROW_Y, VOWEL_C)
 
-    # e : CONSONANT (⅔ down) with before ← CONSONANT → after adjacency pies
+    # h : CONSONANT (⅔ down) with before ← CONSONANT → after adjacency pies
     @subscene
     def consonant_row(self):
         self._adjacency_row("CONSONANT", self.d["adjacency"]["consonant"], -ROW_Y, CONS_C)
 
-    # f : remove the content FIRST, THEN turn the background back to light blue
+    # i : remove the content FIRST, THEN turn the background back to light blue
     @subscene
     def to_light(self):
         content = [m for m in self.mobjects if m is not self.navy_rect]
