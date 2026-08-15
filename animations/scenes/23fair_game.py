@@ -64,27 +64,31 @@ BEAT MAP
   k switch_to_5  — switch to 5-letter words: morph the CDF 4->5; write "5" (nothing else)
   l fill_row_5   — length-5 fair number (5) + DRAWING: chalk gallows + head/torso/arm-line/
                    two legs (5 elements)
-  m switch_to_6  — switch to 6-letter words: morph the CDF 5->6; write "6" (nothing else)
+  m switch_to_6  — morph to 6-letter; write the "6" of the centred "6-7" AS the graph morphs
   n fill_row_6   — length-6 fair number (4 — bar 4 is nearest 50%) + the fair-4 drawing
-  o switch_to_7  — length 7 has the SAME fair # (4): MERGE — append "-7" to make "6-7"
+  o switch_to_7  — length 7 shares fair 4: write the "-7" of "6-7" as the 7-graph appears
   p switch_to_8  — switch to 8-letter words; write "8" (crimson caption clears — len 8+ exact)
-  q fill_row_8   — length-8 fair number (3) + a little 3-circle SNOWMAN (no gallows)
+  q fill_row_8   — length-8 fair number (3) + a 3-circle SNOWMAN on the gallows (top->bottom)
   r switch_to_9  — switch to 9-letter words; write "9"
-  s fill_row_9   — length-9 fair number (2) + a 2-circle SNOWMAN
-  t switch_to_10plus — morph the CDF to length 10; write "10+"
-  u fill_row_10plus  — length-10+ fair number (1) + the OVAL (same as the length-1 row)
+  s fill_row_9   — length-9 fair number (2) + a 2-circle SNOWMAN on the gallows
+  t switch_to_10plus — morph to 10-letter; write the "10" of the centred "10+"
+  u plus_11      — morph to 11-letter; write the "+" (completes "10+")
+  v graphs_to_16 — keep morphing the CDF through lengths 12..16 (all still fair 1)
+  w fill_row_10plus  — length-10+ fair number (1) + the OVAL (same as the length-1 row)
 
-Every DRAWING is coloured to END at red (see _draw_colors): an N-element drawing uses the
-last N of [deep-red, deep-purple, purple, blue, green, yellow, orange, red]. Drawings are
-STAGGERED — odd word lengths on the left of the Drawing column, even on the right.
+Word-length labels are written AS the CDF morphs to that length (via _morph_cdf's
+`extra_move`), not after. Every DRAWING is coloured to END at red (see _draw_colors) — an
+N-element drawing uses the last N of [deep-red, deep-purple, purple, blue, green, yellow,
+orange, red]; snowmen are yellow/orange/red top->bottom. Drawings are STAGGERED — odd word
+lengths on the left of the Drawing column, even on the right.
 
-NB beats e–u run AHEAD of Script.md's animation column (still 4 segments); they animate the
-length-2..10+ part of beat-d's voiceover ("With 2 letters, the closest we can get is …").
+NB beats e–w run AHEAD of Script.md's animation column (still 4 segments); they animate the
+length-2..16 part of beat-d's voiceover ("With 2 letters, the closest we can get is …").
 The dashed 50%/y=6 reference lines are z-indexed ABOVE the bars and turn BLUE where they
 pass over crimson bars; a CDF morph moves the shared bars first, then GROWS the brand-new
 bars up from the axis (not a simultaneous fade-in).
 
-Render:  render 23a --fast   (…23u)   /   render 23 sub  for the whole scene
+Render:  render 23a --fast   (…23w)   /   render 23 sub  for the whole scene
 """
 from pathlib import Path
 import sys
@@ -170,12 +174,11 @@ class Scene23(HangmanScene):
         self.fair4 = self.draw4 = None   # length-4 fair number + drawing (j)
         self.len5 = None             # length-5 row label (k)
         self.fair5 = self.draw5 = None   # length-5 fair number + drawing (l)
-        self.len6 = None             # length-6 row label (m)
+        self.len67 = None            # the centred "6-7" label (6 at m, -7 at o)
         self.fair6 = self.gal6 = None    # length-6 fair number + drawing (n)
-        self.dash7 = None            # "-7" merged into the "6" label (o)
         self.len8 = self.fair8 = self.snow8 = None    # length-8 row (p/q)
         self.len9 = self.fair9 = self.snow9 = None    # length-9 row (r/s)
-        self.len10 = self.fair10 = self.draw10 = None  # length-10+ row (t/u)
+        self.len10p = self.fair10 = self.draw10 = None  # length-10+ row (t..w)
 
     # ── a : recall scene 19's by-length double bar chart ──────────────────────
     def _double_chart(self):
@@ -337,6 +340,11 @@ class Scene23(HangmanScene):
         even lengths go RIGHT — so consecutive drawings don't collide vertically."""
         return self.col_x[2] + (-DRAW_DX if i % 2 == 0 else DRAW_DX)
 
+    def _write(self, *chalk_mobs):
+        """A LaggedStart Create of the given chalk mobjects' strokes — used as a
+        _morph_cdf `extra_move` so a word-length label writes AS the graph morphs."""
+        return LaggedStartMap(Create, _strokes(*chalk_mobs), lag_ratio=0.5)
+
     def _chalk_frame(self, sw=3.0):
         """The white (chalk) gallows frame: base, post, beam, rope."""
         return VGroup(
@@ -370,12 +378,14 @@ class Scene23(HangmanScene):
         return g.scale(DRAW_SCALE)
 
     # ── morph the current CDF into a new-length one, then GROW the brand-new bars ──
-    def _morph_cdf(self, new, length, move_rt, grow_rt):
+    def _morph_cdf(self, new, length, move_rt, grow_rt, *, extra_move=()):
         """Align ``new`` onto the current CDF (self.cdf) and morph in two phases: the
         SHARED bars move/reshape while the framing (x-labels, ticks, axes, title)
         crossfades; THEN the brand-new bars grow up from the axis (labels fading in
         with them, and the 50% line recolouring blue over any new crimson bars) — so
-        the new bars grow only AFTER the old ones finish moving."""
+        the new bars grow only AFTER the old ones finish moving. ``extra_move`` plays
+        ALONGSIDE the first (move) phase — used to write the word-length label AS the
+        graph animation starts."""
         old = self.cdf
         new.shift(old.y_axis.get_center() - new.y_axis.get_center())
         k = min(len(old.bars), len(new.bars))
@@ -388,7 +398,7 @@ class Scene23(HangmanScene):
             o, nw = getattr(old, attr, None), getattr(new, attr, None)
             if o is not None and nw is not None:
                 move.append(FadeTransform(o, nw))
-        self.play(*move, run_time=move_rt)
+        self.play(*move, *extra_move, run_time=move_rt)    # label draws AS the graph moves
         self.cdf = new
         new_fifty = self._fifty_line(length)               # recolour 50% line for the
         extra = [FadeTransform(self.fifty, new_fifty)]     # new crimson region (blue over)
@@ -448,9 +458,8 @@ class Scene23(HangmanScene):
     @subscene
     def switch_to_2(self):
         self._setup_switch_2()
-        self._morph_cdf(self._cdf_chart(2), 2, 1.2, 1.0)  # 1- -> 2-Letter (title crossfades)
-        self.play(LaggedStartMap(Create, _strokes(self.len2), lag_ratio=0.5),
-                  run_time=0.6)
+        self._morph_cdf(self._cdf_chart(2), 2, 1.2, 1.0,  # 1- -> 2-Letter (title crossfades)
+                        extra_move=[self._write(self.len2)])
 
     # ── f : length-2 fair number (4) + the colour-coded gallows (4 parts) ─────────
     def _setup_row2_fill(self):
@@ -476,9 +485,8 @@ class Scene23(HangmanScene):
     @subscene
     def switch_to_3(self):
         self._setup_switch_3()
-        self._morph_cdf(self._cdf_chart(3), 3, 1.2, 1.0)  # 2- -> 3-Letter (crimson tail + caption)
-        self.play(LaggedStartMap(Create, _strokes(self.len3), lag_ratio=0.5),
-                  run_time=0.6)
+        self._morph_cdf(self._cdf_chart(3), 3, 1.2, 1.0,  # 2- -> 3-Letter (crimson tail + caption)
+                        extra_move=[self._write(self.len3)])
 
     # ── the table "Drawing": a standard hangman coloured element-by-element via
     #    _draw_colors (always ending at red). gallows="split" = base + rest as two elements
@@ -529,21 +537,23 @@ class Scene23(HangmanScene):
         g.frame, g.parts = frame, parts
         return g.scale(DRAW_SCALE)
 
-    # ── snowman "Drawing" (lengths 8/9/10+): a stack of n circles, bottom biggest,
-    #    each = one miss, coloured to end at red. No gallows. ────────────────────────
+    # ── snowman "Drawing" (lengths 8/9): CHALK gallows + a stack of n circles hanging
+    #    from the rope, head (small) at top → base (big) at bottom, drawn TOP to BOTTOM
+    #    starting with YELLOW. ───────────────────────────────────────────────────────
     def _snowman(self, n):
         sw = 3.0
-        radii = [0.16, 0.13, 0.10][:n]                   # bottom -> top
-        circles, cy, prev = [], 0.0, 0.0
+        frame = self._chalk_frame(sw)
+        radii = [0.09, 0.11, 0.14][:n]                   # top(head) -> bottom(base)
+        circles, cy, prev = [], 0.30, 0.0                # top edge at the rope end (0.30)
         for i, r in enumerate(radii):
-            cy = r if i == 0 else cy + prev + r          # stack touching
+            cy = (0.30 - r) if i == 0 else cy - prev - r  # stack touching, downward
             circles.append(Circle(radius=r, fill_opacity=0.0,
                                    stroke_width=sw).move_to([0.12, cy, 0]))
             prev = r
-        for c, col in zip(circles, _draw_colors(len(circles))):
+        for c, col in zip(circles, (LIGHT_YELLOW, LIGHT_ORANGE, LIGHT_RED)):
             c.set_color(col)
-        g = VGroup(*circles).move_to([0.12, 0, 0])       # centre vertically in the cell
-        g.parts = circles
+        g = VGroup(frame, *circles)
+        g.frame, g.parts = frame, circles                # parts already top->bottom order
         return g.scale(DRAW_SCALE)
 
     # ── h : length-3 fair number (8) + split-gallows standard hangman (8 elements) ──
@@ -569,9 +579,8 @@ class Scene23(HangmanScene):
     @subscene
     def switch_to_4(self):
         self._setup_switch_4()
-        self._morph_cdf(self._cdf_chart(4), 4, 1.2, 1.0)  # 3- -> 4-Letter
-        self.play(LaggedStartMap(Create, _strokes(self.len4), lag_ratio=0.5),
-                  run_time=0.6)
+        self._morph_cdf(self._cdf_chart(4), 4, 1.2, 1.0,  # 3- -> 4-Letter
+                        extra_move=[self._write(self.len4)])
 
     # ── j : length-4 fair number (7) + single-stroke-gallows hangman (7 elements) ──
     def _setup_row4_fill(self):
@@ -596,9 +605,8 @@ class Scene23(HangmanScene):
     @subscene
     def switch_to_5(self):
         self._setup_switch_5()
-        self._morph_cdf(self._cdf_chart(5), 5, 1.2, 1.0)  # 4- -> 5-Letter
-        self.play(LaggedStartMap(Create, _strokes(self.len5), lag_ratio=0.5),
-                  run_time=0.6)
+        self._morph_cdf(self._cdf_chart(5), 5, 1.2, 1.0,  # 4- -> 5-Letter
+                        extra_move=[self._write(self.len5)])
 
     # ── l : length-5 fair number (5) + body-only drawing (head/torso/arm-line/2 legs) ─
     def _setup_row5_fill(self):
@@ -616,17 +624,18 @@ class Scene23(HangmanScene):
         for p in self.draw5.parts:                            # 5 elements, one per miss
             self.play(Create(p), run_time=0.4)
 
-    # ── m : switch to 6-letter words — morph the CDF, write only the length-6 row ──
+    # ── m : switch to 6-letter words — draw the "6" of the CENTRED "6-7" as 6 appears ─
     def _setup_switch_6(self):
-        self.len6 = chalk_number(6, height=0.42, stroke_width=3.2).move_to(
-            [self.col_x[0], self._row_y(5), 0])        # Word Length column, row 6
+        # lay out the whole "6-7" now (centred like every other label); the "6" is drawn
+        # here, the "-7" when the 7-graph appears — so the merged label stays centred.
+        self.len67 = chalk_phrase("6-7", height=0.42, stroke_width=3.2, buff=0.06).move_to(
+            [self.col_x[0], self._row_y(5), 0])
 
     @subscene
     def switch_to_6(self):
         self._setup_switch_6()
-        self._morph_cdf(self._cdf_chart(6), 6, 1.2, 1.0)  # 5- -> 6-Letter
-        self.play(LaggedStartMap(Create, _strokes(self.len6), lag_ratio=0.5),
-                  run_time=0.6)
+        self._morph_cdf(self._cdf_chart(6), 6, 1.2, 1.0,  # 5- -> 6-Letter; write the "6"
+                        extra_move=[self._write(VGroup(self.len67[0]))])
 
     # ── n : length-6 fair number (4, = bar 4 nearest 50%) + fair-4 drawing ─────────
     def _setup_row6_fill(self):
@@ -644,18 +653,11 @@ class Scene23(HangmanScene):
         for p in self.gal6.parts:                             # head, body, arm-line, leg-line
             self.play(Create(p), run_time=0.45)
 
-    # ── o : switch to 7-letter words — same fair # (4), so MERGE into the "6" row: append
-    #    "-7" to make "6-7" (no new row) ─────────────────────────────────────────────
-    def _setup_switch_7(self):
-        self.dash7 = chalk_phrase("-7", height=0.42, stroke_width=3.2, buff=0.06)
-        self.dash7.next_to(self.len6, RIGHT, buff=0.08, aligned_edge=DOWN)
-
+    # ── o : switch to 7-letter words — same fair # (4): draw the "-7" of "6-7" as 7 appears
     @subscene
     def switch_to_7(self):
-        self._setup_switch_7()
-        self._morph_cdf(self._cdf_chart(7), 7, 1.2, 1.0)  # 6- -> 7-Letter (merges into "6-7")
-        self.play(LaggedStartMap(Create, _strokes(self.dash7), lag_ratio=0.5),
-                  run_time=0.6)
+        self._morph_cdf(self._cdf_chart(7), 7, 1.2, 1.0,  # 6- -> 7-Letter (completes "6-7")
+                        extra_move=[self._write(VGroup(*self.len67[1:]))])
 
     # ── p : switch to 8-letter words — morph the CDF, write only the length-8 row ──
     def _setup_switch_8(self):
@@ -665,9 +667,8 @@ class Scene23(HangmanScene):
     @subscene
     def switch_to_8(self):
         self._setup_switch_8()
-        self._morph_cdf(self._cdf_chart(8), 8, 1.2, 1.0)  # 7- -> 8-Letter (caption clears)
-        self.play(LaggedStartMap(Create, _strokes(self.len8), lag_ratio=0.5),
-                  run_time=0.6)
+        self._morph_cdf(self._cdf_chart(8), 8, 1.2, 1.0,  # 7- -> 8-Letter (caption clears)
+                        extra_move=[self._write(self.len8)])
 
     # ── q : length-8 fair number (3) + a little 3-circle SNOWMAN (no gallows) ──────
     def _setup_row8_fill(self):
@@ -681,7 +682,8 @@ class Scene23(HangmanScene):
         self._setup_row8_fill()
         self.play(LaggedStartMap(Create, _strokes(self.fair8), lag_ratio=0.5),
                   run_time=0.6)
-        for c in self.snow8.parts:                            # 3 circles, one per miss
+        self.play(LaggedStartMap(Create, self.snow8.frame, lag_ratio=0.8), run_time=1.0)
+        for c in self.snow8.parts:                            # 3 circles, top -> bottom
             self.play(Create(c), run_time=0.4)
 
     # ── r : switch to 9-letter words — morph the CDF, write only the length-9 row ──
@@ -692,9 +694,8 @@ class Scene23(HangmanScene):
     @subscene
     def switch_to_9(self):
         self._setup_switch_9()
-        self._morph_cdf(self._cdf_chart(9), 9, 1.2, 1.0)  # 8- -> 9-Letter
-        self.play(LaggedStartMap(Create, _strokes(self.len9), lag_ratio=0.5),
-                  run_time=0.6)
+        self._morph_cdf(self._cdf_chart(9), 9, 1.2, 1.0,  # 8- -> 9-Letter
+                        extra_move=[self._write(self.len9)])
 
     # ── s : length-9 fair number (2) + a 2-circle SNOWMAN ─────────────────────────
     def _setup_row9_fill(self):
@@ -708,22 +709,34 @@ class Scene23(HangmanScene):
         self._setup_row9_fill()
         self.play(LaggedStartMap(Create, _strokes(self.fair9), lag_ratio=0.5),
                   run_time=0.6)
-        for c in self.snow9.parts:                            # 2 circles, one per miss
+        self.play(LaggedStartMap(Create, self.snow9.frame, lag_ratio=0.8), run_time=1.0)
+        for c in self.snow9.parts:                            # 2 circles, top -> bottom
             self.play(Create(c), run_time=0.4)
 
-    # ── t : switch to 10+ (morph the CDF to length 10; label "10+") ───────────────
+    # ── t : morph to 10-letter words; write the "10" of the CENTRED "10+" as 10 appears
     def _setup_switch_10(self):
-        self.len10 = chalk_phrase("10+", height=0.42, stroke_width=3.2, buff=0.06).move_to(
+        self.len10p = chalk_phrase("10+", height=0.42, stroke_width=3.2, buff=0.06).move_to(
             [self.col_x[0], self._row_y(8), 0])
 
     @subscene
     def switch_to_10plus(self):
         self._setup_switch_10()
-        self._morph_cdf(self._cdf_chart(10), 10, 1.2, 1.0)  # 9- -> 10-Letter (label "10+")
-        self.play(LaggedStartMap(Create, _strokes(self.len10), lag_ratio=0.5),
-                  run_time=0.6)
+        self._morph_cdf(self._cdf_chart(10), 10, 1.2, 1.0,  # 9- -> 10-Letter; write "10"
+                        extra_move=[self._write(VGroup(*self.len10p[0:2]))])
 
-    # ── u : length-10+ fair number (1) + the OVAL (same as the length-1 row) ───────
+    # ── u : morph to 11-letter words; write the "+" (completing "10+") as 11 appears ──
+    @subscene
+    def plus_11(self):
+        self._morph_cdf(self._cdf_chart(11), 11, 1.2, 1.0,  # 10- -> 11-Letter; write the "+"
+                        extra_move=[self._write(VGroup(self.len10p[2]))])
+
+    # ── v : keep morphing the CDF through lengths 12..16 (all still fair 1 / "10+") ──
+    @subscene
+    def graphs_to_16(self):
+        for L in range(12, 17):                             # 12, 13, 14, 15, 16
+            self._morph_cdf(self._cdf_chart(L), L, 1.0, 0.8)
+
+    # ── w : length-10+ fair number (1) + the OVAL (same as the length-1 row) ───────
     def _setup_row10_fill(self):
         y = self._row_y(8)
         self.fair10 = chalk_number(1, height=0.42, stroke_width=3.2).move_to(
