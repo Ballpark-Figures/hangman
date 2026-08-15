@@ -58,10 +58,9 @@ from assets.tier_letter_scene import TierLetterScene, HEAT_CENTER
 # region (centre-right). Ys recoloured to CONTRAST: YESTERYEAR blue, SLYLY crimson;
 # the other letters stay the title ink (BLACK). Each fades in while rising (UP*RISE).
 WORD_FS   = 90                                    # large display font
-WORD_BUFF = 0.06                                  # per-letter spacing
 WORD_INK  = BLACK                                 # non-Y letters (matches the titles)
-WORD1_CTR = np.array([1.6, 1.1, 0.0])             # YESTERYEAR centre
-WORD2_CTR = np.array([1.6, -1.2, 0.0])            # SLYLY centre (below it)
+WORD1_Y   = 1.1                                   # YESTERYEAR centre height
+WORD2_Y   = -1.2                                  # SLYLY centre height (below it)
 WORD_RISE = 0.6                                    # fade-in upward travel
 
 # Y's common-uses ("Example Uses") states — the TOP 4 rows of
@@ -109,22 +108,25 @@ class Scene14(TierLetterScene):
     def y_intro(self):
         self.advance_letter(1, 0.9, 1.0)
 
-    # example-word helper: one large word with its Y's recoloured, built at `center`
-    def _word_row(self, word, ys, color, center):
-        row = VGroup(*[crisp_text(ch, font_size=WORD_FS, color=WORD_INK)
-                       for ch in word])
-        row.arrange(RIGHT, buff=WORD_BUFF, aligned_edge=DOWN)   # caps → shared baseline
+    # example-word helper: ONE large word (natural kerning — not per-letter arrange)
+    # with its Y glyphs recoloured, centred in the empty region between the tucked
+    # tier list's right edge and the right frame edge.
+    def _word_center_x(self):
+        return (self.tl.get_right()[0] + config.frame_x_radius) / 2
+
+    def _word_row(self, word, ys, color, y):
+        mob = crisp_text(word, font_size=WORD_FS, color=WORD_INK)
         for i in ys:
-            row[i].set_color(color)
-        return row.move_to(center)
+            mob[i].set_color(color)
+        return mob.move_to([self._word_center_x(), y, 0])
 
     def _setup_yword1(self):
-        # YESTERYEAR — Ys (indices 0, 6) in blue
-        self.yword1 = self._word_row("YESTERYEAR", [0, 6], ACCENT_FILL, WORD1_CTR)
+        # YESTERYEAR — Ys (glyphs 0, 6) in blue
+        self.yword1 = self._word_row("YESTERYEAR", [0, 6], ACCENT_FILL, WORD1_Y)
 
     def _setup_yword2(self):
-        # SLYLY — Ys (indices 2, 4) in crimson
-        self.yword2 = self._word_row("SLYLY", [2, 4], CRIMSON, WORD2_CTR)
+        # SLYLY — Ys (glyphs 2, 4) in crimson
+        self.yword2 = self._word_row("SLYLY", [2, 4], CRIMSON, WORD2_Y)
 
     # e : YESTERYEAR (Ys blue) fades in while rising
     @subscene
