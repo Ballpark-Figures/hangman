@@ -3,10 +3,11 @@
 Built on the shared `TierLetterScene` base (assets/tier_letter_scene.py). Back-to-back
 continuation of scene 09: opens on the named tier list CENTRED (top tier E/I/A + HIGH↑
 S/R already filled, as 09 left it), works the HIGH↓ tier (TIER_LETTERS[2] = "TNO") with
-heatmap + n-gram views per letter (no common-uses, like 96), and returns the tier list
-to CENTRE at the end for the next tier scene.
+heatmap + n-gram views per letter (no common-uses, like 96), returns the tier list to
+CENTRE, then CLEARS it — scene 11 is the (animated) intermission, NOT a talking head, so
+10 must end blank (like 07 before the 08 interlude), not hand a centred list forward.
 
-Beats a–j:
+Beats a–k:
   a T intro     fill T into HIGH↓; tier list → top-left; copy of T → ↙
   b T heatmap   position-frequency heatmaps
   c T ngram     add the n-gram view
@@ -16,11 +17,12 @@ Beats a–j:
   g O intro     remove N's views, N's copy returns AS O fades in, copy of O → ↙
   h O heatmap   heatmaps for O
   i O ngram     add the n-gram view for O
-  j recenter    clear views + big letter; tier list returns to CENTRE (for next scene)
+  j recenter    clear views + big letter; tier list returns to CENTRE (completed HIGH tier)
+  k clear_list  TRANSITION: fade the tier list out → blank, for the intermission (11)
 
 TIMING KNOBS LEFT AT A GUESS (feel — judge from the video): every run_time below.
 
-Render:  render 10a --fast  (…10j)  /  render 10 sub  for the whole scene
+Render:  render 10a --fast  (…10k)  /  render 10 sub  for the whole scene
 """
 from pathlib import Path
 import sys
@@ -90,7 +92,14 @@ class Scene10(TierLetterScene):
     def o_ngram(self):
         self.add_ngram("o", 0.8)
 
-    # j : clear views + big letter; tier list returns to CENTRE (for the next scene)
+    # j : clear views + big letter; tier list returns to CENTRE (the completed HIGH tier)
     @subscene
     def recenter(self):
         self.recenter_board(1.0)
+
+    # k : TRANSITION to scene 11 — fade the completed tier list off, ending BLANK.
+    #     Scene 11 (the intermission) opens on a navy interlude with no tier list, so
+    #     10 must not leave the list on screen (cf. 07, which close_all's before 08).
+    @subscene
+    def clear_list(self):
+        self.play(FadeOut(self.tl), run_time=0.8)
