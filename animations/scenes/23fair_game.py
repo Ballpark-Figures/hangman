@@ -73,8 +73,8 @@ BEAT MAP
   s fill_row_9   — length-9 fair number (2) + a 2-circle SNOWMAN on the gallows
   t switch_to_10plus — morph to 10-letter; write the "10" of the centred "10+"
   u plus_11      — morph to 11-letter; write the "+" (completes "10+")
-  v graphs_to_16 — keep morphing the CDF through lengths 12..16 (all still fair 1)
-  w fill_row_10plus  — length-10+ fair number (1) + the OVAL (same as the length-1 row)
+  v march_to_16  — keep morphing 12..16 (all still fair 1); the fair "1" (12), gallows (13)
+                   and oval (14) are drawn DURING this march, not after
 
 Word-length labels are written AS the CDF morphs to that length (via _morph_cdf's
 `extra_move`), not after. Every DRAWING is coloured to END at red (see _draw_colors) — an
@@ -82,13 +82,13 @@ N-element drawing uses the last N of [deep-red, deep-purple, purple, blue, green
 orange, red]; snowmen are yellow/orange/red top->bottom. Drawings are STAGGERED — odd word
 lengths on the left of the Drawing column, even on the right.
 
-NB beats e–w run AHEAD of Script.md's animation column (still 4 segments); they animate the
+NB beats e–v run AHEAD of Script.md's animation column (still 4 segments); they animate the
 length-2..16 part of beat-d's voiceover ("With 2 letters, the closest we can get is …").
 The dashed 50%/y=6 reference lines are z-indexed ABOVE the bars and turn BLUE where they
 pass over crimson bars; a CDF morph moves the shared bars first, then GROWS the brand-new
 bars up from the axis (not a simultaneous fade-in).
 
-Render:  render 23a --fast   (…23w)   /   render 23 sub  for the whole scene
+Render:  render 23a --fast   (…23v)   /   render 23 sub  for the whole scene
 """
 from pathlib import Path
 import sys
@@ -543,15 +543,15 @@ class Scene23(HangmanScene):
     def _snowman(self, n):
         sw = 3.0
         frame = self._chalk_frame(sw)
-        radii = [0.09, 0.11, 0.14][:n]                   # top(head) -> bottom(base)
+        radii = [0.09, 0.11, 0.14][-n:]                  # top(head, small) -> bottom(big)
         circles, cy, prev = [], 0.30, 0.0                # top edge at the rope end (0.30)
         for i, r in enumerate(radii):
             cy = (0.30 - r) if i == 0 else cy - prev - r  # stack touching, downward
             circles.append(Circle(radius=r, fill_opacity=0.0,
                                    stroke_width=sw).move_to([0.12, cy, 0]))
             prev = r
-        for c, col in zip(circles, (LIGHT_YELLOW, LIGHT_ORANGE, LIGHT_RED)):
-            c.set_color(col)
+        for c, col in zip(circles, _draw_colors(n)):     # top -> bottom, ending at red
+            c.set_color(col)                             # 3: yellow/orange/red · 2: orange/red
         g = VGroup(frame, *circles)
         g.frame, g.parts = frame, circles                # parts already top->bottom order
         return g.scale(DRAW_SCALE)
@@ -713,10 +713,15 @@ class Scene23(HangmanScene):
         for c in self.snow9.parts:                            # 2 circles, top -> bottom
             self.play(Create(c), run_time=0.4)
 
-    # ── t : morph to 10-letter words; write the "10" of the CENTRED "10+" as 10 appears
+    # ── t : morph to 10-letter words; write the "10" of the CENTRED "10+" as 10 appears.
+    #    The "10+" row's fair "1" + oval are BUILT here but drawn later, DURING the march.
     def _setup_switch_10(self):
+        y = self._row_y(8)
         self.len10p = chalk_phrase("10+", height=0.42, stroke_width=3.2, buff=0.06).move_to(
-            [self.col_x[0], self._row_y(8), 0])
+            [self.col_x[0], y, 0])
+        self.fair10 = chalk_number(1, height=0.42, stroke_width=3.2).move_to(
+            [self.col_x[1], y, 0])
+        self.draw10 = self._mini_gallows(1).move_to([self._draw_x(8), y, 0])   # gallows + oval
 
     @subscene
     def switch_to_10plus(self):
@@ -730,24 +735,15 @@ class Scene23(HangmanScene):
         self._morph_cdf(self._cdf_chart(11), 11, 1.2, 1.0,  # 10- -> 11-Letter; write the "+"
                         extra_move=[self._write(VGroup(self.len10p[2]))])
 
-    # ── v : keep morphing the CDF through lengths 12..16 (all still fair 1 / "10+") ──
+    # ── v : keep morphing the CDF through 12..16 (all still fair 1); the fair "1", the
+    #    gallows, and the oval are drawn DURING this march (not after it) ─────────────
     @subscene
-    def graphs_to_16(self):
-        for L in range(12, 17):                             # 12, 13, 14, 15, 16
-            self._morph_cdf(self._cdf_chart(L), L, 1.0, 0.8)
-
-    # ── w : length-10+ fair number (1) + the OVAL (same as the length-1 row) ───────
-    def _setup_row10_fill(self):
-        y = self._row_y(8)
-        self.fair10 = chalk_number(1, height=0.42, stroke_width=3.2).move_to(
-            [self.col_x[1], y, 0])
-        self.draw10 = self._mini_gallows(1).move_to([self._draw_x(8), y, 0])
-
-    @subscene
-    def fill_row_10plus(self):
-        self._setup_row10_fill()
-        self.play(LaggedStartMap(Create, _strokes(self.fair10), lag_ratio=0.5),
-                  run_time=0.6)
-        self.play(LaggedStartMap(Create, self.draw10.frame, lag_ratio=0.8), run_time=1.0)
-        for p in self.draw10.parts:                           # the red oval
-            self.play(Create(p), run_time=0.5)
+    def march_to_16(self):
+        self._morph_cdf(self._cdf_chart(12), 12, 1.0, 0.8,   # 12: write the fair "1"
+                        extra_move=[self._write(self.fair10)])
+        self._morph_cdf(self._cdf_chart(13), 13, 1.0, 0.8,   # 13: draw the gallows
+                        extra_move=[LaggedStartMap(Create, self.draw10.frame, lag_ratio=0.8)])
+        self._morph_cdf(self._cdf_chart(14), 14, 1.0, 0.8,   # 14: draw the oval
+                        extra_move=[Create(self.draw10.parts[0])])
+        self._morph_cdf(self._cdf_chart(15), 15, 1.0, 0.8)   # 15, 16: just keep marching
+        self._morph_cdf(self._cdf_chart(16), 16, 1.0, 0.8)
