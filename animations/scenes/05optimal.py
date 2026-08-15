@@ -1392,20 +1392,10 @@ class Scene05(HangmanScene):
         # is dropped)
         self.play(VGroup(u_dot, yedge, uedge).animate.set_color(LIGHT_GREEN),
                   counter.animate.set_color(LIGHT_GREEN), run_time=1.0)
-        # NOW the whole level drops: U climbs the gap to E→U (U→Y/P revert to compact) and E's OTHER
-        # children (its bare hit dots + boards) drop the SAME delta to stay aligned; the green counter
-        # rides down with U. Those siblings are grown + solved next (backup_e / solve_e_hit).
-        n_before = sum(len(path.levels[i]["hits"]) for i in range(3))
-        e_hits, e_anns = path.levels[3]["hits"], path.leaf_text[n_before:]
-        # the sibling DOTS drop with the descent; their board-state letters FADE OUT as they descend
-        # (not later, during backup_e's spreading)
-        e_sibs = [(hd, hd, he) for (he, hd), _ in zip(e_hits, e_anns)]
-        e_ann_mobs = [ann for (he, hd), ann in zip(e_hits, e_anns)]
-        self._gap_up(u_dot, u_lab, path.levels[3]["dot"], path.levels[4]["in_edge"],
-                     [(yedge, self.u_spine.gdot), (uedge, self.ups.root)],
-                     run_time=0.7, also=[counter], siblings=e_sibs, fade_shift=e_ann_mobs)
+        # the descent (level dropping to E→U) is DEFERRED — it happens TOGETHER with backup_e's build,
+        # as ONE move-down-and-spread motion. U stays at its current height; backup_e places + compacts it.
         self.u_subtree = cur                        # hand off U's solved subtree to backing up E
-        self.u_root = u_dot                         # U's node — backup_i compacts E→U onto this root
+        self.u_root = u_dot                         # U's node — backup_e/i compact onto this root
         self.avg_u = counter                        # U's value label (green 1.0)
 
     # ── i : REPEAT the back-up one step at a time up the tree until the WHOLE tree is green.
@@ -1441,10 +1431,21 @@ class Scene05(HangmanScene):
         e_ref.scale(s, about_point=c).shift(dx)
         eh, uh = e_ref.node["e"], e_ref.node["u"]
         hit_handles = [k for k in eh.kids if not k.is_miss]
-        # slide the green U-subtree onto e_ref's U (miss) slot — exact overlay, scaled to the reframe
-        u_now = self.u_ref.node["u"].dot
+        # slide the green U-subtree onto e_ref's U (miss) slot, COMPACTING U→children as it goes so the
+        # tall gap climbs to E→U in the SAME motion (folds choose_u's deferred descent into the build):
+        # U-node → the miss slot, U's children (Y-spine + {up,us}) → e_ref's COMPACT child slots.
+        un = self.u_ref.node["u"]
+        u_now = un.dot
         sfac = uh.dot.width / u_now.width
         y0, ty = u_now.get_center(), uh.dot.get_center()
+        u_miss_kid = next(k for k in uh.kids if k.is_miss)    # Y-spine slot (compact)
+        u_hit_kid = next(k for k in uh.kids if not k.is_miss) # {up,us} slot (compact)
+        yedge, pedge = self.grid.drilled_edge, self.u_pedge   # U→Y (miss), U→P (hit) — both green
+        u_slide = [self._slide_root(VGroup(un.dot, un.lab), un.dot, uh.dot, sfac),
+                   self._slide_root(self.u_spine, self.u_spine.gdot, u_miss_kid.dot, sfac),
+                   self._slide_root(self.ups, self.ups.root, u_hit_kid.dot, sfac),
+                   Transform(yedge, self._edge_line(uh.dot, u_miss_kid.dot, yedge.get_color())),
+                   Transform(pedge, self._edge_line(uh.dot, u_hit_kid.dot, pedge.get_color()))]
         # E's hit branches don't SPAWN new roots: REUSE each existing bare hit-sibling dot as the
         # branch's root guess node. TWO phases, mirroring the drill's reveal (`_transform_move`):
         # (1) the bare dot MOVES to the tidy root slot while its letter RIDES in on top of it
@@ -1465,14 +1466,17 @@ class Scene05(HangmanScene):
                      Restore(lab)]                        # …letter develops ON the node as it travels
             grows.append((kids, ct.root))
             hit_trees.append((h, ct))
-        # E's OWN bare-board annotation already FADED during choose_u's descent (see _gap_up
-        # fade_shift); the drilled-past A/O/I annotations STAY — re-expanded when each is backed up
-        # phase 1 — slide/morph/reveal to the REFRAMED targets AND reframe the diagonal above, together
+        n_before = sum(len(path.levels[i]["hits"]) for i in range(3))
+        e_anns = VGroup(*path.leaf_text[n_before:n_before + len(hits)])   # E's sibling board letters
+        # phase 1 — the DESCENT + BUILD as ONE motion: U slides down + COMPACTS onto E's miss slot, the
+        # diagonal E morphs to the tidy root, the bare sibling dots spread out (their letters fading).
+        # (The drilled-past A/O/I annotations STAY — re-expanded when each is later backed up.)
         self.play(
-            self.u_subtree.animate.scale(sfac, about_point=y0).shift(ty - y0),
+            *u_slide,                                                # U slides down + COMPACTS
             FadeOut(self.avg_u, shift=ty - y0),                      # rides out (fade + move) with U
             ReplacementTransform(VGroup(e_dot, e_lab), VGroup(eh.dot, eh.lab)),  # diagonal E → tidy E
             Transform(eu_edge, uh.in_edge),                          # E→U (miss) redrawn tidy
+            FadeOut(e_anns),                                         # sibling board letters fade as they spread
             *move,
             *[m.animate.scale(s, about_point=c).shift(dx) for m in above],   # reframe the diagonal above
             run_time=0.6)
@@ -1638,9 +1642,12 @@ class Scene05(HangmanScene):
         e_hit_kids = [k for k in eh.kids if not k.is_miss]     # e_/_e slots (compact)
         e_slide = [self._slide_root(VGroup(en.dot, en.lab), en.dot, eh.dot, sfac),
                    self._slide_root(self.u_subtree, self.u_root, e_miss_kid.dot, sfac),
-                   Transform(self.eu_edge, e_miss_kid.in_edge)]      # E→U retracts to compact
+                   # E→U retracts to compact but KEEPS its (green) colour — i_ref's edge is unsolved
+                   # red/white, so morph to a fresh edge of the CURRENT colour, not i_ref's
+                   Transform(self.eu_edge, self._edge_line(eh.dot, e_miss_kid.dot, self.eu_edge.get_color()))]
         for sub, hk, edge in zip([ct for _h, ct in self.e_hit_trees], e_hit_kids, self.e_hit_edges):
-            e_slide += [self._slide_root(sub, sub.root, hk.dot, sfac), Transform(edge, hk.in_edge)]
+            e_slide += [self._slide_root(sub, sub.root, hk.dot, sfac),
+                        Transform(edge, self._edge_line(eh.dot, hk.dot, edge.get_color()))]
         # I's hit branches REUSE each existing bare hit-sibling dot as the branch's root (the
         # drill's ride-in — letter starts small+transparent AT the bare dot, Restores as the node
         # travels), then the branch's children SPROUT out of the settled root. Mirrors backup_e.
@@ -1767,9 +1774,11 @@ class Scene05(HangmanScene):
         i_hit_kids = [k for k in ih.kids if not k.is_miss]    # i_/_i slots (compact)
         i_slide = [self._slide_root(VGroup(iin.dot, iin.lab), iin.dot, ih.dot, sfac),
                    self._slide_root(self.e_subtree, self.e_root, i_miss_kid.dot, sfac),
-                   Transform(self.ie_edge, i_miss_kid.in_edge)]     # I→E retracts to compact
+                   # I→E retracts to compact but KEEPS its (green) colour (o_ref's edge is unsolved)
+                   Transform(self.ie_edge, self._edge_line(ih.dot, i_miss_kid.dot, self.ie_edge.get_color()))]
         for sub, hk, edge in zip([ct for _h, ct in self.i_hit_trees], i_hit_kids, self.i_hit_edges):
-            i_slide += [self._slide_root(sub, sub.root, hk.dot, sfac), Transform(edge, hk.in_edge)]
+            i_slide += [self._slide_root(sub, sub.root, hk.dot, sfac),
+                        Transform(edge, self._edge_line(ih.dot, hk.dot, edge.get_color()))]
         hits = path.levels[1]["hits"]                 # O's bare hit-sibling dots
         sc = scale_c * s                              # hit branches at the reframed scale
         move, grows, hit_trees = [], [], []
@@ -1893,9 +1902,11 @@ class Scene05(HangmanScene):
         o_hit_kids = [k for k in oh.kids if not k.is_miss]    # o_/_o slots (compact)
         o_slide = [self._slide_root(VGroup(oin.dot, oin.lab), oin.dot, oh.dot, sfac),
                    self._slide_root(self.i_subtree, self.i_root, o_miss_kid.dot, sfac),
-                   Transform(self.oi_edge, o_miss_kid.in_edge)]     # O→I retracts to compact
+                   # O→I retracts to compact but KEEPS its (green) colour (a_ref's edge is unsolved)
+                   Transform(self.oi_edge, self._edge_line(oh.dot, o_miss_kid.dot, self.oi_edge.get_color()))]
         for sub, hk, edge in zip([ct for _h, ct in self.o_hit_trees], o_hit_kids, self.o_hit_edges):
-            o_slide += [self._slide_root(sub, sub.root, hk.dot, sfac), Transform(edge, hk.in_edge)]
+            o_slide += [self._slide_root(sub, sub.root, hk.dot, sfac),
+                        Transform(edge, self._edge_line(oh.dot, hk.dot, edge.get_color()))]
         hits = path.levels[0]["hits"]                 # A's bare hit-sibling dots (O's siblings)
         sc = scale_c * s                              # hit branches at the reframed scale
         move, grows, hit_trees = [], [], []
