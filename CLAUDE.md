@@ -37,6 +37,17 @@ loading" for the full cross-machine debugging history.
   so far scene 07 ONLY; 09-15 have none (heatmap + n-gram only, like test scene 96). NB the
   partial-board / red-misses path is BUILT but not yet exercised with real data (07 uses
   only blank boards) — expect to shake it out when a later scene first feeds it game states.
+- **SOURCING RULE — every common-uses GAME STATE (a `(length, board, missed)` row, and the
+  blank first-guess rows too) MUST be VERIFIED to appear in `math/notebooks/letter_analysis.ipynb`'s
+  `guesses_of_letter_all_lengths(<letter>)` table for that letter under STRATEGY=`optimal`,
+  WEIGHTING=`uniform` BEFORE it goes in a scene.** That table lists, per (level, length), every
+  board+`missed` state where the optimal/uniform strategy's NEXT guess is the letter (cols
+  `level, length, letter, board, missed, n_words, freq_words, sample, hit_sample`) — so a
+  common-uses row's `board`+`missed` must match a row there (a made-up state is inventing the
+  data — see shared CLAUDE.md "The numbers are the product"). The blank first-guess rows are the
+  `level==0` (fresh-game) entries; a partial-board / red-misses row is a deeper `level`. When the
+  user asks to add common-uses views for a letter, CONFIRM each state against this table (optimal/
+  uniform) and report the check as provenance — do NOT just eyeball plausible states.
 
 ## Tier-list letter scenes (07 top · 09/10 high · 12/13 mid · 14/15 low · re-weighting …)
 Every scene that walks ONE tier's letters shares `assets/tier_letter_scene.py`
