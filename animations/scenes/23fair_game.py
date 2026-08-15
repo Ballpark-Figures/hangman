@@ -287,15 +287,17 @@ class Scene23(HangmanScene):
         seg.set_z_index(10)
         return seg
 
-    def _fifty_line(self, length):
+    def _fifty_line(self, length, chart=None):
         """Dashed 50% reference line across the positioned CDF chart; blue over the
-        crimson (inexact) bars, crimson elsewhere."""
-        xa = self.cdf.x_axis
+        crimson (inexact) bars, crimson elsewhere. Reads geometry off ``chart`` (defaults
+        to the current self.cdf) so it can be built for the INCOMING chart mid-morph."""
+        chart = chart if chart is not None else self.cdf
+        xa = chart.x_axis
         left, right = xa.get_left()[0], xa.get_right()[0]
         y = xa.get_center()[1] + 0.5 * GRAPH_H            # y_min 0, y_max 1 → 50% halfway
         crim = [i for i, p in enumerate(scene23_data.get()["cdf"][str(length)])
                 if not p["exact"]]
-        blue = [(self.cdf.bars[crim[0]].get_left()[0], right)] if crim else []
+        blue = [(chart.bars[crim[0]].get_left()[0], right)] if crim else []
         return self._split_dashed(y, left, right, blue)
 
     # ── c : chart out; chalkboard + empty table, "1-Letter Words" CDF + 50% line
@@ -398,12 +400,14 @@ class Scene23(HangmanScene):
             o, nw = getattr(old, attr, None), getattr(new, attr, None)
             if o is not None and nw is not None:
                 move.append(FadeTransform(o, nw))
-        self.play(*move, *extra_move, run_time=move_rt)    # label draws AS the graph moves
-        self.cdf = new
-        new_fifty = self._fifty_line(length)               # recolour 50% line for the
-        extra = [FadeTransform(self.fifty, new_fifty)]     # new crimson region (blue over)
+        # recolour the 50% line (blue over the NEW crimson region) IN THE SAME play as the
+        # bars morph, so the line's colour change and the crimson width change are simultaneous
+        new_fifty = self._fifty_line(length, new)
+        self.play(*move, *extra_move, FadeTransform(self.fifty, new_fifty), run_time=move_rt)
         self.fifty = new_fifty
+        self.cdf = new
         # "*values not exact" caption: present iff this length has crimson (inexact) bars
+        extra = []
         note = self._asterisk_note(length)
         if note is not None and self.asterisk is None:
             self.asterisk = note
@@ -417,7 +421,7 @@ class Scene23(HangmanScene):
             elabels.set_opacity(0)
             extra.append(elabels.animate.set_opacity(1))
             grow_bars(self, tail, grow_rt, lag=0.05, extra=extra)
-        else:
+        elif extra:
             self.play(*extra, run_time=grow_rt)
 
     def _asterisk_note(self, length):
