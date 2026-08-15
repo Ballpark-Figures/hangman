@@ -160,15 +160,19 @@ class Scene08(HangmanScene):
         (consonant) block on the right, sized by that position's vowel fraction; and
         compute each block's COALESCE target — reds packed to the row's left edge into
         one red bar, blues packed to the right into one blue bar, so the row's total
-        width (= L cells) is unchanged. Also the avg-#vowels / avg-#consonants labels,
-        centred on each bar (vowel label kept only if it fits in the red bar). Builds
-        from the carried-in `self.view` geometry, so it lives here, not in setup."""
+        width (= L cells) is unchanged. The little blocks are BORDERLESS (overlapping a
+        hair so no hairline navy gaps show); once coalesced they're swapped for two
+        clean MERGED bars per row (red then blue) that DO carry a white border. Returns
+        (reds, blues, merged, num_labels): reds/blues are (block, target) pairs; merged
+        the bordered final bars; num_labels the avg-#vowels/#consonants, centred on each
+        merged bar (vowel kept only if it fits). Builds from the carried-in `self.view`
+        geometry, so it lives here, not in setup."""
         grid = self.d["grid"]
-        reds, blues, num_labels = [], [], []
+        reds, blues, merged, num_labels = [], [], [], []
         EPS = 1e-3
-        OV = 0.04          # widen each block a hair so abutting blocks overlap (no
-                           # hairline navy gaps between them) — centres are unchanged,
-                           # so the coalesced bar's length grows by just this once
+        OV = 0.04          # widen each little block a hair so abutting blocks overlap
+                           # (no hairline navy gaps); merged bars are single rects so
+                           # they need no overlap — centres unchanged either way
         for i, L in enumerate(self.d["grid_lengths"]):
             # read geometry off the actual CELL squares, NOT hm's bbox: get_heatmap
             # returns VGroup(cells, values) with an EMPTY values group at the origin,
@@ -197,22 +201,31 @@ class Scene08(HangmanScene):
                     b.move_to([cell_l + cs * v + cs * c / 2, y, 0])
                     blues.append((b, [boundary + cs * blue_acc + cs * c / 2, y, 0]))
                     blue_acc += c
+            # clean bordered bars the little blocks resolve into (one red, one blue)
+            red_bar = Rectangle(width=red_w, height=cs, fill_color=VOWEL_C,
+                                fill_opacity=1.0, stroke_color=WHITE, stroke_width=2.0)
+            red_bar.move_to([left + red_w / 2, y, 0])
+            blue_bar = Rectangle(width=blue_w, height=cs, fill_color=CONS_C,
+                                 fill_opacity=1.0, stroke_color=WHITE, stroke_width=2.0)
+            blue_bar.move_to([boundary + blue_w / 2, y, 0])
+            merged += [red_bar, blue_bar]
+            # labels centred on the actual bar mobjects (exact centring)
             vt = crisp_text(f"{self.d['avg_vowels'][L]:.1f}", font_size=20, color=WHITE)
-            vt.move_to([left + red_w / 2, y, 0])
+            vt.move_to(red_bar)
             if vt.width < red_w - 0.08:                      # "if it fits" (script)
                 num_labels.append(vt)
             ct = crisp_text(f"{self.d['avg_consonants'][L]:.1f}", font_size=20,
                             color=WHITE)
-            ct.move_to([boundary + blue_w / 2, y, 0])
+            ct.move_to(blue_bar)
             num_labels.append(ct)
-        return reds, blues, num_labels
+        return reds, blues, merged, num_labels
 
     # f : split each box red|blue, coalesce into a red bar then a blue bar per length;
     #     label avg #vowels (1dp, if it fits) + avg #consonants (VO: "vowels and
     #     consonants per word")
     @subscene
     def vc_bars(self):
-        reds, blues, num_labels = self._split_bars()
+        reds, blues, merged, num_labels = self._split_bars()
         length_labels = self.view.labels                     # keep the length numbers
         split = VGroup(*[r for r, _ in reds], *[b for b, _ in blues])
         # break each box up: title goes (no longer "position frequencies"), the blended
@@ -223,9 +236,15 @@ class Scene08(HangmanScene):
         # move the red blocks left, the blue blocks right, into one red then one blue bar
         self.play(*[r.animate.move_to(t) for r, t in reds],
                   *[b.animate.move_to(t) for b, t in blues], run_time=1.5)
+        # resolve the little blocks into clean bordered bars: fade the (same-colour)
+        # bordered bars in over the blocks so only the white borders appear, then drop
+        # the now-hidden blocks
+        bars = VGroup(*merged)
+        self.play(FadeIn(bars), run_time=0.5)
+        self.remove(split)
         nums = VGroup(*num_labels)
         self.play(FadeIn(nums), run_time=0.6)
-        self.bars = VGroup(split, nums, length_labels)
+        self.bars = VGroup(bars, nums, length_labels)
 
     # g : VOWEL (⅓ down) with before ← VOWEL → after adjacency pies
     @subscene
