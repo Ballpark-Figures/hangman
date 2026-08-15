@@ -74,8 +74,12 @@ the worked examples, each level is 3 sub-steps):
   currently shows the avg-miss number; it CLIMBS one level each back-up via `_gap_up` (the just-
   valued node drops toward its fixed children — in-edge lengthens, out-edges compact). SIBLINGS
   move together: `_gap_up(siblings=…)` drops the parent's OTHER children the same delta so a
-  level never splits. Do the climb at the START of the beat that deals with the node (choose_X),
-  the new number FADING IN travelling WITH the node; only ONE number on screen at a time.
+  level never splits. Do the climb at the END of choose_X — AFTER the leftmost node (the one being
+  backed up) is fully solved (its value fades in, the candidates cycle in the still-TALL pre-drop
+  spacing, then it greens); THEN the whole level (that node + its bare siblings) drops together,
+  before the siblings are grown + solved by the next backup_/solve_ steps. The value fades in
+  UP-FRONT (the leftover lower number fading out — only ONE number on screen), and RIDES the node
+  DOWN in the closing drop (`_gap_up(also=[counter])`).
   NUMBERS: every value routes through `_fmt` (2 dp, half-up) + `_value_label` — worded
   'Avg misses: N.NN' through beats g/h (base + first back-up), then a BARE just-the-number from the
   E-hit solve onward (`_solve_e_hit`, same digit size). Never format at the call site; pass the raw
@@ -1350,25 +1354,18 @@ class Scene05(HangmanScene):
         u_avg = opts["u"]["avg"]                    # 1.0 (== node['avg'])
         uval = ValueTracker(u_avg)
         counter = self._counter_label(uval, u_dot, direction=LEFT)
-        # We are dealing with the U node now → at the START its value backs up, so the tall gap
-        # climbs from U→children up to E→U (the diagonal connection): U drops below E, U→Y/P revert
-        # to compact, the rolling counter fades in travelling WITH U, {up,us}'s value fades out.
-        # E's OTHER children (its hit-sibling bare dots + boards) drop WITH U so E's children align.
-        n_before = sum(len(path.levels[i]["hits"]) for i in range(3))
-        e_hits, e_anns = path.levels[3]["hits"], path.leaf_text[n_before:]
-        e_sibs = [(VGroup(hd, ann), hd, he) for (he, hd), ann in zip(e_hits, e_anns)]
-        counter.remove_updater(counter._upd)        # detach so it can fade + travel with U
-        self._gap_up(u_dot, u_lab, path.levels[3]["dot"], path.levels[4]["in_edge"],
-                     [(yedge, self.u_spine.gdot), (uedge, self.ups.root)],
-                     run_time=0.7, fade_in=[counter], fade_out=[self.avg_p], siblings=e_sibs)
+        # U is solved AT ITS CURRENT (pre-drop) height: its value fades in ({up,us}'s value fades out
+        # — only ONE number on screen), the candidates cycle in the TALL pre-drop spacing, then U
+        # greens. The whole LEVEL drops only AFTER that (the gap_up at the end).
+        counter.remove_updater(counter._upd)        # detach so the fade-in isn't overwritten
+        self.play(FadeIn(counter), FadeOut(self.avg_p), run_time=0.4)
         self.avg_p = None
-        counter.add_updater(counter._upd)           # re-attach for the rolling cycle (tracks moved U)
-        uc = u_dot.get_center()                     # U's NEW (dropped) position — candidates hang here
+        counter.add_updater(counter._upd)           # re-attach for the rolling cycle
+        uc = u_dot.get_center()                     # U's CURRENT (pre-drop) position — candidates hang here
         self.wait(0.25)                             # hold on the U candidate before cycling
 
-        def make(c):                               # a candidate first-guess subtree hanging below U
-            # compact: at m the tall edge is E→U (above), so each candidate hangs the same tall gap
-            ct = self._ctree(self._subtree_spec(opts[c]["subtree"]), root_miss=1)
+        def make(c):                               # TALL (matches the still-tall persistent U-tree)
+            ct = self._ctree(self._subtree_spec(opts[c]["subtree"]), root_miss=1, tall_level=0)
             return ct.scale(min(scale_c, self._width_fit(ct, uc)), about_point=ORIGIN).shift(uc - ct.root.get_center())
         # cross-fade U → Y → B → … (capped at CYCLE_MAX) → back to U, the counter rolling to each avg
         self._cycle_candidates(cur, [c for c in opts if c != "u"], make, run_time=0.42, hold=0.14,
@@ -1381,6 +1378,15 @@ class Scene05(HangmanScene):
         # is dropped)
         self.play(VGroup(u_dot, yedge, uedge).animate.set_color(LIGHT_GREEN),
                   counter.animate.set_color(LIGHT_GREEN), run_time=1.0)
+        # NOW the whole level drops: U climbs the gap to E→U (U→Y/P revert to compact) and E's OTHER
+        # children (its bare hit dots + boards) drop the SAME delta to stay aligned; the green counter
+        # rides down with U. Those siblings are grown + solved next (backup_e / solve_e_hit).
+        n_before = sum(len(path.levels[i]["hits"]) for i in range(3))
+        e_hits, e_anns = path.levels[3]["hits"], path.leaf_text[n_before:]
+        e_sibs = [(VGroup(hd, ann), hd, he) for (he, hd), ann in zip(e_hits, e_anns)]
+        self._gap_up(u_dot, u_lab, path.levels[3]["dot"], path.levels[4]["in_edge"],
+                     [(yedge, self.u_spine.gdot), (uedge, self.ups.root)],
+                     run_time=0.7, also=[counter], siblings=e_sibs)
         self.u_subtree = cur                        # hand off U's solved subtree to backing up E
         self.avg_u = counter                        # U's value label (green 1.0)
 
@@ -1550,27 +1556,19 @@ class Scene05(HangmanScene):
         e_avg = opts["e"]["avg"]                     # 2.0
         eval_ = ValueTracker(e_avg)
         counter = self._counter_label(eval_, e_dot, direction=LEFT, bare=True)
-        # climb the gap to I→E at the START of the beat (the node + its siblings drop at the
-        # BEGINNING, per the choose_u rule): E drops below I, E→children revert to compact, the
-        # rolling counter fades in travelling WITH E, the last hit number (_e's 2.50) fades out;
-        # I's OTHER children (bare hit dots + boards) drop WITH E (sibling rule).
-        n_before = sum(len(path.levels[i]["hits"]) for i in range(2))
-        i_hits, i_anns = path.levels[2]["hits"], path.leaf_text[n_before:]
-        i_sibs = [(VGroup(hd, ann), hd, he) for (he, hd), ann in zip(i_hits, i_anns)]
-        child_pairs = [(self.eu_edge, self.u_ref.node["u"].dot)] + \
-                      [(e, ct.root) for e, ct in zip(self.e_hit_edges, hit_cts)]
-        counter.remove_updater(counter._upd)         # detach so it can fade + travel with E
-        self._gap_up(e_dot, e_lab, path.levels[2]["dot"], path.levels[3]["in_edge"],
-                     child_pairs, run_time=0.7, fade_in=[counter], fade_out=[self.e_hit_avg],
-                     siblings=i_sibs)
-        counter.add_updater(counter._upd)            # re-attach for the rolling cycle (tracks moved E)
-        # the persistent E-tree (now dropped) IS the E candidate
+        # E is solved AT ITS CURRENT (pre-drop) height: its value fades in (the leftover _e hit
+        # number fades out — only ONE number on screen), the candidates cycle in the TALL pre-drop
+        # spacing, then E greens. The whole LEVEL drops only AFTER that (the gap_up at the end).
+        counter.remove_updater(counter._upd)         # detach so the fade-in isn't overwritten
+        self.play(FadeIn(counter), FadeOut(self.e_hit_avg), run_time=0.4)
+        counter.add_updater(counter._upd)            # re-attach for the rolling cycle
+        # the persistent E-tree (still TALL — not dropped yet) IS the E candidate
         cur = VGroup(e_dot, e_lab, self.eu_edge, *self.e_hit_edges, self.u_subtree, *hit_cts)
-        ec = e_dot.get_center()                      # E's NEW (dropped) position — candidates hang here
+        ec = e_dot.get_center()                      # E's CURRENT (pre-drop) position — candidates hang here
         self.wait(0.25)
 
-        def make(c):                                 # compact (the tall gap is I→E, above)
-            ct = self._ctree(self._subtree_spec(opts[c]["subtree"]), root_miss=1)
+        def make(c):                                 # TALL (matches the still-tall persistent E-tree)
+            ct = self._ctree(self._subtree_spec(opts[c]["subtree"]), root_miss=1, tall_level=0)
             return ct.scale(min(scale_c, self._width_fit(ct, ec)), about_point=ORIGIN).shift(ec - ct.root.get_center())
         # cross-fade E → other first guesses (capped) → back to E, the counter rolling to each avg
         self._cycle_candidates(cur, [c for c in opts if c != "e"], make, run_time=0.38, hold=0.13,
@@ -1580,6 +1578,16 @@ class Scene05(HangmanScene):
         e_edges = VGroup(self.eu_edge, *self.e_hit_edges)
         self.play(VGroup(e_dot, e_edges).animate.set_color(LIGHT_GREEN),
                   counter.animate.set_color(LIGHT_GREEN), run_time=0.65)   # counter TOP-LEVEL (rides out later)
+        # NOW the whole level drops: E climbs the gap to I→E (E→children revert to compact) and I's
+        # OTHER children (the bare i_/_i dots + boards) drop the SAME delta to stay aligned; the green
+        # counter rides down with E. Those siblings are grown + solved next (backup_i / solve_i_hit).
+        n_before = sum(len(path.levels[i]["hits"]) for i in range(2))
+        i_hits, i_anns = path.levels[2]["hits"], path.leaf_text[n_before:]
+        i_sibs = [(VGroup(hd, ann), hd, he) for (he, hd), ann in zip(i_hits, i_anns)]
+        child_pairs = [(self.eu_edge, self.u_ref.node["u"].dot)] + \
+                      [(e, ct.root) for e, ct in zip(self.e_hit_edges, hit_cts)]
+        self._gap_up(e_dot, e_lab, path.levels[2]["dot"], path.levels[3]["in_edge"],
+                     child_pairs, run_time=0.7, also=[counter], siblings=i_sibs)
         self.e_subtree = cur                         # hand off E's solved subtree to backing up I
         self.avg_e = counter                         # E's value label (green 2.00)
         self.u_ref = None                            # U's layout scaffolding — last used here; drop it
@@ -1673,26 +1681,20 @@ class Scene05(HangmanScene):
         i_avg = opts["i"]["avg"]                     # 2.565…
         ival = ValueTracker(i_avg)
         counter = self._counter_label(ival, i_dot, direction=LEFT, bare=True)
-        # climb the gap to O→I at the START: I drops below O, I→children revert to compact, the
-        # counter fades in travelling WITH I, the last hit number fades out; O's OTHER children
-        # (bare hit dots + boards) drop WITH I (sibling rule).
-        n_before = sum(len(path.levels[i]["hits"]) for i in range(1))
-        o_hits, o_anns = path.levels[1]["hits"], path.leaf_text[n_before:]
-        o_sibs = [(VGroup(hd, ann), hd, he) for (he, hd), ann in zip(o_hits, o_anns)]
-        child_pairs = [(self.ie_edge, self.e_ref.node["e"].dot)] + \
-                      [(e, ct.root) for e, ct in zip(self.i_hit_edges, hit_cts)]
-        counter.remove_updater(counter._upd)
-        self._gap_up(i_dot, i_lab, path.levels[1]["dot"], path.levels[2]["in_edge"],
-                     child_pairs, run_time=0.7, fade_in=[counter], fade_out=[self.i_hit_avg],
-                     siblings=o_sibs)
-        counter.add_updater(counter._upd)
-        # the persistent I-tree (now dropped) IS the I candidate — includes the slid E-subtree (miss)
+        # I is solved AT ITS CURRENT (pre-drop) height: its value fades in (the leftover hit number
+        # fades out — only ONE number on screen), the candidates cycle in the TALL pre-drop spacing,
+        # then I greens. The whole LEVEL drops only AFTER that (the gap_up at the end).
+        counter.remove_updater(counter._upd)         # detach so the fade-in isn't overwritten
+        self.play(FadeIn(counter), FadeOut(self.i_hit_avg), run_time=0.4)
+        counter.add_updater(counter._upd)            # re-attach for the rolling cycle
+        # the persistent I-tree (still TALL — not dropped yet) IS the I candidate; includes the slid
+        # E-subtree (miss)
         cur = VGroup(i_dot, i_lab, self.ie_edge, *self.i_hit_edges, self.e_subtree, *hit_cts)
-        ic = i_dot.get_center()                      # I's NEW (dropped) position — candidates hang here
+        ic = i_dot.get_center()                      # I's CURRENT (pre-drop) position — candidates hang here
         self.wait(0.25)
 
-        def make(c):                                 # compact (the tall gap is O→I, above)
-            ct = self._ctree(self._subtree_spec(opts[c]["subtree"]), root_miss=1)
+        def make(c):                                 # TALL (matches the still-tall persistent I-tree)
+            ct = self._ctree(self._subtree_spec(opts[c]["subtree"]), root_miss=1, tall_level=0)
             return ct.scale(min(scale_c, self._width_fit(ct, ic)), about_point=ORIGIN).shift(ic - ct.root.get_center())
         # cross-fade I → other first guesses (capped) → back to I, the counter rolling to each avg
         self._cycle_candidates(cur, [c for c in opts if c != "i"], make, run_time=0.38, hold=0.13,
@@ -1701,6 +1703,16 @@ class Scene05(HangmanScene):
         i_edges = VGroup(self.ie_edge, *self.i_hit_edges)
         self.play(VGroup(i_dot, i_edges).animate.set_color(LIGHT_GREEN),
                   counter.animate.set_color(LIGHT_GREEN), run_time=0.65)   # counter TOP-LEVEL (rides out later)
+        # NOW the whole level drops: I climbs the gap to O→I (I→children revert to compact) and O's
+        # OTHER children (the bare o_/_o dots + boards) drop the SAME delta to stay aligned; the green
+        # counter rides down with I. Those siblings are grown + solved next (backup_o / solve_o_hit).
+        n_before = sum(len(path.levels[i]["hits"]) for i in range(1))
+        o_hits, o_anns = path.levels[1]["hits"], path.leaf_text[n_before:]
+        o_sibs = [(VGroup(hd, ann), hd, he) for (he, hd), ann in zip(o_hits, o_anns)]
+        child_pairs = [(self.ie_edge, self.e_ref.node["e"].dot)] + \
+                      [(e, ct.root) for e, ct in zip(self.i_hit_edges, hit_cts)]
+        self._gap_up(i_dot, i_lab, path.levels[1]["dot"], path.levels[2]["in_edge"],
+                     child_pairs, run_time=0.7, also=[counter], siblings=o_sibs)
         self.i_subtree = cur                         # hand off I's solved subtree to backing up O
         self.avg_i = counter                         # I's value label (green)
         self.e_ref = None                            # E's layout scaffolding — last used here; drop it
@@ -1784,25 +1796,20 @@ class Scene05(HangmanScene):
         o_avg = opts["o"]["avg"]                     # 3.278
         oval = ValueTracker(o_avg)
         counter = self._counter_label(oval, o_dot, direction=LEFT, bare=True)
-        # climb the gap to A→O at the START: O drops below A (the diagonal root), O→children revert
-        # to compact, the counter fades in travelling WITH O, the last hit number fades out; A's
-        # OTHER children (bare hit dots + boards) drop WITH O (sibling rule). A is level 0 → no offset.
-        a_hits, a_anns = path.levels[0]["hits"], path.leaf_text
-        a_sibs = [(VGroup(hd, ann), hd, he) for (he, hd), ann in zip(a_hits, a_anns)]
-        child_pairs = [(self.oi_edge, self.i_ref.node["i"].dot)] + \
-                      [(e, ct.root) for e, ct in zip(self.o_hit_edges, hit_cts)]
-        counter.remove_updater(counter._upd)
-        self._gap_up(o_dot, o_lab, path.levels[0]["dot"], path.levels[1]["in_edge"],
-                     child_pairs, run_time=0.7, fade_in=[counter], fade_out=[self.o_hit_avg],
-                     siblings=a_sibs)
-        counter.add_updater(counter._upd)
-        # the persistent O-tree (now dropped) IS the O candidate — includes the slid I-subtree (miss)
+        # O is solved AT ITS CURRENT (pre-drop) height: its value fades in (the leftover hit number
+        # fades out — only ONE number on screen), the candidates cycle in the TALL pre-drop spacing,
+        # then O greens. The whole LEVEL drops only AFTER that (the gap_up at the end).
+        counter.remove_updater(counter._upd)         # detach so the fade-in isn't overwritten
+        self.play(FadeIn(counter), FadeOut(self.o_hit_avg), run_time=0.4)
+        counter.add_updater(counter._upd)            # re-attach for the rolling cycle
+        # the persistent O-tree (still TALL — not dropped yet) IS the O candidate; includes the slid
+        # I-subtree (miss)
         cur = VGroup(o_dot, o_lab, self.oi_edge, *self.o_hit_edges, self.i_subtree, *hit_cts)
-        oc = o_dot.get_center()
+        oc = o_dot.get_center()                      # O's CURRENT (pre-drop) position — candidates hang here
         self.wait(0.25)
 
-        def make(c):                                 # compact (the tall gap is A→O, above)
-            ct = self._ctree(self._subtree_spec(opts[c]["subtree"]), root_miss=1)
+        def make(c):                                 # TALL (matches the still-tall persistent O-tree)
+            ct = self._ctree(self._subtree_spec(opts[c]["subtree"]), root_miss=1, tall_level=0)
             return ct.scale(min(scale_c, self._width_fit(ct, oc)), about_point=ORIGIN).shift(oc - ct.root.get_center())
         # cross-fade O → other first guesses (capped) → back to O, the counter rolling to each avg
         self._cycle_candidates(cur, [c for c in opts if c != "o"], make, run_time=0.38, hold=0.13,
@@ -1811,6 +1818,16 @@ class Scene05(HangmanScene):
         o_edges = VGroup(self.oi_edge, *self.o_hit_edges)
         self.play(VGroup(o_dot, o_edges).animate.set_color(LIGHT_GREEN),
                   counter.animate.set_color(LIGHT_GREEN), run_time=0.65)   # counter TOP-LEVEL (rides out later)
+        # NOW the whole level drops: O climbs the gap to A→O (O→children revert to compact) and A's
+        # OTHER children (the bare a_/_a dots + boards) drop the SAME delta to stay aligned; the green
+        # counter rides down with O. Those siblings are grown + solved next (backup_a / solve_a_hit).
+        # A is level 0 → no offset.
+        a_hits, a_anns = path.levels[0]["hits"], path.leaf_text
+        a_sibs = [(VGroup(hd, ann), hd, he) for (he, hd), ann in zip(a_hits, a_anns)]
+        child_pairs = [(self.oi_edge, self.i_ref.node["i"].dot)] + \
+                      [(e, ct.root) for e, ct in zip(self.o_hit_edges, hit_cts)]
+        self._gap_up(o_dot, o_lab, path.levels[0]["dot"], path.levels[1]["in_edge"],
+                     child_pairs, run_time=0.7, also=[counter], siblings=a_sibs)
         self.o_subtree = cur                         # hand off O's solved subtree to backing up A
         self.avg_o = counter                         # O's value label (green)
         self.i_ref = None                            # I's layout scaffolding — last used here; drop it
