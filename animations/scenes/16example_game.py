@@ -45,14 +45,15 @@ BEAT MAP
   j board_in   — FADE the views out / the chalkboard in; draw blanks + gallows
   k guess_e … s guess_y — the nine guesses E S T R A L B P Y, one per beat
   t win        — turn the letters, blanks, and gallows green (per script)
+  u clear_board — TRANSITION: fade the chalkboard + green game out → blank (for scene 17)
 
-Render:  render 16a --fast   (…16t)   /   render 16 sub  for the whole scene
+Render:  render 16a --fast   (…16u)   /   render 16 sub  for the whole scene
 
 TIMING / FEEL KNOBS LEFT AT A GUESS (judge from the video): every run_time here is
 a first-pass guess. The board FADE-in (beat j) and the green win are the script's
-"bring in" / "turn green". Scene END: the script's last beat is "turn green" (no
-fade); scene 16 currently ends on the green board — if scene 17 follows directly
-(animated, no talking head), it likely needs a fade-out. FLAGGED — confirm.
+"bring in" / "turn green". Scene END: the script's last content beat is "turn green"
+(no fade), so a transition beat u (`clear_board`) fades the whole board out to blank —
+scene 17 follows directly (animated, no talking head) and opens on that blank frame.
 """
 from pathlib import Path
 import sys
@@ -393,3 +394,9 @@ class Scene16(HangmanScene):
         # turn the letters, blanks, gallows AND the miss row (T, B) below it green
         green = VGroup(self.rules, self.hang, self.hit_marks, self.miss_row)
         self.play(green.animate.set_color(LIGHT_GREEN), run_time=0.6)
+
+    # ── u : TRANSITION to scene 17 — fade the whole chalkboard (board + green game)
+    #        out to the blank brand background, which scene 17 opens on. ──────────
+    @subscene
+    def clear_board(self):
+        self.play(*[FadeOut(m) for m in list(self.mobjects)], run_time=1.0)
