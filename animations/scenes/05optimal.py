@@ -113,6 +113,10 @@ CHART_COLOR = LIGHT_BLUE
 NODE_R_ROOT   = 0.5       # lone root node at full frame (≈ the intro's on-screen root:
                           # DOT_R_ROOT/CAM_W_START × frame width ≈ 0.09/3 × 16)
 NODE_LETTER_H = 1.3       # guess-letter height as a multiple of node radius (intro)
+# edges sit BELOW every node (nodes are z=0 bare or z=2, letters z=3) so a tree edge never
+# draws on top of the node it comes from — notably during a Create/GrowFromPoint (equal z
+# would let the edge flicker over the node). Negative → under all nodes AND blanks.
+EDGE_Z        = -1
 
 
 def _miss_color(miss):
@@ -258,7 +262,7 @@ class Scene05(HangmanScene):
             cdot = Dot(cpos, radius=cr, color=_miss_color(miss))
             d = normalize(cpos - dot.get_center())
             edge = Line(dot.get_center() + d * r, cpos - d * cr,
-                        color=_miss_color(miss), stroke_width=2.0)
+                        color=_miss_color(miss), stroke_width=2.0, z_index=EDGE_Z)
             # align by the RULE baseline (blanks' bottom), so filled and empty blanks
             # sit at the SAME height whether or not a letter is written above them
             blanks = self._blanks(pat).set_x(cpos[0])
@@ -344,7 +348,7 @@ class Scene05(HangmanScene):
             if prev_dot is not None:
                 dn = normalize(pos - prev_dot.get_center())
                 in_edge = Line(prev_dot.get_center() + dn * r, pos - dn * r,
-                               color=LIGHT_RED, stroke_width=2.0)
+                               color=LIGHT_RED, stroke_width=2.0, z_index=EDGE_Z)
                 grp.add(in_edge)
             hitpats = [p for p in node["children"] if set(p) != {"_"}]  # hit siblings
             hits = []
@@ -355,7 +359,7 @@ class Scene05(HangmanScene):
                 hdot = Dot(hpos, radius=r * GRID_CHILD_RF, color=_miss_color(0))
                 dn = normalize(hpos - pos)
                 hedge = Line(pos + dn * r, hpos - dn * r * GRID_CHILD_RF,
-                             color=CHALK, stroke_width=2.0)
+                             color=CHALK, stroke_width=2.0, z_index=EDGE_Z)
                 grp.add(hedge, hdot)
                 hits.append((hedge, hdot))
                 if leaf_text:                             # this hit branch's board state
@@ -397,7 +401,7 @@ class Scene05(HangmanScene):
         dn = normalize(anchor - last_dot.get_center())
         edge = Line(last_dot.get_center() + dn * (GRID_NODE_R * PATH_SCALE),
                     sub[0][0].get_center() - dn * GRID_NODE_R,
-                    color=LIGHT_RED, stroke_width=2.0)
+                    color=LIGHT_RED, stroke_width=2.0, z_index=EDGE_Z)
         cell = VGroup(path, edge, sub)
         cell.path, cell.drilled_edge, cell.sub = path, edge, sub   # role handles
         return cell
@@ -638,7 +642,7 @@ class Scene05(HangmanScene):
         sub.shift(anchor - sub.root.get_center())          # Y (root) sits at the anchor
         dn = normalize(anchor - last_dot.get_center())
         drilled_edge = Line(last_dot.get_center() + dn * (r * PATH_SCALE),
-                            anchor - dn * r, color=_miss_color(1), stroke_width=2.0)
+                            anchor - dn * r, color=_miss_color(1), stroke_width=2.0, z_index=EDGE_Z)
 
         ny, nb, nm = sub.node["y"], sub.node["b"], sub.node["m"]
         lby, lmy = sub.leaf["by"], sub.leaf["my"]
@@ -989,7 +993,7 @@ class Scene05(HangmanScene):
                 ecolor = _miss_color(1 if is_miss else 0) if (not solved or is_root) else LIGHT_GREEN
                 dn = normalize(ch.dot.get_center() - pos)
                 edge = Line(pos + dn * r, ch.dot.get_center() - dn * ch.radius,
-                            color=ecolor, stroke_width=2.0)
+                            color=ecolor, stroke_width=2.0, z_index=EDGE_Z)
                 g.add(edge)
                 ch.in_edge, ch.is_miss = edge, bool(is_miss)
                 h.out_edges.add(edge)
@@ -1010,7 +1014,7 @@ class Scene05(HangmanScene):
         ac, bc = a_dot.get_center(), b_dot.get_center()
         dn = normalize(bc - ac)
         return Line(ac + dn * a_dot.width / 2, bc - dn * b_dot.width / 2,
-                    color=color, stroke_width=2.0)
+                    color=color, stroke_width=2.0, z_index=EDGE_Z)
 
     def _width_fit(self, ref, anchor, margin=0.3):
         """The largest uniform scale keeping a rooted `_ctree` ``ref`` (its natural, ORIGIN-rooted root
