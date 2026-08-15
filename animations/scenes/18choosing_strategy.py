@@ -5,7 +5,7 @@ by naively picking the hardest single words, reject that, then hill-climb a per-
 frequency distribution (via letter-combo multipliers) that maximises the best-opener
 guesser's average misses — starting from a UNIFORM (every word equally likely) game.
 
-BEAT MAP (Script.md scene 18; --- delimited, 6 beats a-f):
+BEAT MAP (Script.md scene 18; --- delimited, 6 beats a-f + a transition beat g):
   a most_misses  — table "Words with Most Misses" (cols Words / # Misses), the words
                    the OPTIMAL guesser misses most. Words in BLUE; rows rise in with a
                    lagged upward cascade; only the top (14-miss) words are listed.
@@ -25,6 +25,7 @@ BEAT MAP (Script.md scene 18; --- delimited, 6 beats a-f):
   f replay       — replay the optimization uniform→final in N_BUCKETS steps: each step
                    morphs the combo bars, then the word bars, then the avg (grow = green,
                    shrink = crimson).
+  g clear_all    — TRANSITION (not a script beat): fade bars/avg/tree out → blank, for scene 19
 
 REUSE MAP (styling sources):
   - bars    : bpkfigures.bar_graph get_bar_chart / grow_bars (scene-17 word-frequency bars)
@@ -354,3 +355,9 @@ class Scene18(HangmanScene):
         for b in buckets[1:]:
             self._apply_state(b, combo_rt=step, word_rt=step)
             self._count_and_tree(b, step * 0.9)                # avg + tree update together
+
+    # g : TRANSITION to scene 19 — fade everything (bars, avg readout, tree) out to the
+    #     blank brand background, which scene 19 opens on. (updaters are already cleared.)
+    @subscene
+    def clear_all(self):
+        self.play(*[FadeOut(m) for m in list(self.mobjects)], run_time=1.0)
