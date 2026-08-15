@@ -14,20 +14,23 @@ Body-part colours (beat g's demo only) = the intro's tree-edge miss colours:
 part k (1..6) → LIGHT_PALETTE[6-k]  →  head purple, torso blue, L-arm green,
 R-arm yellow, L-leg orange, R-leg red.  Real misses draw in plain white chalk.
 
-The chalkboard is on screen from frame 0 (the script's "fade in chalkboard" beat
-is dropped) — so `setup_scene` holds it and the first subscene draws the blanks.
+The chalkboard fades in in the opening subscene `a` (`establish`) — the intro VO
+("what is hangman… the chooser and the guesser") plays over it — then the blanks
+are drawn.  So `setup_scene` holds NOTHING (blank frame 0).
 
 Script beat ↔ subscene (Script.md row 02, split on '—'):
-  a blanks     — "chooser chooses a word, draws the blanks"         draw 8 blanks
-  b gallows    — "draws a set of gallows to keep score"             draw gallows
-  c guess_a    — "the guesser guesses letters one at a time"        bubble 'A'
-  d fill_a     — "if in the word, chooser fills all its blanks"     write A (pos 2 & 6)
-  e guess_e    — "if not in the word, draws a body part"            'E' miss → head
-  f body_parts — "6 parts: head, torso, 2 arms, 2 legs"             colour demo, then revert
-  g win        — "complete the word first → the guesser wins"       fill L K B P R, flash green, reset
-  h lose       — "hangman filled first → the chooser wins"          miss I O T N D → full hangman, flash red
+  a establish  — "what is hangman… the chooser and the guesser"     fade in chalkboard
+  b blanks     — "chooser chooses a word, draws the blanks"         draw 8 blanks
+  c gallows    — "draws a set of gallows to keep score"             draw gallows
+  d guess_a    — "the guesser guesses letters one at a time"        bubble 'A'
+  e fill_a     — "if in the word, chooser fills all its blanks"     write A (pos 2 & 6)
+  f guess_e    — "if not in the word, draws a body part"            'E' miss → head
+  g body_parts — "6 parts: head, torso, 2 arms, 2 legs"             colour demo, then revert
+  h win        — "complete the word first → the guesser wins"       fill L K B P R, flash green, reset
+  i lose       — "hangman filled first → the chooser wins"          miss I O T N D → full hangman, flash red
 
 BEAT MAP
+  establish  — fade in the chalkboard (intro VO plays over it)
   blanks     — draw the 8 word blanks, one at a time
   gallows    — draw the gallows on the right
   guess_a    — pop the guesser's 'A' bubble
@@ -37,7 +40,7 @@ BEAT MAP
   win        — guess L K B P R → BALLPARK complete; flash every white mark green; fade the word back to A's + E-miss + head (rest returns to white)
   lose       — guess I O T N D → full hangman; flash every white mark red and back to white
 
-Render:  render 02a --fast … 02h   /   render 02 sub  for the whole scene
+Render:  render 02a --fast … 02i   /   render 02 sub  for the whole scene
 
 TIMING KNOBS LEFT AT A GUESS (feel — judge from the video): every guess's
 bubble/write/part/out run_times, the colour-demo per-part 0.5s, the win-hold /
@@ -88,11 +91,9 @@ class Scene02(HangmanScene):
     are exposed and composed per subscene.
     """
 
-    # the wooden chalkboard is the backdrop — on screen from frame 0
+    # nothing on screen at frame 0 — the chalkboard fades in in `establish` (beat a)
     def setup_scene(self):
-        self.cb = chalkboard(gb.BOARD_W, gb.BOARD_H)
-        self.cb.set_z_index(-10)
-        self.add(self.cb)
+        pass
 
     # ── small chalk builders (shared board layout: assets.game_board) ─────────
     def _reveal_letter(self, ch, rule):
@@ -168,38 +169,45 @@ class Scene02(HangmanScene):
     #  SUBSCENES
     # ══════════════════════════════════════════════════════════════════════════
 
-    # a : draw the 8 word blanks, one at a time
+    # a : fade in the chalkboard (the intro VO — "what is hangman…" — plays over it)
+    @subscene
+    def establish(self):
+        self.cb = chalkboard(gb.BOARD_W, gb.BOARD_H)
+        self.cb.set_z_index(-10)
+        self.play(FadeIn(self.cb), run_time=1.0)
+
+    # b : draw the 8 word blanks, one at a time
     @subscene
     def blanks(self):
         self._setup_blanks()
         self.play(LaggedStartMap(Create, self.rules, lag_ratio=0.8), run_time=2.2)
 
-    # b : draw the gallows on the right
+    # c : draw the gallows on the right
     @subscene
     def gallows(self):
         self._setup_gallows()
         self.play(LaggedStartMap(Create, self.hang.gallows, lag_ratio=0.6),
                   run_time=1.6)
 
-    # c : the guesser guesses a letter — pop the 'A' bubble
+    # d : the guesser guesses a letter — pop the 'A' bubble
     @subscene
     def guess_a(self):
         self._pop_bubble("a", 0.7)
 
-    # d : 'A' is in the word — write it into both its blanks, dismiss the bubble
+    # e : 'A' is in the word — write it into both its blanks, dismiss the bubble
     @subscene
     def fill_a(self):
         self._write_hit("a", 0.9)
         self._dismiss_bubble(0.4)
 
-    # e : 'E' is NOT in the word — chalk it below the gallows + draw the head
+    # f : 'E' is NOT in the word — chalk it below the gallows + draw the head
     @subscene
     def guess_e(self):
         self._pop_bubble("e", 0.7)
         self._write_miss("e", rt_write=0.9, rt_part=0.7)   # head = miss #1
         self._dismiss_bubble(0.4)
 
-    # f : the 6 body parts — recolour the head, draw the rest in palette colours,
+    # g : the 6 body parts — recolour the head, draw the rest in palette colours,
     #     then revert to just a white head (this was only a demo of the parts).
     @subscene
     def body_parts(self):
@@ -216,7 +224,7 @@ class Scene02(HangmanScene):
         for p in self.hang_parts[1:]:
             self.hang.remove(p)
 
-    # g : the WIN — guess the remaining hits (L K B P R) to complete BALLPARK; every
+    # h : the WIN — guess the remaining hits (L K B P R) to complete BALLPARK; every
     #     white mark flashes GREEN, then returns to white as the word fades back to the
     #     A's + E-miss + head.
     @subscene
@@ -235,7 +243,7 @@ class Scene02(HangmanScene):
         for g in WIN_HITS:
             self.hits.pop(g, None)         # only the A's remain in self.hits now
 
-    # h : the LOSS — guess I O T N D (all misses); each draws the next body part,
+    # i : the LOSS — guess I O T N D (all misses); each draws the next body part,
     #     filling the hangman (6 misses with the earlier E) → the chooser wins. Every
     #     white mark flashes RED and back to white.
     @subscene
