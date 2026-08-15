@@ -161,6 +161,21 @@ class Scene08(HangmanScene):
         s = f"{x:.1f}"
         return s[1:] if s.startswith("0.") else s
 
+    def _vc_title(self):
+        """The bars' title 'Vowels/Consonants per Word' — Vowels red, Consonants blue,
+        the rest white. Pieces share ONE text baseline (so 'per' hangs its descender
+        correctly) and are laid out left-to-right by shifting in x only."""
+        fs = 30
+        spec = [("Vowels", VOWEL_C, 0.0), ("/", WHITE, 0.06),
+                ("Consonants", CONS_C, 0.06), ("per Word", WHITE, 0.28)]
+        pieces, x = [], 0.0
+        for txt, col, gap in spec:
+            m = crisp_text(txt, font_size=fs, color=col, baseline_at=(0, 0))
+            m.shift(RIGHT * (x + gap - m.get_left()[0]))    # left edge at x+gap, baseline kept
+            x = m.get_right()[0]
+            pieces.append(m)
+        return VGroup(*pieces)
+
     def _split_bars(self):
         """Overlay each freq CELL with a red (vowel) block on the left + blue
         (consonant) block on the right, sized by that position's vowel fraction; and
@@ -236,10 +251,11 @@ class Scene08(HangmanScene):
         reds, blues, merged, num_labels = self._split_bars()
         length_labels = self.view.labels                     # keep the length numbers
         split = VGroup(*[r for r, _ in reds], *[b for b, _ in blues])
-        # break each box up: title goes (no longer "position frequencies"), the blended
-        # heatmap cells cross-fade out as the red|blue split fades in over them
+        title = self._vc_title().move_to(self.view_title)     # replaces "Position Frequencies"
+        # break each box up: the title cross-fades to "Vowels/Consonants per Word" as the
+        # blended heatmap cells fade out and the red|blue split fades in over them
         self.play(FadeOut(self.view.heatmaps), FadeOut(self.view_title),
-                  FadeIn(split), run_time=1.0)
+                  FadeIn(title), FadeIn(split), run_time=1.0)
         self.view = self.view_title = None
         # move the red blocks left, the blue blocks right, into one red then one blue bar
         self.play(*[r.animate.move_to(t) for r, t in reds],
@@ -252,7 +268,7 @@ class Scene08(HangmanScene):
         self.remove(split)
         nums = VGroup(*num_labels)
         self.play(FadeIn(nums), run_time=0.6)
-        self.bars = VGroup(bars, nums, length_labels)
+        self.bars = VGroup(bars, nums, length_labels, title)
 
     # g : VOWEL (⅓ down) with before ← VOWEL → after adjacency pies
     @subscene
