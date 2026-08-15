@@ -33,7 +33,8 @@ loading" for the full cross-machine debugging history.
   it. Word there is BALLPARK; the non-ballpark letters e/i/o/t/n/d are the losing misses.)
 - **"Common uses" view (`assets/common_uses.py`) = a list of GAME STATES in which the
   strategy's NEXT guess is the letter in question** — each row is a blanked word with any
-  letters MISSED so far listed to its RIGHT in red. (NO gallows — an earlier gallows +
+  letters MISSED so far listed to its RIGHT in PARENTHESES, e.g. `(R)` / `(R S)` (black +
+  bold — an earlier crimson design was dropped). (NO gallows — an earlier gallows +
   body-parts design was dropped; the misses moved from below to the right.) For a letter
   that is a BEST FIRST GUESS (E len 5-11, I len 12-20, A len 1-4 — the top tier) the state
   is a fresh game, so the row is LITERALLY a blank word (all underscores of that length)

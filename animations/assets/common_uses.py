@@ -2,13 +2,13 @@
 guess is a given letter (scene 07's top tier E/I/A, and the later tier scenes).
 
 Each row = a blanked word, with any letters MISSED so far listed to its RIGHT in
-red (the running wrong-guess tally). For a BEST FIRST GUESS (E len 5-11, I len
-12-20, A len 1-4) the state is a fresh game, so a row is just a blank word of that
-length with NO misses. A consonant guessed only AFTER misses shows a partially-
-revealed board + its red missed letters.
+parentheses e.g. "(R)" / "(R S)" (black + bold, the running wrong-guess tally). For a
+BEST FIRST GUESS (E len 5-11, I len 12-20, A len 1-4) the state is a fresh game, so a
+row is just a blank word of that length with NO misses. A consonant guessed only AFTER
+misses shows a partially-revealed board + its parenthesised missed letters.
 
 Brand light-blue world (crisp_text + ACCENT_FILL board): built on `hangman_board.py`
-(blanked_board / missed_letters), NOT the chalk `game_board.py`. Rows are left-
+(blanked_board), NOT the chalk `game_board.py`. Rows are left-
 aligned (board left edges line up, like the heatmap stack) and sit on a common rule
 BASELINE, so blank and lettered rows align and letters grow upward. The length label
 (and any misses) align to the LETTER band — level with where a revealed letter sits,
@@ -20,7 +20,7 @@ a partially-played state: `board` a pattern string ("_a__t_"), `missed` an itera
 of wrong letters. `board=None` -> all underscores.
 """
 from config import *
-from assets.hangman_board import blanked_board, missed_letters
+from assets.hangman_board import blanked_board
 
 
 # ── row geometry (every knob a kwarg; defaults tuned for the 9-row I case) ─────
@@ -64,8 +64,9 @@ def _row(spec, *, slot, gap, board_fs, board_color, miss_fs, miss_buff, letter_c
                         color=board_color, weight=WEIGHT)
     row = VGroup(brd)
     if missed:
-        miss = missed_letters(missed, font_size=miss_fs, color=board_color,
-                              weight=WEIGHT)
+        # the running misses, wrapped in parentheses e.g. "(R)" / "(R S)"
+        miss = crisp_text("(" + " ".join(l.upper() for l in missed) + ")",
+                          font_size=miss_fs, color=board_color, weight=WEIGHT)
         miss.next_to(brd, RIGHT, buff=miss_buff)
         miss.set_y(brd.get_bottom()[1] + letter_cy)     # align with the letters
         row.add(miss)
