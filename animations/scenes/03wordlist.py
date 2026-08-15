@@ -3,7 +3,8 @@
 A data scene: the final word list fills the board (top 96 words by frequency),
 we find a frequency cutoff, then a running "TOTAL WORDS" tally drops category by
 category as we strip non-letter tokens / spellcheck / curated junk, landing on
-34,483 — then a bar graph of the final list's word counts by length.
+34,483 — then a bar graph of the final list's word counts by length, then the
+board is cleared (a transition beat handing the empty chalkboard to scene 04).
 
 EVERYTHING is the WRITTEN (chalk-stroke) font — `chalk_phrase`/`chalk_number`
 (chalkboard.py), never `crisp_text` (the chalkboard default; see hangman
@@ -13,7 +14,8 @@ off the word, cross off the number, and write the new number below. Kept/added
 words (PI, STYROFOAM) are written in green and never struck. Every number is
 SOURCED from `assets/wordlist_data.py` (committed cache).
 
-Script row 03, split on '—' → beats a–q + a by-length beat r (user-requested):
+Script row 03, split on '—' → beats a–q + a by-length beat r (user-requested)
++ a board-clear transition beat s (into scene 04):
   a columns   — top 96 FINAL-list words by frequency fill the board, "the" first
   b pcts      — a % of English text (2 sig figs) beside each word
   c cutoff    — real words straddling the frequency cutoff, divider midway between
@@ -21,7 +23,8 @@ Script row 03, split on '—' → beats a–q + a by-length beat r (user-request
   e extras    — example junk kept by wordfreq: a proper noun / abbr / roman / apostrophe
   f–q counter — the TOTAL WORDS cascade dropping to 34,483 (see _remove); PI/
                 STYROFOAM green; pi drops 1 EXTRA with the greek then comes back +1
-  r by_length — bar graph of word count by length (peak len 7 = 5.5k); stays up
+  r by_length — bar graph of word count by length (peak len 7 = 5.5k)
+  s clear_board — TRANSITION: fade the chart out → empty chalkboard (matches 04's start)
 
 REUSE MAP:
   backdrop         → bpkfigures.chalkboard.chalkboard (shared, as 02/04)
@@ -30,7 +33,7 @@ REUSE MAP:
   by-length chart  → SHARED bpkfigures.bar_graph.get_bar_chart (chalk factories)
   every number     → assets.wordlist_data (committed cache)
 
-Render:  render 03a --fast … 03r   /   render 03 sub  for the whole scene
+Render:  render 03a --fast … 03s   /   render 03 sub  for the whole scene
 
 TIMING KNOBS LEFT AT A GUESS (feel): every Create/FadeIn run_time, the per-step
 write/strike run_times, the LaggedStart lags, inter-beat fades — all inlined.
@@ -371,7 +374,7 @@ class Scene03(HangmanScene):
             title_buff=0.5,
         )
 
-    # r : clear the cascade, grow the by-length bars, all counts in white — STAY up
+    # r : clear the cascade, grow the by-length bars, all counts in white
     @subscene
     def by_length(self):
         self.play(FadeOut(self.cascade), run_time=0.6)
@@ -382,3 +385,12 @@ class Scene03(HangmanScene):
         # draw every bar OUTLINE at once, each as one continuous chalk line (not grown)
         self.play(*[Create(b) for b in self.chart.bars], run_time=1.6)
         self.play(FadeIn(self.chart.values), run_time=0.6)      # all counts, white
+
+    # s : TRANSITION to scene 04 — fade the chart off the board, leaving the empty
+    #     chalkboard (scene 04 opens on that same board, so no hard cut).
+    @subscene
+    def clear_board(self):
+        self.play(FadeOut(VGroup(self.chart.title, self.chart.x_axis,
+                                 self.chart.labels, self.chart.bars,
+                                 self.chart.values)), run_time=0.8)
+        self.chart = None
