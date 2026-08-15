@@ -13,6 +13,17 @@ loading" for the full cross-machine debugging history.
 ## Script
 - `animations/Script.md` is the video script. Scenes become
   `scenes/NN<name>.py`. (Fill in this video's script/scene conventions.)
+- **"I added/changed X in scene N" means the SCRIPT (`animations/Script.md`) — the SPEC —
+  NOT the `.py`. The task is then to IMPLEMENT that script change in `scenes/NN<name>.py`.**
+  The script is the source of truth for what a scene should contain; the scene file is my
+  implementation of it. So when the user says they added a beat/view/example to a scene, DON'T
+  read the `.py`, see nothing, and get confused — re-read that scene's row in `animations/Script.md`
+  and build the delta into the scene file. (Bit us TWICE: read "I added common-uses to scene 9"
+  as "the scene file already changed," found nothing in `09high_tier1.py`, and stalled.)
+- **Read `animations/Script.md` (canonical), NOT the stray `animations/scenes/Script.md`.**
+  There is an OLDER duplicate copy at `animations/scenes/Script.md` (untracked; a stale export)
+  that lags the canonical one — a `grep` for a beat can hit it first and show the PRE-edit text.
+  Always confirm scene rows against `animations/Script.md`; ignore the `scenes/` copy.
 - **In the animation column, "fill in <letter>" while the beat is describing a MISS
   means write that letter BELOW THE GALLOWS (the running wrong-guess tally), NOT fill a
   blank.** A hit "fills in" a blank; a miss "fills in" the miss row. So a beat like
@@ -34,9 +45,10 @@ loading" for the full cross-machine debugging history.
   first guess (partitions 1-20), cross-checked against `letter_analysis.ipynb`'s
   first-guess-by-length. Built on `assets/hangman_board.py` (brand-bg / ACCENT_FILL board —
   NOT the chalk `game_board.py`). Appears ONLY where the SCRIPT names a common-uses beat —
-  so far scene 07 ONLY; 09-15 have none (heatmap + n-gram only, like test scene 96). NB the
-  partial-board / red-misses path is BUILT but not yet exercised with real data (07 uses
-  only blank boards) — expect to shake it out when a later scene first feeds it game states.
+  so far scenes 07 and 09 (07 = top-tier blank first-guess boards; 09 = high-tier consonants,
+  which are guessed AFTER misses, so 09 exercises the partial-board / red-misses path with real
+  data). A row with NO common-uses beat in its script (10/12-15 as far as known) is heatmap +
+  n-gram only, like test scene 96.
 - **SOURCING RULE — every common-uses GAME STATE (a `(length, board, missed)` row, and the
   blank first-guess rows too) MUST be VERIFIED to appear in `math/notebooks/letter_analysis.ipynb`'s
   `guesses_of_letter_all_lengths(<letter>)` table for that letter under STRATEGY=`optimal`,
