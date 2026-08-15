@@ -155,6 +155,12 @@ class Scene08(HangmanScene):
                 for lab, hm in zip(self.view.labels, self.view.heatmaps)]
         self.play(FadeIn(self.view_title), self._rise(self.view, rows), run_time=1.2)
 
+    @staticmethod
+    def _fmt(x):
+        """One-decimal label, dropping a leading zero for values < 1 (".9" not "0.9")."""
+        s = f"{x:.1f}"
+        return s[1:] if s.startswith("0.") else s
+
     def _split_bars(self):
         """Overlay each freq CELL with a red (vowel) block on the left + blue
         (consonant) block on the right, sized by that position's vowel fraction; and
@@ -209,12 +215,14 @@ class Scene08(HangmanScene):
                                  fill_opacity=1.0, stroke_color=WHITE, stroke_width=2.0)
             blue_bar.move_to([boundary + blue_w / 2, y, 0])
             merged += [red_bar, blue_bar]
-            # labels centred on the actual bar mobjects (exact centring)
-            vt = crisp_text(f"{self.d['avg_vowels'][L]:.1f}", font_size=20, color=WHITE)
+            # labels centred on the actual bar mobjects (exact centring); a value < 1
+            # drops its leading 0 (".9" not "0.9") so it fits the small box
+            vt = crisp_text(self._fmt(self.d['avg_vowels'][L]), font_size=20,
+                            color=WHITE)
             vt.move_to(red_bar)
             if vt.width < red_w - 0.08:                      # "if it fits" (script)
                 num_labels.append(vt)
-            ct = crisp_text(f"{self.d['avg_consonants'][L]:.1f}", font_size=20,
+            ct = crisp_text(self._fmt(self.d['avg_consonants'][L]), font_size=20,
                             color=WHITE)
             ct.move_to(blue_bar)
             num_labels.append(ct)
