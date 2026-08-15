@@ -12,17 +12,26 @@ START-MODE ASSUMPTION (flag): continuation of 13 (centred). If a talking head / 
 row-20 "bottom-tier shoutout" clears the screen before this, flip to a blank start:
 `build_board(on_screen=False)` + an `establish` beat (`self.enter_centered(0.8)`).
 
-Beats a–o: F/Y/V/W each as intro → heatmap → n-gram; K then gets a SPECIAL staged
-position-frequency reveal (the Tversky-Kahneman availability-heuristic bit) instead of a
-single heatmap beat, then its n-gram + recenter:
-  m k_intro       — K fills in, copy ↙ (unchanged advance)
-  n k_heat_gray   — position-frequency view enters with ALL boxes GREY (no data yet)
-  o k_flash_cols  — flash column 1, then column 3 (yahtzee row-highlight style)
-  p k_reveal_c1   — colour position 1 only; vmax = that column's max (full range on it)
-  q k_reveal_c3   — colour positions 1-3; vmax = cols-1-3 max (col 1 washes out)
-  r k_reveal_all  — colour every position; final vmax = data max (position 4 dominates)
-  s k_ngram       — add the n-gram view (C/N/L/R)
-  t recenter      — hand off to scene 15
+F/V/W each run intro → heatmap → n-gram. The Y section is expanded: after Y's big-letter
+intro come three example-word beats (e/f/g) and a common-uses beat (j) closing the section;
+K then gets a SPECIAL staged position-frequency reveal (the Tversky-Kahneman availability-
+heuristic bit) instead of a single heatmap beat, then its n-gram + recenter.
+  a f_intro · b f_heat · c f_ngram
+  d y_intro        — Y fills in, big copy ↙
+  e y_words_blue   — YESTERYEAR (large, Ys BLUE) fades in rising
+  f y_words_crimson— SLYLY (large, Ys CRIMSON) fades in rising below it
+  g y_words_out    — both example words fade out
+  h y_heat · i y_ngram
+  j y_common       — "Example Uses" — Y's top 4 table cases (optimal/uniform)
+  k v_intro · l v_heat · m v_ngram · n w_intro · o w_heat · p w_ngram
+  q k_intro        — K fills in, copy ↙ (unchanged advance)
+  r k_heat_gray    — position-frequency view enters with ALL boxes GREY (no data yet)
+  s k_flash_cols   — flash column 1, then column 3 (yahtzee row-highlight style)
+  t k_reveal_c1    — colour position 1 only; vmax = that column's max (full range on it)
+  u k_reveal_c3    — colour positions 1-3; vmax = cols-1-3 max (col 1 washes out)
+  v k_reveal_all   — colour every position; final vmax = data max (position 4 dominates)
+  w k_ngram        — add the n-gram view (C/N/L/R)
+  x recenter       — hand off to scene 15
 The staged vmax rescaling IS the payoff: col 1 looks saturated at p, then washes out as
 positions 3 then 4 reveal a higher max. Hue stays BLUE (K's consonant convention) at
 every stage; `k_reveal_all` reproduces the standard `show_heat("k")` state exactly, so
@@ -30,7 +39,7 @@ every stage; `k_reveal_all` reproduces the standard `show_heat("k")` state exact
 
 TIMING KNOBS LEFT AT A GUESS (feel — judge from the video): every run_time below.
 
-Render:  render 14a --fast  (…14t)  /  render 14 sub  for the whole scene
+Render:  render 14a --fast  (…14x)  /  render 14 sub  for the whole scene
 """
 from pathlib import Path
 import sys
@@ -43,6 +52,28 @@ from assets import tier_list as tl
 from assets import letter_heat_data as lhd
 from assets.letter_heatmaps import letter_heatmaps
 from assets.tier_letter_scene import TierLetterScene, HEAT_CENTER
+
+# ── Y example-word beats (inserted after Y's big-letter intro) ────────────────
+# Two large hero words showing Y in different roles, stacked in the empty view
+# region (centre-right). Ys recoloured to CONTRAST: YESTERYEAR blue, SLYLY crimson;
+# the other letters stay the title ink (BLACK). Each fades in while rising (UP*RISE).
+WORD_FS   = 90                                    # large display font
+WORD_BUFF = 0.06                                  # per-letter spacing
+WORD_INK  = BLACK                                 # non-Y letters (matches the titles)
+WORD1_CTR = np.array([1.6, 1.1, 0.0])             # YESTERYEAR centre
+WORD2_CTR = np.array([1.6, -1.2, 0.0])            # SLYLY centre (below it)
+WORD_RISE = 0.6                                    # fade-in upward travel
+
+# Y's common-uses ("Example Uses") states — the TOP 4 rows of
+# guesses_of_letter_all_lengths('y') [optimal/uniform], n_words DESC. SOURCED +
+# reproducible via math/common_uses_scene14.py (prints these exact rows).
+# Each spec is (length, board, missed).
+Y_COMMON = [
+    (5, "_a___",  ["e", "r", "s", "t"]),
+    (5, "_u___",  ["a", "c", "e", "i", "o", "s"]),
+    (5, "_i___",  ["a", "e", "o", "s", "t"]),
+    (6, "_o____", ["a", "e", "n", "s"]),
+]
 
 
 class Scene14(TierLetterScene):
@@ -78,44 +109,84 @@ class Scene14(TierLetterScene):
     def y_intro(self):
         self.advance_letter(1, 0.9, 1.0)
 
-    # e : heatmaps for Y
+    # example-word helper: one large word with its Y's recoloured, built at `center`
+    def _word_row(self, word, ys, color, center):
+        row = VGroup(*[crisp_text(ch, font_size=WORD_FS, color=WORD_INK)
+                       for ch in word])
+        row.arrange(RIGHT, buff=WORD_BUFF, aligned_edge=DOWN)   # caps → shared baseline
+        for i in ys:
+            row[i].set_color(color)
+        return row.move_to(center)
+
+    def _setup_yword1(self):
+        # YESTERYEAR — Ys (indices 0, 6) in blue
+        self.yword1 = self._word_row("YESTERYEAR", [0, 6], ACCENT_FILL, WORD1_CTR)
+
+    def _setup_yword2(self):
+        # SLYLY — Ys (indices 2, 4) in crimson
+        self.yword2 = self._word_row("SLYLY", [2, 4], CRIMSON, WORD2_CTR)
+
+    # e : YESTERYEAR (Ys blue) fades in while rising
+    @subscene
+    def y_words_blue(self):
+        self._setup_yword1()
+        self.play(FadeIn(self.yword1, shift=UP * WORD_RISE), run_time=0.9)
+
+    # f : SLYLY (Ys crimson) fades in while rising, below it
+    @subscene
+    def y_words_crimson(self):
+        self._setup_yword2()
+        self.play(FadeIn(self.yword2, shift=UP * WORD_RISE), run_time=0.9)
+
+    # g : both example words fade out
+    @subscene
+    def y_words_out(self):
+        self.play(FadeOut(self.yword1), FadeOut(self.yword2), run_time=0.7)
+        self.yword1 = self.yword2 = None
+
+    # h : heatmaps for Y
     @subscene
     def y_heat(self):
         self.show_heat("y", 1.0)
 
-    # f : add the n-gram view for Y
+    # i : add the n-gram view for Y
     @subscene
     def y_ngram(self):
         self.add_ngram("y", 0.8)
 
+    # j : common-uses — Y's top 4 table cases (swaps in over the heat + n-gram)
+    @subscene
+    def y_common(self):
+        self.show_common(Y_COMMON, 0.9)
+
     # ── V ───────────────────────────────────────────────────────────────────────
-    # g : V's turn
+    # k : V's turn
     @subscene
     def v_intro(self):
         self.advance_letter(2, 0.9, 1.0)
 
-    # h : heatmaps for V
+    # l : heatmaps for V
     @subscene
     def v_heat(self):
         self.show_heat("v", 1.0)
 
-    # i : add the n-gram view for V
+    # m : add the n-gram view for V
     @subscene
     def v_ngram(self):
         self.add_ngram("v", 0.8)
 
     # ── W ───────────────────────────────────────────────────────────────────────
-    # j : W's turn
+    # n : W's turn
     @subscene
     def w_intro(self):
         self.advance_letter(3, 0.9, 1.0)
 
-    # k : heatmaps for W
+    # o : heatmaps for W
     @subscene
     def w_heat(self):
         self.show_heat("w", 1.0)
 
-    # l : add the n-gram view for W
+    # p : add the n-gram view for W
     @subscene
     def w_ngram(self):
         self.add_ngram("w", 0.8)
@@ -132,7 +203,7 @@ class Scene14(TierLetterScene):
         for hm in self.heat.heatmaps:
             for sq in hm.cells[0]:
                 sq.set_fill(MUTED_GREY, opacity=1.0)
-        self.loc_title = self._title("Location", "Frequencies", HEAT_CENTER[0])
+        self.loc_title = self._title1("Position Frequencies", HEAT_CENTER[0])
 
     def _vmax_over(self, cols):
         """Max K-share over the given position columns (0-indexed), across every length
@@ -183,47 +254,47 @@ class Scene14(TierLetterScene):
         self.play(FadeOut(fill), FadeOut(border), run_time=0.25 * r)
         self.remove(fill, border)
 
-    # m : K's turn — fill in, copy ↙
+    # q : K's turn — fill in, copy ↙
     @subscene
     def k_intro(self):
         self.advance_letter(4, 0.9, 1.0)
 
-    # n : position-frequency view enters, every box GREY (no data yet)
+    # r : position-frequency view enters, every box GREY (no data yet)
     @subscene
     def k_heat_gray(self):
         self._k_gray_view()
         self.play(FadeIn(self.loc_title),
                   self._rise(self.heat, self._heat_rows(self.heat)), run_time=1.0)
 
-    # o : flash the 1st column, then the 3rd column (availability-heuristic setup)
+    # s : flash the 1st column, then the 3rd column (availability-heuristic setup)
     @subscene
     def k_flash_cols(self):
         self._flash_column(0, 1.3)          # position 1
         self._flash_column(2, 1.3)          # position 3
 
-    # p : reveal position 1 only — scale so the full white→blue range covers just it
+    # t : reveal position 1 only — scale so the full white→blue range covers just it
     @subscene
     def k_reveal_c1(self):
         self._recolor_cols([0], self._vmax_over([0]), 1.0)
 
-    # q : reveal positions 1-3 — rescale so the range now covers cols 1-3 (col 1 washes out)
+    # u : reveal positions 1-3 — rescale so the range now covers cols 1-3 (col 1 washes out)
     @subscene
     def k_reveal_c3(self):
         self._recolor_cols([0, 1, 2], self._vmax_over([0, 1, 2]), 1.0)
 
-    # r : reveal the rest — final scale (data vmax); position 4 dominates
+    # v : reveal the rest — final scale (data vmax); position 4 dominates
     @subscene
     def k_reveal_all(self):
         data = lhd.get("k")
         ncols = max(len(data["rows"][L]) for L in data["lengths"])
         self._recolor_cols(list(range(ncols)), data["vmax"], 1.0)
 
-    # s : add the n-gram view for K
+    # w : add the n-gram view for K
     @subscene
     def k_ngram(self):
         self.add_ngram("k", 0.8)
 
-    # t : clear views + big letter; tier list returns to CENTRE (for scene 15)
+    # x : clear views + big letter; tier list returns to CENTRE (for scene 15)
     @subscene
     def recenter(self):
         self.recenter_board(1.0)
