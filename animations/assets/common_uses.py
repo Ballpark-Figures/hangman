@@ -2,7 +2,8 @@
 guess is a given letter (scene 07's top tier E/I/A, and the later tier scenes).
 
 Each row = a blanked word, with any letters MISSED so far listed to its RIGHT in
-parentheses e.g. "(R)" / "(R S)" (black + bold, the running wrong-guess tally). For a
+CRIMSON parentheses e.g. "(R)" / "(R S)" (the letters black + bold, only the "(" and
+")" glyphs crimson — the running wrong-guess tally). For a
 BEST FIRST GUESS (E len 5-11, I len 12-20, A len 1-4) the state is a fresh game, so a
 row is just a blank word of that length with NO misses. A consonant guessed only AFTER
 misses shows a partially-revealed board + its parenthesised missed letters.
@@ -64,9 +65,12 @@ def _row(spec, *, slot, gap, board_fs, board_color, miss_fs, miss_buff, letter_c
                         color=board_color, weight=WEIGHT)
     row = VGroup(brd)
     if missed:
-        # the running misses, wrapped in parentheses e.g. "(R)" / "(R S)"
+        # the running misses, wrapped in CRIMSON parentheses e.g. "(R)" / "(R S)"
+        # (the letters stay board_color; only the "(" and ")" glyphs are crimson).
         miss = crisp_text("(" + " ".join(l.upper() for l in missed) + ")",
                           font_size=miss_fs, color=board_color, weight=WEIGHT)
+        miss[0].set_color(CRIMSON)      # the "(" glyph
+        miss[-1].set_color(CRIMSON)     # the ")" glyph
         miss.next_to(brd, RIGHT, buff=miss_buff)
         miss.set_y(brd.get_bottom()[1] + letter_cy)     # align with the letters
         row.add(miss)
