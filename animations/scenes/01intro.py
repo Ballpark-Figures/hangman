@@ -46,7 +46,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent.parent.parent))
 from config import *
 from manim import MovingCameraScene
 from bpkfigures.speech_bubble import speech_bubble
-from assets.chalkboard import chalkboard, chalk_letter, CHALK, BOARD_NAVY
+from bpkfigures.chalkboard import chalkboard, chalk_letter, CHALK, BOARD_NAVY
 from assets.hangman_board import merge_pattern, hangman_drawing
 
 # ── the chalk game (beats a–b): WIN, guessed I·N·W (all hits, no misses) ───────
@@ -78,42 +78,7 @@ HANG_SW      = 6.0
 # the guesser is off the LEFT edge: the tail TIP sits at the screen edge and the
 # bubble grows from there (anchored by the tip, NOT move_to — see 94chalkgame).
 BUBBLE_TIP   = np.array([-7.9, 2.4, 0])
-BUBBLE_FS    = 56
-BUBBLE_TAIL  = 1.5
-
-# ── Speech-bubble look (EXPERIMENTAL — flip BUBBLE_PRESET + re-render 1b to compare) ──
-# The bubble is an "outside voice" (a person off-frame), so it's deliberately NOT chalk;
-# the goal is to lose the hard stock-comic feel (pure white + 3px black stroke) and pull
-# it into the video's palette (CARD_FILL warm surface, MUTED_GREY / brand ink). Each preset
-# is kwargs for speech_bubble() + an optional drop `shadow` so it floats above the board.
-BUBBLE_PRESET = "pill"
-# A preset is kwargs for speech_bubble(); these extra keys are consumed by _bubble:
-#   tip  — where the tail tip anchors (default BUBBLE_TIP)   shadow — add a drop shadow
-# Shape is controlled via speech_bubble's own knobs (pill / min_width / pad_w / tail_*).
-BUBBLE_PRESETS = {
-    # baseline stock bubble — for direct comparison
-    "current": {},
-    # PILL: horizontal capsule (stadium ends), warm surface + soft ink, SHORT wide tail
-    # pointing left, brought in off the edge so the tail reads as a tail (not a leader line)
-    "pill":    dict(fill_color=CARD_FILL, stroke_color=MUTED_GREY, stroke_width=2.0,
-                    text_color=BOARD_NAVY, pill=True, min_width=1.45, pad_w=0.30,
-                    pad_h=0.30, tail="left", tail_len=0.5, tail_spread=0.175,
-                    # tail: TIP stays at the pill's bottom edge (y=-hh); both base
-                    # corners lowered (top y=-0.20·hh, bottom y=-0.55·hh) so both
-                    # lines attach lower and run flatter to the tip
-                    tail_base=-0.375, tail_tip=-0.625, tip=[-7.9, 2.4, 0]),
-    # warm card surface, soft grey outline, navy (not pure-black) ink, rounder corners
-    "soft":    dict(fill_color=CARD_FILL, stroke_color=MUTED_GREY, stroke_width=2.0,
-                    corner_radius=0.34, text_color=BOARD_NAVY),
-    # soft + a drop shadow so it reads as floating IN FRONT of the board (depth cue)
-    "shadow":  dict(fill_color=CARD_FILL, stroke_color=MUTED_GREY, stroke_width=2.0,
-                    corner_radius=0.34, text_color=BOARD_NAVY, shadow=True),
-    # brand-tinted: warm fill, deep-blue ACCENT_FILL outline + ink (ties to the data views)
-    "ink":     dict(fill_color=CARD_FILL, stroke_color=ACCENT_FILL, stroke_width=2.5,
-                    corner_radius=0.34, text_color=ACCENT_FILL),
-}
-BUBBLE_SHADOW_OFF     = np.array([0.09, -0.09, 0])   # down-right, design coords
-BUBBLE_SHADOW_OPACITY = 0.28
+BUBBLE_FS    = 56       # bigger than the speech_bubble default (single big letter)
 
 # ── layered tree layout (verbatim from 92wintree_test) ────────────────────────
 TOP_Y   = 3.5         # row 0 (the opening guess) sits here
@@ -223,24 +188,11 @@ class Scene01(MovingCameraScene, HangmanScene):
         return L
 
     def _bubble(self, ch):
-        style = dict(BUBBLE_PRESETS[BUBBLE_PRESET])    # copy so we can pop custom keys
-        shadow = style.pop("shadow", False)
-        tip    = np.array(style.pop("tip", BUBBLE_TIP), dtype=float)
-        style.setdefault("tail", "left")
-        style.setdefault("tail_len", BUBBLE_TAIL)
-        b = speech_bubble(ch.upper(), font_size=BUBBLE_FS, **style)
-        if shadow:                                     # a soft dark copy behind = depth
-            sh = b.body.copy().set_fill(BLACK, opacity=BUBBLE_SHADOW_OPACITY)
-            sh.set_stroke(width=0).shift(BUBBLE_SHADOW_OFF)
-            b = self._with_shadow(sh, b)
-        b.shift(tip - b.tip_dot.get_center())          # anchor the tail tip (design coords)
+        # look (pill / colours / tail) is the speech_bubble default now; this scene
+        # only sets the bigger font + anchors the tail tip at the frame edge.
+        b = speech_bubble(ch.upper(), font_size=BUBBLE_FS)
+        b.shift(BUBBLE_TIP - b.tip_dot.get_center())   # anchor the tail tip (design coords)
         return self._frame(b)
-
-    @staticmethod
-    def _with_shadow(shadow, bubble):
-        grp = VGroup(shadow, bubble)
-        grp.tip_dot = bubble.tip_dot                   # preserve the tail-tip handle
-        return grp
 
     def _play_guess(self, i, *, rt_bubble, rt_write, rt_out):
         """One guess: pop the bubble, write the hit letter(s) into the blank(s),

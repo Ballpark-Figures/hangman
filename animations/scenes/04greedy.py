@@ -44,7 +44,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from config import *
 from bpkfigures.bar_graph import get_bar_chart, morph_bar_chart
-from assets.chalkboard import chalkboard, chalk_letter, CHALK, BOARD_NAVY
+from bpkfigures.chalkboard import chalkboard, chalk_letter, CHALK, BOARD_NAVY
 from assets import game_board as gb
 from assets import greedy_data
 

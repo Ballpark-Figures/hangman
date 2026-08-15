@@ -44,7 +44,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from config import *
 from assets import scene18_data
-from assets.chalkboard import BOARD_NAVY, CHALK
+from bpkfigures.chalkboard import BOARD_NAVY, CHALK
 from bpkfigures.bar_graph import get_bar_chart, grow_bars
 
 INK = BLACK                       # dark labels on the brand light-blue bg (scene-17 convention)

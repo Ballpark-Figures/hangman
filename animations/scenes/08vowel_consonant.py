@@ -29,7 +29,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from config import *
-from assets.chalkboard import BOARD_NAVY
+from bpkfigures.chalkboard import BOARD_NAVY
 from assets import vowel_consonant_data as vcd
 from assets.vowel_consonant_view import vowel_consonant_heatmaps
 from bpkfigures.pie_chart import get_pie_chart

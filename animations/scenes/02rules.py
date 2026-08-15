@@ -50,7 +50,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from config import *
-from assets.chalkboard import chalkboard, CHALK
+from bpkfigures.chalkboard import chalkboard, CHALK
 from assets import game_board as gb
 
 # ── the game (word + the letters guessed in each phase) ───────────────────────
@@ -78,7 +78,7 @@ FLASH_RT = 0.5     # go-to-colour time on the win; half the there-and-back on th
 class Scene02(HangmanScene):
     """Teach the rules of hangman on the chalkboard, playing BALLPARK.
 
-    chalkboard/CHALK from assets.chalkboard; gallows from
+    chalkboard/CHALK from bpkfigures.chalkboard; gallows from
     assets.hangman_board.hangman_drawing (chalk-white); the guesser's speech bubble
     from bpkfigures.speech_bubble.
 

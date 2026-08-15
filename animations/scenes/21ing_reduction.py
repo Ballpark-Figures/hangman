@@ -56,7 +56,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from config import *
 from bpkfigures.bar_graph import get_bar_chart
-from assets.chalkboard import chalkboard, chalk_letter, chalk_phrase, chalk_number, CHALK
+from bpkfigures.chalkboard import chalkboard, chalk_letter, chalk_phrase, chalk_number, CHALK
 from assets import game_board as gb
 from assets import scene21_data
 from assets import scene17_chart_data

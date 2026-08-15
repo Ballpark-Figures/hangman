@@ -66,7 +66,7 @@ from assets import tier_list as tl
 from assets import views
 from assets import game_board as gb
 from assets import scene16_data
-from assets.chalkboard import chalkboard, chalk_phrase, chalk_letter
+from bpkfigures.chalkboard import chalkboard, chalk_phrase, chalk_letter
 
 # ── plot geometry (echoes the location-frequency views: left-aligned rows, one
 #    white cell per position, a length label to the left; a coloured bar fills the

@@ -53,7 +53,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from config import *
-from assets.chalkboard import chalkboard, chalk_phrase, chalk_number, BOARD_NAVY, CHALK
+from bpkfigures.chalkboard import chalkboard, chalk_phrase, chalk_number, BOARD_NAVY, CHALK
 from assets import game_board as gb
 from assets import scene11_data
 from bpkfigures.pie_chart import get_pie_chart

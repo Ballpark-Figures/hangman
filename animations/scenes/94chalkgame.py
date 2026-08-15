@@ -31,7 +31,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from config import *
-from assets.chalkboard import chalkboard
+from bpkfigures.chalkboard import chalkboard
 from assets import game_board as gb
 
 # ── the game (guess order from scene 95; hits derived from the word) ───────────
@@ -46,7 +46,7 @@ MISSES  = [g for g in GUESSES if g not in WORD]   # e, i — for centred miss sl
 class ChalkGame(HangmanScene):
     """Play BALLPARK out on a chalkboard, one guess per subscene (c–j).
 
-    chalkboard/CHALK from assets.chalkboard; gallows from
+    chalkboard/CHALK from bpkfigures.chalkboard; gallows from
     assets.hangman_board.hangman_drawing (chalk-white); the guesser's speech
     bubble from bpkfigures.speech_bubble.
 

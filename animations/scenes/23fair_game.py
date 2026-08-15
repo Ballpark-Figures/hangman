@@ -28,7 +28,7 @@ REUSE MAP (element → shared source)
   • double bar chart (a)        → bpkfigures.bar_graph.grouped_bar_chart + grow_bars,
                                   short_words_data.by_length — scene 19's `_double_chart`.
   • y=6 / 50% reference lines    → DashedLine at chart.y_of(6) / the CDF chart base+0.5·h.
-  • chalkboard + chalk table (c) → assets.chalkboard (chalkboard / chalk_phrase /
+  • chalkboard + chalk table (c) → bpkfigures.chalkboard (chalkboard / chalk_phrase /
                                   chalk_number) — the same slate + written font as 22/94.
   • survival CDF bars (c)        → bpkfigures.bar_graph.get_bar_chart (blue ACCENT_FILL;
                                   `highlight={label: CRIMSON}` for inexact tail bars) +
@@ -101,7 +101,7 @@ from bpkfigures.bar_graph import grouped_bar_chart, get_bar_chart, grow_bars
 from assets import short_words_data
 from assets import scene23_data
 from assets.word_tables_scene import UNIFORM_COLOR, BESTOP_COLOR, INK
-from assets.chalkboard import chalkboard, chalk_phrase, chalk_number, CHALK
+from bpkfigures.chalkboard import chalkboard, chalk_phrase, chalk_number, CHALK
 
 # ── beat b : the "too high" reference line ────────────────────────────────────
 LIMIT_MISSES = 6

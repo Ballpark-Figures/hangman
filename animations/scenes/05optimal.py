@@ -114,7 +114,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from config import *
 from bpkfigures.bar_graph import get_bar_chart, grouped_bar_chart, grow_bars
-from assets.chalkboard import CHALK, BOARD_NAVY
+from bpkfigures.chalkboard import CHALK, BOARD_NAVY
 from assets import tree2_data
 from assets import greedy_data
 from assets import scene17_chart_data

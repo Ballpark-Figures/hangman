@@ -24,7 +24,7 @@ Script row 03, split on '—' → beats a–q + a by-length beat r (user-request
   r by_length — bar graph of word count by length (peak len 7 = 5.5k); stays up
 
 REUSE MAP:
-  backdrop         → assets.chalkboard.chalkboard (shared, as 02/04)
+  backdrop         → bpkfigures.chalkboard.chalkboard (shared, as 02/04)
   all text         → chalk_phrase / chalk_number / chalk_letter (chalkboard.py)
   colours          → CHALK (white), LIGHT_GREEN (kept ✓), ACCENT_GOLD (divider)
   by-length chart  → SHARED bpkfigures.bar_graph.get_bar_chart (chalk factories)
@@ -46,7 +46,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from config import *
 from bpkfigures.bar_graph import get_bar_chart
-from assets.chalkboard import chalkboard, chalk_phrase, chalk_number, CHALK
+from bpkfigures.chalkboard import chalkboard, chalk_phrase, chalk_number, CHALK
 from assets import wordlist_data
 
 DATA = wordlist_data.get()
