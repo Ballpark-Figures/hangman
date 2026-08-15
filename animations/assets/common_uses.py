@@ -29,9 +29,10 @@ BOARD_SLOT  = 0.26        # one underscore rule width
 BOARD_GAP   = 0.12        # gap between blanks
 BOARD_FS    = 30          # revealed-letter font size (== MISS_FS so the two align)
 BOARD_COLOR = BLACK       # revealed letters on the blanks (BLACK here, not the board blue)
+WEIGHT      = "BOLD"      # every letter/number in this view is black + bold
 LABEL_FS    = 24          # the length number, left of each row
 LABEL_BUFF  = 0.35
-MISS_FS     = 30          # the crimson missed-letter tally, right of the word (== BOARD_FS)
+MISS_FS     = 30          # the missed-letter tally, right of the word (== BOARD_FS)
 MISS_BUFF   = 0.45
 
 
@@ -60,10 +61,11 @@ def _letter_cy(slot, gap, board_fs):
 def _row(spec, *, slot, gap, board_fs, board_color, miss_fs, miss_buff, letter_cy):
     length, pattern, missed = _spec(spec)
     brd = blanked_board(pattern, slot=slot, gap=gap, font_size=board_fs,
-                        color=board_color)
+                        color=board_color, weight=WEIGHT)
     row = VGroup(brd)
     if missed:
-        miss = missed_letters(missed, font_size=miss_fs)
+        miss = missed_letters(missed, font_size=miss_fs, color=board_color,
+                              weight=WEIGHT)
         miss.next_to(brd, RIGHT, buff=miss_buff)
         miss.set_y(brd.get_bottom()[1] + letter_cy)     # align with the letters
         row.add(miss)
@@ -89,7 +91,8 @@ def common_uses(rows, *, board_left_x=0.0, center_y=0.0, row_pitch=ROW_PITCH,
     for i, row in enumerate(built):
         # anchor by the rule baseline (get_bottom) so rows align regardless of letters
         row.shift([-row.brd.get_left()[0], -i * row_pitch - row.brd.get_bottom()[1], 0])
-        lab = crisp_text(str(row.length), font_size=label_fs, color=BLACK)
+        lab = crisp_text(str(row.length), font_size=label_fs, color=BLACK,
+                         weight=WEIGHT)
         lab.next_to(row.brd, LEFT, buff=label_buff)
         lab.set_y(row.brd.get_bottom()[1] + off)         # align number with letters
         rowgrp.add(row)
