@@ -24,63 +24,43 @@ TREE CONVENTIONS (this scene):
     REMOVES that node's blanks (it's no longer a leaf) and ADDS blanks under its new
     children; the node's un-expanded SIBLINGS keep theirs.
 
-Script row 05, split on '—' (voiceover ↔ animation zip 1:1). BEAT MAP:
+Script row 05, split on '—' (voiceover ↔ animation zip 1:1) — 13 beats a–m. Each @subscene is
+ONE script beat; the two back-up beats (h, i) unroll several sub-steps in-body (plain `_`-prefixed
+helpers, called in order — NOT separate subscenes). BEAT MAP:
   a greedy_chart  — recap: greedy avg misses by word length (the scene-04 chart)
   b root_node     — one decision node appears centre (the top of the tree)
   c cycle_letters — cycle every letter A–Z through the node (which opener is best?)
   d grid_spread   — 20 openers into a 4×5 grid; each sprouts its next level (blanks + miss)
   e a_dive        — bring A to centre; walk-highlight children (gold); grid A-miss's options
-  f drill         — breadcrumb the optimal (O), drill its all-miss leaf into the 4×4 option grid
-  g resolve       — keep drilling (3×4 → 2×3 grids) to the {by,my} base case; Y-first spine +
-                    'Avg misses: 0' on the forced M
-  h solve_base    — we've solved that position: green ONLY the computed part (M→MY, avg 0) and
-                    drop its miss tally; the rest greens as we back the value up
-  i backup_b      — back up the B node: try B/M candidates (complete green subtrees), choose B,
-                    'Avg misses: 0.5'
-  j backup_y      — back up the Y node: fade B's value, cycle Y/B/M candidate subtrees, choose Y
-  k backup_u      — start backing up U: solve its OTHER child {up,us} (shrink Y-subtree, grow it)
-  l solve_ups     — solve {up,us}: cycle P/S candidate subtrees, choose P (0.5)
-  m choose_u      — back up U: cycle U/Y/B/M/P/S candidate subtrees w/ a rolling avg counter,
-                    choose U (1.0) and lock its node + edges + value green
-  n backup_e      — start backing up E (same move as k, one level up): build E's tidy subtree,
-                    slide the green U-subtree onto E's miss slot, grow E's hit branches (green)
-  o solve_e_hit   — solve E's two hit children (e_ {EM,EN,EX}=1.00, _e {ME,BE,WE,RE,HE,YE}=2.50):
-                    cycle ALL tied first-guesses, lock M green (l for E, ×2). o+ : bare numbers,
-                    2 dp, ONE on screen at a time (see the convention change)
-  p choose_e      — back up E: climb the gap to I→E at the START (E + I's siblings drop first — the
-                    choose_u rule), cycle E's candidates (e=2.00 min …) rolling the bare counter,
-                    choose E, lock node+edges+value green
-  q backup_i      — start backing up I (SAME move as n, one level up): build I's tidy subtree, slide
-                    the green E-subtree onto I's miss slot, grow I's i_/_i hit branches (green)
-  r solve_i_hit   — solve I's hit children (i_=2.00, _i=2.00): cycle ALL tied first-guesses, lock green
-  s choose_i      — back up I: climb to O→I at the START, cycle I's candidates (i=2.57 min …), choose I
-  t backup_o      — start backing up O (SAME move as q): build O's tidy subtree, slide the green
-                    I-subtree onto O's miss slot, grow O's o_/_o hit branches (green)
-  u solve_o_hit   — solve O's hit children (o_=2.50, _o=3.00): cycle ALL tied first-guesses, lock green
-  v choose_o      — back up O: climb to A→O (the diagonal root) at the START, cycle O's candidates
-                    (o=3.28 min …), choose O, lock node+edges+value green
-  w backup_a      — add O's SIBLINGS: build A's tidy subtree, slide the green O-subtree onto A's miss
-                    slot, morph the diagonal A into the (white) root, grow A's a_/_a hit branches
-                    (green subtree, white root). A itself left UN-chosen
-  x solve_a_hit   — solve O's siblings: cycle a_ (=3.00) and _a (=2.50) through ALL their tied first-
-                    guesses (T optimal for both), lock each root + edges green (solve_X_hit at the root)
-  y compare_openers — collapse the solved A-tree into the top-left grid corner (strip every letter but
-                    the root A, colours back to red-white), fill the rest of the grid with each valid
-                    opener's optimal tree (red-white shape, root lettered, 'Avg misses: N.NN' above),
-                    GREEN the winner (A = 3.88 min), fade the rest, and grow the green tree back to
-                    full screen with its letters + solved colours restored
-  z dedup         — DEDUP: two parallel miss-DIAGONAL trees (miss=LEFT child, down-left; LEFT A→O, RIGHT
-                    O→A), each guess node fanning its hit branches as BARE dots down-right, ending in a
-                    bare position node with '_ _' + misses below; same position → solve once
-  za bad_guess    — a BAD guess that can only miss: after a successful A gives '_A' (A in pos 2),
+  f drill         — keep drilling the top-left all-miss leaf down the diagonal (4×4 → 3×4 → 2×3)
+                    to the {BY,MY} base; the forced Y resolves into the Y-first spine, 'Avg
+                    misses: 0' on M. Sub-step: _resolve (the tail of the drill)
+  g solve_base    — we've solved that position: green ONLY the computed part (M→MY, avg 0)
+  h backup_b      — back up ONE level (the base leaves up to U): green B (0.5), the Y position
+                    (0.5), solve U's other child {up,us} (0.5), then choose U (1.0). Sub-steps:
+                    _backup_y / _backup_u / _solve_ups / _choose_u
+  i backup_e      — REPEAT the back-up up the tree until the WHOLE tree is green: E (2.00), then
+                    I (2.57), then O (3.28), then add A's hit branches (O's siblings). Sub-steps:
+                    _solve_e_hit / _choose_e / _backup_i / _solve_i_hit / _choose_i / _backup_o /
+                    _solve_o_hit / _choose_o / _backup_a / _solve_a_hit
+  j compare_openers — collapse the solved A-tree into the top-left grid corner (strip every letter
+                    but the root A, colours back to red-white), fill the rest of the grid with each
+                    valid opener's optimal tree (red-white shape, root lettered, 'Avg misses: N.NN'
+                    above), GREEN the winner (A = 3.88 min), fade the rest, and grow the green tree
+                    back to full screen with its letters + solved colours restored
+  k dedup         — DEDUP: two parallel miss-DIAGONAL trees (miss=LEFT child, down-left; LEFT A→O,
+                    RIGHT O→A), each guess node fanning its hit branches as BARE dots down-right,
+                    ending in a bare position node with '_ _' + misses below; same position → solve once
+  l bad_guess     — a BAD guess that can only miss: after a successful A gives '_A' (A in pos 2),
                     guessing U (can't be in any '_A' word) yields a SINGLE miss branch (straight down);
                     show ALL of A's branches, each with its board (SOURCED: U splits=False at _a)
-  zb paired_chart — the PAIRED greedy-vs-optimal avg-misses-by-length chart: greedy (left) vs optimal
+  m paired_chart  — the PAIRED greedy-vs-optimal avg-misses-by-length chart: greedy (left) vs optimal
                     (right); unsolved lengths RED to the lower bound + a lighter band up to the upper
                     (grouped_bar_chart + series_highlight/bands). Every value SOURCED. [LAST beat]
 
-BACK-UP BEAT RECIPE (the I→O→A back-ups REPEAT this — reuse, don't reinvent; k/l/m and n/o/p
-are the worked examples, each level is 3 beats):
+BACK-UP BEAT RECIPE (the E→I→O→A back-ups inside beat i REPEAT this — reuse, don't reinvent; the
+sub-steps _backup_u/_solve_ups/_choose_u (beat h) and _backup_e/_solve_e_hit/_choose_e (beat i) are
+the worked examples, each level is 3 sub-steps):
   1. backup_X  — build X's tidy subtree as ONE _ctree(tall_level=0); SLIDE the already-solved
      child (the green subtree from below) rigidly onto its slot; REUSE X's bare diagonal hit-dots
      as the other children's roots and REVEAL them with the drill's ride-in (letter starts small+
@@ -97,8 +77,9 @@ are the worked examples, each level is 3 beats):
   level never splits. Do the climb at the START of the beat that deals with the node (choose_X),
   the new number FADING IN travelling WITH the node; only ONE number on screen at a time.
   NUMBERS: every value routes through `_fmt` (2 dp, half-up) + `_value_label` — worded
-  'Avg misses: N.NN' in g–n, BARE just-the-number from scene o on (same digit size). Never format
-  at the call site; pass the raw SOURCED float.
+  'Avg misses: N.NN' through beats g/h (base + first back-up), then a BARE just-the-number from the
+  E-hit solve onward (`_solve_e_hit`, same digit size). Never format at the call site; pass the raw
+  SOURCED float.
 
 Render:  render 05a --fast  (…05c)   /   render 05 sub  for the whole scene
 
@@ -170,7 +151,7 @@ GRID_BLANK_H     = 0.13   # blank-row height under a child (rule + revealed lett
 GRID_BLANK_DROP  = 0.36   # child centre → blank RULE baseline (fixed → rules line up AND
                           # the written letter above the rule clears the child dot)
 GRID_MISS_H      = GRID_BLANK_H    # missed letter (red) — SAME size as the blank letters
-# the recapped hit-sibling LEAF TEXT on the shrunk diagonal (beat g's final tree)
+# the recapped hit-sibling LEAF TEXT on the shrunk diagonal (beat f's final drill tree)
 GRID_LEAF_H      = GRID_BLANK_H * 1.22
 GRID_LEAF_DROP   = 0.36            # child centre → its blank baseline
 GRID_W, GRID_H   = 15.6, 8.0       # the cells tile this box (full width, small top/bottom margin)
@@ -187,21 +168,23 @@ PATH_DY          = GRID_CHILD_DY * 1.55
 # (never scaled to fit its own box) and anchored by its DECIMAL POINT — so digit composition
 # can't change its size and it doesn't lurch as it rolls.
 VALUE_CAP_H      = 0.26   # bare-number digit cap-height (a FIXED world size → consistent throughout)
-WORDED_H         = 0.34   # worded 'Avg misses: N.NN' box height (the static g–n beats)
+WORDED_H         = 0.34   # worded 'Avg misses: N.NN' box height (the static g/h beats)
 CYCLE_MAX        = 3      # a root-back-up cycle shows at most this many DISTINCT letters (chosen + others)
-OPENER_ROOT_BIG  = 4.5    # beat y: grid-cell ROOT node enlarged so its starting letter reads as a header
-OPENER_LABEL_H   = 0.32   # beat y: grid-cell 'Avg misses: N.NN' height — FIXED on-screen size (not tiled)
-DEDUP_NODE_R     = 0.42   # beat z: dedup miss-diagonal node radius
+OPENER_ROOT_BIG  = 4.5    # beat j: grid-cell ROOT node enlarged so its starting letter reads as a header
+OPENER_LABEL_H   = 0.32   # beat j: grid-cell 'Avg misses: N.NN' height — FIXED on-screen size (not tiled)
+DEDUP_NODE_R     = 0.42   # beat k: dedup miss-diagonal node radius
 
 
 class Scene05(HangmanScene):
     """Optimal strategy as a search on the length-2 tree.
 
-    BEAT MAP (built so far):
-      greedy_chart  — a: recap greedy avg-misses-by-length chart
-      root_node     — b: the root decision node appears at centre
-      cycle_letters — c: cycle every letter A–Z through the node
-      grid_spread   — d: 28 → 4×7 grid; each opener sprouts its next level
+    13 script beats a–m (one @subscene each) — see the module docstring's BEAT MAP for the full
+    walk. The two back-up beats unroll several sub-steps in-body via plain `_`-prefixed helpers:
+      f drill        — drill to the {BY,MY} base (+ _resolve)
+      h backup_b     — back up ONE level, base → U (+ _backup_y/_backup_u/_solve_ups/_choose_u)
+      i backup_e     — repeat up the tree to the whole green tree (+ _solve_e_hit/_choose_e/
+                       _backup_i/_solve_i_hit/_choose_i/_backup_o/_solve_o_hit/_choose_o/
+                       _backup_a/_solve_a_hit)
     """
 
     def setup_scene(self):
@@ -752,9 +735,11 @@ class Scene05(HangmanScene):
         cap = VALUE_CAP_H
         return self._place_value(self._value_label(value, cap, True), node_dot, direction, cap * 0.9, cap)
 
-    # ── f : keep drilling — expand the top-left (greedy pick O) tree's all-miss leaf
-    #        into the next grid, each cell now rooted along the path A→O (depth 2),
-    #        greedy-sorted, drilling the top-left again. ───────────────────────────────
+    # ── f : keep drilling ("repeat above process"). Expand the top-left (greedy pick O)
+    #        tree's all-miss leaf into the next grid (depth 2, greedy-sorted, drill the
+    #        top-left again), and REPEAT down the all-miss diagonal until the surviving set
+    #        is {BY, MY} — where the forced Y resolves into the Y-first spine and 'Avg
+    #        misses: 0' drops on the forced M. (Absorbs the old drill + resolve steps.) ───
     @subscene
     def drill(self):
         opts = sorted((o for o in self._n_miss_node(2)["options"] if o["splits"]),
@@ -767,6 +752,7 @@ class Scene05(HangmanScene):
         self.play(FadeOut(VGroup(*self.grid[1:])), run_time=0.6)
         self._transform_into(src, cells, 2.2)
         self.grid = VGroup(*cells)
+        self._resolve()                                   # keep drilling to the {BY,MY} base
 
     # ── g : keep drilling to the BASE CASE. Repeat f's expand (fade all but the top-left,
     #        transform its all-miss leaf into the next option grid) down the all-miss
@@ -774,9 +760,8 @@ class Scene05(HangmanScene):
     #        set is {BY, MY}. There we play the forced Y (guaranteed hit both) and resolve
     #        into the Y-first spine, dropping 'Avg misses: 0' on the forced M after the
     #        B-miss (the recursion base case we back up from in h). "Leaf" = the FINAL
-    #        GUESS — see hangman CLAUDE.md. ─────────────────────────────────────────────
-    @subscene
-    def resolve(self):
+    #        GUESS — see hangman CLAUDE.md. (Sub-step of beat f — the tail of the drill.) ─
+    def _resolve(self):
         self._g_expand(3, cols=4, run_time=2.4)           # depth-3 grid: 12 options → 3×4
         self._g_expand(4, cols=3, run_time=2.4)           # depth-4 grid: 6 options → 2×3
         self._g_resolve_final(3.4)                        # depth-4 top-left → the Y-first spine
@@ -826,7 +811,7 @@ class Scene05(HangmanScene):
         self.add(spine, self.avg0, self.avg0_by)
         self.grid = spine
 
-    # ── h : we've SOLVED that position — turn the ACTUALLY-solved part GREEN. Only the
+    # ── g : we've SOLVED that position — turn the ACTUALLY-solved part GREEN. Only the
     #        M-down piece has a computed value (Avg misses: 0): the M node, the M→MY edge and
     #        the MY leaf. Green those + the '0' label; the rest of the tree (B, Y, the
     #        diagonal) stays white and greens as we back the value up in i/j. Greening a
@@ -842,10 +827,11 @@ class Scene05(HangmanScene):
                        by_dot, by_blk, self.avg0_by)
         self.play(green.animate.set_color(LIGHT_GREEN), run_time=1.2)
 
-    # ── i : back up the B node (the split guess at the {by,my} '_Y' position). Try each
-    #        letter that could go there (B, M) with its optimal continuation + avg misses
-    #        (both 0.5), then CHOOSE B — fill its subtree green, lock the value. Later beats
-    #        do the other nodes (Y, then up the diagonal). ───────────────────────────────
+    # ── h : back up ONE level — from the solved base leaves up to the U node. Go through
+    #        every node at that level, cycling each choice's optimal subtree, settling on the
+    #        min, and turning it green: back up B (0.5), then the Y position (0.5), then solve
+    #        U's other child {up,us} (0.5), then choose U (1.0). (Absorbs old backup_b /
+    #        backup_y / backup_u / solve_ups / choose_u.) ───────────────────────────────────
     @subscene
     def backup_b(self):
         sub = self.grid.sub
@@ -875,6 +861,11 @@ class Scene05(HangmanScene):
         self.remove(m_parts)
         green = VGroup(sub.discs["b"], sub.edges["bby"], sub.edges["bm"], self.avg_b)
         self.play(green.animate.set_color(LIGHT_GREEN), run_time=1.0)
+        # the rest of the first-level back-up (Y position, {up,us}, then choose U)
+        self._backup_y()
+        self._backup_u()
+        self._solve_ups()
+        self._choose_u()
 
     def _ctree(self, spec, root_miss=1, solved=True, tall_level=None):
         """A COMPLETE optimal subtree, fully played out. In SOLVED mode (default — a candidate)
@@ -1191,12 +1182,11 @@ class Scene05(HangmanScene):
         if hasattr(mob, "_upd"):
             del mob._upd
 
-    # ── j : back up the Y node (the {by,my} position). B's value fades out; a fresh WHITE
-    #        value appears next to Y. The first guess then cycles Y → B → M, each shown as its
-    #        COMPLETE optimal subtree (fully played out, all green) with its own avg misses;
-    #        then CHOOSE Y and lock the value green. ────────────────────────────────────────
-    @subscene
-    def backup_y(self):
+    # ── back up the Y node (the {by,my} position) — sub-step of beat h. B's value fades out;
+    #        a fresh WHITE value appears next to Y. The first guess then cycles Y → B → M, each
+    #        shown as its COMPLETE optimal subtree (fully played out, all green) with its own avg
+    #        misses; then CHOOSE Y and lock the value green. ──────────────────────────────────
+    def _backup_y(self):
         sub = self.grid.sub
         path = self.grid.path
         scale = sub.gdot.width / (2 * GRID_NODE_R)        # match the (fit-scaled) spine nodes
@@ -1244,13 +1234,12 @@ class Scene05(HangmanScene):
         self.play(VGroup(sub.discs["y"], sub.edges["yb"], avg_y).animate.set_color(LIGHT_GREEN),
                   run_time=0.9)
 
-    # ── k : start backing up U. Build U's FULL subtree as one tidy _ctree (the same builder
-    #        the candidates use): slide the solved green {by,my} spine EXACTLY onto U's miss
-    #        slot (identical _ctree layout → exact overlay, just scaled to the uniform node
-    #        size), morph the diagonal U into the tidy root, and GROW U's other child {up,us}
-    #        (unsolved). No hand spread, no reformat later — tidy from here up. ───────────────
-    @subscene
-    def backup_u(self):
+    # ── start backing up U — sub-step of beat h. Build U's FULL subtree as one tidy _ctree
+    #        (the same builder the candidates use): slide the solved green {by,my} spine EXACTLY
+    #        onto U's miss slot (identical _ctree layout → exact overlay, just scaled to the
+    #        uniform node size), morph the diagonal U into the tidy root, and GROW U's other
+    #        child {up,us} (unsolved). No hand spread, no reformat later — tidy from here up. ──
+    def _backup_u(self):
         path = self.grid.path
         spine = self.grid.sub                              # the tidy green {by,my} _ctree
         u_dot, u_lab = path.levels[4]["dot"], path.levels[4]["lab"]
@@ -1311,10 +1300,9 @@ class Scene05(HangmanScene):
                                        # (NOT ph.in_edge, which was only the transform TARGET) — so
                                        # choose_u greens + backup_e slides the REAL edge, no orphan
 
-    # ── l : solve U's other child {up,us} — cycle its candidates P and S (mirror complete
-    #        green subtrees, both 0.5), then CHOOSE P and lock it green. ────────────────────
-    @subscene
-    def solve_ups(self):
+    # ── solve U's other child {up,us} — sub-step of beat h. Cycle its candidates P and S
+    #        (mirror complete green subtrees, both 0.5), then CHOOSE P and lock it green. ─────
+    def _solve_ups(self):
         ups = self.ups
         pc = ups.root.get_center()
         s_scale = ups.root.width / (2 * GRID_NODE_R)       # match the on-screen {up,us} tree
@@ -1331,14 +1319,13 @@ class Scene05(HangmanScene):
         self.play(VGroup(ups.root, ups.root_edges, self.avg_p).animate.set_color(LIGHT_GREEN),
                   run_time=0.9)
 
-    # ── m : back up the U position ({by,my,up,us}) — both children are solved and the U-subtree
-    #        is ALREADY tidy (built as a _ctree in k/l), so it IS the U candidate — no reformat.
-    #        The child value goes away and a rolling 'Avg misses' COUNTER appears on U. Cycle the
-    #        first-guess candidates U/Y/B/M/P/S, each a COMPLETE optimal subtree (green subtree,
-    #        original-colour root — a TIDY _ctree, SOURCED from the cache): U/Y = 1.0, B/M/P/S =
-    #        1.25, the counter rolling as we pass each. CHOOSE U (the min), lock node+edges+value. ─
-    @subscene
-    def choose_u(self):
+    # ── back up the U position ({by,my,up,us}) — sub-step of beat h. Both children are solved
+    #        and the U-subtree is ALREADY tidy (built as a _ctree above), so it IS the U candidate
+    #        — no reformat. The child value goes away and a rolling 'Avg misses' COUNTER appears on
+    #        U. Cycle the first-guess candidates U/Y/B/M/P/S, each a COMPLETE optimal subtree (green
+    #        subtree, original-colour root — a TIDY _ctree, SOURCED from the cache): U/Y = 1.0,
+    #        B/M/P/S = 1.25, the counter rolling. CHOOSE U (the min), lock node+edges+value. ──────
+    def _choose_u(self):
         uh = self.u_ref.node["u"]
         u_dot, u_lab = uh.dot, uh.lab
         yedge = self.grid.drilled_edge            # U→Y (miss, red)
@@ -1386,12 +1373,13 @@ class Scene05(HangmanScene):
         self.u_subtree = cur                        # hand off U's solved subtree to backing up E
         self.avg_u = counter                        # U's value label (green 1.0)
 
-    # ── n : start backing up E. SAME move as backing up U, one level up. Build E's FULL tidy
-    #        subtree as a _ctree (E → its e_/_e HIT branches + the U-position as the MISS child),
-    #        slide the solved green U-subtree onto E's miss slot (scaled to the new, smaller node
-    #        size — the whole tree shrinks to fit as it grows), morph the diagonal E into the tidy
-    #        root, and GROW E's other children (the E-hit branches, shown solved-green) to be
-    #        chosen among next in solve_e_hit / choose_e. ──────────────────────────────────────
+    # ── i : REPEAT the back-up one step at a time up the tree until the WHOLE tree is green.
+    #        Same move as beat h, one level up each time: back up E (2.00), then I (2.57), then O
+    #        (3.28), then add O's siblings (A's hit branches). Each level: build the tidy subtree,
+    #        slide the solved child onto the miss slot, grow + solve the hit branches, cycle the
+    #        candidates and choose the min. (Absorbs old backup_e … solve_a_hit — 11 sub-steps.)
+    #        Starts by backing up E: build E's FULL tidy subtree, slide the solved green U-subtree
+    #        onto E's miss slot, morph the diagonal E into the tidy root, grow E's hit branches. ──
     @subscene
     def backup_e(self):
         path = self.grid.path
@@ -1462,6 +1450,17 @@ class Scene05(HangmanScene):
         self.e_hit_trees = hit_trees                 # [(handle, green subtree), …] for solving
         self.e_hit_edges = [be for be, bd in hits]   # the ACTUAL on-screen E→M edges (transformed be)
         self.avg_u = None
+        # solve/choose E, then repeat the whole move up through I, O, and A's hit branches
+        self._solve_e_hit()
+        self._choose_e()
+        self._backup_i()
+        self._solve_i_hit()
+        self._choose_i()
+        self._backup_o()
+        self._solve_o_hit()
+        self._choose_o()
+        self._backup_a()
+        self._solve_a_hit()
 
     def _cycle_candidates(self, home, letters, make_ct, run_time, hold, extra=None):
         """Cross-fade a node's ``home`` subtree through up to ``CYCLE_MAX``-1 alternative candidate
@@ -1520,19 +1519,17 @@ class Scene05(HangmanScene):
             prev = avg
         return prev
 
-    # ── o : solve E's HIT children — each grown green with a WHITE root in n. For each position
-    #    ({EM,EN,EX}=1.00 ; {ME,BE,WE,RE,HE,YE}=2.50) show its number, cycle ALL other tied first-
-    #    guesses, settle on M, lock the root + edges green. Bare 2-dp numbers, one at a time. ────────
-    @subscene
-    def solve_e_hit(self):
+    # ── solve E's HIT children — sub-step of beat i. Each grown green with a WHITE root above. For
+    #    each position ({EM,EN,EX}=1.00 ; {ME,BE,WE,RE,HE,YE}=2.50) show its number, cycle ALL other
+    #    tied first-guesses, settle on M, lock the root + edges green. Bare 2-dp numbers, one at a time.
+    def _solve_e_hit(self):
         self.e_hit_avg = self._solve_position_hits(3, self.e_hit_trees)
 
-    # ── p : back up E — the value now sits on E. Cycle E's first-guess candidates (e=2.00 the min;
-    #    m/y=2.08, b=2.31, h/r/u/w=2.54, p/s=2.69, n/x=2.77 — ALL sourced), the bare 2dp counter
-    #    rolling on E; choose E, lock node + all edges + value green. Then the value backs up so the
-    #    tall gap climbs to I→E: E drops below I and I's OTHER children drop with it (sibling rule). ─
-    @subscene
-    def choose_e(self):
+    # ── back up E — sub-step of beat i. The value now sits on E. Cycle E's first-guess candidates
+    #    (e=2.00 the min; m/y=2.08, b=2.31, h/r/u/w=2.54, p/s=2.69, n/x=2.77 — ALL sourced), the bare
+    #    2dp counter rolling on E; choose E, lock node + all edges + value green. Then the value backs
+    #    up so the tall gap climbs to I→E: E drops below I and I's OTHER children drop with it. ───────
+    def _choose_e(self):
         path = self.grid.path
         eh = self.e_ref.node["e"]
         e_dot, e_lab = eh.dot, eh.lab
@@ -1577,13 +1574,12 @@ class Scene05(HangmanScene):
         self.u_ref = None                            # U's layout scaffolding — last used here; drop it
                                                      #   from every later snapshot (keeps them light)
 
-    # ── q : start backing up I. SAME move as backing up E (n), one level up. Build I's FULL
-    #        tidy subtree as a _ctree (I → its i_/_i HIT branches + the E-position as the MISS
-    #        child), slide the solved green E-subtree onto I's miss slot (scaled to the new,
-    #        smaller node size), morph the diagonal I into the tidy root, and GROW I's hit
-    #        branches (shown solved-green) — chosen among in solve_i_hit / choose_i. ────────────
-    @subscene
-    def backup_i(self):
+    # ── start backing up I — sub-step of beat i. SAME move as backing up E, one level up. Build
+    #        I's FULL tidy subtree as a _ctree (I → its i_/_i HIT branches + the E-position as the
+    #        MISS child), slide the solved green E-subtree onto I's miss slot (scaled to the new,
+    #        smaller node size), morph the diagonal I into the tidy root, and GROW I's hit branches
+    #        (shown solved-green) — chosen among next. ─────────────────────────────────────────────
+    def _backup_i(self):
         path = self.grid.path
         i_dot, i_lab = path.levels[2]["dot"], path.levels[2]["lab"]
         ic = i_dot.get_center()
@@ -1646,19 +1642,17 @@ class Scene05(HangmanScene):
         # keep self.e_subtree — it's now the slid miss child of I; choose_i folds it into cur
         self.avg_e = None
 
-    # ── r : solve I's HIT children (i_ {…}=2.0 ; _i {…}=2.0) — for each show its number, cycle
-    #        through ALL the other (tied) first-guesses, settle on the optimal, lock root + edges
-    #        green. Bare 2-dp numbers, ONE on screen at a time. Mirror of solve_e_hit. ───────────
-    @subscene
-    def solve_i_hit(self):
+    # ── solve I's HIT children (i_ {…}=2.0 ; _i {…}=2.0) — sub-step of beat i. For each show its
+    #        number, cycle through ALL the other (tied) first-guesses, settle on the optimal, lock
+    #        root + edges green. Bare 2-dp numbers, ONE on screen at a time. Mirror of _solve_e_hit.
+    def _solve_i_hit(self):
         self.i_hit_avg = self._solve_position_hits(2, self.i_hit_trees)
 
-    # ── s : back up I — cycle I's first-guess candidates (i=2.57 the min, then e/m/y/b/…, ALL
-    #        sourced), the bare 2-dp counter rolling on I; choose I, lock node + all edges + value
-    #        green. The climb to O→I happens at the START (node + siblings drop first). Mirror of
-    #        choose_e (climb-at-start, per the choose_u rule). ────────────────────────────────────
-    @subscene
-    def choose_i(self):
+    # ── back up I — sub-step of beat i. Cycle I's first-guess candidates (i=2.57 the min, then
+    #        e/m/y/b/…, ALL sourced), the bare 2-dp counter rolling on I; choose I, lock node + all
+    #        edges + value green. The climb to O→I happens at the START (node + siblings drop first).
+    #        Mirror of _choose_e (climb-at-start, per the choose_u rule). ──────────────────────────
+    def _choose_i(self):
         path = self.grid.path
         ih = self.i_ref.node["i"]
         i_dot, i_lab = ih.dot, ih.lab
@@ -1700,11 +1694,10 @@ class Scene05(HangmanScene):
         self.avg_i = counter                         # I's value label (green)
         self.e_ref = None                            # E's layout scaffolding — last used here; drop it
 
-    # ── t : start backing up O. SAME move as backing up I (q), one level up. Build O's FULL tidy
-    #        subtree, slide the solved green I-subtree onto O's miss slot, morph the diagonal O
-    #        into the tidy root, and GROW O's hit branches (green). Mirror of backup_i. ───────────
-    @subscene
-    def backup_o(self):
+    # ── start backing up O — sub-step of beat i. SAME move as backing up I, one level up. Build
+    #        O's FULL tidy subtree, slide the solved green I-subtree onto O's miss slot, morph the
+    #        diagonal O into the tidy root, and GROW O's hit branches (green). Mirror of _backup_i.
+    def _backup_o(self):
         path = self.grid.path
         o_dot, o_lab = path.levels[1]["dot"], path.levels[1]["lab"]
         oc = o_dot.get_center()
@@ -1761,17 +1754,16 @@ class Scene05(HangmanScene):
         # keep self.i_subtree — it's now the slid miss child of O; choose_o folds it into cur
         self.avg_i = None
 
-    # ── u : solve O's HIT children (o_ {…}=2.5 ; _o {…}=3.0) — cycle ALL tied first-guesses, lock
-    #        each root + edges green. Bare 2-dp numbers, one at a time. Mirror of solve_i_hit. ─────
-    @subscene
-    def solve_o_hit(self):
+    # ── solve O's HIT children (o_ {…}=2.5 ; _o {…}=3.0) — sub-step of beat i. Cycle ALL tied
+    #        first-guesses, lock each root + edges green. Bare 2-dp numbers, one at a time. ─────────
+    def _solve_o_hit(self):
         self.o_hit_avg = self._solve_position_hits(1, self.o_hit_trees)
 
-    # ── v : back up O — cycle O's first-guess candidates (o=3.28 the min, then i/e/m/y/…, ALL
-    #        sourced), the bare counter rolling on O; choose O, lock node + all edges + value green.
-    #        The climb to A→O (the diagonal root) happens at the START. Mirror of choose_i. ─────────
-    @subscene
-    def choose_o(self):
+    # ── back up O — sub-step of beat i. Cycle O's first-guess candidates (o=3.28 the min, then
+    #        i/e/m/y/…, ALL sourced), the bare counter rolling on O; choose O, lock node + all edges
+    #        + value green. The climb to A→O (the diagonal root) happens at the START. Mirror of
+    #        _choose_i. ─────────────────────────────────────────────────────────────────────────────
+    def _choose_o(self):
         path = self.grid.path
         oh = self.o_ref.node["o"]
         o_dot, o_lab = oh.dot, oh.lab
@@ -1812,13 +1804,12 @@ class Scene05(HangmanScene):
         self.avg_o = counter                         # O's value label (green)
         self.i_ref = None                            # I's layout scaffolding — last used here; drop it
 
-    # ── w : add in O's SIBLINGS — A's two hit branches (a_, _a). SAME move as backing up O (t),
-    #        but A is the diagonal ROOT (no parent edge / no gap climb): build A's FULL tidy
-    #        subtree, slide the solved green O-subtree onto A's miss slot, morph the diagonal A
-    #        into the tidy (white) root, and GROW A's hit branches (green). Leaves A itself
-    #        UN-chosen (no choose_a yet). Mirror of backup_o at the root. ─────────────────────────
-    @subscene
-    def backup_a(self):
+    # ── add in O's SIBLINGS — A's two hit branches (a_, _a) — sub-step of beat i. SAME move as
+    #        backing up O, but A is the diagonal ROOT (no parent edge / no gap climb): build A's
+    #        FULL tidy subtree, slide the solved green O-subtree onto A's miss slot, morph the
+    #        diagonal A into the tidy (white) root, and GROW A's hit branches (green). Leaves A
+    #        itself UN-chosen (the winner is picked in beat j). Mirror of _backup_o at the root. ────
+    def _backup_a(self):
         path = self.grid.path
         a_dot, a_lab = path.levels[0]["dot"], path.levels[0]["lab"]
         ac = a_dot.get_center()
@@ -1878,15 +1869,14 @@ class Scene05(HangmanScene):
         self.avg_o = None
         self.o_ref = None                            # O's layout scaffolding — last used here; drop it
 
-    # ── x : solve O's SIBLINGS — A's HIT children a_ ({…}=3.0) and _a ({…}=2.5), grown white-rooted
-    #        in w. Just like every other node: show each one's avg, cycle ALL its tied first-guesses,
-    #        settle on the optimal (T for both), lock its root + edges green. solve_X_hit at the
-    #        root — the same _solve_position_hits helper. ─────────────────────────────────────────
-    @subscene
-    def solve_a_hit(self):
+    # ── solve O's SIBLINGS — A's HIT children a_ ({…}=3.0) and _a ({…}=2.5) — sub-step of beat i,
+    #        grown white-rooted above. Just like every other node: show each one's avg, cycle ALL its
+    #        tied first-guesses, settle on the optimal (T for both), lock its root + edges green. The
+    #        same _solve_position_hits helper at the root; leaves the whole tree green for beat j. ──
+    def _solve_a_hit(self):
         self.a_hit_avg = self._solve_position_hits(0, self.a_hit_trees)
 
-    # ── y : compare EVERY first letter. The leftover '2.50' fades FIRST; then MORPH the solved
+    # ── j : compare EVERY first letter. The leftover '2.50' fades FIRST; then MORPH the solved
     #        A-tree 1:1 into the top-left GRID corner (every node/edge to its counterpart, green
     #        recolouring to red-white, every letter but the root A riding out) and only AFTER it
     #        lands does A's 'Avg misses' label appear. Fill the rest of the grid with each valid
@@ -2085,7 +2075,7 @@ class Scene05(HangmanScene):
         self.a_hit_trees = self.o_hit_trees = self.i_hit_trees = self.e_hit_trees = None
         self.grid = None
 
-    # ── z : DEDUP — the same letters in a different ORDER reach the same position, so a solved
+    # ── k : DEDUP — the same letters in a different ORDER reach the same position, so a solved
     #        position isn't re-solved. Two parallel miss-DIAGONAL trees (the MISS branch is the LEFT
     #        child, matching the rest of the scene — spine grows DOWN-LEFT): LEFT guesses A then O,
     #        RIGHT guesses O then A. Each guess node (lettered; first white, then red-via-miss) fans its
@@ -2170,7 +2160,7 @@ class Scene05(HangmanScene):
         self.play(*self._dedup_level(L, 2), *self._dedup_level(R, 2), run_time=0.6)
         self.play(FadeIn(L.board), FadeIn(R.board), run_time=0.6)
 
-    # ── za : a BAD guess that can only miss. After a successful A gives '_A' (A in pos 2 — the words
+    # ── l : a BAD guess that can only miss. After a successful A gives '_A' (A in pos 2 — the words
     #        FA/LA/MA/PA/TA/YA), guessing U — which can't be in any '_A' word — yields a SINGLE (miss)
     #        branch, so it's a wasted check we can skip. Show ALL of A's branches (miss + both hits, the
     #        _a hit is the one we follow) for context. SOURCED: `_a` is A's pos-2 hit; U's option there
@@ -2235,7 +2225,7 @@ class Scene05(HangmanScene):
         self.play(GrowFromPoint(VGroup(bg.e_um, bg.d_um), bg.u.get_center()), run_time=0.5)
         self.play(FadeIn(bg.b_um), run_time=0.4)
 
-    # ── zb : the PAIRED greedy-vs-optimal chart — avg misses by word length. LEFT bar = greedy
+    # ── m : the PAIRED greedy-vs-optimal chart — avg misses by word length. LEFT bar = greedy
     #        (SOURCED greedy_data), RIGHT = optimal uniform (SOURCED scene17_chart_data). Solved
     #        lengths: solid green right bar. UNSOLVED lengths (converged=False): a RED bar to the
     #        LOWER bound + a lighter red BAND up to the UPPER bound (the un-narrowed range). Uses the
