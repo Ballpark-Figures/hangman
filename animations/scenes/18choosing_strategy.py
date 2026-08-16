@@ -19,12 +19,13 @@ BEAT MAP (Script.md scene 18; --- delimited, 6 beats a-f + a transition beat g):
                    4-letter words (by zipf), RIGHT = the most common letter-combos in the
                    wordlist, each a MULTI-ROW block of bars (3 rows of 10, scene-17 style,
                    bold labels). Starts UNIFORM (every bar equal). SOURCED scene18_data.
-  d try_keep     — one combo bar rises → the WORDS exhibiting it rise too → the avg
-                   counts UP; we KEEP it. Rising bars flash GREEN + the number flashes GREEN.
+  d try_keep     — a combo bar AND the words exhibiting it rise TOGETHER → the avg counts
+                   UP; we KEEP it. Rising bars flash GREEN + the number flashes GREEN.
   e try_undo     — a DIFFERENT change → the avg counts DOWN (a failure, number CRIMSON) →
                    undo (NO number colour) → reset to the uniform start (NO number colour).
                    Rule: the avg number flashes green on a RISE, crimson on a DROP, but an
-                   UNDO/reset counts with no colour change.
+                   UNDO/reset counts with no colour change. A frequency adjustment moves the
+                   combo bars and the word bars at the SAME time (one play).
   f replay       — replay the optimization uniform→final in N_BUCKETS steps: each step
                    morphs the combo bars, then the word bars, then the avg (grow = green,
                    shrink = crimson).
@@ -63,10 +64,12 @@ TITLE_Y = 3.7                     # beat-a table title
 WORD_CX, COMBO_CX = -4.0, 4.0     # left = words, right = combos
 ROW_W = 7.0                       # each side's row width (a touch wider for 10 bars/row)
 PER_ROW = 10                      # bars per row
-ROW_H = 1.0                       # bar height at y_max (taller — spread across the fuller band)
-BASE_YS = [-0.50, -2.10, -3.70]   # the 3 row BASELINES (bars grow up); spread UP toward the
-                                  # tree so a full top bar tops out ~0.5 (just under the card at
-                                  # y 0.8) and the bottom labels still clear the frame edge below
+ROW_H = 1.10                      # bar height at y_max (grown further)
+BASE_YS = [-0.48, -2.18, -3.875]  # the 3 row BASELINES (bars grow up), placed so the top
+                                  # margin (hypothetical top of the top bars → tree card bottom
+                                  # at y 0.80) EQUALS the bottom margin (bottom-row labels →
+                                  # frame edge at y -4.5); both ≈ 0.18. Labels bottom out at
+                                  # base - 0.444 (label_buff 0.28 + cap_h 0.162 at 16pt).
 BAR_LABEL_FS = 16                 # bold, scene-17-word-bar sized (smaller for 10 bars/row)
 
 # ── the mini best-opener greedy TREE (whole tree, no letters) on a navy card ───
@@ -391,30 +394,32 @@ class Scene18(HangmanScene):
             m.set_color(interpolate_color(dcol, WORD_BLUE, t))
         return UpdateFromAlphaFunc(bar, upd)
 
-    def _morph_bars(self, bars, base, cur_vals, new_vals, y_max, run_time, flash=None):
+    def _side_anims(self, bars, base, cur_vals, new_vals, y_max, flash=None):
+        """The height-morph anims for ONE side (combos OR words); returns (anims, commit).
+        Call commit() AFTER the play to write new_vals into cur_vals. Used to gather BOTH
+        sides' anims into a SINGLE self.play so combos and words move together."""
         anims = [self._grow_anim(b, by, ROW_H * v0 / y_max, ROW_H * v1 / y_max, flash)
                  for b, by, v0, v1 in zip(bars, base, cur_vals, new_vals)]
-        self.play(*anims, run_time=run_time)
-        cur_vals[:] = list(new_vals)
+        return anims, lambda: cur_vals.__setitem__(slice(None), list(new_vals))
 
-    def _apply_state(self, state, combo_rt, word_rt, flash=None):
-        """Morph combos, THEN words, to a {combo_mult, word_freq} state (script order)."""
-        self._morph_bars(self.combo_bars, self.combo_base, self.combo_vals,
-                         state["combo_mult"], self.combo_ymax, combo_rt, flash)
-        self._morph_bars(self.word_bars, self.word_base, self.word_vals,
-                         state["word_freq"], self.word_ymax, word_rt, flash)
+    def _apply_state(self, state, run_time, flash=None):
+        """Morph the combo bars AND the word bars to a {combo_mult, word_freq} state
+        TOGETHER (one play) — a single frequency adjustment moves both sides at once."""
+        ca, ccommit = self._side_anims(self.combo_bars, self.combo_base, self.combo_vals,
+                                       state["combo_mult"], self.combo_ymax, flash)
+        wa, wcommit = self._side_anims(self.word_bars, self.word_base, self.word_vals,
+                                       state["word_freq"], self.word_ymax, flash)
+        self.play(*ca, *wa, run_time=run_time)
+        ccommit(); wcommit()
 
     def _apply_state_at_once(self, state, run_time, flash=None):
         """Morph combos, words AND the avg counter to a state ALL in one play (used for
         the reset — cleanup, not a deliberate combo→word→avg step)."""
-        anims = [self._grow_anim(b, by, ROW_H * v0 / self.combo_ymax,
-                                 ROW_H * v1 / self.combo_ymax, flash)
-                 for b, by, v0, v1 in zip(self.combo_bars, self.combo_base,
-                                          self.combo_vals, state["combo_mult"])]
-        anims += [self._grow_anim(b, by, ROW_H * v0 / self.word_ymax,
-                                  ROW_H * v1 / self.word_ymax, flash)
-                  for b, by, v0, v1 in zip(self.word_bars, self.word_base,
-                                           self.word_vals, state["word_freq"])]
+        ca, ccommit = self._side_anims(self.combo_bars, self.combo_base, self.combo_vals,
+                                       state["combo_mult"], self.combo_ymax, flash)
+        wa, wcommit = self._side_anims(self.word_bars, self.word_base, self.word_vals,
+                                       state["word_freq"], self.word_ymax, flash)
+        anims = [*ca, *wa]
         new_tree = self._tree_mob(state["tree"])
         # reset (an UNDO) → count with NO colour change (flash='none')
         self.avg_readout.add_updater(
@@ -423,8 +428,7 @@ class Scene18(HangmanScene):
                   self.avg_tracker.animate.set_value(state["avg_misses"]), run_time=run_time)
         self.avg_readout.clear_updaters()
         self.tree_mob = new_tree
-        self.combo_vals[:] = list(state["combo_mult"])
-        self.word_vals[:] = list(state["word_freq"])
+        ccommit(); wcommit()
 
     # ── a : "Words with Most Misses" — blue words, lagged upward rise, 14-miss set ──
     @subscene
@@ -498,22 +502,22 @@ class Scene18(HangmanScene):
             label_fades.append(chart.labels.animate.set_opacity(1))
         grow_bars(self, all_bars, 1.3, lag=0.02, extra=label_fades)
 
-    # ── d : a combo rises → its words rise → avg + tree update → keep ──────────
+    # ── d : a combo + its words rise TOGETHER → avg + tree update → keep ────────
     @subscene
     def try_keep(self):
         after = self.data["example_keep"]["after"]
-        self._apply_state(after, combo_rt=0.9, word_rt=0.9)    # combo bar (green), then its word bars
+        self._apply_state(after, 0.9)                          # combo + word bars rise together (green)
         self._count_and_tree(after, 0.8)                       # avg ticks UP + tree updates (kept)
 
     # ── e : a different change → avg counts DOWN (failure) → undo → reset ──────
     @subscene
     def try_undo(self):
         undo = self.data["example_undo"]
-        # try the failing change: RAISE the e combo → GREEN (direction rule); avg drops
-        self._apply_state(undo["worse"], combo_rt=0.9, word_rt=0.9)
+        # try the failing change: RAISE the e combo + its words → GREEN (direction rule); avg drops
+        self._apply_state(undo["worse"], 0.9)
         self._count_and_tree(undo["worse"], 0.8)               # DOWN = failure → number CRIMSON
-        # undo it: LOWER the e combo back → CRIMSON (direction rule)
-        self._apply_state(undo["base"], combo_rt=0.7, word_rt=0.7)
+        # undo it: LOWER the e combo + its words back → CRIMSON (direction rule)
+        self._apply_state(undo["base"], 0.7)
         self._count_and_tree(undo["base"], 0.6, flash="none")  # UNDO → number stays INK
         # reset the kept beat-d change (lower u) — JUST resetting: bars + avg + tree
         # together in ONE play, kept BLUE
@@ -525,7 +529,7 @@ class Scene18(HangmanScene):
         buckets = self.data["optimization"]["buckets"]         # 0 (uniform) .. final
         step = 0.45                   # lockstep montage (identical steps) — one knob
         for b in buckets[1:]:
-            self._apply_state(b, combo_rt=step, word_rt=step)
+            self._apply_state(b, step)                         # combo + word bars move together
             self._count_and_tree(b, step * 0.9)                # avg + tree update together
 
     # g : TRANSITION to scene 19 — fade everything (bars, avg readout, tree) out to the
