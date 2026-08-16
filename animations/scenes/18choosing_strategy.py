@@ -63,10 +63,10 @@ TITLE_Y = 3.7                     # beat-a table title
 WORD_CX, COMBO_CX = -4.0, 4.0     # left = words, right = combos
 ROW_W = 7.0                       # each side's row width (a touch wider for 10 bars/row)
 PER_ROW = 10                      # bars per row
-ROW_H = 0.72                      # bar height at y_max (shrunk to fit a 3rd row)
-BASE_YS = [-0.80, -2.15, -3.50]   # the 3 row BASELINES (bars grow up); spaced so a full top
-                                  # bar clears the card above and the bottom labels clear the
-                                  # frame edge below
+ROW_H = 1.0                       # bar height at y_max (taller — spread across the fuller band)
+BASE_YS = [-0.50, -2.10, -3.70]   # the 3 row BASELINES (bars grow up); spread UP toward the
+                                  # tree so a full top bar tops out ~0.5 (just under the card at
+                                  # y 0.8) and the bottom labels still clear the frame edge below
 BAR_LABEL_FS = 16                 # bold, scene-17-word-bar sized (smaller for 10 bars/row)
 
 # ── the mini best-opener greedy TREE (whole tree, no letters) on a navy card ───
