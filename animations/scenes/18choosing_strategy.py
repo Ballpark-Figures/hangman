@@ -90,8 +90,8 @@ TREE_HIT_COL = CHALK              # hit edges + nodes (off-white)
 #    level-by-level from the top (intro-style, no camera move). It IS the SAME tree beat c
 #    uses (buckets[0]["tree"]); at the START of beat c the whole box slides to the top-left
 #    mini slot while the letters fade, morphing into the shape-only mini tree. ────────────
-GT_BOX = (12.4, 5.0, 0.0, 0.35)   # big tree plotting box: W, H, centre x, centre y
-GT_DOT_R = 0.13                   # letter-holding node radius (big)
+GT_BOX = (14.4, 6.2, 0.0, 0.55)   # big tree plotting box: W, H, centre x, centre y (large)
+GT_DOT_R = 0.14                   # letter-holding node radius (big)
 GT_LETTER_H = 0.16                # guess-letter height (navy, knocked out of the chalk dot)
 GT_EDGE_W = 2.0                   # edge stroke width (big display)
 GT_LEVEL_RT = 0.7                 # each level takes the SAME time → constant-rate (continuous)
@@ -240,30 +240,32 @@ class Scene18(HangmanScene):
             return [CX + (x - (x0 + x1) / 2) * sx, CY + H / 2 - d * sy, 0]
 
         edges, dots, letters = VGroup(), VGroup(), VGroup()
-        lmarks = [VGroup() for _ in range(dmax + 1)]
+        lnodes = [[] for _ in range(dmax + 1)]        # per depth: (node marker group, parent centre)
         ledges = [VGroup() for _ in range(dmax + 1)]
         letter_dot_idx = []                           # dots-index of each letter's own node
 
-        def draw(node):
+        def draw(node, parent_c):
             c = place(node)
             d = dep[id(node)]
             dot = Dot(c, radius=dot_r, color=TREE_HIT_COL, z_index=2)
             di = len(dots)
-            dots.add(dot); lmarks[d].add(dot)
+            dots.add(dot)
+            ng = VGroup(dot)                          # the whole node marker (dot + its letter)
             if lettered and not node.get("leaf"):
                 lab = crisp_text(node["guess"].upper(), color=BOARD_NAVY, weight=BOLD)
                 lab.scale_to_fit_height(lh).move_to(c).set_z_index(3)
-                letters.add(lab); lmarks[d].add(lab); letter_dot_idx.append(di)
+                letters.add(lab); ng.add(lab); letter_dot_idx.append(di)
+            lnodes[d].append((ng, np.array(c)))
             if not node.get("leaf"):
                 for k in node["kids"]:
                     e = Line(c, place(k["sub"]), stroke_width=edge_w, z_index=-1,
                              color=(TREE_MISS_COL if k["miss"] else TREE_HIT_COL))
                     edges.add(e); ledges[dep[id(k["sub"])]].add(e)
-                    draw(k["sub"])
-        draw(tree)
+                    draw(k["sub"], c)
+        draw(tree, None)
         g = VGroup(edges, dots, letters)              # edges behind dots, letters on top
         g.dots, g.edges, g.letters = dots, edges, letters
-        g.level_marks, g.level_edges = lmarks, ledges
+        g.level_nodes, g.level_edges = lnodes, ledges
         g.letter_dot_idx = letter_dot_idx
         return g
 
@@ -384,27 +386,30 @@ class Scene18(HangmanScene):
                                 corner_radius=0.2, fill_color=BOARD_NAVY, fill_opacity=1.0,
                                 stroke_color=WHITE, stroke_width=2, z_index=-5)
         card.move_to(tree.get_center())
-        # footnote with a RAISED asterisk (a superscript footnote marker), below the card
+        # footnote with a RAISED asterisk (a superscript footnote marker), HALFWAY between the
+        # card bottom and the frame edge
         body = crisp_text("See blog post for more information", font_size=10, color=INK)
         star = crisp_text("*", font_size=10, color=INK).next_to(body, LEFT, buff=0.04)
         star.set_y(body.get_top()[1])                 # centre it at the cap line → clearly raised
-        foot = VGroup(star, body).scale_to_fit_width(6.0).move_to([0, card.get_bottom()[1] - 0.4, 0])
+        foot = VGroup(star, body).scale_to_fit_width(6.0)
+        foot.move_to([0, (card.get_bottom()[1] - config.frame_y_radius) / 2, 0])
         self.gtree, self.gcard, self.foot = tree, card, foot
 
         self.play(FadeIn(card), FadeIn(foot), run_time=0.6)
-        self.play(FadeIn(tree.level_marks[0]), run_time=0.6)     # root node + opening letter
+        self.play(GrowFromCenter(tree.level_nodes[0][0][0]), run_time=0.6)   # root grows in
         # grow ONE whole level at a time from the top (intro-style, no camera): each level's
-        # edges grow AT ONCE (Create, lag_ratio=0.0), the child nodes + letters pop as the
-        # edges finish (_appear_at_end). LINEAR rate + constant run_time (first level eased up
-        # to speed) → constant velocity across level boundaries, so it never stops between
-        # levels (mirrors 01intro `grow`, minus the camera dive).
-        for d in range(1, len(tree.level_marks)):
+        # edges grow AT ONCE (Create, lag_ratio=0.0), and each child NODE grows out of its
+        # PARENT and rides the edge's tip to its spot (GrowFromPoint, same rate) — so a node
+        # emerges smoothly with its edge instead of popping. LINEAR rate + constant run_time
+        # (first level eased up to speed) → constant velocity across level boundaries, so it
+        # never stops between levels (mirrors 01intro `grow`, minus the camera dive).
+        for d in range(1, len(tree.level_nodes)):
             first = (d == 1)
             rf = _ease_then_linear if first else linear
             rt = GT_LEVEL_RT / (1 - GT_EASE_FRAC / 2) if first else GT_LEVEL_RT
+            grows = [GrowFromPoint(ng, pc, rate_func=rf) for ng, pc in tree.level_nodes[d]]
             self.play(Create(tree.level_edges[d], lag_ratio=0.0, rate_func=rf),
-                      FadeIn(tree.level_marks[d], rate_func=_appear_at_end),
-                      run_time=rt)
+                      *grows, run_time=rt)
 
     # ── c : the choosing strategy composition — starts UNIFORM (every bar equal) ──
     #     the beat-b box slides to the top-left, letters fading, into the mini tree.
