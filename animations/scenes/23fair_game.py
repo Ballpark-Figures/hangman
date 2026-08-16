@@ -63,10 +63,9 @@ BEAT MAP  (one beat per word length: each length_N morphs the CDF AND fills its 
                    the shared 6-7 row (fair number 4 + fair-4 drawing)
   k length_8     — switch to 8 (write "8"; crimson caption clears) + fair number (3) + 3-circle snowman
   l length_9     — switch to 9 (write "9") + fair number (2) + 2-circle snowman
-  m switch_to_10plus — morph to 10; write the "10" of the centred "10+"
-  n march_to_16  — one continuous march through 11..16 (all still fair 1): the "+" (11)
-                   completes "10+", then the fair "1" (12), gallows (13) and oval (14) are
-                   drawn DURING the march; 15/16 just keep morphing
+  m march_to_16  — one continuous march through 10..16 (all still fair 1): the centred "10+"
+                   is written across 10 ("10") and 11 ("+"), then the fair "1" (12), gallows
+                   (13) and oval (14) are drawn DURING the march; 15/16 just keep morphing
 
 Word-length labels are written AS the CDF morphs to that length (via _morph_cdf's
 `extra_move`), not after. Every DRAWING is coloured to END at red (see _draw_colors) — an
@@ -74,7 +73,7 @@ N-element drawing uses the last N of [deep-red, deep-purple, purple, blue, green
 orange, red]; snowmen are yellow/orange/red top->bottom. Drawings are STAGGERED — odd word
 lengths on the left of the Drawing column, even on the right.
 
-NB beats e–n run AHEAD of Script.md's animation column (still 4 segments); they animate the
+NB beats e–m run AHEAD of Script.md's animation column (still 4 segments); they animate the
 length-2..16 part of beat-d's voiceover ("With 2 letters, the closest we can get is …").
 The dashed 50%/y=6 reference lines are z-indexed ABOVE the bars and turn BLUE where they
 pass over crimson bars; a CDF morph moves the shared bars first, then GROWS the brand-new
@@ -686,8 +685,9 @@ class Scene23(HangmanScene):
         for c in self.snow9.parts:                       # 2 circles, top -> bottom
             self.play(Create(c), run_time=0.4)
 
-    # ── m : morph to 10-letter words; write the "10" of the CENTRED "10+" as 10 appears.
-    #    The "10+" row's fair "1" + oval are BUILT here but drawn later, DURING the march.
+    # ── m : one continuous march through 10..16 (all still fair 1). The centred "10+" label
+    #    is written across 10 (the "10") and 11 (the "+"); the "10+" row's fair "1" (12),
+    #    gallows (13) and oval (14) are drawn DURING the march; 15/16 just keep morphing. ──
     def _setup_switch_10(self):
         y = self._row_y(8)
         self.len10p = chalk_phrase("10+", height=0.42, stroke_width=3.2, buff=0.06).move_to(
@@ -697,16 +697,10 @@ class Scene23(HangmanScene):
         self.draw10 = self._mini_gallows(1).move_to([self._draw_x(8), y, 0])   # gallows + oval
 
     @subscene
-    def switch_to_10plus(self):
-        self._setup_switch_10()
-        self._morph_cdf(self._cdf_chart(10), 10, 1.2, 1.0,  # 9- -> 10-Letter; write "10"
-                        extra_move=[self._write(VGroup(*self.len10p[0:2]))])
-
-    # ── n : one continuous march through 11..16 (all still fair 1). The "+" (11) completes
-    #    "10+"; the "10+" row's fair "1" (12), gallows (13) and oval (14) are drawn DURING
-    #    the march (not after it); 15/16 just keep morphing. ────────────────────────────
-    @subscene
     def march_to_16(self):
+        self._setup_switch_10()
+        self._morph_cdf(self._cdf_chart(10), 10, 1.2, 1.0,   # 10: write the "10" of "10+"
+                        extra_move=[self._write(VGroup(*self.len10p[0:2]))])
         self._morph_cdf(self._cdf_chart(11), 11, 1.2, 1.0,   # 11: write the "+" (completes "10+")
                         extra_move=[self._write(VGroup(self.len10p[2]))])
         self._morph_cdf(self._cdf_chart(12), 12, 1.0, 0.8,   # 12: write the fair "1"
