@@ -94,14 +94,24 @@ GT_BOX = (12.4, 5.0, 0.0, 0.35)   # big tree plotting box: W, H, centre x, centr
 GT_DOT_R = 0.13                   # letter-holding node radius (big)
 GT_LETTER_H = 0.16                # guess-letter height (navy, knocked out of the chalk dot)
 GT_EDGE_W = 2.0                   # edge stroke width (big display)
-GT_LEVEL_RT = 0.7                 # per-level build run_time (beat b, one whole level at a time)
+GT_LEVEL_RT = 0.7                 # each level takes the SAME time → constant-rate (continuous)
 GT_DOT_APPEAR = 0.9               # child nodes pop at this fraction of the edge growth (intro)
+GT_EASE_FRAC = 0.4                # first level only: fraction of its time ramping up to speed
 
 
 def _appear_at_end(t):
     """Hold at 0 until GT_DOT_APPEAR (the edge has ~reached the node), then ramp to 1 —
     so a level's child nodes pop in as its edges finish growing (mirrors the intro)."""
     return 0.0 if t < GT_DOT_APPEAR else (t - GT_DOT_APPEAR) / (1 - GT_DOT_APPEAR)
+
+
+def _ease_then_linear(t):
+    """First level only: ramp velocity from 0 over GT_EASE_FRAC, then hold CONSTANT — ending
+    at the linear levels' speed so growth hands off with no deceleration (the intro trick that
+    makes the tree expand smoothly, never stopping between levels)."""
+    s = GT_EASE_FRAC
+    vfull = 1.0 / (1.0 - s / 2.0)
+    return 0.5 * vfull * t * t / s if t <= s else 0.5 * vfull * s + vfull * (t - s)
 
 
 class Scene18(HangmanScene):
@@ -120,6 +130,7 @@ class Scene18(HangmanScene):
         self.table = None
         self.gtree = self.gcard = None           # beat-b big LETTERED greedy tree (+ its card),
                                                  # morphed into the mini tree at the start of beat c
+        self.foot = None                         # beat-b "*See blog post…" footnote
         self.mini_card = self.tree_mob = None    # beat-c+ mini greedy tree (+ its navy card)
         self.avg_readout = None                  # single-text "Average Misses: N.NN" counter
         self.word_charts = self.combo_charts = None
@@ -373,17 +384,27 @@ class Scene18(HangmanScene):
                                 corner_radius=0.2, fill_color=BOARD_NAVY, fill_opacity=1.0,
                                 stroke_color=WHITE, stroke_width=2, z_index=-5)
         card.move_to(tree.get_center())
-        self.gtree, self.gcard = tree, card
+        # footnote with a RAISED asterisk (a superscript footnote marker), below the card
+        body = crisp_text("See blog post for more information", font_size=10, color=INK)
+        star = crisp_text("*", font_size=10, color=INK).next_to(body, LEFT, buff=0.04)
+        star.set_y(body.get_top()[1])                 # centre it at the cap line → clearly raised
+        foot = VGroup(star, body).scale_to_fit_width(6.0).move_to([0, card.get_bottom()[1] - 0.4, 0])
+        self.gtree, self.gcard, self.foot = tree, card, foot
 
-        self.play(FadeIn(card), run_time=0.6)
+        self.play(FadeIn(card), FadeIn(foot), run_time=0.6)
         self.play(FadeIn(tree.level_marks[0]), run_time=0.6)     # root node + opening letter
-        # build one LEVEL at a time from the top (intro-style, no camera move): the whole
-        # level's edges grow AT ONCE (Create, lag_ratio=0.0) and its child nodes + letters
-        # pop in as the edges finish (rate_func=_appear_at_end) — mirrors 01intro `grow`.
+        # grow ONE whole level at a time from the top (intro-style, no camera): each level's
+        # edges grow AT ONCE (Create, lag_ratio=0.0), the child nodes + letters pop as the
+        # edges finish (_appear_at_end). LINEAR rate + constant run_time (first level eased up
+        # to speed) → constant velocity across level boundaries, so it never stops between
+        # levels (mirrors 01intro `grow`, minus the camera dive).
         for d in range(1, len(tree.level_marks)):
-            self.play(Create(tree.level_edges[d], lag_ratio=0.0),
+            first = (d == 1)
+            rf = _ease_then_linear if first else linear
+            rt = GT_LEVEL_RT / (1 - GT_EASE_FRAC / 2) if first else GT_LEVEL_RT
+            self.play(Create(tree.level_edges[d], lag_ratio=0.0, rate_func=rf),
                       FadeIn(tree.level_marks[d], rate_func=_appear_at_end),
-                      run_time=GT_LEVEL_RT)
+                      run_time=rt)
 
     # ── c : the choosing strategy composition — starts UNIFORM (every bar equal) ──
     #     the beat-b box slides to the top-left, letters fading, into the mini tree.
@@ -405,9 +426,10 @@ class Scene18(HangmanScene):
         morph += [lab.animate.move_to(self.tree_mob.dots[di].get_center())
                   .scale(0.2).set_opacity(0)
                   for lab, di in zip(self.gtree.letters, self.gtree.letter_dot_idx)]
+        morph.append(FadeOut(self.foot))               # the "*See blog post…" note leaves with the box
         self.play(*morph, run_time=1.2)
         self.remove(self.gtree.letters)
-        self.gtree = self.gcard = None
+        self.gtree = self.gcard = self.foot = None
 
         self.word_charts, self.word_bars, self.word_base = self._build_side(
             WORD_CX, self.words, uni["word_freq"], self.word_ymax)
