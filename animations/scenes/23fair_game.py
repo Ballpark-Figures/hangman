@@ -58,8 +58,9 @@ BEAT MAP  (one beat per word length: each length_N morphs the CDF AND fills its 
                    fair number (8) + split-gallows standard hangman (8 elements)
   g length_4     — switch to 4 (write "4") + fair number (7) + single-stroke-gallows hangman (7)
   h length_5     — switch to 5 (write "5") + fair number (5) + body-only drawing (5 elements)
-  i length_6     — switch to 6 (write the "6" of "6-7") + fair number (4) + fair-4 drawing
-  j length_7     — switch to 7 (write the "-7" of "6-7"); shares fair 4, no new fill
+  i length_6     — switch to 6: write the "6" of "6-7" as the 6-letter graph appears
+  j length_7     — switch to 7: write the "-7" of "6-7" as the 7-graph appears, THEN fill
+                   the shared 6-7 row (fair number 4 + fair-4 drawing)
   k length_8     — switch to 8 (write "8"; crimson caption clears) + fair number (3) + 3-circle snowman
   l length_9     — switch to 9 (write "9") + fair number (2) + 2-circle snowman
   m switch_to_10plus — morph to 10; write the "10" of the centred "10+"
@@ -607,13 +608,21 @@ class Scene23(HangmanScene):
         for p in self.draw5.parts:                       # 5 elements, one per miss
             self.play(Create(p), run_time=0.4)
 
-    # ── i : switch to 6-letter words (write the "6" of "6-7") + fill the length-6 row ─
+    # ── i : switch to 6-letter words — write the "6" of "6-7" as the 6-letter graph appears
     def _setup_switch_6(self):
         # lay out the whole "6-7" now (centred like every other label); the "6" is drawn
         # here, the "-7" when the 7-graph appears — so the merged label stays centred.
         self.len67 = chalk_phrase("6-7", height=0.42, stroke_width=3.2, buff=0.06).move_to(
             [self.col_x[0], self._row_y(5), 0])
 
+    @subscene
+    def length_6(self):
+        self._setup_switch_6()
+        self._morph_cdf(self._cdf_chart(6), 6, 1.2, 1.0,  # 5- -> 6-Letter; write the "6"
+                        extra_move=[self._write(VGroup(self.len67[0]))])
+
+    # ── j : switch to 7-letter words — write the "-7" of "6-7" as the 7-graph appears,
+    #    THEN fill the shared 6-7 row (fair number 4 + fair-4 drawing)
     def _setup_row6_fill(self):
         y = self._row_y(5)
         self.fair6 = chalk_number(4, height=0.42, stroke_width=3.2).move_to(
@@ -621,22 +630,15 @@ class Scene23(HangmanScene):
         self.gal6 = self._mini_gallows(4).move_to([self._draw_x(5), y, 0])
 
     @subscene
-    def length_6(self):
-        self._setup_switch_6()
+    def length_7(self):
         self._setup_row6_fill()
-        self._morph_cdf(self._cdf_chart(6), 6, 1.2, 1.0,  # 5- -> 6-Letter; write the "6"
-                        extra_move=[self._write(VGroup(self.len67[0]))])
+        self._morph_cdf(self._cdf_chart(7), 7, 1.2, 1.0,  # 6- -> 7-Letter (completes "6-7")
+                        extra_move=[self._write(VGroup(*self.len67[1:]))])
         self.play(LaggedStartMap(Create, _strokes(self.fair6), lag_ratio=0.5),
                   run_time=0.6)                          # fair number (4)
         self.play(LaggedStartMap(Create, self.gal6.frame, lag_ratio=0.8), run_time=1.0)
         for p in self.gal6.parts:                        # head, body, arm-line, leg-line
             self.play(Create(p), run_time=0.45)
-
-    # ── j : switch to 7-letter words — shares fair 4: draw the "-7" of "6-7" as 7 appears
-    @subscene
-    def length_7(self):
-        self._morph_cdf(self._cdf_chart(7), 7, 1.2, 1.0,  # 6- -> 7-Letter (completes "6-7")
-                        extra_move=[self._write(VGroup(*self.len67[1:]))])
 
     # ── k : switch to 8-letter words (caption clears) + fill the length-8 row ──────
     def _setup_switch_8(self):
