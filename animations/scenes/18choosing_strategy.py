@@ -398,18 +398,21 @@ class Scene18(HangmanScene):
         self.play(FadeIn(card), FadeIn(foot), run_time=0.6)
         self.play(GrowFromCenter(tree.level_nodes[0][0][0]), run_time=0.6)   # root grows in
         # grow ONE whole level at a time from the top (intro-style, no camera): each level's
-        # edges grow AT ONCE (Create, lag_ratio=0.0), and each child NODE grows out of its
-        # PARENT and rides the edge's tip to its spot (GrowFromPoint, same rate) — so a node
-        # emerges smoothly with its edge instead of popping. LINEAR rate + constant run_time
-        # (first level eased up to speed) → constant velocity across level boundaries, so it
-        # never stops between levels (mirrors 01intro `grow`, minus the camera dive).
+        # edges grow AT ONCE (lag_ratio=0.0) and each child NODE grows out of its PARENT,
+        # riding the edge's tip to its spot (GrowFromPoint, same rate) — so nodes emerge with
+        # their edges instead of popping. ALL levels play in ONE continuous LaggedStart
+        # (lag_ratio=1.0 → each level starts exactly as the previous ends) so there are NO
+        # per-`play` boundary frames between levels — a single seamless timeline that never
+        # stops (the intro used separate plays but hid the seams under its moving camera).
+        levels = []
         for d in range(1, len(tree.level_nodes)):
             first = (d == 1)
             rf = _ease_then_linear if first else linear
             rt = GT_LEVEL_RT / (1 - GT_EASE_FRAC / 2) if first else GT_LEVEL_RT
             grows = [GrowFromPoint(ng, pc, rate_func=rf) for ng, pc in tree.level_nodes[d]]
-            self.play(Create(tree.level_edges[d], lag_ratio=0.0, rate_func=rf),
-                      *grows, run_time=rt)
+            levels.append(AnimationGroup(
+                Create(tree.level_edges[d], lag_ratio=0.0, rate_func=rf), *grows, run_time=rt))
+        self.play(LaggedStart(*levels, lag_ratio=1.0))
 
     # ── c : the choosing strategy composition — starts UNIFORM (every bar equal) ──
     #     the beat-b box slides to the top-left, letters fading, into the mini tree.
