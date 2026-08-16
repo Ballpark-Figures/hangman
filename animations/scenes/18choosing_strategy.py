@@ -94,7 +94,14 @@ GT_BOX = (12.4, 5.0, 0.0, 0.35)   # big tree plotting box: W, H, centre x, centr
 GT_DOT_R = 0.13                   # letter-holding node radius (big)
 GT_LETTER_H = 0.16                # guess-letter height (navy, knocked out of the chalk dot)
 GT_EDGE_W = 2.0                   # edge stroke width (big display)
-GT_LEVEL_RT = 0.4                 # per-level build run_time (beat b, level-by-level)
+GT_LEVEL_RT = 0.7                 # per-level build run_time (beat b, one whole level at a time)
+GT_DOT_APPEAR = 0.9               # child nodes pop at this fraction of the edge growth (intro)
+
+
+def _appear_at_end(t):
+    """Hold at 0 until GT_DOT_APPEAR (the edge has ~reached the node), then ramp to 1 —
+    so a level's child nodes pop in as its edges finish growing (mirrors the intro)."""
+    return 0.0 if t < GT_DOT_APPEAR else (t - GT_DOT_APPEAR) / (1 - GT_DOT_APPEAR)
 
 
 class Scene18(HangmanScene):
@@ -224,16 +231,18 @@ class Scene18(HangmanScene):
         edges, dots, letters = VGroup(), VGroup(), VGroup()
         lmarks = [VGroup() for _ in range(dmax + 1)]
         ledges = [VGroup() for _ in range(dmax + 1)]
+        letter_dot_idx = []                           # dots-index of each letter's own node
 
         def draw(node):
             c = place(node)
             d = dep[id(node)]
             dot = Dot(c, radius=dot_r, color=TREE_HIT_COL, z_index=2)
+            di = len(dots)
             dots.add(dot); lmarks[d].add(dot)
             if lettered and not node.get("leaf"):
                 lab = crisp_text(node["guess"].upper(), color=BOARD_NAVY, weight=BOLD)
                 lab.scale_to_fit_height(lh).move_to(c).set_z_index(3)
-                letters.add(lab); lmarks[d].add(lab)
+                letters.add(lab); lmarks[d].add(lab); letter_dot_idx.append(di)
             if not node.get("leaf"):
                 for k in node["kids"]:
                     e = Line(c, place(k["sub"]), stroke_width=edge_w, z_index=-1,
@@ -244,6 +253,7 @@ class Scene18(HangmanScene):
         g = VGroup(edges, dots, letters)              # edges behind dots, letters on top
         g.dots, g.edges, g.letters = dots, edges, letters
         g.level_marks, g.level_edges = lmarks, ledges
+        g.letter_dot_idx = letter_dot_idx
         return g
 
     def _tree_card(self):
@@ -366,13 +376,14 @@ class Scene18(HangmanScene):
         self.gtree, self.gcard = tree, card
 
         self.play(FadeIn(card), run_time=0.6)
-        # build one LEVEL at a time from the top (intro-style, no camera move): the edges
-        # into the level DRAW in from their parents, the nodes + guess letters fade in
-        for d in range(len(tree.level_marks)):
-            anims = [FadeIn(tree.level_marks[d])]
-            if len(tree.level_edges[d]):
-                anims.append(Create(tree.level_edges[d]))
-            self.play(*anims, run_time=GT_LEVEL_RT)
+        self.play(FadeIn(tree.level_marks[0]), run_time=0.6)     # root node + opening letter
+        # build one LEVEL at a time from the top (intro-style, no camera move): the whole
+        # level's edges grow AT ONCE (Create, lag_ratio=0.0) and its child nodes + letters
+        # pop in as the edges finish (rate_func=_appear_at_end) — mirrors 01intro `grow`.
+        for d in range(1, len(tree.level_marks)):
+            self.play(Create(tree.level_edges[d], lag_ratio=0.0),
+                      FadeIn(tree.level_marks[d], rate_func=_appear_at_end),
+                      run_time=GT_LEVEL_RT)
 
     # ── c : the choosing strategy composition — starts UNIFORM (every bar equal) ──
     #     the beat-b box slides to the top-left, letters fading, into the mini tree.
@@ -384,15 +395,16 @@ class Scene18(HangmanScene):
         self.tree_mob = self._tree_mob(uni["tree"])            # shape-only twin (same layout)
 
         # move the whole box to the top-left mini slot while the letters fade: morph the big
-        # card→mini card and each big dot/edge→its mini twin (same traversal order), and
-        # slide the letters toward the shrinking tree as they fade out.
+        # card→mini card and each big dot/edge→its mini twin (same traversal order). Each
+        # letter RIDES its own node to that node's mini position, fading as it goes.
         morph = [ReplacementTransform(self.gcard, self.mini_card)]
         morph += [ReplacementTransform(bd, md)
                   for bd, md in zip(self.gtree.dots, self.tree_mob.dots)]
         morph += [ReplacementTransform(be, me)
                   for be, me in zip(self.gtree.edges, self.tree_mob.edges)]
-        morph.append(self.gtree.letters.animate
-                     .scale(0.25).move_to([*TREE_C, 0]).set_opacity(0))
+        morph += [lab.animate.move_to(self.tree_mob.dots[di].get_center())
+                  .scale(0.2).set_opacity(0)
+                  for lab, di in zip(self.gtree.letters, self.gtree.letter_dot_idx)]
         self.play(*morph, run_time=1.2)
         self.remove(self.gtree.letters)
         self.gtree = self.gcard = None
