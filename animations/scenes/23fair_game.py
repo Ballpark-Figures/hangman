@@ -64,9 +64,9 @@ BEAT MAP  (one beat per word length: each length_N morphs the CDF AND fills its 
   k length_8     — switch to 8 (write "8"; crimson caption clears) + fair number (3) + 3-circle snowman
   l length_9     — switch to 9 (write "9") + fair number (2) + 2-circle snowman
   m switch_to_10plus — morph to 10; write the "10" of the centred "10+"
-  n plus_11      — morph to 11; write the "+" (completes "10+")
-  o march_to_16  — keep morphing 12..16 (all still fair 1); the fair "1" (12), gallows (13)
-                   and oval (14) are drawn DURING this march, not after
+  n march_to_16  — one continuous march through 11..16 (all still fair 1): the "+" (11)
+                   completes "10+", then the fair "1" (12), gallows (13) and oval (14) are
+                   drawn DURING the march; 15/16 just keep morphing
 
 Word-length labels are written AS the CDF morphs to that length (via _morph_cdf's
 `extra_move`), not after. Every DRAWING is coloured to END at red (see _draw_colors) — an
@@ -74,7 +74,7 @@ N-element drawing uses the last N of [deep-red, deep-purple, purple, blue, green
 orange, red]; snowmen are yellow/orange/red top->bottom. Drawings are STAGGERED — odd word
 lengths on the left of the Drawing column, even on the right.
 
-NB beats e–o run AHEAD of Script.md's animation column (still 4 segments); they animate the
+NB beats e–n run AHEAD of Script.md's animation column (still 4 segments); they animate the
 length-2..16 part of beat-d's voiceover ("With 2 letters, the closest we can get is …").
 The dashed 50%/y=6 reference lines are z-indexed ABOVE the bars and turn BLUE where they
 pass over crimson bars; a CDF morph moves the shared bars first, then GROWS the brand-new
@@ -702,16 +702,13 @@ class Scene23(HangmanScene):
         self._morph_cdf(self._cdf_chart(10), 10, 1.2, 1.0,  # 9- -> 10-Letter; write "10"
                         extra_move=[self._write(VGroup(*self.len10p[0:2]))])
 
-    # ── n : morph to 11-letter words; write the "+" (completing "10+") as 11 appears ──
-    @subscene
-    def plus_11(self):
-        self._morph_cdf(self._cdf_chart(11), 11, 1.2, 1.0,  # 10- -> 11-Letter; write the "+"
-                        extra_move=[self._write(VGroup(self.len10p[2]))])
-
-    # ── o : keep morphing the CDF through 12..16 (all still fair 1); the fair "1", the
-    #    gallows, and the oval are drawn DURING this march (not after it) ─────────────
+    # ── n : one continuous march through 11..16 (all still fair 1). The "+" (11) completes
+    #    "10+"; the "10+" row's fair "1" (12), gallows (13) and oval (14) are drawn DURING
+    #    the march (not after it); 15/16 just keep morphing. ────────────────────────────
     @subscene
     def march_to_16(self):
+        self._morph_cdf(self._cdf_chart(11), 11, 1.2, 1.0,   # 11: write the "+" (completes "10+")
+                        extra_move=[self._write(VGroup(self.len10p[2]))])
         self._morph_cdf(self._cdf_chart(12), 12, 1.0, 0.8,   # 12: write the fair "1"
                         extra_move=[self._write(self.fair10)])
         self._morph_cdf(self._cdf_chart(13), 13, 1.0, 0.8,   # 13: draw the gallows
