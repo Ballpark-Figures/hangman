@@ -609,42 +609,49 @@
    "tree": {
     "leaf": false,
     "n": 49,
+    "guess": "a",
     "kids": [
      {
       "miss": true,
       "sub": {
        "leaf": false,
        "n": 36,
+       "guess": "o",
        "kids": [
         {
          "miss": true,
          "sub": {
           "leaf": false,
           "n": 23,
+          "guess": "i",
           "kids": [
            {
             "miss": true,
             "sub": {
              "leaf": false,
              "n": 13,
+             "guess": "e",
              "kids": [
               {
                "miss": true,
                "sub": {
                 "leaf": false,
                 "n": 4,
+                "guess": "u",
                 "kids": [
                  {
                   "miss": true,
                   "sub": {
                    "leaf": false,
                    "n": 2,
+                   "guess": "y",
                    "kids": [
                     {
                      "miss": false,
                      "sub": {
                       "leaf": false,
                       "n": 2,
+                      "guess": "b",
                       "kids": [
                        {
                         "miss": true,
@@ -669,6 +676,7 @@
                   "sub": {
                    "leaf": false,
                    "n": 2,
+                   "guess": "p",
                    "kids": [
                     {
                      "miss": true,
@@ -693,12 +701,14 @@
                "sub": {
                 "leaf": false,
                 "n": 3,
+                "guess": "m",
                 "kids": [
                  {
                   "miss": true,
                   "sub": {
                    "leaf": false,
                    "n": 2,
+                   "guess": "n",
                    "kids": [
                     {
                      "miss": true,
@@ -729,30 +739,35 @@
                "sub": {
                 "leaf": false,
                 "n": 6,
+                "guess": "b",
                 "kids": [
                  {
                   "miss": true,
                   "sub": {
                    "leaf": false,
                    "n": 5,
+                   "guess": "h",
                    "kids": [
                     {
                      "miss": true,
                      "sub": {
                       "leaf": false,
                       "n": 4,
+                      "guess": "m",
                       "kids": [
                        {
                         "miss": true,
                         "sub": {
                          "leaf": false,
                          "n": 3,
+                         "guess": "r",
                          "kids": [
                           {
                            "miss": true,
                            "sub": {
                             "leaf": false,
                             "n": 2,
+                            "guess": "w",
                             "kids": [
                              {
                               "miss": true,
@@ -813,24 +828,28 @@
             "sub": {
              "leaf": false,
              "n": 5,
+             "guess": "d",
              "kids": [
               {
                "miss": true,
                "sub": {
                 "leaf": false,
                 "n": 4,
+                "guess": "f",
                 "kids": [
                  {
                   "miss": true,
                   "sub": {
                    "leaf": false,
                    "n": 3,
+                   "guess": "n",
                    "kids": [
                     {
                      "miss": true,
                      "sub": {
                       "leaf": false,
                       "n": 2,
+                      "guess": "s",
                       "kids": [
                        {
                         "miss": true,
@@ -879,24 +898,28 @@
             "sub": {
              "leaf": false,
              "n": 5,
+             "guess": "b",
              "kids": [
               {
                "miss": true,
                "sub": {
                 "leaf": false,
                 "n": 4,
+                "guess": "h",
                 "kids": [
                  {
                   "miss": true,
                   "sub": {
                    "leaf": false,
                    "n": 3,
+                   "guess": "m",
                    "kids": [
                     {
                      "miss": true,
                      "sub": {
                       "leaf": false,
                       "n": 2,
+                      "guess": "p",
                       "kids": [
                        {
                         "miss": true,
@@ -948,30 +971,35 @@
          "sub": {
           "leaf": false,
           "n": 6,
+          "guess": "f",
           "kids": [
            {
             "miss": true,
             "sub": {
              "leaf": false,
              "n": 5,
+             "guess": "m",
              "kids": [
               {
                "miss": true,
                "sub": {
                 "leaf": false,
                 "n": 4,
+                "guess": "n",
                 "kids": [
                  {
                   "miss": true,
                   "sub": {
                    "leaf": false,
                    "n": 3,
+                   "guess": "p",
                    "kids": [
                     {
                      "miss": true,
                      "sub": {
                       "leaf": false,
                       "n": 2,
+                      "guess": "r",
                       "kids": [
                        {
                         "miss": true,
@@ -1029,36 +1057,42 @@
          "sub": {
           "leaf": false,
           "n": 7,
+          "guess": "d",
           "kids": [
            {
             "miss": true,
             "sub": {
              "leaf": false,
              "n": 6,
+             "guess": "g",
              "kids": [
               {
                "miss": true,
                "sub": {
                 "leaf": false,
                 "n": 5,
+                "guess": "l",
                 "kids": [
                  {
                   "miss": true,
                   "sub": {
                    "leaf": false,
                    "n": 4,
+                   "guess": "n",
                    "kids": [
                     {
                      "miss": true,
                      "sub": {
                       "leaf": false,
                       "n": 3,
+                      "guess": "s",
                       "kids": [
                        {
                         "miss": true,
                         "sub": {
                          "leaf": false,
                          "n": 2,
+                         "guess": "t",
                          "kids": [
                           {
                            "miss": true,
@@ -1128,36 +1162,42 @@
       "sub": {
        "leaf": false,
        "n": 7,
+       "guess": "b",
        "kids": [
         {
          "miss": true,
          "sub": {
           "leaf": false,
           "n": 6,
+          "guess": "d",
           "kids": [
            {
             "miss": true,
             "sub": {
              "leaf": false,
              "n": 5,
+             "guess": "m",
              "kids": [
               {
                "miss": true,
                "sub": {
                 "leaf": false,
                 "n": 4,
+                "guess": "n",
                 "kids": [
                  {
                   "miss": true,
                   "sub": {
                    "leaf": false,
                    "n": 3,
+                   "guess": "s",
                    "kids": [
                     {
                      "miss": true,
                      "sub": {
                       "leaf": false,
                       "n": 2,
+                      "guess": "t",
                       "kids": [
                        {
                         "miss": true,
@@ -1224,30 +1264,35 @@
       "sub": {
        "leaf": false,
        "n": 6,
+       "guess": "f",
        "kids": [
         {
          "miss": true,
          "sub": {
           "leaf": false,
           "n": 5,
+          "guess": "l",
           "kids": [
            {
             "miss": true,
             "sub": {
              "leaf": false,
              "n": 4,
+             "guess": "m",
              "kids": [
               {
                "miss": true,
                "sub": {
                 "leaf": false,
                 "n": 3,
+                "guess": "p",
                 "kids": [
                  {
                   "miss": true,
                   "sub": {
                    "leaf": false,
                    "n": 2,
+                   "guess": "t",
                    "kids": [
                     {
                      "miss": true,
@@ -1373,42 +1418,49 @@
    "tree": {
     "leaf": false,
     "n": 49,
+    "guess": "a",
     "kids": [
      {
       "miss": true,
       "sub": {
        "leaf": false,
        "n": 36,
+       "guess": "o",
        "kids": [
         {
          "miss": true,
          "sub": {
           "leaf": false,
           "n": 23,
+          "guess": "i",
           "kids": [
            {
             "miss": true,
             "sub": {
              "leaf": false,
              "n": 13,
+             "guess": "e",
              "kids": [
               {
                "miss": true,
                "sub": {
                 "leaf": false,
                 "n": 4,
+                "guess": "y",
                 "kids": [
                  {
                   "miss": true,
                   "sub": {
                    "leaf": false,
                    "n": 2,
+                   "guess": "u",
                    "kids": [
                     {
                      "miss": false,
                      "sub": {
                       "leaf": false,
                       "n": 2,
+                      "guess": "p",
                       "kids": [
                        {
                         "miss": true,
@@ -1433,6 +1485,7 @@
                   "sub": {
                    "leaf": false,
                    "n": 2,
+                   "guess": "b",
                    "kids": [
                     {
                      "miss": true,
@@ -1457,12 +1510,14 @@
                "sub": {
                 "leaf": false,
                 "n": 3,
+                "guess": "m",
                 "kids": [
                  {
                   "miss": true,
                   "sub": {
                    "leaf": false,
                    "n": 2,
+                   "guess": "n",
                    "kids": [
                     {
                      "miss": true,
@@ -1493,30 +1548,35 @@
                "sub": {
                 "leaf": false,
                 "n": 6,
+                "guess": "b",
                 "kids": [
                  {
                   "miss": true,
                   "sub": {
                    "leaf": false,
                    "n": 5,
+                   "guess": "h",
                    "kids": [
                     {
                      "miss": true,
                      "sub": {
                       "leaf": false,
                       "n": 4,
+                      "guess": "m",
                       "kids": [
                        {
                         "miss": true,
                         "sub": {
                          "leaf": false,
                          "n": 3,
+                         "guess": "r",
                          "kids": [
                           {
                            "miss": true,
                            "sub": {
                             "leaf": false,
                             "n": 2,
+                            "guess": "w",
                             "kids": [
                              {
                               "miss": true,
@@ -1577,24 +1637,28 @@
             "sub": {
              "leaf": false,
              "n": 5,
+             "guess": "d",
              "kids": [
               {
                "miss": true,
                "sub": {
                 "leaf": false,
                 "n": 4,
+                "guess": "f",
                 "kids": [
                  {
                   "miss": true,
                   "sub": {
                    "leaf": false,
                    "n": 3,
+                   "guess": "n",
                    "kids": [
                     {
                      "miss": true,
                      "sub": {
                       "leaf": false,
                       "n": 2,
+                      "guess": "s",
                       "kids": [
                        {
                         "miss": true,
@@ -1643,24 +1707,28 @@
             "sub": {
              "leaf": false,
              "n": 5,
+             "guess": "b",
              "kids": [
               {
                "miss": true,
                "sub": {
                 "leaf": false,
                 "n": 4,
+                "guess": "h",
                 "kids": [
                  {
                   "miss": true,
                   "sub": {
                    "leaf": false,
                    "n": 3,
+                   "guess": "m",
                    "kids": [
                     {
                      "miss": true,
                      "sub": {
                       "leaf": false,
                       "n": 2,
+                      "guess": "p",
                       "kids": [
                        {
                         "miss": true,
@@ -1712,30 +1780,35 @@
          "sub": {
           "leaf": false,
           "n": 6,
+          "guess": "f",
           "kids": [
            {
             "miss": true,
             "sub": {
              "leaf": false,
              "n": 5,
+             "guess": "m",
              "kids": [
               {
                "miss": true,
                "sub": {
                 "leaf": false,
                 "n": 4,
+                "guess": "n",
                 "kids": [
                  {
                   "miss": true,
                   "sub": {
                    "leaf": false,
                    "n": 3,
+                   "guess": "p",
                    "kids": [
                     {
                      "miss": true,
                      "sub": {
                       "leaf": false,
                       "n": 2,
+                      "guess": "r",
                       "kids": [
                        {
                         "miss": true,
@@ -1793,36 +1866,42 @@
          "sub": {
           "leaf": false,
           "n": 7,
+          "guess": "d",
           "kids": [
            {
             "miss": true,
             "sub": {
              "leaf": false,
              "n": 6,
+             "guess": "g",
              "kids": [
               {
                "miss": true,
                "sub": {
                 "leaf": false,
                 "n": 5,
+                "guess": "l",
                 "kids": [
                  {
                   "miss": true,
                   "sub": {
                    "leaf": false,
                    "n": 4,
+                   "guess": "n",
                    "kids": [
                     {
                      "miss": true,
                      "sub": {
                       "leaf": false,
                       "n": 3,
+                      "guess": "s",
                       "kids": [
                        {
                         "miss": true,
                         "sub": {
                          "leaf": false,
                          "n": 2,
+                         "guess": "t",
                          "kids": [
                           {
                            "miss": true,
@@ -1892,36 +1971,42 @@
       "sub": {
        "leaf": false,
        "n": 7,
+       "guess": "b",
        "kids": [
         {
          "miss": true,
          "sub": {
           "leaf": false,
           "n": 6,
+          "guess": "d",
           "kids": [
            {
             "miss": true,
             "sub": {
              "leaf": false,
              "n": 5,
+             "guess": "m",
              "kids": [
               {
                "miss": true,
                "sub": {
                 "leaf": false,
                 "n": 4,
+                "guess": "n",
                 "kids": [
                  {
                   "miss": true,
                   "sub": {
                    "leaf": false,
                    "n": 3,
+                   "guess": "s",
                    "kids": [
                     {
                      "miss": true,
                      "sub": {
                       "leaf": false,
                       "n": 2,
+                      "guess": "t",
                       "kids": [
                        {
                         "miss": true,
@@ -1988,30 +2073,35 @@
       "sub": {
        "leaf": false,
        "n": 6,
+       "guess": "f",
        "kids": [
         {
          "miss": true,
          "sub": {
           "leaf": false,
           "n": 5,
+          "guess": "l",
           "kids": [
            {
             "miss": true,
             "sub": {
              "leaf": false,
              "n": 4,
+             "guess": "m",
              "kids": [
               {
                "miss": true,
                "sub": {
                 "leaf": false,
                 "n": 3,
+                "guess": "p",
                 "kids": [
                  {
                   "miss": true,
                   "sub": {
                    "leaf": false,
                    "n": 2,
+                   "guess": "t",
                    "kids": [
                     {
                      "miss": true,
@@ -2148,42 +2238,49 @@
    "tree": {
     "leaf": false,
     "n": 49,
+    "guess": "a",
     "kids": [
      {
       "miss": true,
       "sub": {
        "leaf": false,
        "n": 36,
+       "guess": "o",
        "kids": [
         {
          "miss": true,
          "sub": {
           "leaf": false,
           "n": 23,
+          "guess": "i",
           "kids": [
            {
             "miss": true,
             "sub": {
              "leaf": false,
              "n": 13,
+             "guess": "e",
              "kids": [
               {
                "miss": true,
                "sub": {
                 "leaf": false,
                 "n": 4,
+                "guess": "y",
                 "kids": [
                  {
                   "miss": true,
                   "sub": {
                    "leaf": false,
                    "n": 2,
+                   "guess": "u",
                    "kids": [
                     {
                      "miss": false,
                      "sub": {
                       "leaf": false,
                       "n": 2,
+                      "guess": "p",
                       "kids": [
                        {
                         "miss": true,
@@ -2208,6 +2305,7 @@
                   "sub": {
                    "leaf": false,
                    "n": 2,
+                   "guess": "b",
                    "kids": [
                     {
                      "miss": true,
@@ -2232,12 +2330,14 @@
                "sub": {
                 "leaf": false,
                 "n": 3,
+                "guess": "m",
                 "kids": [
                  {
                   "miss": true,
                   "sub": {
                    "leaf": false,
                    "n": 2,
+                   "guess": "n",
                    "kids": [
                     {
                      "miss": true,
@@ -2268,30 +2368,35 @@
                "sub": {
                 "leaf": false,
                 "n": 6,
+                "guess": "b",
                 "kids": [
                  {
                   "miss": true,
                   "sub": {
                    "leaf": false,
                    "n": 5,
+                   "guess": "h",
                    "kids": [
                     {
                      "miss": true,
                      "sub": {
                       "leaf": false,
                       "n": 4,
+                      "guess": "m",
                       "kids": [
                        {
                         "miss": true,
                         "sub": {
                          "leaf": false,
                          "n": 3,
+                         "guess": "r",
                          "kids": [
                           {
                            "miss": true,
                            "sub": {
                             "leaf": false,
                             "n": 2,
+                            "guess": "w",
                             "kids": [
                              {
                               "miss": true,
@@ -2352,24 +2457,28 @@
             "sub": {
              "leaf": false,
              "n": 5,
+             "guess": "d",
              "kids": [
               {
                "miss": true,
                "sub": {
                 "leaf": false,
                 "n": 4,
+                "guess": "f",
                 "kids": [
                  {
                   "miss": true,
                   "sub": {
                    "leaf": false,
                    "n": 3,
+                   "guess": "n",
                    "kids": [
                     {
                      "miss": true,
                      "sub": {
                       "leaf": false,
                       "n": 2,
+                      "guess": "s",
                       "kids": [
                        {
                         "miss": true,
@@ -2418,24 +2527,28 @@
             "sub": {
              "leaf": false,
              "n": 5,
+             "guess": "b",
              "kids": [
               {
                "miss": true,
                "sub": {
                 "leaf": false,
                 "n": 4,
+                "guess": "h",
                 "kids": [
                  {
                   "miss": true,
                   "sub": {
                    "leaf": false,
                    "n": 3,
+                   "guess": "m",
                    "kids": [
                     {
                      "miss": true,
                      "sub": {
                       "leaf": false,
                       "n": 2,
+                      "guess": "p",
                       "kids": [
                        {
                         "miss": true,
@@ -2487,30 +2600,35 @@
          "sub": {
           "leaf": false,
           "n": 6,
+          "guess": "f",
           "kids": [
            {
             "miss": true,
             "sub": {
              "leaf": false,
              "n": 5,
+             "guess": "m",
              "kids": [
               {
                "miss": true,
                "sub": {
                 "leaf": false,
                 "n": 4,
+                "guess": "n",
                 "kids": [
                  {
                   "miss": true,
                   "sub": {
                    "leaf": false,
                    "n": 3,
+                   "guess": "p",
                    "kids": [
                     {
                      "miss": true,
                      "sub": {
                       "leaf": false,
                       "n": 2,
+                      "guess": "r",
                       "kids": [
                        {
                         "miss": true,
@@ -2568,36 +2686,42 @@
          "sub": {
           "leaf": false,
           "n": 7,
+          "guess": "d",
           "kids": [
            {
             "miss": true,
             "sub": {
              "leaf": false,
              "n": 6,
+             "guess": "g",
              "kids": [
               {
                "miss": true,
                "sub": {
                 "leaf": false,
                 "n": 5,
+                "guess": "l",
                 "kids": [
                  {
                   "miss": true,
                   "sub": {
                    "leaf": false,
                    "n": 4,
+                   "guess": "n",
                    "kids": [
                     {
                      "miss": true,
                      "sub": {
                       "leaf": false,
                       "n": 3,
+                      "guess": "s",
                       "kids": [
                        {
                         "miss": true,
                         "sub": {
                          "leaf": false,
                          "n": 2,
+                         "guess": "t",
                          "kids": [
                           {
                            "miss": true,
@@ -2667,36 +2791,42 @@
       "sub": {
        "leaf": false,
        "n": 7,
+       "guess": "b",
        "kids": [
         {
          "miss": true,
          "sub": {
           "leaf": false,
           "n": 6,
+          "guess": "d",
           "kids": [
            {
             "miss": true,
             "sub": {
              "leaf": false,
              "n": 5,
+             "guess": "m",
              "kids": [
               {
                "miss": true,
                "sub": {
                 "leaf": false,
                 "n": 4,
+                "guess": "n",
                 "kids": [
                  {
                   "miss": true,
                   "sub": {
                    "leaf": false,
                    "n": 3,
+                   "guess": "s",
                    "kids": [
                     {
                      "miss": true,
                      "sub": {
                       "leaf": false,
                       "n": 2,
+                      "guess": "t",
                       "kids": [
                        {
                         "miss": true,
@@ -2763,30 +2893,35 @@
       "sub": {
        "leaf": false,
        "n": 6,
+       "guess": "f",
        "kids": [
         {
          "miss": true,
          "sub": {
           "leaf": false,
           "n": 5,
+          "guess": "l",
           "kids": [
            {
             "miss": true,
             "sub": {
              "leaf": false,
              "n": 4,
+             "guess": "m",
              "kids": [
               {
                "miss": true,
                "sub": {
                 "leaf": false,
                 "n": 3,
+                "guess": "p",
                 "kids": [
                  {
                   "miss": true,
                   "sub": {
                    "leaf": false,
                    "n": 2,
+                   "guess": "t",
                    "kids": [
                     {
                      "miss": true,
@@ -2912,42 +3047,49 @@
    "tree": {
     "leaf": false,
     "n": 49,
+    "guess": "o",
     "kids": [
      {
       "miss": true,
       "sub": {
        "leaf": false,
        "n": 36,
+       "guess": "a",
        "kids": [
         {
          "miss": true,
          "sub": {
           "leaf": false,
           "n": 23,
+          "guess": "i",
           "kids": [
            {
             "miss": true,
             "sub": {
              "leaf": false,
              "n": 13,
+             "guess": "e",
              "kids": [
               {
                "miss": true,
                "sub": {
                 "leaf": false,
                 "n": 4,
+                "guess": "y",
                 "kids": [
                  {
                   "miss": true,
                   "sub": {
                    "leaf": false,
                    "n": 2,
+                   "guess": "u",
                    "kids": [
                     {
                      "miss": false,
                      "sub": {
                       "leaf": false,
                       "n": 2,
+                      "guess": "p",
                       "kids": [
                        {
                         "miss": true,
@@ -2972,6 +3114,7 @@
                   "sub": {
                    "leaf": false,
                    "n": 2,
+                   "guess": "b",
                    "kids": [
                     {
                      "miss": true,
@@ -2996,12 +3139,14 @@
                "sub": {
                 "leaf": false,
                 "n": 3,
+                "guess": "m",
                 "kids": [
                  {
                   "miss": true,
                   "sub": {
                    "leaf": false,
                    "n": 2,
+                   "guess": "n",
                    "kids": [
                     {
                      "miss": true,
@@ -3032,30 +3177,35 @@
                "sub": {
                 "leaf": false,
                 "n": 6,
+                "guess": "b",
                 "kids": [
                  {
                   "miss": true,
                   "sub": {
                    "leaf": false,
                    "n": 5,
+                   "guess": "h",
                    "kids": [
                     {
                      "miss": true,
                      "sub": {
                       "leaf": false,
                       "n": 4,
+                      "guess": "m",
                       "kids": [
                        {
                         "miss": true,
                         "sub": {
                          "leaf": false,
                          "n": 3,
+                         "guess": "r",
                          "kids": [
                           {
                            "miss": true,
                            "sub": {
                             "leaf": false,
                             "n": 2,
+                            "guess": "w",
                             "kids": [
                              {
                               "miss": true,
@@ -3116,24 +3266,28 @@
             "sub": {
              "leaf": false,
              "n": 5,
+             "guess": "d",
              "kids": [
               {
                "miss": true,
                "sub": {
                 "leaf": false,
                 "n": 4,
+                "guess": "f",
                 "kids": [
                  {
                   "miss": true,
                   "sub": {
                    "leaf": false,
                    "n": 3,
+                   "guess": "n",
                    "kids": [
                     {
                      "miss": true,
                      "sub": {
                       "leaf": false,
                       "n": 2,
+                      "guess": "s",
                       "kids": [
                        {
                         "miss": true,
@@ -3182,24 +3336,28 @@
             "sub": {
              "leaf": false,
              "n": 5,
+             "guess": "b",
              "kids": [
               {
                "miss": true,
                "sub": {
                 "leaf": false,
                 "n": 4,
+                "guess": "h",
                 "kids": [
                  {
                   "miss": true,
                   "sub": {
                    "leaf": false,
                    "n": 3,
+                   "guess": "m",
                    "kids": [
                     {
                      "miss": true,
                      "sub": {
                       "leaf": false,
                       "n": 2,
+                      "guess": "p",
                       "kids": [
                        {
                         "miss": true,
@@ -3251,36 +3409,42 @@
          "sub": {
           "leaf": false,
           "n": 7,
+          "guess": "b",
           "kids": [
            {
             "miss": true,
             "sub": {
              "leaf": false,
              "n": 6,
+             "guess": "d",
              "kids": [
               {
                "miss": true,
                "sub": {
                 "leaf": false,
                 "n": 5,
+                "guess": "m",
                 "kids": [
                  {
                   "miss": true,
                   "sub": {
                    "leaf": false,
                    "n": 4,
+                   "guess": "n",
                    "kids": [
                     {
                      "miss": true,
                      "sub": {
                       "leaf": false,
                       "n": 3,
+                      "guess": "s",
                       "kids": [
                        {
                         "miss": true,
                         "sub": {
                          "leaf": false,
                          "n": 2,
+                         "guess": "t",
                          "kids": [
                           {
                            "miss": true,
@@ -3347,30 +3511,35 @@
          "sub": {
           "leaf": false,
           "n": 6,
+          "guess": "f",
           "kids": [
            {
             "miss": true,
             "sub": {
              "leaf": false,
              "n": 5,
+             "guess": "l",
              "kids": [
               {
                "miss": true,
                "sub": {
                 "leaf": false,
                 "n": 4,
+                "guess": "m",
                 "kids": [
                  {
                   "miss": true,
                   "sub": {
                    "leaf": false,
                    "n": 3,
+                   "guess": "p",
                    "kids": [
                     {
                      "miss": true,
                      "sub": {
                       "leaf": false,
                       "n": 2,
+                      "guess": "t",
                       "kids": [
                        {
                         "miss": true,
@@ -3431,30 +3600,35 @@
       "sub": {
        "leaf": false,
        "n": 6,
+       "guess": "f",
        "kids": [
         {
          "miss": true,
          "sub": {
           "leaf": false,
           "n": 5,
+          "guess": "m",
           "kids": [
            {
             "miss": true,
             "sub": {
              "leaf": false,
              "n": 4,
+             "guess": "n",
              "kids": [
               {
                "miss": true,
                "sub": {
                 "leaf": false,
                 "n": 3,
+                "guess": "p",
                 "kids": [
                  {
                   "miss": true,
                   "sub": {
                    "leaf": false,
                    "n": 2,
+                   "guess": "r",
                    "kids": [
                     {
                      "miss": true,
@@ -3512,36 +3686,42 @@
       "sub": {
        "leaf": false,
        "n": 7,
+       "guess": "d",
        "kids": [
         {
          "miss": true,
          "sub": {
           "leaf": false,
           "n": 6,
+          "guess": "g",
           "kids": [
            {
             "miss": true,
             "sub": {
              "leaf": false,
              "n": 5,
+             "guess": "l",
              "kids": [
               {
                "miss": true,
                "sub": {
                 "leaf": false,
                 "n": 4,
+                "guess": "n",
                 "kids": [
                  {
                   "miss": true,
                   "sub": {
                    "leaf": false,
                    "n": 3,
+                   "guess": "s",
                    "kids": [
                     {
                      "miss": true,
                      "sub": {
                       "leaf": false,
                       "n": 2,
+                      "guess": "t",
                       "kids": [
                        {
                         "miss": true,
@@ -3676,42 +3856,49 @@
    "tree": {
     "leaf": false,
     "n": 49,
+    "guess": "a",
     "kids": [
      {
       "miss": true,
       "sub": {
        "leaf": false,
        "n": 36,
+       "guess": "o",
        "kids": [
         {
          "miss": true,
          "sub": {
           "leaf": false,
           "n": 23,
+          "guess": "i",
           "kids": [
            {
             "miss": true,
             "sub": {
              "leaf": false,
              "n": 13,
+             "guess": "e",
              "kids": [
               {
                "miss": true,
                "sub": {
                 "leaf": false,
                 "n": 4,
+                "guess": "u",
                 "kids": [
                  {
                   "miss": true,
                   "sub": {
                    "leaf": false,
                    "n": 2,
+                   "guess": "y",
                    "kids": [
                     {
                      "miss": false,
                      "sub": {
                       "leaf": false,
                       "n": 2,
+                      "guess": "b",
                       "kids": [
                        {
                         "miss": true,
@@ -3736,6 +3923,7 @@
                   "sub": {
                    "leaf": false,
                    "n": 2,
+                   "guess": "p",
                    "kids": [
                     {
                      "miss": true,
@@ -3760,12 +3948,14 @@
                "sub": {
                 "leaf": false,
                 "n": 3,
+                "guess": "m",
                 "kids": [
                  {
                   "miss": true,
                   "sub": {
                    "leaf": false,
                    "n": 2,
+                   "guess": "n",
                    "kids": [
                     {
                      "miss": true,
@@ -3796,30 +3986,35 @@
                "sub": {
                 "leaf": false,
                 "n": 6,
+                "guess": "b",
                 "kids": [
                  {
                   "miss": true,
                   "sub": {
                    "leaf": false,
                    "n": 5,
+                   "guess": "h",
                    "kids": [
                     {
                      "miss": true,
                      "sub": {
                       "leaf": false,
                       "n": 4,
+                      "guess": "m",
                       "kids": [
                        {
                         "miss": true,
                         "sub": {
                          "leaf": false,
                          "n": 3,
+                         "guess": "r",
                          "kids": [
                           {
                            "miss": true,
                            "sub": {
                             "leaf": false,
                             "n": 2,
+                            "guess": "w",
                             "kids": [
                              {
                               "miss": true,
@@ -3880,24 +4075,28 @@
             "sub": {
              "leaf": false,
              "n": 5,
+             "guess": "d",
              "kids": [
               {
                "miss": true,
                "sub": {
                 "leaf": false,
                 "n": 4,
+                "guess": "f",
                 "kids": [
                  {
                   "miss": true,
                   "sub": {
                    "leaf": false,
                    "n": 3,
+                   "guess": "n",
                    "kids": [
                     {
                      "miss": true,
                      "sub": {
                       "leaf": false,
                       "n": 2,
+                      "guess": "s",
                       "kids": [
                        {
                         "miss": true,
@@ -3946,24 +4145,28 @@
             "sub": {
              "leaf": false,
              "n": 5,
+             "guess": "b",
              "kids": [
               {
                "miss": true,
                "sub": {
                 "leaf": false,
                 "n": 4,
+                "guess": "h",
                 "kids": [
                  {
                   "miss": true,
                   "sub": {
                    "leaf": false,
                    "n": 3,
+                   "guess": "m",
                    "kids": [
                     {
                      "miss": true,
                      "sub": {
                       "leaf": false,
                       "n": 2,
+                      "guess": "p",
                       "kids": [
                        {
                         "miss": true,
@@ -4015,30 +4218,35 @@
          "sub": {
           "leaf": false,
           "n": 6,
+          "guess": "f",
           "kids": [
            {
             "miss": true,
             "sub": {
              "leaf": false,
              "n": 5,
+             "guess": "m",
              "kids": [
               {
                "miss": true,
                "sub": {
                 "leaf": false,
                 "n": 4,
+                "guess": "n",
                 "kids": [
                  {
                   "miss": true,
                   "sub": {
                    "leaf": false,
                    "n": 3,
+                   "guess": "p",
                    "kids": [
                     {
                      "miss": true,
                      "sub": {
                       "leaf": false,
                       "n": 2,
+                      "guess": "r",
                       "kids": [
                        {
                         "miss": true,
@@ -4096,36 +4304,42 @@
          "sub": {
           "leaf": false,
           "n": 7,
+          "guess": "d",
           "kids": [
            {
             "miss": true,
             "sub": {
              "leaf": false,
              "n": 6,
+             "guess": "g",
              "kids": [
               {
                "miss": true,
                "sub": {
                 "leaf": false,
                 "n": 5,
+                "guess": "l",
                 "kids": [
                  {
                   "miss": true,
                   "sub": {
                    "leaf": false,
                    "n": 4,
+                   "guess": "n",
                    "kids": [
                     {
                      "miss": true,
                      "sub": {
                       "leaf": false,
                       "n": 3,
+                      "guess": "s",
                       "kids": [
                        {
                         "miss": true,
                         "sub": {
                          "leaf": false,
                          "n": 2,
+                         "guess": "t",
                          "kids": [
                           {
                            "miss": true,
@@ -4195,36 +4409,42 @@
       "sub": {
        "leaf": false,
        "n": 7,
+       "guess": "b",
        "kids": [
         {
          "miss": true,
          "sub": {
           "leaf": false,
           "n": 6,
+          "guess": "d",
           "kids": [
            {
             "miss": true,
             "sub": {
              "leaf": false,
              "n": 5,
+             "guess": "m",
              "kids": [
               {
                "miss": true,
                "sub": {
                 "leaf": false,
                 "n": 4,
+                "guess": "n",
                 "kids": [
                  {
                   "miss": true,
                   "sub": {
                    "leaf": false,
                    "n": 3,
+                   "guess": "s",
                    "kids": [
                     {
                      "miss": true,
                      "sub": {
                       "leaf": false,
                       "n": 2,
+                      "guess": "t",
                       "kids": [
                        {
                         "miss": true,
@@ -4291,30 +4511,35 @@
       "sub": {
        "leaf": false,
        "n": 6,
+       "guess": "f",
        "kids": [
         {
          "miss": true,
          "sub": {
           "leaf": false,
           "n": 5,
+          "guess": "l",
           "kids": [
            {
             "miss": true,
             "sub": {
              "leaf": false,
              "n": 4,
+             "guess": "m",
              "kids": [
               {
                "miss": true,
                "sub": {
                 "leaf": false,
                 "n": 3,
+                "guess": "p",
                 "kids": [
                  {
                   "miss": true,
                   "sub": {
                    "leaf": false,
                    "n": 2,
+                   "guess": "t",
                    "kids": [
                     {
                      "miss": true,
@@ -4507,42 +4732,49 @@
     "tree": {
      "leaf": false,
      "n": 49,
+     "guess": "a",
      "kids": [
       {
        "miss": true,
        "sub": {
         "leaf": false,
         "n": 36,
+        "guess": "o",
         "kids": [
          {
           "miss": true,
           "sub": {
            "leaf": false,
            "n": 23,
+           "guess": "i",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 13,
+              "guess": "e",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 4,
+                 "guess": "u",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "y",
                     "kids": [
                      {
                       "miss": false,
                       "sub": {
                        "leaf": false,
                        "n": 2,
+                       "guess": "b",
                        "kids": [
                         {
                          "miss": true,
@@ -4567,6 +4799,7 @@
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "p",
                     "kids": [
                      {
                       "miss": true,
@@ -4591,12 +4824,14 @@
                 "sub": {
                  "leaf": false,
                  "n": 3,
+                 "guess": "m",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "n",
                     "kids": [
                      {
                       "miss": true,
@@ -4627,30 +4862,35 @@
                 "sub": {
                  "leaf": false,
                  "n": 6,
+                 "guess": "b",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 5,
+                    "guess": "h",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 4,
+                       "guess": "m",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 3,
+                          "guess": "r",
                           "kids": [
                            {
                             "miss": true,
                             "sub": {
                              "leaf": false,
                              "n": 2,
+                             "guess": "w",
                              "kids": [
                               {
                                "miss": true,
@@ -4711,24 +4951,28 @@
              "sub": {
               "leaf": false,
               "n": 5,
+              "guess": "d",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 4,
+                 "guess": "f",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 3,
+                    "guess": "n",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 2,
+                       "guess": "s",
                        "kids": [
                         {
                          "miss": true,
@@ -4777,24 +5021,28 @@
              "sub": {
               "leaf": false,
               "n": 5,
+              "guess": "b",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 4,
+                 "guess": "h",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 3,
+                    "guess": "m",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 2,
+                       "guess": "p",
                        "kids": [
                         {
                          "miss": true,
@@ -4846,30 +5094,35 @@
           "sub": {
            "leaf": false,
            "n": 6,
+           "guess": "f",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 5,
+              "guess": "m",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 4,
+                 "guess": "n",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 3,
+                    "guess": "p",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 2,
+                       "guess": "r",
                        "kids": [
                         {
                          "miss": true,
@@ -4927,36 +5180,42 @@
           "sub": {
            "leaf": false,
            "n": 7,
+           "guess": "d",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 6,
+              "guess": "g",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 5,
+                 "guess": "l",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 4,
+                    "guess": "n",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 3,
+                       "guess": "s",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 2,
+                          "guess": "t",
                           "kids": [
                            {
                             "miss": true,
@@ -5026,36 +5285,42 @@
        "sub": {
         "leaf": false,
         "n": 7,
+        "guess": "b",
         "kids": [
          {
           "miss": true,
           "sub": {
            "leaf": false,
            "n": 6,
+           "guess": "d",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 5,
+              "guess": "m",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 4,
+                 "guess": "n",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 3,
+                    "guess": "s",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 2,
+                       "guess": "t",
                        "kids": [
                         {
                          "miss": true,
@@ -5122,30 +5387,35 @@
        "sub": {
         "leaf": false,
         "n": 6,
+        "guess": "f",
         "kids": [
          {
           "miss": true,
           "sub": {
            "leaf": false,
            "n": 5,
+           "guess": "l",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 4,
+              "guess": "m",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 3,
+                 "guess": "p",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "t",
                     "kids": [
                      {
                       "miss": true,
@@ -5272,42 +5542,49 @@
     "tree": {
      "leaf": false,
      "n": 49,
+     "guess": "o",
      "kids": [
       {
        "miss": true,
        "sub": {
         "leaf": false,
         "n": 36,
+        "guess": "a",
         "kids": [
          {
           "miss": true,
           "sub": {
            "leaf": false,
            "n": 23,
+           "guess": "i",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 13,
+              "guess": "e",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 4,
+                 "guess": "u",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "y",
                     "kids": [
                      {
                       "miss": false,
                       "sub": {
                        "leaf": false,
                        "n": 2,
+                       "guess": "b",
                        "kids": [
                         {
                          "miss": true,
@@ -5332,6 +5609,7 @@
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "p",
                     "kids": [
                      {
                       "miss": true,
@@ -5356,12 +5634,14 @@
                 "sub": {
                  "leaf": false,
                  "n": 3,
+                 "guess": "m",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "n",
                     "kids": [
                      {
                       "miss": true,
@@ -5392,30 +5672,35 @@
                 "sub": {
                  "leaf": false,
                  "n": 6,
+                 "guess": "b",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 5,
+                    "guess": "h",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 4,
+                       "guess": "m",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 3,
+                          "guess": "r",
                           "kids": [
                            {
                             "miss": true,
                             "sub": {
                              "leaf": false,
                              "n": 2,
+                             "guess": "w",
                              "kids": [
                               {
                                "miss": true,
@@ -5476,24 +5761,28 @@
              "sub": {
               "leaf": false,
               "n": 5,
+              "guess": "d",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 4,
+                 "guess": "f",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 3,
+                    "guess": "n",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 2,
+                       "guess": "s",
                        "kids": [
                         {
                          "miss": true,
@@ -5542,24 +5831,28 @@
              "sub": {
               "leaf": false,
               "n": 5,
+              "guess": "b",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 4,
+                 "guess": "h",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 3,
+                    "guess": "m",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 2,
+                       "guess": "p",
                        "kids": [
                         {
                          "miss": true,
@@ -5611,36 +5904,42 @@
           "sub": {
            "leaf": false,
            "n": 7,
+           "guess": "b",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 6,
+              "guess": "d",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 5,
+                 "guess": "m",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 4,
+                    "guess": "n",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 3,
+                       "guess": "s",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 2,
+                          "guess": "t",
                           "kids": [
                            {
                             "miss": true,
@@ -5707,30 +6006,35 @@
           "sub": {
            "leaf": false,
            "n": 6,
+           "guess": "f",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 5,
+              "guess": "l",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 4,
+                 "guess": "m",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 3,
+                    "guess": "p",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 2,
+                       "guess": "t",
                        "kids": [
                         {
                          "miss": true,
@@ -5791,30 +6095,35 @@
        "sub": {
         "leaf": false,
         "n": 6,
+        "guess": "f",
         "kids": [
          {
           "miss": true,
           "sub": {
            "leaf": false,
            "n": 5,
+           "guess": "m",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 4,
+              "guess": "n",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 3,
+                 "guess": "p",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "r",
                     "kids": [
                      {
                       "miss": true,
@@ -5872,36 +6181,42 @@
        "sub": {
         "leaf": false,
         "n": 7,
+        "guess": "d",
         "kids": [
          {
           "miss": true,
           "sub": {
            "leaf": false,
            "n": 6,
+           "guess": "g",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 5,
+              "guess": "l",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 4,
+                 "guess": "n",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 3,
+                    "guess": "s",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 2,
+                       "guess": "t",
                        "kids": [
                         {
                          "miss": true,
@@ -6037,42 +6352,49 @@
     "tree": {
      "leaf": false,
      "n": 49,
+     "guess": "a",
      "kids": [
       {
        "miss": true,
        "sub": {
         "leaf": false,
         "n": 36,
+        "guess": "i",
         "kids": [
          {
           "miss": true,
           "sub": {
            "leaf": false,
            "n": 26,
+           "guess": "o",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 13,
+              "guess": "e",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 4,
+                 "guess": "u",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "y",
                     "kids": [
                      {
                       "miss": false,
                       "sub": {
                        "leaf": false,
                        "n": 2,
+                       "guess": "b",
                        "kids": [
                         {
                          "miss": true,
@@ -6097,6 +6419,7 @@
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "p",
                     "kids": [
                      {
                       "miss": true,
@@ -6121,12 +6444,14 @@
                 "sub": {
                  "leaf": false,
                  "n": 3,
+                 "guess": "m",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "n",
                     "kids": [
                      {
                       "miss": true,
@@ -6157,30 +6482,35 @@
                 "sub": {
                  "leaf": false,
                  "n": 6,
+                 "guess": "b",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 5,
+                    "guess": "h",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 4,
+                       "guess": "m",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 3,
+                          "guess": "r",
                           "kids": [
                            {
                             "miss": true,
                             "sub": {
                              "leaf": false,
                              "n": 2,
+                             "guess": "w",
                              "kids": [
                               {
                                "miss": true,
@@ -6241,30 +6571,35 @@
              "sub": {
               "leaf": false,
               "n": 6,
+              "guess": "f",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 5,
+                 "guess": "m",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 4,
+                    "guess": "n",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 3,
+                       "guess": "p",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 2,
+                          "guess": "r",
                           "kids": [
                            {
                             "miss": true,
@@ -6322,36 +6657,42 @@
              "sub": {
               "leaf": false,
               "n": 7,
+              "guess": "d",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 6,
+                 "guess": "g",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 5,
+                    "guess": "l",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 4,
+                       "guess": "n",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 3,
+                          "guess": "s",
                           "kids": [
                            {
                             "miss": true,
                             "sub": {
                              "leaf": false,
                              "n": 2,
+                             "guess": "t",
                              "kids": [
                               {
                                "miss": true,
@@ -6421,24 +6762,28 @@
           "sub": {
            "leaf": false,
            "n": 5,
+           "guess": "d",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 4,
+              "guess": "f",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 3,
+                 "guess": "n",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "s",
                     "kids": [
                      {
                       "miss": true,
@@ -6487,24 +6832,28 @@
           "sub": {
            "leaf": false,
            "n": 5,
+           "guess": "b",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 4,
+              "guess": "h",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 3,
+                 "guess": "m",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "p",
                     "kids": [
                      {
                       "miss": true,
@@ -6556,36 +6905,42 @@
        "sub": {
         "leaf": false,
         "n": 7,
+        "guess": "b",
         "kids": [
          {
           "miss": true,
           "sub": {
            "leaf": false,
            "n": 6,
+           "guess": "d",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 5,
+              "guess": "m",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 4,
+                 "guess": "n",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 3,
+                    "guess": "s",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 2,
+                       "guess": "t",
                        "kids": [
                         {
                          "miss": true,
@@ -6652,30 +7007,35 @@
        "sub": {
         "leaf": false,
         "n": 6,
+        "guess": "f",
         "kids": [
          {
           "miss": true,
           "sub": {
            "leaf": false,
            "n": 5,
+           "guess": "l",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 4,
+              "guess": "m",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 3,
+                 "guess": "p",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "t",
                     "kids": [
                      {
                       "miss": true,
@@ -6802,42 +7162,49 @@
     "tree": {
      "leaf": false,
      "n": 49,
+     "guess": "a",
      "kids": [
       {
        "miss": true,
        "sub": {
         "leaf": false,
         "n": 36,
+        "guess": "i",
         "kids": [
          {
           "miss": true,
           "sub": {
            "leaf": false,
            "n": 26,
+           "guess": "o",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 13,
+              "guess": "e",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 4,
+                 "guess": "u",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "y",
                     "kids": [
                      {
                       "miss": false,
                       "sub": {
                        "leaf": false,
                        "n": 2,
+                       "guess": "b",
                        "kids": [
                         {
                          "miss": true,
@@ -6862,6 +7229,7 @@
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "p",
                     "kids": [
                      {
                       "miss": true,
@@ -6886,12 +7254,14 @@
                 "sub": {
                  "leaf": false,
                  "n": 3,
+                 "guess": "m",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "n",
                     "kids": [
                      {
                       "miss": true,
@@ -6922,30 +7292,35 @@
                 "sub": {
                  "leaf": false,
                  "n": 6,
+                 "guess": "b",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 5,
+                    "guess": "h",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 4,
+                       "guess": "m",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 3,
+                          "guess": "r",
                           "kids": [
                            {
                             "miss": true,
                             "sub": {
                              "leaf": false,
                              "n": 2,
+                             "guess": "w",
                              "kids": [
                               {
                                "miss": true,
@@ -7006,30 +7381,35 @@
              "sub": {
               "leaf": false,
               "n": 6,
+              "guess": "f",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 5,
+                 "guess": "m",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 4,
+                    "guess": "n",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 3,
+                       "guess": "p",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 2,
+                          "guess": "r",
                           "kids": [
                            {
                             "miss": true,
@@ -7087,36 +7467,42 @@
              "sub": {
               "leaf": false,
               "n": 7,
+              "guess": "d",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 6,
+                 "guess": "g",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 5,
+                    "guess": "l",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 4,
+                       "guess": "n",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 3,
+                          "guess": "s",
                           "kids": [
                            {
                             "miss": true,
                             "sub": {
                              "leaf": false,
                              "n": 2,
+                             "guess": "t",
                              "kids": [
                               {
                                "miss": true,
@@ -7186,24 +7572,28 @@
           "sub": {
            "leaf": false,
            "n": 5,
+           "guess": "d",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 4,
+              "guess": "f",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 3,
+                 "guess": "n",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "s",
                     "kids": [
                      {
                       "miss": true,
@@ -7252,24 +7642,28 @@
           "sub": {
            "leaf": false,
            "n": 5,
+           "guess": "b",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 4,
+              "guess": "h",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 3,
+                 "guess": "m",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "p",
                     "kids": [
                      {
                       "miss": true,
@@ -7321,36 +7715,42 @@
        "sub": {
         "leaf": false,
         "n": 7,
+        "guess": "b",
         "kids": [
          {
           "miss": true,
           "sub": {
            "leaf": false,
            "n": 6,
+           "guess": "d",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 5,
+              "guess": "m",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 4,
+                 "guess": "n",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 3,
+                    "guess": "s",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 2,
+                       "guess": "t",
                        "kids": [
                         {
                          "miss": true,
@@ -7417,30 +7817,35 @@
        "sub": {
         "leaf": false,
         "n": 6,
+        "guess": "f",
         "kids": [
          {
           "miss": true,
           "sub": {
            "leaf": false,
            "n": 5,
+           "guess": "l",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 4,
+              "guess": "m",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 3,
+                 "guess": "p",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "t",
                     "kids": [
                      {
                       "miss": true,
@@ -7567,42 +7972,49 @@
     "tree": {
      "leaf": false,
      "n": 49,
+     "guess": "a",
      "kids": [
       {
        "miss": true,
        "sub": {
         "leaf": false,
         "n": 36,
+        "guess": "i",
         "kids": [
          {
           "miss": true,
           "sub": {
            "leaf": false,
            "n": 26,
+           "guess": "o",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 13,
+              "guess": "e",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 4,
+                 "guess": "u",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "y",
                     "kids": [
                      {
                       "miss": false,
                       "sub": {
                        "leaf": false,
                        "n": 2,
+                       "guess": "b",
                        "kids": [
                         {
                          "miss": true,
@@ -7627,6 +8039,7 @@
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "p",
                     "kids": [
                      {
                       "miss": true,
@@ -7651,12 +8064,14 @@
                 "sub": {
                  "leaf": false,
                  "n": 3,
+                 "guess": "m",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "n",
                     "kids": [
                      {
                       "miss": true,
@@ -7687,30 +8102,35 @@
                 "sub": {
                  "leaf": false,
                  "n": 6,
+                 "guess": "b",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 5,
+                    "guess": "h",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 4,
+                       "guess": "m",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 3,
+                          "guess": "r",
                           "kids": [
                            {
                             "miss": true,
                             "sub": {
                              "leaf": false,
                              "n": 2,
+                             "guess": "w",
                              "kids": [
                               {
                                "miss": true,
@@ -7771,30 +8191,35 @@
              "sub": {
               "leaf": false,
               "n": 6,
+              "guess": "f",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 5,
+                 "guess": "m",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 4,
+                    "guess": "n",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 3,
+                       "guess": "p",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 2,
+                          "guess": "r",
                           "kids": [
                            {
                             "miss": true,
@@ -7852,36 +8277,42 @@
              "sub": {
               "leaf": false,
               "n": 7,
+              "guess": "d",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 6,
+                 "guess": "g",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 5,
+                    "guess": "l",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 4,
+                       "guess": "n",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 3,
+                          "guess": "s",
                           "kids": [
                            {
                             "miss": true,
                             "sub": {
                              "leaf": false,
                              "n": 2,
+                             "guess": "t",
                              "kids": [
                               {
                                "miss": true,
@@ -7951,24 +8382,28 @@
           "sub": {
            "leaf": false,
            "n": 5,
+           "guess": "d",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 4,
+              "guess": "f",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 3,
+                 "guess": "n",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "s",
                     "kids": [
                      {
                       "miss": true,
@@ -8017,24 +8452,28 @@
           "sub": {
            "leaf": false,
            "n": 5,
+           "guess": "b",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 4,
+              "guess": "h",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 3,
+                 "guess": "m",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "p",
                     "kids": [
                      {
                       "miss": true,
@@ -8086,36 +8525,42 @@
        "sub": {
         "leaf": false,
         "n": 7,
+        "guess": "b",
         "kids": [
          {
           "miss": true,
           "sub": {
            "leaf": false,
            "n": 6,
+           "guess": "d",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 5,
+              "guess": "m",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 4,
+                 "guess": "n",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 3,
+                    "guess": "s",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 2,
+                       "guess": "t",
                        "kids": [
                         {
                          "miss": true,
@@ -8182,30 +8627,35 @@
        "sub": {
         "leaf": false,
         "n": 6,
+        "guess": "f",
         "kids": [
          {
           "miss": true,
           "sub": {
            "leaf": false,
            "n": 5,
+           "guess": "l",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 4,
+              "guess": "m",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 3,
+                 "guess": "p",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "t",
                     "kids": [
                      {
                       "miss": true,
@@ -8332,42 +8782,49 @@
     "tree": {
      "leaf": false,
      "n": 49,
+     "guess": "a",
      "kids": [
       {
        "miss": true,
        "sub": {
         "leaf": false,
         "n": 36,
+        "guess": "i",
         "kids": [
          {
           "miss": true,
           "sub": {
            "leaf": false,
            "n": 26,
+           "guess": "o",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 13,
+              "guess": "e",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 4,
+                 "guess": "u",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "y",
                     "kids": [
                      {
                       "miss": false,
                       "sub": {
                        "leaf": false,
                        "n": 2,
+                       "guess": "b",
                        "kids": [
                         {
                          "miss": true,
@@ -8392,6 +8849,7 @@
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "p",
                     "kids": [
                      {
                       "miss": true,
@@ -8416,12 +8874,14 @@
                 "sub": {
                  "leaf": false,
                  "n": 3,
+                 "guess": "m",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "n",
                     "kids": [
                      {
                       "miss": true,
@@ -8452,30 +8912,35 @@
                 "sub": {
                  "leaf": false,
                  "n": 6,
+                 "guess": "b",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 5,
+                    "guess": "h",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 4,
+                       "guess": "m",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 3,
+                          "guess": "r",
                           "kids": [
                            {
                             "miss": true,
                             "sub": {
                              "leaf": false,
                              "n": 2,
+                             "guess": "w",
                              "kids": [
                               {
                                "miss": true,
@@ -8536,30 +9001,35 @@
              "sub": {
               "leaf": false,
               "n": 6,
+              "guess": "f",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 5,
+                 "guess": "m",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 4,
+                    "guess": "n",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 3,
+                       "guess": "p",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 2,
+                          "guess": "r",
                           "kids": [
                            {
                             "miss": true,
@@ -8617,36 +9087,42 @@
              "sub": {
               "leaf": false,
               "n": 7,
+              "guess": "d",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 6,
+                 "guess": "g",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 5,
+                    "guess": "l",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 4,
+                       "guess": "n",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 3,
+                          "guess": "s",
                           "kids": [
                            {
                             "miss": true,
                             "sub": {
                              "leaf": false,
                              "n": 2,
+                             "guess": "t",
                              "kids": [
                               {
                                "miss": true,
@@ -8716,24 +9192,28 @@
           "sub": {
            "leaf": false,
            "n": 5,
+           "guess": "d",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 4,
+              "guess": "f",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 3,
+                 "guess": "n",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "s",
                     "kids": [
                      {
                       "miss": true,
@@ -8782,24 +9262,28 @@
           "sub": {
            "leaf": false,
            "n": 5,
+           "guess": "b",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 4,
+              "guess": "h",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 3,
+                 "guess": "m",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "p",
                     "kids": [
                      {
                       "miss": true,
@@ -8851,36 +9335,42 @@
        "sub": {
         "leaf": false,
         "n": 7,
+        "guess": "b",
         "kids": [
          {
           "miss": true,
           "sub": {
            "leaf": false,
            "n": 6,
+           "guess": "d",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 5,
+              "guess": "m",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 4,
+                 "guess": "n",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 3,
+                    "guess": "s",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 2,
+                       "guess": "t",
                        "kids": [
                         {
                          "miss": true,
@@ -8947,30 +9437,35 @@
        "sub": {
         "leaf": false,
         "n": 6,
+        "guess": "f",
         "kids": [
          {
           "miss": true,
           "sub": {
            "leaf": false,
            "n": 5,
+           "guess": "l",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 4,
+              "guess": "m",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 3,
+                 "guess": "p",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "t",
                     "kids": [
                      {
                       "miss": true,
@@ -9097,42 +9592,49 @@
     "tree": {
      "leaf": false,
      "n": 49,
+     "guess": "a",
      "kids": [
       {
        "miss": true,
        "sub": {
         "leaf": false,
         "n": 36,
+        "guess": "o",
         "kids": [
          {
           "miss": true,
           "sub": {
            "leaf": false,
            "n": 23,
+           "guess": "e",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 14,
+              "guess": "i",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 4,
+                 "guess": "u",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "y",
                     "kids": [
                      {
                       "miss": false,
                       "sub": {
                        "leaf": false,
                        "n": 2,
+                       "guess": "b",
                        "kids": [
                         {
                          "miss": true,
@@ -9157,6 +9659,7 @@
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "p",
                     "kids": [
                      {
                       "miss": true,
@@ -9181,24 +9684,28 @@
                 "sub": {
                  "leaf": false,
                  "n": 5,
+                 "guess": "d",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 4,
+                    "guess": "f",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 3,
+                       "guess": "n",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 2,
+                          "guess": "s",
                           "kids": [
                            {
                             "miss": true,
@@ -9247,24 +9754,28 @@
                 "sub": {
                  "leaf": false,
                  "n": 5,
+                 "guess": "b",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 4,
+                    "guess": "h",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 3,
+                       "guess": "m",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 2,
+                          "guess": "p",
                           "kids": [
                            {
                             "miss": true,
@@ -9316,12 +9827,14 @@
              "sub": {
               "leaf": false,
               "n": 3,
+              "guess": "m",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 2,
+                 "guess": "n",
                  "kids": [
                   {
                    "miss": true,
@@ -9352,30 +9865,35 @@
              "sub": {
               "leaf": false,
               "n": 6,
+              "guess": "b",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 5,
+                 "guess": "h",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 4,
+                    "guess": "m",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 3,
+                       "guess": "r",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 2,
+                          "guess": "w",
                           "kids": [
                            {
                             "miss": true,
@@ -9436,30 +9954,35 @@
           "sub": {
            "leaf": false,
            "n": 6,
+           "guess": "f",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 5,
+              "guess": "m",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 4,
+                 "guess": "n",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 3,
+                    "guess": "p",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 2,
+                       "guess": "r",
                        "kids": [
                         {
                          "miss": true,
@@ -9517,36 +10040,42 @@
           "sub": {
            "leaf": false,
            "n": 7,
+           "guess": "d",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 6,
+              "guess": "g",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 5,
+                 "guess": "l",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 4,
+                    "guess": "n",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 3,
+                       "guess": "s",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 2,
+                          "guess": "t",
                           "kids": [
                            {
                             "miss": true,
@@ -9616,36 +10145,42 @@
        "sub": {
         "leaf": false,
         "n": 7,
+        "guess": "b",
         "kids": [
          {
           "miss": true,
           "sub": {
            "leaf": false,
            "n": 6,
+           "guess": "d",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 5,
+              "guess": "m",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 4,
+                 "guess": "n",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 3,
+                    "guess": "s",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 2,
+                       "guess": "t",
                        "kids": [
                         {
                          "miss": true,
@@ -9712,30 +10247,35 @@
        "sub": {
         "leaf": false,
         "n": 6,
+        "guess": "f",
         "kids": [
          {
           "miss": true,
           "sub": {
            "leaf": false,
            "n": 5,
+           "guess": "l",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 4,
+              "guess": "m",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 3,
+                 "guess": "p",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "t",
                     "kids": [
                      {
                       "miss": true,
@@ -9862,42 +10402,49 @@
     "tree": {
      "leaf": false,
      "n": 49,
+     "guess": "y",
      "kids": [
       {
        "miss": true,
        "sub": {
         "leaf": false,
         "n": 44,
+        "guess": "a",
         "kids": [
          {
           "miss": true,
           "sub": {
            "leaf": false,
            "n": 32,
+           "guess": "i",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 22,
+              "guess": "o",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 10,
+                 "guess": "e",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "u",
                     "kids": [
                      {
                       "miss": false,
                       "sub": {
                        "leaf": false,
                        "n": 2,
+                       "guess": "p",
                        "kids": [
                         {
                          "miss": true,
@@ -9922,12 +10469,14 @@
                    "sub": {
                     "leaf": false,
                     "n": 3,
+                    "guess": "m",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 2,
+                       "guess": "n",
                        "kids": [
                         {
                          "miss": true,
@@ -9958,24 +10507,28 @@
                    "sub": {
                     "leaf": false,
                     "n": 5,
+                    "guess": "b",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 4,
+                       "guess": "h",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 3,
+                          "guess": "m",
                           "kids": [
                            {
                             "miss": true,
                             "sub": {
                              "leaf": false,
                              "n": 2,
+                             "guess": "r",
                              "kids": [
                               {
                                "miss": true,
@@ -10027,30 +10580,35 @@
                 "sub": {
                  "leaf": false,
                  "n": 6,
+                 "guess": "f",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 5,
+                    "guess": "m",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 4,
+                       "guess": "n",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 3,
+                          "guess": "p",
                           "kids": [
                            {
                             "miss": true,
                             "sub": {
                              "leaf": false,
                              "n": 2,
+                             "guess": "r",
                              "kids": [
                               {
                                "miss": true,
@@ -10108,30 +10666,35 @@
                 "sub": {
                  "leaf": false,
                  "n": 6,
+                 "guess": "d",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 5,
+                    "guess": "g",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 4,
+                       "guess": "l",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 3,
+                          "guess": "n",
                           "kids": [
                            {
                             "miss": true,
                             "sub": {
                              "leaf": false,
                              "n": 2,
+                             "guess": "s",
                              "kids": [
                               {
                                "miss": true,
@@ -10192,24 +10755,28 @@
              "sub": {
               "leaf": false,
               "n": 5,
+              "guess": "d",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 4,
+                 "guess": "f",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 3,
+                    "guess": "n",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 2,
+                       "guess": "s",
                        "kids": [
                         {
                          "miss": true,
@@ -10258,24 +10825,28 @@
              "sub": {
               "leaf": false,
               "n": 5,
+              "guess": "b",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 4,
+                 "guess": "h",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 3,
+                    "guess": "m",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 2,
+                       "guess": "p",
                        "kids": [
                         {
                          "miss": true,
@@ -10327,36 +10898,42 @@
           "sub": {
            "leaf": false,
            "n": 7,
+           "guess": "b",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 6,
+              "guess": "d",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 5,
+                 "guess": "m",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 4,
+                    "guess": "n",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 3,
+                       "guess": "s",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 2,
+                          "guess": "t",
                           "kids": [
                            {
                             "miss": true,
@@ -10423,24 +11000,28 @@
           "sub": {
            "leaf": false,
            "n": 5,
+           "guess": "f",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 4,
+              "guess": "l",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 3,
+                 "guess": "m",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "p",
                     "kids": [
                      {
                       "miss": true,
@@ -10492,12 +11073,14 @@
        "sub": {
         "leaf": false,
         "n": 3,
+        "guess": "e",
         "kids": [
          {
           "miss": true,
           "sub": {
            "leaf": false,
            "n": 2,
+           "guess": "o",
            "kids": [
             {
              "miss": true,
@@ -10528,6 +11111,7 @@
        "sub": {
         "leaf": false,
         "n": 2,
+        "guess": "b",
         "kids": [
          {
           "miss": true,
@@ -10618,42 +11202,49 @@
     "tree": {
      "leaf": false,
      "n": 49,
+     "guess": "a",
      "kids": [
       {
        "miss": true,
        "sub": {
         "leaf": false,
         "n": 36,
+        "guess": "o",
         "kids": [
          {
           "miss": true,
           "sub": {
            "leaf": false,
            "n": 23,
+           "guess": "u",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 21,
+              "guess": "e",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 12,
+                 "guess": "i",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "y",
                     "kids": [
                      {
                       "miss": false,
                       "sub": {
                        "leaf": false,
                        "n": 2,
+                       "guess": "b",
                        "kids": [
                         {
                          "miss": true,
@@ -10678,24 +11269,28 @@
                    "sub": {
                     "leaf": false,
                     "n": 5,
+                    "guess": "d",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 4,
+                       "guess": "f",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 3,
+                          "guess": "n",
                           "kids": [
                            {
                             "miss": true,
                             "sub": {
                              "leaf": false,
                              "n": 2,
+                             "guess": "s",
                              "kids": [
                               {
                                "miss": true,
@@ -10744,24 +11339,28 @@
                    "sub": {
                     "leaf": false,
                     "n": 5,
+                    "guess": "b",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 4,
+                       "guess": "h",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 3,
+                          "guess": "m",
                           "kids": [
                            {
                             "miss": true,
                             "sub": {
                              "leaf": false,
                              "n": 2,
+                             "guess": "p",
                              "kids": [
                               {
                                "miss": true,
@@ -10813,12 +11412,14 @@
                 "sub": {
                  "leaf": false,
                  "n": 3,
+                 "guess": "m",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "n",
                     "kids": [
                      {
                       "miss": true,
@@ -10849,30 +11450,35 @@
                 "sub": {
                  "leaf": false,
                  "n": 6,
+                 "guess": "b",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 5,
+                    "guess": "h",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 4,
+                       "guess": "m",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 3,
+                          "guess": "r",
                           "kids": [
                            {
                             "miss": true,
                             "sub": {
                              "leaf": false,
                              "n": 2,
+                             "guess": "w",
                              "kids": [
                               {
                                "miss": true,
@@ -10933,6 +11539,7 @@
              "sub": {
               "leaf": false,
               "n": 2,
+              "guess": "p",
               "kids": [
                {
                 "miss": true,
@@ -10957,30 +11564,35 @@
           "sub": {
            "leaf": false,
            "n": 6,
+           "guess": "f",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 5,
+              "guess": "m",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 4,
+                 "guess": "n",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 3,
+                    "guess": "p",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 2,
+                       "guess": "r",
                        "kids": [
                         {
                          "miss": true,
@@ -11038,36 +11650,42 @@
           "sub": {
            "leaf": false,
            "n": 7,
+           "guess": "d",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 6,
+              "guess": "g",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 5,
+                 "guess": "l",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 4,
+                    "guess": "n",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 3,
+                       "guess": "s",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 2,
+                          "guess": "t",
                           "kids": [
                            {
                             "miss": true,
@@ -11137,36 +11755,42 @@
        "sub": {
         "leaf": false,
         "n": 7,
+        "guess": "b",
         "kids": [
          {
           "miss": true,
           "sub": {
            "leaf": false,
            "n": 6,
+           "guess": "d",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 5,
+              "guess": "m",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 4,
+                 "guess": "n",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 3,
+                    "guess": "s",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 2,
+                       "guess": "t",
                        "kids": [
                         {
                          "miss": true,
@@ -11233,30 +11857,35 @@
        "sub": {
         "leaf": false,
         "n": 6,
+        "guess": "f",
         "kids": [
          {
           "miss": true,
           "sub": {
            "leaf": false,
            "n": 5,
+           "guess": "l",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 4,
+              "guess": "m",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 3,
+                 "guess": "p",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "t",
                     "kids": [
                      {
                       "miss": true,
@@ -11383,42 +12012,49 @@
     "tree": {
      "leaf": false,
      "n": 49,
+     "guess": "a",
      "kids": [
       {
        "miss": true,
        "sub": {
         "leaf": false,
         "n": 36,
+        "guess": "o",
         "kids": [
          {
           "miss": true,
           "sub": {
            "leaf": false,
            "n": 23,
+           "guess": "u",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 21,
+              "guess": "e",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 12,
+                 "guess": "i",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "y",
                     "kids": [
                      {
                       "miss": false,
                       "sub": {
                        "leaf": false,
                        "n": 2,
+                       "guess": "b",
                        "kids": [
                         {
                          "miss": true,
@@ -11443,24 +12079,28 @@
                    "sub": {
                     "leaf": false,
                     "n": 5,
+                    "guess": "d",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 4,
+                       "guess": "f",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 3,
+                          "guess": "n",
                           "kids": [
                            {
                             "miss": true,
                             "sub": {
                              "leaf": false,
                              "n": 2,
+                             "guess": "s",
                              "kids": [
                               {
                                "miss": true,
@@ -11509,24 +12149,28 @@
                    "sub": {
                     "leaf": false,
                     "n": 5,
+                    "guess": "b",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 4,
+                       "guess": "h",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 3,
+                          "guess": "m",
                           "kids": [
                            {
                             "miss": true,
                             "sub": {
                              "leaf": false,
                              "n": 2,
+                             "guess": "p",
                              "kids": [
                               {
                                "miss": true,
@@ -11578,12 +12222,14 @@
                 "sub": {
                  "leaf": false,
                  "n": 3,
+                 "guess": "m",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "n",
                     "kids": [
                      {
                       "miss": true,
@@ -11614,30 +12260,35 @@
                 "sub": {
                  "leaf": false,
                  "n": 6,
+                 "guess": "b",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 5,
+                    "guess": "h",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 4,
+                       "guess": "m",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 3,
+                          "guess": "r",
                           "kids": [
                            {
                             "miss": true,
                             "sub": {
                              "leaf": false,
                              "n": 2,
+                             "guess": "w",
                              "kids": [
                               {
                                "miss": true,
@@ -11698,6 +12349,7 @@
              "sub": {
               "leaf": false,
               "n": 2,
+              "guess": "p",
               "kids": [
                {
                 "miss": true,
@@ -11722,30 +12374,35 @@
           "sub": {
            "leaf": false,
            "n": 6,
+           "guess": "f",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 5,
+              "guess": "m",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 4,
+                 "guess": "n",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 3,
+                    "guess": "p",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 2,
+                       "guess": "r",
                        "kids": [
                         {
                          "miss": true,
@@ -11803,36 +12460,42 @@
           "sub": {
            "leaf": false,
            "n": 7,
+           "guess": "d",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 6,
+              "guess": "g",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 5,
+                 "guess": "l",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 4,
+                    "guess": "n",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 3,
+                       "guess": "s",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 2,
+                          "guess": "t",
                           "kids": [
                            {
                             "miss": true,
@@ -11902,36 +12565,42 @@
        "sub": {
         "leaf": false,
         "n": 7,
+        "guess": "b",
         "kids": [
          {
           "miss": true,
           "sub": {
            "leaf": false,
            "n": 6,
+           "guess": "d",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 5,
+              "guess": "m",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 4,
+                 "guess": "n",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 3,
+                    "guess": "s",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 2,
+                       "guess": "t",
                        "kids": [
                         {
                          "miss": true,
@@ -11998,30 +12667,35 @@
        "sub": {
         "leaf": false,
         "n": 6,
+        "guess": "f",
         "kids": [
          {
           "miss": true,
           "sub": {
            "leaf": false,
            "n": 5,
+           "guess": "l",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 4,
+              "guess": "m",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 3,
+                 "guess": "p",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "t",
                     "kids": [
                      {
                       "miss": true,
@@ -12148,42 +12822,49 @@
     "tree": {
      "leaf": false,
      "n": 49,
+     "guess": "o",
      "kids": [
       {
        "miss": true,
        "sub": {
         "leaf": false,
         "n": 36,
+        "guess": "u",
         "kids": [
          {
           "miss": true,
           "sub": {
            "leaf": false,
            "n": 34,
+           "guess": "a",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 21,
+              "guess": "e",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 12,
+                 "guess": "i",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "y",
                     "kids": [
                      {
                       "miss": false,
                       "sub": {
                        "leaf": false,
                        "n": 2,
+                       "guess": "b",
                        "kids": [
                         {
                          "miss": true,
@@ -12208,24 +12889,28 @@
                    "sub": {
                     "leaf": false,
                     "n": 5,
+                    "guess": "d",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 4,
+                       "guess": "f",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 3,
+                          "guess": "n",
                           "kids": [
                            {
                             "miss": true,
                             "sub": {
                              "leaf": false,
                              "n": 2,
+                             "guess": "s",
                              "kids": [
                               {
                                "miss": true,
@@ -12274,24 +12959,28 @@
                    "sub": {
                     "leaf": false,
                     "n": 5,
+                    "guess": "b",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 4,
+                       "guess": "h",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 3,
+                          "guess": "m",
                           "kids": [
                            {
                             "miss": true,
                             "sub": {
                              "leaf": false,
                              "n": 2,
+                             "guess": "p",
                              "kids": [
                               {
                                "miss": true,
@@ -12343,12 +13032,14 @@
                 "sub": {
                  "leaf": false,
                  "n": 3,
+                 "guess": "m",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "n",
                     "kids": [
                      {
                       "miss": true,
@@ -12379,30 +13070,35 @@
                 "sub": {
                  "leaf": false,
                  "n": 6,
+                 "guess": "b",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 5,
+                    "guess": "h",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 4,
+                       "guess": "m",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 3,
+                          "guess": "r",
                           "kids": [
                            {
                             "miss": true,
                             "sub": {
                              "leaf": false,
                              "n": 2,
+                             "guess": "w",
                              "kids": [
                               {
                                "miss": true,
@@ -12463,36 +13159,42 @@
              "sub": {
               "leaf": false,
               "n": 7,
+              "guess": "b",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 6,
+                 "guess": "d",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 5,
+                    "guess": "m",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 4,
+                       "guess": "n",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 3,
+                          "guess": "s",
                           "kids": [
                            {
                             "miss": true,
                             "sub": {
                              "leaf": false,
                              "n": 2,
+                             "guess": "t",
                              "kids": [
                               {
                                "miss": true,
@@ -12559,30 +13261,35 @@
              "sub": {
               "leaf": false,
               "n": 6,
+              "guess": "f",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 5,
+                 "guess": "l",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 4,
+                    "guess": "m",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 3,
+                       "guess": "p",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 2,
+                          "guess": "t",
                           "kids": [
                            {
                             "miss": true,
@@ -12643,6 +13350,7 @@
           "sub": {
            "leaf": false,
            "n": 2,
+           "guess": "p",
            "kids": [
             {
              "miss": true,
@@ -12667,30 +13375,35 @@
        "sub": {
         "leaf": false,
         "n": 6,
+        "guess": "f",
         "kids": [
          {
           "miss": true,
           "sub": {
            "leaf": false,
            "n": 5,
+           "guess": "m",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 4,
+              "guess": "n",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 3,
+                 "guess": "p",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "r",
                     "kids": [
                      {
                       "miss": true,
@@ -12748,36 +13461,42 @@
        "sub": {
         "leaf": false,
         "n": 7,
+        "guess": "d",
         "kids": [
          {
           "miss": true,
           "sub": {
            "leaf": false,
            "n": 6,
+           "guess": "g",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 5,
+              "guess": "l",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 4,
+                 "guess": "n",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 3,
+                    "guess": "s",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 2,
+                       "guess": "t",
                        "kids": [
                         {
                          "miss": true,
@@ -12913,48 +13632,56 @@
     "tree": {
      "leaf": false,
      "n": 49,
+     "guess": "y",
      "kids": [
       {
        "miss": true,
        "sub": {
         "leaf": false,
         "n": 44,
+        "guess": "u",
         "kids": [
          {
           "miss": true,
           "sub": {
            "leaf": false,
            "n": 42,
+           "guess": "a",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 30,
+              "guess": "i",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 20,
+                 "guess": "o",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 8,
+                    "guess": "e",
                     "kids": [
                      {
                       "miss": false,
                       "sub": {
                        "leaf": false,
                        "n": 3,
+                       "guess": "m",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 2,
+                          "guess": "n",
                           "kids": [
                            {
                             "miss": true,
@@ -12985,24 +13712,28 @@
                       "sub": {
                        "leaf": false,
                        "n": 5,
+                       "guess": "b",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 4,
+                          "guess": "h",
                           "kids": [
                            {
                             "miss": true,
                             "sub": {
                              "leaf": false,
                              "n": 3,
+                             "guess": "m",
                              "kids": [
                               {
                                "miss": true,
                                "sub": {
                                 "leaf": false,
                                 "n": 2,
+                                "guess": "r",
                                 "kids": [
                                  {
                                   "miss": true,
@@ -13054,30 +13785,35 @@
                    "sub": {
                     "leaf": false,
                     "n": 6,
+                    "guess": "f",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 5,
+                       "guess": "m",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 4,
+                          "guess": "n",
                           "kids": [
                            {
                             "miss": true,
                             "sub": {
                              "leaf": false,
                              "n": 3,
+                             "guess": "p",
                              "kids": [
                               {
                                "miss": true,
                                "sub": {
                                 "leaf": false,
                                 "n": 2,
+                                "guess": "r",
                                 "kids": [
                                  {
                                   "miss": true,
@@ -13135,30 +13871,35 @@
                    "sub": {
                     "leaf": false,
                     "n": 6,
+                    "guess": "d",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 5,
+                       "guess": "g",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 4,
+                          "guess": "l",
                           "kids": [
                            {
                             "miss": true,
                             "sub": {
                              "leaf": false,
                              "n": 3,
+                             "guess": "n",
                              "kids": [
                               {
                                "miss": true,
                                "sub": {
                                 "leaf": false,
                                 "n": 2,
+                                "guess": "s",
                                 "kids": [
                                  {
                                   "miss": true,
@@ -13219,24 +13960,28 @@
                 "sub": {
                  "leaf": false,
                  "n": 5,
+                 "guess": "d",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 4,
+                    "guess": "f",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 3,
+                       "guess": "n",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 2,
+                          "guess": "s",
                           "kids": [
                            {
                             "miss": true,
@@ -13285,24 +14030,28 @@
                 "sub": {
                  "leaf": false,
                  "n": 5,
+                 "guess": "b",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 4,
+                    "guess": "h",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 3,
+                       "guess": "m",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 2,
+                          "guess": "p",
                           "kids": [
                            {
                             "miss": true,
@@ -13354,36 +14103,42 @@
              "sub": {
               "leaf": false,
               "n": 7,
+              "guess": "b",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 6,
+                 "guess": "d",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 5,
+                    "guess": "m",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 4,
+                       "guess": "n",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 3,
+                          "guess": "s",
                           "kids": [
                            {
                             "miss": true,
                             "sub": {
                              "leaf": false,
                              "n": 2,
+                             "guess": "t",
                              "kids": [
                               {
                                "miss": true,
@@ -13450,24 +14205,28 @@
              "sub": {
               "leaf": false,
               "n": 5,
+              "guess": "f",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 4,
+                 "guess": "l",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 3,
+                    "guess": "m",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 2,
+                       "guess": "p",
                        "kids": [
                         {
                          "miss": true,
@@ -13519,6 +14278,7 @@
           "sub": {
            "leaf": false,
            "n": 2,
+           "guess": "p",
            "kids": [
             {
              "miss": true,
@@ -13543,12 +14303,14 @@
        "sub": {
         "leaf": false,
         "n": 3,
+        "guess": "e",
         "kids": [
          {
           "miss": true,
           "sub": {
            "leaf": false,
            "n": 2,
+           "guess": "o",
            "kids": [
             {
              "miss": true,
@@ -13579,6 +14341,7 @@
        "sub": {
         "leaf": false,
         "n": 2,
+        "guess": "b",
         "kids": [
          {
           "miss": true,
@@ -13669,42 +14432,49 @@
     "tree": {
      "leaf": false,
      "n": 49,
+     "guess": "y",
      "kids": [
       {
        "miss": true,
        "sub": {
         "leaf": false,
         "n": 44,
+        "guess": "a",
         "kids": [
          {
           "miss": true,
           "sub": {
            "leaf": false,
            "n": 32,
+           "guess": "i",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 22,
+              "guess": "o",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 10,
+                 "guess": "e",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "u",
                     "kids": [
                      {
                       "miss": false,
                       "sub": {
                        "leaf": false,
                        "n": 2,
+                       "guess": "p",
                        "kids": [
                         {
                          "miss": true,
@@ -13729,12 +14499,14 @@
                    "sub": {
                     "leaf": false,
                     "n": 3,
+                    "guess": "m",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 2,
+                       "guess": "n",
                        "kids": [
                         {
                          "miss": true,
@@ -13765,24 +14537,28 @@
                    "sub": {
                     "leaf": false,
                     "n": 5,
+                    "guess": "b",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 4,
+                       "guess": "h",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 3,
+                          "guess": "m",
                           "kids": [
                            {
                             "miss": true,
                             "sub": {
                              "leaf": false,
                              "n": 2,
+                             "guess": "r",
                              "kids": [
                               {
                                "miss": true,
@@ -13834,30 +14610,35 @@
                 "sub": {
                  "leaf": false,
                  "n": 6,
+                 "guess": "f",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 5,
+                    "guess": "m",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 4,
+                       "guess": "n",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 3,
+                          "guess": "p",
                           "kids": [
                            {
                             "miss": true,
                             "sub": {
                              "leaf": false,
                              "n": 2,
+                             "guess": "r",
                              "kids": [
                               {
                                "miss": true,
@@ -13915,30 +14696,35 @@
                 "sub": {
                  "leaf": false,
                  "n": 6,
+                 "guess": "d",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 5,
+                    "guess": "g",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 4,
+                       "guess": "l",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 3,
+                          "guess": "n",
                           "kids": [
                            {
                             "miss": true,
                             "sub": {
                              "leaf": false,
                              "n": 2,
+                             "guess": "s",
                              "kids": [
                               {
                                "miss": true,
@@ -13999,24 +14785,28 @@
              "sub": {
               "leaf": false,
               "n": 5,
+              "guess": "d",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 4,
+                 "guess": "f",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 3,
+                    "guess": "n",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 2,
+                       "guess": "s",
                        "kids": [
                         {
                          "miss": true,
@@ -14065,24 +14855,28 @@
              "sub": {
               "leaf": false,
               "n": 5,
+              "guess": "b",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 4,
+                 "guess": "h",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 3,
+                    "guess": "m",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 2,
+                       "guess": "p",
                        "kids": [
                         {
                          "miss": true,
@@ -14134,36 +14928,42 @@
           "sub": {
            "leaf": false,
            "n": 7,
+           "guess": "b",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 6,
+              "guess": "d",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 5,
+                 "guess": "m",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 4,
+                    "guess": "n",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 3,
+                       "guess": "s",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 2,
+                          "guess": "t",
                           "kids": [
                            {
                             "miss": true,
@@ -14230,24 +15030,28 @@
           "sub": {
            "leaf": false,
            "n": 5,
+           "guess": "f",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 4,
+              "guess": "l",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 3,
+                 "guess": "m",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "p",
                     "kids": [
                      {
                       "miss": true,
@@ -14299,12 +15103,14 @@
        "sub": {
         "leaf": false,
         "n": 3,
+        "guess": "e",
         "kids": [
          {
           "miss": true,
           "sub": {
            "leaf": false,
            "n": 2,
+           "guess": "o",
            "kids": [
             {
              "miss": true,
@@ -14335,6 +15141,7 @@
        "sub": {
         "leaf": false,
         "n": 2,
+        "guess": "b",
         "kids": [
          {
           "miss": true,
@@ -14425,48 +15232,56 @@
     "tree": {
      "leaf": false,
      "n": 49,
+     "guess": "y",
      "kids": [
       {
        "miss": true,
        "sub": {
         "leaf": false,
         "n": 44,
+        "guess": "a",
         "kids": [
          {
           "miss": true,
           "sub": {
            "leaf": false,
            "n": 32,
+           "guess": "i",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 22,
+              "guess": "u",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 20,
+                 "guess": "o",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 8,
+                    "guess": "e",
                     "kids": [
                      {
                       "miss": false,
                       "sub": {
                        "leaf": false,
                        "n": 3,
+                       "guess": "m",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 2,
+                          "guess": "n",
                           "kids": [
                            {
                             "miss": true,
@@ -14497,24 +15312,28 @@
                       "sub": {
                        "leaf": false,
                        "n": 5,
+                       "guess": "b",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 4,
+                          "guess": "h",
                           "kids": [
                            {
                             "miss": true,
                             "sub": {
                              "leaf": false,
                              "n": 3,
+                             "guess": "m",
                              "kids": [
                               {
                                "miss": true,
                                "sub": {
                                 "leaf": false,
                                 "n": 2,
+                                "guess": "r",
                                 "kids": [
                                  {
                                   "miss": true,
@@ -14566,30 +15385,35 @@
                    "sub": {
                     "leaf": false,
                     "n": 6,
+                    "guess": "f",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 5,
+                       "guess": "m",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 4,
+                          "guess": "n",
                           "kids": [
                            {
                             "miss": true,
                             "sub": {
                              "leaf": false,
                              "n": 3,
+                             "guess": "p",
                              "kids": [
                               {
                                "miss": true,
                                "sub": {
                                 "leaf": false,
                                 "n": 2,
+                                "guess": "r",
                                 "kids": [
                                  {
                                   "miss": true,
@@ -14647,30 +15471,35 @@
                    "sub": {
                     "leaf": false,
                     "n": 6,
+                    "guess": "d",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 5,
+                       "guess": "g",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 4,
+                          "guess": "l",
                           "kids": [
                            {
                             "miss": true,
                             "sub": {
                              "leaf": false,
                              "n": 3,
+                             "guess": "n",
                              "kids": [
                               {
                                "miss": true,
                                "sub": {
                                 "leaf": false,
                                 "n": 2,
+                                "guess": "s",
                                 "kids": [
                                  {
                                   "miss": true,
@@ -14731,6 +15560,7 @@
                 "sub": {
                  "leaf": false,
                  "n": 2,
+                 "guess": "p",
                  "kids": [
                   {
                    "miss": true,
@@ -14755,24 +15585,28 @@
              "sub": {
               "leaf": false,
               "n": 5,
+              "guess": "d",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 4,
+                 "guess": "f",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 3,
+                    "guess": "n",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 2,
+                       "guess": "s",
                        "kids": [
                         {
                          "miss": true,
@@ -14821,24 +15655,28 @@
              "sub": {
               "leaf": false,
               "n": 5,
+              "guess": "b",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 4,
+                 "guess": "h",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 3,
+                    "guess": "m",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 2,
+                       "guess": "p",
                        "kids": [
                         {
                          "miss": true,
@@ -14890,36 +15728,42 @@
           "sub": {
            "leaf": false,
            "n": 7,
+           "guess": "b",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 6,
+              "guess": "d",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 5,
+                 "guess": "m",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 4,
+                    "guess": "n",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 3,
+                       "guess": "s",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 2,
+                          "guess": "t",
                           "kids": [
                            {
                             "miss": true,
@@ -14986,24 +15830,28 @@
           "sub": {
            "leaf": false,
            "n": 5,
+           "guess": "f",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 4,
+              "guess": "l",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 3,
+                 "guess": "m",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "p",
                     "kids": [
                      {
                       "miss": true,
@@ -15055,12 +15903,14 @@
        "sub": {
         "leaf": false,
         "n": 3,
+        "guess": "e",
         "kids": [
          {
           "miss": true,
           "sub": {
            "leaf": false,
            "n": 2,
+           "guess": "o",
            "kids": [
             {
              "miss": true,
@@ -15091,6 +15941,7 @@
        "sub": {
         "leaf": false,
         "n": 2,
+        "guess": "b",
         "kids": [
          {
           "miss": true,
@@ -15181,42 +16032,49 @@
     "tree": {
      "leaf": false,
      "n": 49,
+     "guess": "y",
      "kids": [
       {
        "miss": true,
        "sub": {
         "leaf": false,
         "n": 44,
+        "guess": "a",
         "kids": [
          {
           "miss": true,
           "sub": {
            "leaf": false,
            "n": 32,
+           "guess": "i",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 22,
+              "guess": "o",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 10,
+                 "guess": "e",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "u",
                     "kids": [
                      {
                       "miss": false,
                       "sub": {
                        "leaf": false,
                        "n": 2,
+                       "guess": "p",
                        "kids": [
                         {
                          "miss": true,
@@ -15241,12 +16099,14 @@
                    "sub": {
                     "leaf": false,
                     "n": 3,
+                    "guess": "m",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 2,
+                       "guess": "n",
                        "kids": [
                         {
                          "miss": true,
@@ -15277,24 +16137,28 @@
                    "sub": {
                     "leaf": false,
                     "n": 5,
+                    "guess": "b",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 4,
+                       "guess": "h",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 3,
+                          "guess": "m",
                           "kids": [
                            {
                             "miss": true,
                             "sub": {
                              "leaf": false,
                              "n": 2,
+                             "guess": "r",
                              "kids": [
                               {
                                "miss": true,
@@ -15346,30 +16210,35 @@
                 "sub": {
                  "leaf": false,
                  "n": 6,
+                 "guess": "f",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 5,
+                    "guess": "m",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 4,
+                       "guess": "n",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 3,
+                          "guess": "p",
                           "kids": [
                            {
                             "miss": true,
                             "sub": {
                              "leaf": false,
                              "n": 2,
+                             "guess": "r",
                              "kids": [
                               {
                                "miss": true,
@@ -15427,30 +16296,35 @@
                 "sub": {
                  "leaf": false,
                  "n": 6,
+                 "guess": "d",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 5,
+                    "guess": "g",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 4,
+                       "guess": "l",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 3,
+                          "guess": "n",
                           "kids": [
                            {
                             "miss": true,
                             "sub": {
                              "leaf": false,
                              "n": 2,
+                             "guess": "s",
                              "kids": [
                               {
                                "miss": true,
@@ -15511,24 +16385,28 @@
              "sub": {
               "leaf": false,
               "n": 5,
+              "guess": "d",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 4,
+                 "guess": "f",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 3,
+                    "guess": "n",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 2,
+                       "guess": "s",
                        "kids": [
                         {
                          "miss": true,
@@ -15577,24 +16455,28 @@
              "sub": {
               "leaf": false,
               "n": 5,
+              "guess": "b",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 4,
+                 "guess": "h",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 3,
+                    "guess": "m",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 2,
+                       "guess": "p",
                        "kids": [
                         {
                          "miss": true,
@@ -15646,36 +16528,42 @@
           "sub": {
            "leaf": false,
            "n": 7,
+           "guess": "b",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 6,
+              "guess": "d",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 5,
+                 "guess": "m",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 4,
+                    "guess": "n",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 3,
+                       "guess": "s",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 2,
+                          "guess": "t",
                           "kids": [
                            {
                             "miss": true,
@@ -15742,24 +16630,28 @@
           "sub": {
            "leaf": false,
            "n": 5,
+           "guess": "f",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 4,
+              "guess": "l",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 3,
+                 "guess": "m",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "p",
                     "kids": [
                      {
                       "miss": true,
@@ -15811,12 +16703,14 @@
        "sub": {
         "leaf": false,
         "n": 3,
+        "guess": "e",
         "kids": [
          {
           "miss": true,
           "sub": {
            "leaf": false,
            "n": 2,
+           "guess": "o",
            "kids": [
             {
              "miss": true,
@@ -15847,6 +16741,7 @@
        "sub": {
         "leaf": false,
         "n": 2,
+        "guess": "b",
         "kids": [
          {
           "miss": true,
@@ -15937,48 +16832,56 @@
     "tree": {
      "leaf": false,
      "n": 49,
+     "guess": "y",
      "kids": [
       {
        "miss": true,
        "sub": {
         "leaf": false,
         "n": 44,
+        "guess": "a",
         "kids": [
          {
           "miss": true,
           "sub": {
            "leaf": false,
            "n": 32,
+           "guess": "i",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 22,
+              "guess": "o",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 10,
+                 "guess": "u",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 8,
+                    "guess": "e",
                     "kids": [
                      {
                       "miss": false,
                       "sub": {
                        "leaf": false,
                        "n": 3,
+                       "guess": "m",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 2,
+                          "guess": "n",
                           "kids": [
                            {
                             "miss": true,
@@ -16009,24 +16912,28 @@
                       "sub": {
                        "leaf": false,
                        "n": 5,
+                       "guess": "b",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 4,
+                          "guess": "h",
                           "kids": [
                            {
                             "miss": true,
                             "sub": {
                              "leaf": false,
                              "n": 3,
+                             "guess": "m",
                              "kids": [
                               {
                                "miss": true,
                                "sub": {
                                 "leaf": false,
                                 "n": 2,
+                                "guess": "r",
                                 "kids": [
                                  {
                                   "miss": true,
@@ -16078,6 +16985,7 @@
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "p",
                     "kids": [
                      {
                       "miss": true,
@@ -16102,30 +17010,35 @@
                 "sub": {
                  "leaf": false,
                  "n": 6,
+                 "guess": "f",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 5,
+                    "guess": "m",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 4,
+                       "guess": "n",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 3,
+                          "guess": "p",
                           "kids": [
                            {
                             "miss": true,
                             "sub": {
                              "leaf": false,
                              "n": 2,
+                             "guess": "r",
                              "kids": [
                               {
                                "miss": true,
@@ -16183,30 +17096,35 @@
                 "sub": {
                  "leaf": false,
                  "n": 6,
+                 "guess": "d",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 5,
+                    "guess": "g",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 4,
+                       "guess": "l",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 3,
+                          "guess": "n",
                           "kids": [
                            {
                             "miss": true,
                             "sub": {
                              "leaf": false,
                              "n": 2,
+                             "guess": "s",
                              "kids": [
                               {
                                "miss": true,
@@ -16267,24 +17185,28 @@
              "sub": {
               "leaf": false,
               "n": 5,
+              "guess": "d",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 4,
+                 "guess": "f",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 3,
+                    "guess": "n",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 2,
+                       "guess": "s",
                        "kids": [
                         {
                          "miss": true,
@@ -16333,24 +17255,28 @@
              "sub": {
               "leaf": false,
               "n": 5,
+              "guess": "b",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 4,
+                 "guess": "h",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 3,
+                    "guess": "m",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 2,
+                       "guess": "p",
                        "kids": [
                         {
                          "miss": true,
@@ -16402,36 +17328,42 @@
           "sub": {
            "leaf": false,
            "n": 7,
+           "guess": "b",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 6,
+              "guess": "d",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 5,
+                 "guess": "m",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 4,
+                    "guess": "n",
                     "kids": [
                      {
                       "miss": true,
                       "sub": {
                        "leaf": false,
                        "n": 3,
+                       "guess": "s",
                        "kids": [
                         {
                          "miss": true,
                          "sub": {
                           "leaf": false,
                           "n": 2,
+                          "guess": "t",
                           "kids": [
                            {
                             "miss": true,
@@ -16498,24 +17430,28 @@
           "sub": {
            "leaf": false,
            "n": 5,
+           "guess": "f",
            "kids": [
             {
              "miss": true,
              "sub": {
               "leaf": false,
               "n": 4,
+              "guess": "l",
               "kids": [
                {
                 "miss": true,
                 "sub": {
                  "leaf": false,
                  "n": 3,
+                 "guess": "m",
                  "kids": [
                   {
                    "miss": true,
                    "sub": {
                     "leaf": false,
                     "n": 2,
+                    "guess": "p",
                     "kids": [
                      {
                       "miss": true,
@@ -16567,12 +17503,14 @@
        "sub": {
         "leaf": false,
         "n": 3,
+        "guess": "e",
         "kids": [
          {
           "miss": true,
           "sub": {
            "leaf": false,
            "n": 2,
+           "guess": "o",
            "kids": [
             {
              "miss": true,
@@ -16603,6 +17541,7 @@
        "sub": {
         "leaf": false,
         "n": 2,
+        "guess": "b",
         "kids": [
          {
           "miss": true,

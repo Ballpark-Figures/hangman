@@ -11,14 +11,17 @@ BEAT MAP (Script.md scene 18; --- delimited, 6 beats a-f + a transition beat g):
                    lagged upward cascade; only the top (14-miss) words are listed.
                    SOURCED scene18_data.most_misses (greedy-completed upper bound at the
                    unconverged short lengths — a NEAR-OPTIMAL number, per the user).
-  b opt_tree     — the optimal length-2 tree (LETTERED, binary red/white) + "*See blog post
-                   for more information". The SAME tree as the END of scene 05, sourced from
-                   tree2_data via a standalone `_opt_tree_mob` (a self-contained copy of scene
-                   05's `_ctree`/`_blanks`/`_subtree_spec`), on a navy card.
-  c strategy     — "Average Misses: N" (counter, top); LEFT = the most common real
-                   4-letter words (by zipf), RIGHT = the most common letter-combos in the
-                   wordlist, each a MULTI-ROW block of bars (3 rows of 10, scene-17 style,
-                   bold labels). Starts UNIFORM (every bar equal). SOURCED scene18_data.
+  b greedy_tree  — the GREEDY best-opener tree (uniform state, opener 'a'), LETTERED, built
+                   LEVEL-BY-LEVEL from the top (intro-style, no camera): edges draw in from
+                   their parents, nodes + guess letters fade in. It IS buckets[0]["tree"] —
+                   the SAME tree the c–f mini trees use. SOURCED scene18_data (_greedy_tree,
+                   guess per node).
+  c strategy     — FIRST the beat-b box slides to the top-left mini slot while its letters
+                   fade, morphing into the shape-only mini tree (ReplacementTransform each
+                   dot/edge onto its mini twin). THEN "Average Misses: N" (counter, top);
+                   LEFT = the most common real 2-letter words (by zipf), RIGHT = the most
+                   common letter-combos, each a MULTI-ROW block of bars (3 rows of 10,
+                   scene-17 style). Starts UNIFORM (every bar equal). SOURCED scene18_data.
   d try_keep     — a combo bar AND the words exhibiting it rise TOGETHER → the avg counts
                    UP; we KEEP it. Rising bars flash GREEN + the number flashes GREEN.
   e try_undo     — a DIFFERENT change → the avg counts DOWN (a failure, number CRIMSON) →
@@ -38,8 +41,8 @@ REUSE MAP (styling sources):
   - colours : ACCENT_FILL bars; grow = ACCENT_GREEN, shrink = CRIMSON; blue words
 
 FLAGS (owned by a human — tune/decide in the timing+polish pass):
-  - beat b: the lettered optimal tree sits on a navy card (the tree world is navy, scenes
-    01/05); OT_BOX_W/H + card sizing are layout guesses.
+  - beat b: the lettered greedy tree sits on a navy card (the tree world is navy, scenes
+    01/05); GT_BOX / GT_DOT_R / GT_LETTER_H / GT_LEVEL_RT + card sizing are layout guesses.
   - TRACK_N (30) / PER_ROW (10) / row geometry / BAR_LABEL_FS / all run_times = guesses.
 """
 from pathlib import Path
@@ -50,7 +53,6 @@ sys.path.append(str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from config import *
 from assets import scene18_data
-from assets import tree2_data                # beat b: the optimal length-2 tree (end of scene 05)
 from bpkfigures.chalkboard import BOARD_NAVY, CHALK
 from bpkfigures.bar_graph import get_bar_chart, grow_bars
 
@@ -72,38 +74,27 @@ BASE_YS = [-0.48, -2.18, -3.875]  # the 3 row BASELINES (bars grow up), placed s
                                   # base - 0.444 (label_buff 0.28 + cap_h 0.162 at 16pt).
 BAR_LABEL_FS = 16                 # bold, scene-17-word-bar sized (smaller for 10 bars/row)
 
-# ── the mini best-opener greedy TREE (whole tree, no letters) on a navy card ───
-TREE_C = (WORD_CX, 2.35)          # card centre: x over the LEFT bars, y lowered from top
-TREE_W, TREE_H = 6.2, 2.4         # the plotting box inside the card
+# ── the best-opener greedy TREE — the shared shape used by beat b (big, LETTERED, on its
+#    own card) and the c–f mini trees (small, shape-only, top-left). `_tree_mob` builds
+#    both from the same layout so beat b's box can morph into the mini tree. ──────────────
+TREE_C = (WORD_CX, 2.35)          # MINI card centre: x over the LEFT bars, y lowered from top
+TREE_W, TREE_H = 6.2, 2.4         # the mini plotting box inside the card
 AVG_C = (COMBO_CX, 2.35)          # "Average Misses: N" readout — centred over the RIGHT bars
 AVG_W = 5.6                       # readout width (fixed, so the number never resizes/jitters)
-TREE_DOT_R = 0.03
+TREE_DOT_R = 0.03                 # mini node radius (a point)
 TREE_EDGE_W = 1.3
 TREE_MISS_COL = CRIMSON           # miss edges (the deep "spine")
 TREE_HIT_COL = CHALK              # hit edges + nodes (off-white)
 
-# ── beat b : the OPTIMAL length-2 tree (the LETTERED tree from the end of scene 05),
-#    sourced from tree2_data. Standalone binary renderer (miss = red, hit = off-white),
-#    a self-contained copy of scene 05's `_ctree`/`_blanks`/`_subtree_spec` (contour-packed
-#    layout) — NOT the shape-only `_tree_mob` used by the c–f mini trees. Built at these
-#    natural GRID sizes rooted at ORIGIN, then scaled to fit the beat-b navy card. ─────────
-OT_NODE_R    = 0.16               # guess-node radius (natural; whole tree scaled to fit)
-OT_CHILD_RF  = 0.68               # leaf radius as a fraction of a guess node
-OT_CHILD_DY  = 0.55               # parent → child vertical drop
-OT_CHILD_SPR = 0.72              # leaf column width / min sibling separation (contour packing)
-OT_LETTER_H  = 1.3                # guess-letter height as a multiple of node radius
-OT_BLANK_H   = 0.13               # leaf blank-row height (rule + revealed letter)
-OT_BLANK_DROP = 0.36              # leaf centre → blank RULE baseline
-OT_EDGE_Z    = -1                 # edges sit below the nodes they touch
-OT_MISS_COL  = LIGHT_RED          # a MISS edge/node/leaf (binary scene-05 colouring)
-OT_HIT_COL   = CHALK              # a HIT edge/node/leaf (off-white)
-OT_BOX_W, OT_BOX_H = 12.4, 5.6    # the plotting box the whole tree is scaled into
-OT_BOX_C = (0.0, 0.35)            # its centre on screen
-
-
-def _ot_color(miss):
-    """Binary tree colour (scene 05): a MISS edge/node/leaf is red, a HIT is off-white."""
-    return OT_MISS_COL if miss else OT_HIT_COL
+# ── beat b : the GREEDY best-opener tree (uniform state, opener 'a'), LETTERED, built
+#    level-by-level from the top (intro-style, no camera move). It IS the SAME tree beat c
+#    uses (buckets[0]["tree"]); at the START of beat c the whole box slides to the top-left
+#    mini slot while the letters fade, morphing into the shape-only mini tree. ────────────
+GT_BOX = (12.4, 5.0, 0.0, 0.35)   # big tree plotting box: W, H, centre x, centre y
+GT_DOT_R = 0.13                   # letter-holding node radius (big)
+GT_LETTER_H = 0.16                # guess-letter height (navy, knocked out of the chalk dot)
+GT_EDGE_W = 2.0                   # edge stroke width (big display)
+GT_LEVEL_RT = 0.4                 # per-level build run_time (beat b, level-by-level)
 
 
 class Scene18(HangmanScene):
@@ -120,7 +111,8 @@ class Scene18(HangmanScene):
         self.avg_tracker = ValueTracker(0.0)     # bare tracker pickles fine (updater added in body)
         # carried mobjects / state
         self.table = None
-        self.tree_card = None                    # beat-b placeholder card
+        self.gtree = self.gcard = None           # beat-b big LETTERED greedy tree (+ its card),
+                                                 # morphed into the mini tree at the start of beat c
         self.mini_card = self.tree_mob = None    # beat-c+ mini greedy tree (+ its navy card)
         self.avg_readout = None                  # single-text "Average Misses: N.NN" counter
         self.word_charts = self.combo_charts = None
@@ -136,11 +128,16 @@ class Scene18(HangmanScene):
     def _avg_readout(self, value, color=INK):
         """The WHOLE 'Average Misses: N.NN' as ONE text (label + number inherently share a
         baseline — no two-mobject alignment). Fixed left edge + scale, so counting never
-        shifts/resizes it; the fixed prefix keeps its height (and baseline) constant.
-        ``color`` flashes the whole readout while it counts (green up / crimson down)."""
-        return (crisp_text(f"Average Misses: {value:.2f}", font_size=10, color=color,
-                           weight=BOLD).scale(self.avg_scale)
-                .move_to([0, self.avg_y, 0]).align_to([self.avg_left, 0, 0], LEFT))
+        shifts/resizes it; the fixed prefix keeps its height (and baseline) constant. Only
+        the NUMBER flashes ``color`` while it counts (green up / crimson down); the words
+        'Average Misses:' stay INK — recolour just the trailing number glyphs."""
+        numstr = f"{value:.2f}"
+        mob = (crisp_text(f"Average Misses: {numstr}", font_size=10, color=INK,
+                          weight=BOLD).scale(self.avg_scale)
+               .move_to([0, self.avg_y, 0]).align_to([self.avg_left, 0, 0], LEFT))
+        if color != INK:
+            mob[-len(numstr):].set_color(color)      # numstr has no spaces → one glyph/char
+        return mob
 
     def _avg_updater(self, v0, v1, flash):
         """The become()-from-tracker updater for a count from ``v0`` to ``v1``. When misses
@@ -188,14 +185,23 @@ class Scene18(HangmanScene):
         self.avg_readout.clear_updaters()
         self.tree_mob = new_tree
 
-    # ── mini tree (whole best-opener greedy tree, no letters) ─────────────────
-    def _tree_mob(self, tree):
-        """Draw the WHOLE tree as dots + hit/miss edges, fit into the TREE box. Layout:
-        leaves spread left→right in order, an internal node sits above its children,
-        depth increases downward. Miss edges (the spine) are crimson, hits off-white."""
-        pos, leaf = {}, [0]
+    # ── the best-opener greedy tree (beat b big+lettered, c/f mini shape-only) ─────
+    def _tree_mob(self, tree, *, box=None, dot_r=TREE_DOT_R, edge_w=TREE_EDGE_W,
+                  lettered=False, letter_h=None):
+        """Draw the WHOLE greedy tree as dots + hit/miss edges (+ guess LETTERS if
+        ``lettered``), fit into ``box`` (default the mini TREE box). Layout: leaves spread
+        left→right, an internal node sits above its children, depth increases downward; miss
+        edges are crimson, hits off-white; all node dots are chalk (a navy letter is knocked
+        out for a lettered node). Returns a VGroup with handles .dots/.edges/.letters and,
+        for the level-by-level build, .level_marks[d] (dots+letters at depth d) and
+        .level_edges[d] (edges arriving at depth d; empty at d=0). Beats built by the SAME
+        layout so a big lettered tree morphs onto its mini shape-only twin (beat b→c)."""
+        W, H, CX, CY = box if box is not None else (TREE_W, TREE_H, TREE_C[0], TREE_C[1])
+        lh = letter_h if letter_h is not None else dot_r * 1.3
+        pos, leaf, dep = {}, [0], {}
 
         def layout(node, depth):
+            dep[id(node)] = depth
             if node.get("leaf"):
                 x = leaf[0]; leaf[0] += 1
             else:
@@ -208,153 +214,42 @@ class Scene18(HangmanScene):
         xs = [p[0] for p in pos.values()]
         x0, x1 = min(xs), max(xs)
         dmax = max(p[1] for p in pos.values())
-        sx = TREE_W / (x1 - x0 or 1)
-        sy = TREE_H / (dmax or 1)
+        sx = W / (x1 - x0 or 1)
+        sy = H / (dmax or 1)
 
         def place(node):
             x, d = pos[id(node)]
-            return [TREE_C[0] + (x - (x0 + x1) / 2) * sx, TREE_C[1] + TREE_H / 2 - d * sy, 0]
+            return [CX + (x - (x0 + x1) / 2) * sx, CY + H / 2 - d * sy, 0]
 
-        edges, dots = VGroup(), VGroup()
+        edges, dots, letters = VGroup(), VGroup(), VGroup()
+        lmarks = [VGroup() for _ in range(dmax + 1)]
+        ledges = [VGroup() for _ in range(dmax + 1)]
 
         def draw(node):
             c = place(node)
-            dots.add(Dot(c, radius=TREE_DOT_R, color=TREE_HIT_COL))
+            d = dep[id(node)]
+            dot = Dot(c, radius=dot_r, color=TREE_HIT_COL, z_index=2)
+            dots.add(dot); lmarks[d].add(dot)
+            if lettered and not node.get("leaf"):
+                lab = crisp_text(node["guess"].upper(), color=BOARD_NAVY, weight=BOLD)
+                lab.scale_to_fit_height(lh).move_to(c).set_z_index(3)
+                letters.add(lab); lmarks[d].add(lab)
             if not node.get("leaf"):
                 for k in node["kids"]:
-                    edges.add(Line(c, place(k["sub"]), stroke_width=TREE_EDGE_W,
-                                   color=(TREE_MISS_COL if k["miss"] else TREE_HIT_COL)))
+                    e = Line(c, place(k["sub"]), stroke_width=edge_w, z_index=-1,
+                             color=(TREE_MISS_COL if k["miss"] else TREE_HIT_COL))
+                    edges.add(e); ledges[dep[id(k["sub"])]].add(e)
                     draw(k["sub"])
         draw(tree)
-        return VGroup(edges, dots)              # edges behind dots
+        g = VGroup(edges, dots, letters)              # edges behind dots, letters on top
+        g.dots, g.edges, g.letters = dots, edges, letters
+        g.level_marks, g.level_edges = lmarks, ledges
+        return g
 
     def _tree_card(self):
         return RoundedRectangle(width=TREE_W + 0.7, height=TREE_H + 0.7, corner_radius=0.15,
-                                fill_color=BOARD_NAVY, fill_opacity=1.0,
-                                stroke_color=WHITE, stroke_width=2).move_to([*TREE_C, 0])
-
-    # ── beat b: the OPTIMAL length-2 tree (LETTERED, binary red/white) from tree2_data ─
-    #    Standalone copy of scene 05's `_ctree`/`_blanks`/`_subtree_spec` (kept here so
-    #    beat b re-renders the same tree without touching scene 05). NOT `_tree_mob` — that
-    #    draws the shape-only best-opener greedy tree the c–f mini trees use.
-    def _subtree_spec(self, tree, revealed=""):
-        """A tree2 solver option-subtree ({guess, branches} / {word}) as a tree spec,
-        APPENDING the forced-tail guesses that finish a determined word (a game keeps
-        guessing until the word is fully up — see hangman CLAUDE.md 'Game / guess-order').
-        Emits the N-ary 'kids' form (a length-2 guess can hit at pos 1, pos 2, or both)."""
-        if "word" in tree:
-            word = tree["word"]
-            remaining = []
-            for ch in word:
-                if ch not in revealed and ch not in remaining:
-                    remaining.append(ch)
-            spec = {"leaf": word}
-            for ch in reversed(remaining):
-                spec = {"g": ch, "hit": spec}
-            return spec
-        g = tree["guess"]
-        items = sorted(tree["branches"].items(),
-                       key=lambda kv: 0 if set(kv[0]) == {"_"} else 1)   # miss-first (LEFT)
-        kids = [(set(pat) == {"_"},
-                 self._subtree_spec(child, revealed if set(pat) == {"_"} else revealed + g))
-                for pat, child in items]
-        return {"g": g, "kids": kids}
-
-    def _ot_blanks(self, pattern, h=OT_BLANK_H):
-        """A row of blank rules for a length-N pattern, each revealed HIT letter written
-        above its slot (ported from scene 05's `_blanks`)."""
-        slot, gap = h * 0.9, h * 0.5
-        row = VGroup()
-        for ch in pattern:
-            rule = Line([-slot / 2, 0, 0], [slot / 2, 0, 0], color=OT_HIT_COL, stroke_width=2.0)
-            cell = VGroup(rule)
-            if ch != "_":
-                t = crisp_text(ch.upper(), color=OT_HIT_COL, weight=BOLD)
-                t.scale_to_fit_height(h).next_to(rule, UP, buff=h * 0.22)
-                cell.add(t)
-            row.add(cell)
-        row.arrange(RIGHT, buff=gap, aligned_edge=DOWN)
-        return row
-
-    def _ot_kids(self, sp):
-        """A node's children as [(is_miss, childspec), …], miss-first — accepts the N-ary
-        'kids' form or the binary {'g','hit','miss'?} form."""
-        if "kids" in sp:
-            return sp["kids"]
-        ks = [(True, sp["miss"])] if "miss" in sp else []
-        return ks + [(False, sp["hit"])]
-
-    def _opt_tree_mob(self):
-        """The whole OPTIMAL length-2 tree as a lettered, binary-coloured mobject (miss =
-        red, hit = off-white), sourced from tree2_data (the optimal option's played-out
-        subtree). Layout = scene 05's contour packing: miss subtree LEFT / hit RIGHT, each
-        node centred over its children. Built at natural sizes then scaled to the beat-b box."""
-        data = tree2_data.get()["tree"]
-        opt = next(o for o in data["options"] if o["letter"] == data["optimal_letter"])
-        spec = self._subtree_spec(opt["subtree"])
-
-        r, cr = OT_NODE_R, OT_NODE_R * OT_CHILD_RF
-        MIN_SEP, INF = OT_CHILD_SPR, float("inf")
-
-        def shift_x(node, dx):
-            node["x"] += dx
-            for _, c in node["kids"]:
-                shift_x(c, dx)
-
-        def layout(sp, depth):
-            node = {"spec": sp, "y": -depth * OT_CHILD_DY, "kids": []}
-            kids = [] if "leaf" in sp else self._ot_kids(sp)
-            if not kids:
-                node["x"] = 0.0
-                return node, {depth: 0.0}, {depth: 0.0}
-            lcont, rcont = {}, {}
-            for i, (is_miss, cs) in enumerate(kids):
-                cnode, cl, crc = layout(cs, depth + 1)
-                off = 0.0
-                if i:
-                    off = max([0.0] + [rcont[d] - x + MIN_SEP for d, x in cl.items() if d in rcont])
-                    shift_x(cnode, off)
-                node["kids"].append((is_miss, cnode))
-                for d, x in cl.items():
-                    lcont[d] = min(lcont.get(d, INF), x + off)
-                for d, x in crc.items():
-                    rcont[d] = max(rcont.get(d, -INF), x + off)
-            node["x"] = sum(c["x"] for _, c in node["kids"]) / len(node["kids"])
-            lcont[depth] = min(lcont.get(depth, INF), node["x"])
-            rcont[depth] = max(rcont.get(depth, -INF), node["x"])
-            return node, lcont, rcont
-
-        root, _, _ = layout(spec, 0)
-        x0 = root["x"]
-        edges, dots, labels, blanks = VGroup(), VGroup(), VGroup(), VGroup()
-
-        def build(node, in_miss):
-            pos = np.array([node["x"] - x0, node["y"], 0.0])
-            sp = node["spec"]
-            col = _ot_color(in_miss)
-            if "leaf" in sp:
-                dots.add(Dot(pos, radius=cr, color=col, z_index=2))
-                blk = self._ot_blanks(sp["leaf"]).set_x(pos[0]).set_color(col)
-                blk.shift([0, (pos[1] - OT_BLANK_DROP) - blk.get_bottom()[1], 0])
-                blanks.add(blk)
-                return cr
-            dots.add(Dot(pos, radius=r, color=col, z_index=2))
-            lab = crisp_text(sp["g"].upper(), color=BOARD_NAVY, weight=BOLD)
-            lab.scale_to_fit_height(OT_LETTER_H * r).move_to(pos).set_z_index(3)
-            labels.add(lab)
-            for is_miss, child in node["kids"]:
-                crad = build(child, 1 if is_miss else 0)
-                cc = np.array([child["x"] - x0, child["y"], 0.0])
-                dn = normalize(cc - pos)
-                edges.add(Line(pos + dn * r, cc - dn * crad, color=_ot_color(is_miss),
-                               stroke_width=2.0, z_index=OT_EDGE_Z))
-            return r
-
-        build(root, 0)
-        tree = VGroup(edges, dots, labels, blanks)     # edges behind, letters on top
-        tree.scale(min(OT_BOX_W / tree.width, OT_BOX_H / tree.height))
-        tree.move_to([OT_BOX_C[0], OT_BOX_C[1], 0])
-        return tree
+                                fill_color=BOARD_NAVY, fill_opacity=1.0, stroke_color=WHITE,
+                                stroke_width=2, z_index=-5).move_to([*TREE_C, 0])
 
     # ── bar helpers ───────────────────────────────────────────────────────────
     def _build_side(self, cx, labels, values, y_max):
@@ -455,36 +350,53 @@ class Scene18(HangmanScene):
         self.play(LaggedStart(*[row.animate.shift(UP * 0.4).set_opacity(1) for row in rows],
                               lag_ratio=0.18), run_time=1.4)
 
-    # ── b : the optimal length-2 tree (the LETTERED tree from the end of scene 05) ──
+    # ── b : the GREEDY best-opener tree (uniform), LETTERED, built level-by-level ──
     @subscene
-    def opt_tree(self):
+    def greedy_tree(self):
         self.play(FadeOut(self.table), run_time=0.5)
         self.table = None
 
-        tree = self._opt_tree_mob()                   # lettered, binary red/white (sourced)
+        uni = self.data["optimization"]["buckets"][0]          # bucket 0 = uniform tree
+        tree = self._tree_mob(uni["tree"], box=GT_BOX, dot_r=GT_DOT_R, edge_w=GT_EDGE_W,
+                              lettered=True, letter_h=GT_LETTER_H)
         card = RoundedRectangle(width=tree.width + 0.8, height=tree.height + 0.8,
                                 corner_radius=0.2, fill_color=BOARD_NAVY, fill_opacity=1.0,
                                 stroke_color=WHITE, stroke_width=2, z_index=-5)
         card.move_to(tree.get_center())
-        # footnote with a RAISED asterisk (a superscript footnote marker), below the card
-        body = crisp_text("See blog post for more information", font_size=10, color=INK)
-        star = crisp_text("*", font_size=10, color=INK).next_to(body, LEFT, buff=0.04)
-        star.set_y(body.get_top()[1])                 # centre it at the cap line → clearly raised
-        foot = VGroup(star, body).scale_to_fit_width(6.0).move_to([0, card.get_bottom()[1] - 0.4, 0])
-        self.tree_card = VGroup(card, tree, foot)
-        self.play(FadeIn(self.tree_card), run_time=0.8)
+        self.gtree, self.gcard = tree, card
+
+        self.play(FadeIn(card), run_time=0.6)
+        # build one LEVEL at a time from the top (intro-style, no camera move): the edges
+        # into the level DRAW in from their parents, the nodes + guess letters fade in
+        for d in range(len(tree.level_marks)):
+            anims = [FadeIn(tree.level_marks[d])]
+            if len(tree.level_edges[d]):
+                anims.append(Create(tree.level_edges[d]))
+            self.play(*anims, run_time=GT_LEVEL_RT)
 
     # ── c : the choosing strategy composition — starts UNIFORM (every bar equal) ──
-    #     the mini best-opener greedy TREE sits (on a navy card) left of the avg readout
+    #     the beat-b box slides to the top-left, letters fading, into the mini tree.
     @subscene
     def strategy(self):
-        self.play(FadeOut(self.tree_card), run_time=0.5)
-        self.tree_card = None
-
         uni = self.data["optimization"]["buckets"][0]          # bucket 0 = uniform
         self._setup_avg(uni["avg_misses"])
         self.mini_card = self._tree_card()
-        self.tree_mob = self._tree_mob(uni["tree"])
+        self.tree_mob = self._tree_mob(uni["tree"])            # shape-only twin (same layout)
+
+        # move the whole box to the top-left mini slot while the letters fade: morph the big
+        # card→mini card and each big dot/edge→its mini twin (same traversal order), and
+        # slide the letters toward the shrinking tree as they fade out.
+        morph = [ReplacementTransform(self.gcard, self.mini_card)]
+        morph += [ReplacementTransform(bd, md)
+                  for bd, md in zip(self.gtree.dots, self.tree_mob.dots)]
+        morph += [ReplacementTransform(be, me)
+                  for be, me in zip(self.gtree.edges, self.tree_mob.edges)]
+        morph.append(self.gtree.letters.animate
+                     .scale(0.25).move_to([*TREE_C, 0]).set_opacity(0))
+        self.play(*morph, run_time=1.2)
+        self.remove(self.gtree.letters)
+        self.gtree = self.gcard = None
+
         self.word_charts, self.word_bars, self.word_base = self._build_side(
             WORD_CX, self.words, uni["word_freq"], self.word_ymax)
         self.combo_charts, self.combo_bars, self.combo_base = self._build_side(
@@ -492,8 +404,7 @@ class Scene18(HangmanScene):
         self.word_vals = list(uni["word_freq"])
         self.combo_vals = list(uni["combo_mult"])
 
-        self.play(FadeIn(self.avg_readout),
-                  FadeIn(self.mini_card), FadeIn(self.tree_mob), run_time=0.6)
+        self.play(FadeIn(self.avg_readout), run_time=0.6)
         all_bars, label_fades = [], []
         for chart in (*self.word_charts, *self.combo_charts):
             self.add(chart)

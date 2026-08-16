@@ -204,16 +204,17 @@ def _choosing_strategy(freq_search, wordlist):
 
 def _greedy_tree(game, freq, opener):
     """The WHOLE best-opener greedy decision tree for this frequency state, as nested
-    {leaf | (n, kids=[{miss, sub}])}. Root guess is forced to ``opener`` (the best first
-    letter), greedy below. Sourced from GreedyGame.state — the scene renders the SHAPE
-    (dots + hit/miss edges), no letters."""
+    {leaf | (n, guess, kids=[{miss, sub}])}. Root guess is forced to ``opener`` (the best
+    first letter), greedy below. Sourced from GreedyGame.state — the c/f mini trees render
+    the SHAPE only (dots + hit/miss edges); ``guess`` is the letter guessed at each node
+    (also sourced from the state), used by beat b's LETTERED build of the uniform tree."""
     empty = "_" * game.length
 
     def rec(board, missed):
         st = game.state(board, missed, freq, opener=opener)
         if st["determined"] or not st["guess"]:
             return {"leaf": True}
-        return {"leaf": False, "n": int(st["n"]),
+        return {"leaf": False, "n": int(st["n"]), "guess": st["guess"],
                 "kids": [{"miss": (not oc["hit"]), "sub": rec(oc["board"], oc["missed"])}
                          for oc in st["outcomes"]]}
     return rec(empty, "")
