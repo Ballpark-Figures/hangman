@@ -244,8 +244,8 @@ class Scene18(HangmanScene):
         ledges = [VGroup() for _ in range(dmax + 1)]
         letter_dot_idx = []                           # dots-index of each letter's own node
 
-        def draw(node, parent_c):
-            c = place(node)
+        def draw(node, grow_pt):
+            c = np.array(place(node))
             d = dep[id(node)]
             dot = Dot(c, radius=dot_r, color=TREE_HIT_COL, z_index=2)
             di = len(dots)
@@ -255,13 +255,19 @@ class Scene18(HangmanScene):
                 lab = crisp_text(node["guess"].upper(), color=BOARD_NAVY, weight=BOLD)
                 lab.scale_to_fit_height(lh).move_to(c).set_z_index(3)
                 letters.add(lab); ng.add(lab); letter_dot_idx.append(di)
-            lnodes[d].append((ng, None if parent_c is None else np.array(parent_c)))
+            # grow from the parent's OUTER edge (grow_pt), not its centre → the edge + node
+            # are visible the instant the level starts (no dead time buried in the node)
+            lnodes[d].append((ng, grow_pt))
             if not node.get("leaf"):
                 for k in node["kids"]:
-                    e = Line(c, place(k["sub"]), stroke_width=edge_w, z_index=-1,
+                    cc = np.array(place(k["sub"]))
+                    dirv = normalize(cc - c)
+                    start = c + dirv * dot_r          # this node's outer edge (edge/child start here)
+                    end = cc - dirv * dot_r           # child's outer edge
+                    e = Line(start, end, stroke_width=edge_w, z_index=-1,
                              color=(TREE_MISS_COL if k["miss"] else TREE_HIT_COL))
                     edges.add(e); ledges[dep[id(k["sub"])]].add(e)
-                    draw(k["sub"], c)
+                    draw(k["sub"], start)
         draw(tree, None)
         g = VGroup(edges, dots, letters)              # edges behind dots, letters on top
         g.dots, g.edges, g.letters = dots, edges, letters
