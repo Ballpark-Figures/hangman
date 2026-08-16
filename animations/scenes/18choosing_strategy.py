@@ -255,7 +255,7 @@ class Scene18(HangmanScene):
                 lab = crisp_text(node["guess"].upper(), color=BOARD_NAVY, weight=BOLD)
                 lab.scale_to_fit_height(lh).move_to(c).set_z_index(3)
                 letters.add(lab); ng.add(lab); letter_dot_idx.append(di)
-            lnodes[d].append((ng, np.array(c)))
+            lnodes[d].append((ng, None if parent_c is None else np.array(parent_c)))
             if not node.get("leaf"):
                 for k in node["kids"]:
                     e = Line(c, place(k["sub"]), stroke_width=edge_w, z_index=-1,
