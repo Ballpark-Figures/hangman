@@ -47,9 +47,11 @@ FLAGS (owned by a human — tune/decide later)
 BEAT MAP  (one beat per word length: each length_N morphs the CDF AND fills its row)
   a double_plot  — recall scene 19's by-length double bar chart (uniform vs better choosing)
   b line_at_6    — dashed reference line at y=6 misses across that chart
-  c fair_setup   — chart out; LEFT chalkboard + empty table, RIGHT "1-Letter Words" survival
-                   CDF (Misses before Losing vs Chance of Surviving) + a dashed 50% line
-  d length_1     — fill the length-1 row (1 | 1) + gallows with a tall purple-oval head
+  c fair_setup   — chart out; LEFT chalkboard + empty table (the "1-Letter Words" CDF is
+                   built for board-sizing but only REVEALED in d)
+  d length_1     — the "1-Letter Words" survival CDF grows in (Misses before Losing vs
+                   Chance of Surviving) + dashed 50% line + the length-1 row (1 | 1) +
+                   gallows with a tall purple-oval head; the "1" writes as the graph appears
   e length_2     — switch the CDF to 2 letters (write "2") + fair number (4) + colour-coded
                    gallows (head purple, body blue, arms green, legs yellow)
   f length_3     — switch to 3 (write "3"; first INEXACT crimson tail + caption appear) +
@@ -289,7 +291,8 @@ class Scene23(HangmanScene):
         blue = [(chart.bars[crim[0]].get_left()[0], right)] if crim else []
         return self._split_dashed(y, left, right, blue)
 
-    # ── c : chart out; chalkboard + empty table, "1-Letter Words" CDF + 50% line
+    # ── c : chart out; chalkboard + empty table (the "1-Letter Words" CDF is built here
+    #    for the board-sizing measurement but only REVEALED in beat d, with the len-1 row)
     @subscene
     def fair_setup(self):
         self.play(FadeOut(self.chart), FadeOut(self.line6), run_time=0.6)
@@ -298,7 +301,8 @@ class Scene23(HangmanScene):
         m = MARGIN
         # build the graph, MEASURE it, then derive the board width + graph placement so
         # frame-left|board|graph|frame-right are separated by equal gaps m and the
-        # board's left/top/bottom margins are all m too (board vertically centred).
+        # board's left/top/bottom margins are all m too (board vertically centred). The
+        # graph itself is NOT added here — beat d grows it in beside the length-1 row.
         self.cdf = self._cdf_chart(1)
         self.cdf_extra = self._cdf_axis_titles(self.cdf)
         graph = VGroup(self.cdf, self.cdf_extra)
@@ -313,14 +317,6 @@ class Scene23(HangmanScene):
         self.play(LaggedStartMap(Create, _strokes(*h_len, *h_fair, *h_draw),
                                  lag_ratio=0.5), run_time=1.6)
         self.play(Create(rule), run_time=0.5)
-
-        rest = VGroup(self.cdf.labels, self.cdf.x_axis, self.cdf.y_axis,
-                      self.cdf.yticks, self.cdf.title, self.cdf_extra)
-        rest.set_opacity(0)
-        self.add(self.cdf, self.cdf_extra)      # fifty is added by its Create below
-        grow_bars(self, self.cdf.bars, 1.2, lag=0.08,
-                  extra=[rest.animate.set_opacity(1)])
-        self.play(Create(self.fifty), run_time=0.7)
 
     def _row_y(self, i):
         """Baseline y of table row i (row 0 = length 1, row 1 = length 2, …)."""
@@ -424,7 +420,9 @@ class Scene23(HangmanScene):
         note.align_to(self.cdf.x_axis, RIGHT)              # right edge at the plot edge
         return note
 
-    # ── d : fill the length-1 row (1 | 1) + gallows with a tall oval (now red) ───
+    # ── d : the "1-Letter Words" CDF appears (moved here from c) + fill the length-1
+    #    row (1 | 1) + gallows with a tall oval. The WORD LENGTH "1" is written AS the
+    #    graph grows in (each length's label writes at the start of its graph appearing).
     def _setup_row1(self):
         cx_len, cx_fair, _ = self.col_x
         y = self._row_y(0)
@@ -437,7 +435,14 @@ class Scene23(HangmanScene):
     def length_1(self):
         self._setup_row1()
         n_len, n_fair, gal = self.row1
-        self.play(LaggedStartMap(Create, _strokes(n_len), lag_ratio=0.5), run_time=0.6)
+        # grow the 1-Letter CDF in (built in c), writing the WORD LENGTH "1" alongside it
+        rest = VGroup(self.cdf.labels, self.cdf.x_axis, self.cdf.y_axis,
+                      self.cdf.yticks, self.cdf.title, self.cdf_extra)
+        rest.set_opacity(0)
+        self.add(self.cdf, self.cdf_extra)      # fifty is added by its Create below
+        grow_bars(self, self.cdf.bars, 1.2, lag=0.08,
+                  extra=[rest.animate.set_opacity(1), self._write(n_len)])
+        self.play(Create(self.fifty), run_time=0.7)
         self.play(LaggedStartMap(Create, _strokes(n_fair), lag_ratio=0.5), run_time=0.6)
         self.play(LaggedStartMap(Create, gal.frame, lag_ratio=0.8), run_time=1.0)
         for p in gal.parts:                            # just the head (purple) at len 1
