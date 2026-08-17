@@ -967,6 +967,94 @@ class OptimalSolver:
     def save_tree(self, path) -> None:
         Path(path).write_text(json.dumps(self.optimal_tree()))
 
+    # ---- annotated exploration tree (for the scene-05 video) ----------------
+    # The saved optimal tree records only the WINNING guess per node. The video
+    # instead teaches the SEARCH, so at every node it needs EVERY candidate letter's
+    # partition, the average misses of playing it then continuing optimally, and the
+    # resulting subtree. All of that is already computed by the search (V lives in the
+    # memo); these helpers just surface it. READ-ONLY -- nothing here is used by the
+    # solve/deepen path, so existing CSVs/trees are unaffected.
+    def _weight(self, S: np.ndarray) -> float:
+        return float(self.freq[S].sum())
+
+    def _opt_value(self, S: np.ndarray) -> float:
+        """Exact UNCAPPED optimal V(S), via the (memoized) search. Mirrors _V's own
+        base cases so |S|<=1 -> 0 and |S|==2 -> _sep_two without a memo lookup."""
+        n = int(S.shape[0])
+        if n <= 1:
+            return 0.0
+        if n == 2:
+            return self._sep_two(int(S[0]), int(S[1]))[0]
+        return self._V(S, None, INF, 99)
+
+    def _option(self, S: np.ndarray, c: int, gb: int) -> dict:
+        """Guessing letter ``c`` on set ``S``, then continuing OPTIMALLY: the
+        partition, split flag, the average ADDITIONAL misses (``value``/``weight``,
+        where ``value`` = W_absent(S, c) + sum of optimal V over the resulting
+        groups), and the plain optimal subtree that follows. An unguessed letter
+        absent from every word gives a single "____" branch (``splits`` False, every
+        word misses) -- the script's "letter that can no longer be in the word"."""
+        pats = self.masks[S, c]
+        uniq = np.unique(pats)
+        value = float(self.freq[S][pats == 0].sum())      # W_absent: one miss / absent word
+        branches = {}
+        for pv in uniq:
+            grp = S[pats == pv]
+            value += self._opt_value(grp)                  # optimal play within the group
+            branches[self._pattern_str(c, int(pv))] = self._build_tree(
+                grp, None, gb | (1 << c))
+        w = self._weight(S)
+        return {"letter": ALPHABET[c], "splits": bool(uniq.shape[0] > 1),
+                "n_branches": int(uniq.shape[0]), "value": value,
+                "avg": value / w if w else 0.0,
+                "subtree": {"guess": ALPHABET[c], "n": int(S.shape[0]),
+                            "branches": branches}}
+
+    def _annotate(self, S: np.ndarray, gb: int) -> dict:
+        """One node of the annotated tree; recurses (annotated) only down the OPTIMAL
+        letter's branches. ``avg`` is the LOCAL subtree average (mean additional
+        misses over just the words that reach this node; 0 for a clean resolve)."""
+        n = int(S.shape[0])
+        w = self._weight(S)
+        node = {"n": n, "weight": w,
+                "guessed": [ALPHABET[i] for i in range(26) if (gb >> i) & 1]}
+        if n <= 1:
+            node["word"] = self.words[int(S[0])] if n == 1 else None
+            node["avg"] = 0.0
+            return node
+        options = []
+        for c in range(26):
+            if (gb >> c) & 1:                              # already guessed -> constant
+                continue
+            pats = self.masks[S, c]
+            if np.unique(pats).shape[0] == 1 and int(pats[0]) != 0:
+                continue                                    # in EVERY word: no info, no miss
+            options.append(self._option(S, c, gb))
+        node["options"] = sorted(options, key=lambda o: (o["avg"], o["letter"]))
+        copt = self._move(S[self.freq[S] > 0], None)       # the search's optimal move
+        node["optimal_letter"] = ALPHABET[copt] if copt >= 0 else None
+        node["value"] = self._opt_value(S)
+        node["avg"] = node["value"] / w if w else 0.0
+        if copt >= 0:
+            pats = self.masks[S, copt]
+            node["children"] = {
+                self._pattern_str(copt, int(pv)): self._annotate(S[pats == pv], gb | (1 << copt))
+                for pv in np.unique(pats)}
+        return node
+
+    def annotated_tree(self) -> dict:
+        """Scene-05 exploration tree: at every node of the OPTIMAL tree, EVERY still-
+        unguessed candidate letter with its partition, split flag, optimal-continuation
+        average misses, and resulting optimal subtree; the optimal branches recurse.
+        Requires a prior UNCAPPED ``solve(freq, max_misses=None)`` so every option
+        value is exact even for a suboptimal first guess (which can need more misses
+        than the converged cap)."""
+        if self.freq is None:
+            raise RuntimeError("call solve(freq, max_misses=None) first")
+        if self._solve_cap is not None:
+            raise RuntimeError("annotated_tree needs an UNCAPPED solve (max_misses=None)")
+        return self._annotate(np.arange(self.N, dtype=self._idt), 0)
+
 
 # ---- brute-force references (tiny synthetic instances only) --------------------
 def optimal_bruteforce(game: GreedyGame, freq=None, *, cap=None) -> float:

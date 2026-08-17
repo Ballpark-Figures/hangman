@@ -18,7 +18,7 @@ import numpy as np
 from manim import *
 
 from bpkfigures.speech_bubble import speech_bubble
-from assets.chalkboard import chalk_letter, CHALK
+from bpkfigures.chalkboard import chalk_letter, CHALK
 from assets.hangman_board import hangman_drawing
 
 # ── layout constants (verbatim from 02rules / 94chalkgame) ────────────────────
@@ -43,10 +43,9 @@ MISS_GAP    = 0.34
 
 # the guesser is off the LEFT edge: the tail TIP sits at the screen edge and the
 # bubble grows from there. Anchored by the tip — NOT move_to (its group-bbox
-# centring would pull the long tail inward).
+# centring would pull the tail inward).
 BUBBLE_TIP  = np.array([-7.9, 2.4, 0])
 BUBBLE_FS   = 56
-BUBBLE_TAIL = 1.5
 
 
 def build_rules(length, *, cx=BLANK_CX, y=BLANK_Y, slot=BLANK_SLOT, gap=BLANK_GAP,
@@ -107,10 +106,11 @@ def miss_letter(ch, x, *, color=CHALK):
     return L
 
 
-def bubble(ch, *, tail="left", font_size=BUBBLE_FS, tail_len=BUBBLE_TAIL,
-           tip=BUBBLE_TIP):
-    """The guesser's speech bubble, its tail tip anchored at `tip` (the left edge
-    by default) so it grows from off-screen — GrowFromPoint(b, b.tip_dot...)."""
-    b = speech_bubble(ch.upper(), font_size=font_size, tail=tail, tail_len=tail_len)
+def bubble(ch, *, font_size=BUBBLE_FS, tip=BUBBLE_TIP, **kwargs):
+    """The guesser's speech bubble — the house pill look (speech_bubble defaults:
+    warm CARD_FILL capsule, soft outline, navy ink, short left tail). Its tail tip
+    is anchored at `tip` (off the left edge) so it grows from off-screen via
+    GrowFromPoint(b, b.tip_dot...). Pass any speech_bubble kwarg to override."""
+    b = speech_bubble(ch.upper(), font_size=font_size, **kwargs)
     b.shift(np.array(tip) - b.tip_dot.get_center())
     return b

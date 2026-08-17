@@ -14,9 +14,11 @@ from assets import letter_heat_data as lhd
 
 
 def letter_heatmaps(letter, *, cell_size=0.42, row_gap=0.14, label_buff=0.3,
-                    label_font_size=26, center=ORIGIN):
-    """Build the length-2..10 heatmap stack for `letter`. Returns a VGroup with
-    `.heatmaps` (the get_heatmap groups, top→bottom) and `.labels`."""
+                    label_font_size=26, center=ORIGIN, high_color=PURE_RED):
+    """Build the length-2..10 heatmap stack for `letter`. `high_color` is the top of
+    the white→colour scale (default red; the tier scenes pass the letter's class ink —
+    red for vowels, blue for consonants). Returns a VGroup with `.heatmaps` (the
+    get_heatmap groups, top→bottom) and `.labels`."""
     data = lhd.get(letter)
     vmax = data["vmax"]
 
@@ -25,7 +27,7 @@ def letter_heatmaps(letter, *, cell_size=0.42, row_gap=0.14, label_buff=0.3,
     pitch = cell_size + row_gap
     for i, L in enumerate(data["lengths"]):
         hm = get_heatmap(data["rows"][L], cell_size=cell_size,
-                         vmin=0.0, vmax=vmax, stroke_width=1.0)
+                         vmin=0.0, vmax=vmax, stroke_width=1.0, high_color=high_color)
         hm.move_to([hm.width / 2, -i * pitch, 0])          # left edge at x = 0
         lab = crisp_text(str(L), font_size=label_font_size, color=BLACK)
         lab.next_to(hm, LEFT, buff=label_buff)

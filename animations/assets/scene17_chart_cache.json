@@ -1,0 +1,246 @@
+{
+  "uniform": {
+    "1": {
+      "avg": 0.5,
+      "lower": 0.5,
+      "upper": 0.5,
+      "converged": true
+    },
+    "2": {
+      "avg": 3.8776,
+      "lower": 3.8776,
+      "upper": 3.8776,
+      "converged": true
+    },
+    "3": {
+      "avg": 6.4617,
+      "lower": 6.4031,
+      "upper": 6.5203,
+      "converged": false
+    },
+    "4": {
+      "avg": 5.3031,
+      "lower": 5.2354,
+      "upper": 5.3708,
+      "converged": false
+    },
+    "5": {
+      "avg": 3.8255,
+      "lower": 3.7751,
+      "upper": 3.8758,
+      "converged": false
+    },
+    "6": {
+      "avg": 2.8428,
+      "lower": 2.8317,
+      "upper": 2.8539,
+      "converged": false
+    },
+    "7": {
+      "avg": 2.1424,
+      "lower": 2.1424,
+      "upper": 2.1424,
+      "converged": true
+    },
+    "8": {
+      "avg": 1.4422,
+      "lower": 1.4422,
+      "upper": 1.4422,
+      "converged": true
+    },
+    "9": {
+      "avg": 0.958,
+      "lower": 0.958,
+      "upper": 0.958,
+      "converged": true
+    },
+    "10": {
+      "avg": 0.6746,
+      "lower": 0.6746,
+      "upper": 0.6746,
+      "converged": true
+    },
+    "11": {
+      "avg": 0.4687,
+      "lower": 0.4687,
+      "upper": 0.4687,
+      "converged": true
+    },
+    "12": {
+      "avg": 0.3321,
+      "lower": 0.3321,
+      "upper": 0.3321,
+      "converged": true
+    },
+    "13": {
+      "avg": 0.1805,
+      "lower": 0.1805,
+      "upper": 0.1805,
+      "converged": true
+    },
+    "14": {
+      "avg": 0.1424,
+      "lower": 0.1424,
+      "upper": 0.1424,
+      "converged": true
+    },
+    "15": {
+      "avg": 0.068,
+      "lower": 0.068,
+      "upper": 0.068,
+      "converged": true
+    },
+    "16": {
+      "avg": 0.0213,
+      "lower": 0.0213,
+      "upper": 0.0213,
+      "converged": true
+    },
+    "17": {
+      "avg": 0.0,
+      "lower": 0.0,
+      "upper": 0.0,
+      "converged": true
+    },
+    "18": {
+      "avg": 0.0,
+      "lower": 0.0,
+      "upper": 0.0,
+      "converged": true
+    },
+    "19": {
+      "avg": 0.0,
+      "lower": 0.0,
+      "upper": 0.0,
+      "converged": true
+    },
+    "20": {
+      "avg": 0.0,
+      "lower": 0.0,
+      "upper": 0.0,
+      "converged": true
+    }
+  },
+  "zipf": {
+    "1": {
+      "avg": 0.3494,
+      "lower": 0.3494,
+      "upper": 0.3494,
+      "converged": true
+    },
+    "2": {
+      "avg": 1.8034,
+      "lower": 1.8034,
+      "upper": 1.8034,
+      "converged": true
+    },
+    "3": {
+      "avg": 1.8061,
+      "lower": 1.8015,
+      "upper": 1.8107,
+      "converged": false
+    },
+    "4": {
+      "avg": 2.4657,
+      "lower": 2.4374,
+      "upper": 2.494,
+      "converged": false
+    },
+    "5": {
+      "avg": 2.2591,
+      "lower": 2.252,
+      "upper": 2.2662,
+      "converged": false
+    },
+    "6": {
+      "avg": 1.7394,
+      "lower": 1.7381,
+      "upper": 1.7407,
+      "converged": false
+    },
+    "7": {
+      "avg": 1.2646,
+      "lower": 1.2643,
+      "upper": 1.2648,
+      "converged": false
+    },
+    "8": {
+      "avg": 0.9188,
+      "lower": 0.9188,
+      "upper": 0.9188,
+      "converged": true
+    },
+    "9": {
+      "avg": 0.5862,
+      "lower": 0.5862,
+      "upper": 0.5862,
+      "converged": true
+    },
+    "10": {
+      "avg": 0.4425,
+      "lower": 0.4425,
+      "upper": 0.4425,
+      "converged": true
+    },
+    "11": {
+      "avg": 0.3296,
+      "lower": 0.3296,
+      "upper": 0.3296,
+      "converged": true
+    },
+    "12": {
+      "avg": 0.2242,
+      "lower": 0.2242,
+      "upper": 0.2242,
+      "converged": true
+    },
+    "13": {
+      "avg": 0.1107,
+      "lower": 0.1107,
+      "upper": 0.1107,
+      "converged": true
+    },
+    "14": {
+      "avg": 0.0525,
+      "lower": 0.0525,
+      "upper": 0.0525,
+      "converged": true
+    },
+    "15": {
+      "avg": 0.0211,
+      "lower": 0.0211,
+      "upper": 0.0211,
+      "converged": true
+    },
+    "16": {
+      "avg": 0.0127,
+      "lower": 0.0127,
+      "upper": 0.0127,
+      "converged": true
+    },
+    "17": {
+      "avg": 0.0,
+      "lower": 0.0,
+      "upper": 0.0,
+      "converged": true
+    },
+    "18": {
+      "avg": 0.0,
+      "lower": 0.0,
+      "upper": 0.0,
+      "converged": true
+    },
+    "19": {
+      "avg": 0.0,
+      "lower": 0.0,
+      "upper": 0.0,
+      "converged": true
+    },
+    "20": {
+      "avg": 0.0,
+      "lower": 0.0,
+      "upper": 0.0,
+      "converged": true
+    }
+  }
+}

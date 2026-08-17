@@ -1,0 +1,220 @@
+{
+  "uniform": {
+    "best": "E",
+    "letters": [
+      {
+        "letter": "E",
+        "misses": 3.9989
+      },
+      {
+        "letter": "S",
+        "misses": 4.0157
+      },
+      {
+        "letter": "A",
+        "misses": 4.0329
+      },
+      {
+        "letter": "R",
+        "misses": 4.107
+      },
+      {
+        "letter": "T",
+        "misses": 4.1325
+      },
+      {
+        "letter": "O",
+        "misses": 4.1476
+      },
+      {
+        "letter": "L",
+        "misses": 4.1519
+      },
+      {
+        "letter": "N",
+        "misses": 4.206
+      },
+      {
+        "letter": "I",
+        "misses": 4.2495
+      },
+      {
+        "letter": "D",
+        "misses": 4.3742
+      },
+      {
+        "letter": "C",
+        "misses": 4.3754
+      },
+      {
+        "letter": "P",
+        "misses": 4.4011
+      },
+      {
+        "letter": "M",
+        "misses": 4.4378
+      },
+      {
+        "letter": "U",
+        "misses": 4.4403
+      },
+      {
+        "letter": "H",
+        "misses": 4.4856
+      },
+      {
+        "letter": "B",
+        "misses": 4.5285
+      },
+      {
+        "letter": "G",
+        "misses": 4.5674
+      },
+      {
+        "letter": "K",
+        "misses": 4.5923
+      },
+      {
+        "letter": "Y",
+        "misses": 4.6109
+      },
+      {
+        "letter": "F",
+        "misses": 4.6303
+      },
+      {
+        "letter": "W",
+        "misses": 4.6569
+      },
+      {
+        "letter": "V",
+        "misses": 4.7714
+      },
+      {
+        "letter": "X",
+        "misses": 4.9062
+      },
+      {
+        "letter": "Z",
+        "misses": 4.9062
+      },
+      {
+        "letter": "J",
+        "misses": 4.9179
+      },
+      {
+        "letter": "Q",
+        "misses": 4.9551
+      }
+    ]
+  },
+  "best_opener": {
+    "best": "L",
+    "letters": [
+      {
+        "letter": "L",
+        "misses": 5.3792
+      },
+      {
+        "letter": "A",
+        "misses": 5.3792
+      },
+      {
+        "letter": "R",
+        "misses": 5.3792
+      },
+      {
+        "letter": "T",
+        "misses": 5.3792
+      },
+      {
+        "letter": "N",
+        "misses": 5.3792
+      },
+      {
+        "letter": "I",
+        "misses": 5.3793
+      },
+      {
+        "letter": "O",
+        "misses": 5.3795
+      },
+      {
+        "letter": "D",
+        "misses": 5.3898
+      },
+      {
+        "letter": "E",
+        "misses": 5.3919
+      },
+      {
+        "letter": "S",
+        "misses": 5.3969
+      },
+      {
+        "letter": "Y",
+        "misses": 5.4085
+      },
+      {
+        "letter": "C",
+        "misses": 5.4362
+      },
+      {
+        "letter": "P",
+        "misses": 5.4562
+      },
+      {
+        "letter": "U",
+        "misses": 5.4565
+      },
+      {
+        "letter": "K",
+        "misses": 5.4606
+      },
+      {
+        "letter": "M",
+        "misses": 5.4741
+      },
+      {
+        "letter": "B",
+        "misses": 5.589
+      },
+      {
+        "letter": "H",
+        "misses": 5.6005
+      },
+      {
+        "letter": "F",
+        "misses": 5.6867
+      },
+      {
+        "letter": "W",
+        "misses": 5.8565
+      },
+      {
+        "letter": "G",
+        "misses": 5.8624
+      },
+      {
+        "letter": "J",
+        "misses": 6.0386
+      },
+      {
+        "letter": "V",
+        "misses": 6.1075
+      },
+      {
+        "letter": "Z",
+        "misses": 6.125
+      },
+      {
+        "letter": "X",
+        "misses": 6.2523
+      },
+      {
+        "letter": "Q",
+        "misses": 6.3596
+      }
+    ]
+  }
+}

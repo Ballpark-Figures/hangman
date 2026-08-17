@@ -44,7 +44,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from config import *
 from manim import MovingCameraScene
-from assets.chalkboard import CHALK, BOARD_NAVY
+from bpkfigures.chalkboard import CHALK, BOARD_NAVY
 from assets.hangman_board import merge_pattern, hangman_drawing
 
 # ── sourced data: winprob tree, len-3 uniform, budget n=5 ─────────────────────

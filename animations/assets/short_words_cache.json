@@ -1,0 +1,528 @@
+{
+  "by_length": {
+    "uniform": {
+      "1": {
+        "avg": 0.5,
+        "lower": 0.5,
+        "upper": 0.5,
+        "converged": true
+      },
+      "2": {
+        "avg": 3.8776,
+        "lower": 3.8776,
+        "upper": 3.8776,
+        "converged": true
+      },
+      "3": {
+        "avg": 6.4617,
+        "lower": 6.4031,
+        "upper": 6.5203,
+        "converged": false
+      },
+      "4": {
+        "avg": 5.3031,
+        "lower": 5.2354,
+        "upper": 5.3708,
+        "converged": false
+      },
+      "5": {
+        "avg": 3.8255,
+        "lower": 3.7751,
+        "upper": 3.8758,
+        "converged": false
+      },
+      "6": {
+        "avg": 2.8428,
+        "lower": 2.8317,
+        "upper": 2.8539,
+        "converged": false
+      },
+      "7": {
+        "avg": 2.1424,
+        "lower": 2.1424,
+        "upper": 2.1424,
+        "converged": true
+      },
+      "8": {
+        "avg": 1.4422,
+        "lower": 1.4422,
+        "upper": 1.4422,
+        "converged": true
+      },
+      "9": {
+        "avg": 0.958,
+        "lower": 0.958,
+        "upper": 0.958,
+        "converged": true
+      },
+      "10": {
+        "avg": 0.6746,
+        "lower": 0.6746,
+        "upper": 0.6746,
+        "converged": true
+      },
+      "11": {
+        "avg": 0.4687,
+        "lower": 0.4687,
+        "upper": 0.4687,
+        "converged": true
+      },
+      "12": {
+        "avg": 0.3321,
+        "lower": 0.3321,
+        "upper": 0.3321,
+        "converged": true
+      },
+      "13": {
+        "avg": 0.1805,
+        "lower": 0.1805,
+        "upper": 0.1805,
+        "converged": true
+      },
+      "14": {
+        "avg": 0.1424,
+        "lower": 0.1424,
+        "upper": 0.1424,
+        "converged": true
+      },
+      "15": {
+        "avg": 0.068,
+        "lower": 0.068,
+        "upper": 0.068,
+        "converged": true
+      },
+      "16": {
+        "avg": 0.0213,
+        "lower": 0.0213,
+        "upper": 0.0213,
+        "converged": true
+      },
+      "17": {
+        "avg": 0.0,
+        "lower": 0.0,
+        "upper": 0.0,
+        "converged": true
+      },
+      "18": {
+        "avg": 0.0,
+        "lower": 0.0,
+        "upper": 0.0,
+        "converged": true
+      },
+      "19": {
+        "avg": 0.0,
+        "lower": 0.0,
+        "upper": 0.0,
+        "converged": true
+      },
+      "20": {
+        "avg": 0.0,
+        "lower": 0.0,
+        "upper": 0.0,
+        "converged": true
+      }
+    },
+    "best_opener": {
+      "1": {
+        "avg": 0.5,
+        "lower": 0.5,
+        "upper": 0.5,
+        "converged": true
+      },
+      "2": {
+        "avg": 4.1121,
+        "lower": 4.1121,
+        "upper": 4.1121,
+        "converged": true
+      },
+      "3": {
+        "avg": 7.1815,
+        "lower": 6.6025,
+        "upper": 7.7605,
+        "converged": false
+      },
+      "4": {
+        "avg": 6.1392,
+        "lower": 5.4169,
+        "upper": 6.8615,
+        "converged": false
+      },
+      "5": {
+        "avg": 4.8062,
+        "lower": 4.6235,
+        "upper": 4.9889,
+        "converged": false
+      },
+      "6": {
+        "avg": 4.2761,
+        "lower": 4.1872,
+        "upper": 4.3649,
+        "converged": false
+      },
+      "7": {
+        "avg": 4.014,
+        "lower": 3.5746,
+        "upper": 4.4534,
+        "converged": false
+      },
+      "8": {
+        "avg": 2.5213,
+        "lower": 2.5213,
+        "upper": 2.5213,
+        "converged": true
+      },
+      "9": {
+        "avg": 1.3434,
+        "lower": 1.3434,
+        "upper": 1.3434,
+        "converged": true
+      },
+      "10": {
+        "avg": 1.0472,
+        "lower": 1.0472,
+        "upper": 1.0472,
+        "converged": true
+      },
+      "11": {
+        "avg": 0.7572,
+        "lower": 0.7572,
+        "upper": 0.7572,
+        "converged": true
+      },
+      "12": {
+        "avg": 0.6197,
+        "lower": 0.6197,
+        "upper": 0.6197,
+        "converged": true
+      },
+      "13": {
+        "avg": 0.5889,
+        "lower": 0.5889,
+        "upper": 0.5889,
+        "converged": true
+      },
+      "14": {
+        "avg": 0.5319,
+        "lower": 0.5319,
+        "upper": 0.5319,
+        "converged": true
+      },
+      "15": {
+        "avg": 0.2827,
+        "lower": 0.2827,
+        "upper": 0.2827,
+        "converged": true
+      },
+      "16": {
+        "avg": 0.2857,
+        "lower": 0.2857,
+        "upper": 0.2857,
+        "converged": true
+      },
+      "17": {
+        "avg": 0.0,
+        "lower": 0.0,
+        "upper": 0.0,
+        "converged": true
+      },
+      "18": {
+        "avg": 0.0,
+        "lower": 0.0,
+        "upper": 0.0,
+        "converged": true
+      },
+      "19": {
+        "avg": 0.0,
+        "lower": 0.0,
+        "upper": 0.0,
+        "converged": true
+      },
+      "20": {
+        "avg": 0.0,
+        "lower": 0.0,
+        "upper": 0.0,
+        "converged": true
+      }
+    }
+  },
+  "tables": {
+    "2": {
+      "common_patterns": [
+        {
+          "pattern": "U_",
+          "multiplier": 3.375
+        },
+        {
+          "pattern": "_Y",
+          "multiplier": 2.0
+        }
+      ],
+      "common_words": [
+        {
+          "word": "UP",
+          "pct": 8.181818
+        },
+        {
+          "word": "US",
+          "pct": 8.181818
+        },
+        {
+          "word": "BY",
+          "pct": 4.848485
+        },
+        {
+          "word": "MY",
+          "pct": 4.848485
+        },
+        {
+          "word": "NO",
+          "pct": 2.424242
+        }
+      ],
+      "rare_patterns": [
+        {
+          "pattern": "_A",
+          "multiplier": 0.125
+        },
+        {
+          "pattern": "O_",
+          "multiplier": 0.125
+        },
+        {
+          "pattern": "E_",
+          "multiplier": 0.5
+        },
+        {
+          "pattern": "I_",
+          "multiplier": 0.5
+        }
+      ],
+      "rare_words": [
+        {
+          "word": "PA",
+          "pct": 0.30303
+        },
+        {
+          "word": "OP",
+          "pct": 0.30303
+        },
+        {
+          "word": "MA",
+          "pct": 0.30303
+        },
+        {
+          "word": "YA",
+          "pct": 0.30303
+        },
+        {
+          "word": "FA",
+          "pct": 0.30303
+        }
+      ]
+    },
+    "3": {
+      "common_patterns": [
+        {
+          "pattern": "__J",
+          "multiplier": 4.5
+        },
+        {
+          "pattern": "_O_",
+          "multiplier": 2.0
+        },
+        {
+          "pattern": "__Z",
+          "multiplier": 2.0
+        },
+        {
+          "pattern": "_I_",
+          "multiplier": 2.0
+        },
+        {
+          "pattern": "__V",
+          "multiplier": 2.0
+        },
+        {
+          "pattern": "V__",
+          "multiplier": 2.0
+        },
+        {
+          "pattern": "F__",
+          "multiplier": 2.0
+        },
+        {
+          "pattern": "_U_",
+          "multiplier": 1.875
+        },
+        {
+          "pattern": "__U",
+          "multiplier": 1.625
+        },
+        {
+          "pattern": "_A_",
+          "multiplier": 1.5
+        },
+        {
+          "pattern": "__I",
+          "multiplier": 1.125
+        },
+        {
+          "pattern": "G_G",
+          "multiplier": 1.125
+        }
+      ],
+      "common_words": [
+        {
+          "word": "HAJ",
+          "pct": 0.86312
+        },
+        {
+          "word": "FIR",
+          "pct": 0.511478
+        },
+        {
+          "word": "FIG",
+          "pct": 0.511478
+        },
+        {
+          "word": "FIT",
+          "pct": 0.511478
+        },
+        {
+          "word": "VOW",
+          "pct": 0.511478
+        },
+        {
+          "word": "DIV",
+          "pct": 0.511478
+        },
+        {
+          "word": "VIE",
+          "pct": 0.511478
+        },
+        {
+          "word": "FIX",
+          "pct": 0.511478
+        },
+        {
+          "word": "FIN",
+          "pct": 0.511478
+        },
+        {
+          "word": "FOX",
+          "pct": 0.511478
+        },
+        {
+          "word": "BIZ",
+          "pct": 0.511478
+        },
+        {
+          "word": "WIZ",
+          "pct": 0.511478
+        }
+      ]
+    },
+    "4": {
+      "common_patterns": [
+        {
+          "pattern": "__X_",
+          "multiplier": 8.0
+        },
+        {
+          "pattern": "B_B_",
+          "multiplier": 4.75
+        },
+        {
+          "pattern": "P__P",
+          "multiplier": 4.125
+        },
+        {
+          "pattern": "__FF",
+          "multiplier": 4.0
+        },
+        {
+          "pattern": "__TT",
+          "multiplier": 4.0
+        },
+        {
+          "pattern": "__JJ",
+          "multiplier": 4.0
+        },
+        {
+          "pattern": "_M_M",
+          "multiplier": 4.0
+        },
+        {
+          "pattern": "__LL",
+          "multiplier": 4.0
+        },
+        {
+          "pattern": "__ZZ",
+          "multiplier": 4.0
+        },
+        {
+          "pattern": "___X",
+          "multiplier": 3.75
+        },
+        {
+          "pattern": "P_P_",
+          "multiplier": 2.375
+        },
+        {
+          "pattern": "__K_",
+          "multiplier": 2.0
+        }
+      ],
+      "common_words": [
+        {
+          "word": "BABE",
+          "pct": 0.650664
+        },
+        {
+          "word": "WAXY",
+          "pct": 0.547928
+        },
+        {
+          "word": "FOXY",
+          "pct": 0.547928
+        },
+        {
+          "word": "BOXY",
+          "pct": 0.547928
+        },
+        {
+          "word": "POPE",
+          "pct": 0.325332
+        },
+        {
+          "word": "BABY",
+          "pct": 0.325332
+        },
+        {
+          "word": "PIPE",
+          "pct": 0.325332
+        },
+        {
+          "word": "PUMP",
+          "pct": 0.282525
+        },
+        {
+          "word": "POMP",
+          "pct": 0.282525
+        },
+        {
+          "word": "PIMP",
+          "pct": 0.282525
+        },
+        {
+          "word": "HALL",
+          "pct": 0.273964
+        },
+        {
+          "word": "GILL",
+          "pct": 0.273964
+        }
+      ]
+    }
+  }
+}

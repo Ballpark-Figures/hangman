@@ -1,0 +1,746 @@
+{
+ "meta": {
+  "cutoff": 2.5,
+  "n_top": 80,
+  "final": 34483,
+  "wordfreq_list": "large"
+ },
+ "anchors": {
+  "start": 53572,
+  "non_letter": 51077,
+  "hunspell": 34941,
+  "final": 34483
+ },
+ "counter": [
+  {
+   "key": "start",
+   "label": "wordfreq",
+   "value": 53572
+  },
+  {
+   "key": "non_letter",
+   "label": "drop non-letter characters",
+   "delta": -2495,
+   "value": 51077,
+   "example": "don't"
+  },
+  {
+   "key": "hunspell",
+   "label": "spellcheck",
+   "delta": -16136,
+   "value": 34941,
+   "example": "chicago"
+  },
+  {
+   "key": "abbreviations",
+   "label": "abbreviations",
+   "delta": -164,
+   "value": 34777,
+   "example": "bldg"
+  },
+  {
+   "key": "single_letters",
+   "label": "single letters",
+   "delta": -24,
+   "value": 34753,
+   "example": "p"
+  },
+  {
+   "key": "initialisms",
+   "label": "initialisms",
+   "delta": -45,
+   "value": 34708,
+   "example": "mph"
+  },
+  {
+   "key": "roman_numerals",
+   "label": "roman numerals",
+   "delta": -22,
+   "value": 34686,
+   "example": "xiv"
+  },
+  {
+   "key": "interjections",
+   "label": "interjections",
+   "delta": -41,
+   "value": 34645,
+   "example": "hmm"
+  },
+  {
+   "key": "profanity",
+   "label": "profanity",
+   "delta": -110,
+   "value": 34535,
+   "example": "#*%!"
+  },
+  {
+   "key": "greek_letters",
+   "label": "greek letters",
+   "delta": -7,
+   "value": 34528,
+   "example": "phi",
+   "fake_extra": 1,
+   "pi_example": "pi"
+  },
+  {
+   "key": "disagree_up",
+   "label": "add-backs",
+   "delta": 6,
+   "value": 34534,
+   "example": "styrofoam",
+   "all_addbacks": [
+    "albedo",
+    "amongst",
+    "cava",
+    "learnt",
+    "styrofoam",
+    "tsar"
+   ]
+  },
+  {
+   "key": "disagree_down",
+   "label": "removals",
+   "delta": -51,
+   "value": 34483,
+   "example": "morocco"
+  }
+ ],
+ "top_words": [
+  {
+   "word": "the",
+   "zipf": 7.73,
+   "pct": 5.370317963702533,
+   "rank": 1
+  },
+  {
+   "word": "to",
+   "zipf": 7.43,
+   "pct": 2.691534803926914,
+   "rank": 2
+  },
+  {
+   "word": "and",
+   "zipf": 7.41,
+   "pct": 2.570395782768865,
+   "rank": 3
+  },
+  {
+   "word": "of",
+   "zipf": 7.4,
+   "pct": 2.5118864315095824,
+   "rank": 4
+  },
+  {
+   "word": "a",
+   "zipf": 7.36,
+   "pct": 2.290867652767775,
+   "rank": 5
+  },
+  {
+   "word": "in",
+   "zipf": 7.27,
+   "pct": 1.8620871366628655,
+   "rank": 6
+  },
+  {
+   "word": "i",
+   "zipf": 7.09,
+   "pct": 1.2302687708123812,
+   "rank": 7
+  },
+  {
+   "word": "is",
+   "zipf": 7.07,
+   "pct": 1.1748975549395304,
+   "rank": 8
+  },
+  {
+   "word": "for",
+   "zipf": 7.01,
+   "pct": 1.0232929922807537,
+   "rank": 9
+  },
+  {
+   "word": "that",
+   "zipf": 7.01,
+   "pct": 1.0232929922807537,
+   "rank": 10
+  },
+  {
+   "word": "you",
+   "zipf": 6.98,
+   "pct": 0.9549925860214369,
+   "rank": 11
+  },
+  {
+   "word": "it",
+   "zipf": 6.95,
+   "pct": 0.8912509381337459,
+   "rank": 12
+  },
+  {
+   "word": "on",
+   "zipf": 6.91,
+   "pct": 0.8128305161640995,
+   "rank": 13
+  },
+  {
+   "word": "with",
+   "zipf": 6.85,
+   "pct": 0.7079457843841374,
+   "rank": 14
+  },
+  {
+   "word": "this",
+   "zipf": 6.82,
+   "pct": 0.6606934480075964,
+   "rank": 15
+  },
+  {
+   "word": "was",
+   "zipf": 6.82,
+   "pct": 0.6606934480075964,
+   "rank": 16
+  },
+  {
+   "word": "be",
+   "zipf": 6.79,
+   "pct": 0.6165950018614822,
+   "rank": 17
+  },
+  {
+   "word": "as",
+   "zipf": 6.77,
+   "pct": 0.5888436553555884,
+   "rank": 18
+  },
+  {
+   "word": "are",
+   "zipf": 6.74,
+   "pct": 0.5495408738576248,
+   "rank": 19
+  },
+  {
+   "word": "have",
+   "zipf": 6.71,
+   "pct": 0.5128613839913648,
+   "rank": 20
+  },
+  {
+   "word": "at",
+   "zipf": 6.7,
+   "pct": 0.5011872336272725,
+   "rank": 21
+  },
+  {
+   "word": "he",
+   "zipf": 6.69,
+   "pct": 0.48977881936844664,
+   "rank": 22
+  },
+  {
+   "word": "not",
+   "zipf": 6.69,
+   "pct": 0.48977881936844664,
+   "rank": 23
+  },
+  {
+   "word": "by",
+   "zipf": 6.66,
+   "pct": 0.4570881896148752,
+   "rank": 24
+  },
+  {
+   "word": "but",
+   "zipf": 6.63,
+   "pct": 0.42657951880159256,
+   "rank": 25
+  },
+  {
+   "word": "from",
+   "zipf": 6.63,
+   "pct": 0.42657951880159256,
+   "rank": 26
+  },
+  {
+   "word": "my",
+   "zipf": 6.57,
+   "pct": 0.3715352290971728,
+   "rank": 27
+  },
+  {
+   "word": "or",
+   "zipf": 6.54,
+   "pct": 0.34673685045253166,
+   "rank": 28
+  },
+  {
+   "word": "we",
+   "zipf": 6.54,
+   "pct": 0.34673685045253166,
+   "rank": 29
+  },
+  {
+   "word": "an",
+   "zipf": 6.53,
+   "pct": 0.33884415613920277,
+   "rank": 30
+  },
+  {
+   "word": "your",
+   "zipf": 6.53,
+   "pct": 0.33884415613920277,
+   "rank": 31
+  },
+  {
+   "word": "all",
+   "zipf": 6.52,
+   "pct": 0.3311311214825908,
+   "rank": 32
+  },
+  {
+   "word": "so",
+   "zipf": 6.52,
+   "pct": 0.3311311214825908,
+   "rank": 33
+  },
+  {
+   "word": "his",
+   "zipf": 6.51,
+   "pct": 0.3235936569296281,
+   "rank": 34
+  },
+  {
+   "word": "they",
+   "zipf": 6.5,
+   "pct": 0.31622776601683794,
+   "rank": 35
+  },
+  {
+   "word": "me",
+   "zipf": 6.48,
+   "pct": 0.30199517204020193,
+   "rank": 36
+  },
+  {
+   "word": "if",
+   "zipf": 6.47,
+   "pct": 0.2951209226666384,
+   "rank": 37
+  },
+  {
+   "word": "one",
+   "zipf": 6.47,
+   "pct": 0.2951209226666384,
+   "rank": 38
+  },
+  {
+   "word": "can",
+   "zipf": 6.46,
+   "pct": 0.28840315031266056,
+   "rank": 39
+  },
+  {
+   "word": "will",
+   "zipf": 6.45,
+   "pct": 0.2818382931264455,
+   "rank": 40
+  },
+  {
+   "word": "just",
+   "zipf": 6.43,
+   "pct": 0.2691534803926914,
+   "rank": 41
+  },
+  {
+   "word": "like",
+   "zipf": 6.41,
+   "pct": 0.25703957827688645,
+   "rank": 42
+  },
+  {
+   "word": "about",
+   "zipf": 6.4,
+   "pct": 0.25118864315095824,
+   "rank": 43
+  },
+  {
+   "word": "up",
+   "zipf": 6.39,
+   "pct": 0.24547089156850285,
+   "rank": 44
+  },
+  {
+   "word": "out",
+   "zipf": 6.38,
+   "pct": 0.239883291901949,
+   "rank": 45
+  },
+  {
+   "word": "what",
+   "zipf": 6.38,
+   "pct": 0.239883291901949,
+   "rank": 46
+  },
+  {
+   "word": "has",
+   "zipf": 6.37,
+   "pct": 0.23442288153199228,
+   "rank": 47
+  },
+  {
+   "word": "when",
+   "zipf": 6.37,
+   "pct": 0.23442288153199228,
+   "rank": 48
+  },
+  {
+   "word": "more",
+   "zipf": 6.36,
+   "pct": 0.22908676527677746,
+   "rank": 49
+  },
+  {
+   "word": "do",
+   "zipf": 6.35,
+   "pct": 0.22387211385683378,
+   "rank": 50
+  },
+  {
+   "word": "no",
+   "zipf": 6.35,
+   "pct": 0.22387211385683378,
+   "rank": 51
+  },
+  {
+   "word": "were",
+   "zipf": 6.34,
+   "pct": 0.21877616239495518,
+   "rank": 52
+  },
+  {
+   "word": "who",
+   "zipf": 6.34,
+   "pct": 0.21877616239495518,
+   "rank": 53
+  },
+  {
+   "word": "had",
+   "zipf": 6.33,
+   "pct": 0.21379620895022325,
+   "rank": 54
+  },
+  {
+   "word": "their",
+   "zipf": 6.33,
+   "pct": 0.21379620895022325,
+   "rank": 55
+  },
+  {
+   "word": "there",
+   "zipf": 6.31,
+   "pct": 0.20417379446695275,
+   "rank": 56
+  },
+  {
+   "word": "her",
+   "zipf": 6.3,
+   "pct": 0.1995262314968879,
+   "rank": 57
+  },
+  {
+   "word": "which",
+   "zipf": 6.3,
+   "pct": 0.1995262314968879,
+   "rank": 58
+  },
+  {
+   "word": "time",
+   "zipf": 6.29,
+   "pct": 0.19498445997580455,
+   "rank": 59
+  },
+  {
+   "word": "get",
+   "zipf": 6.28,
+   "pct": 0.19054607179632482,
+   "rank": 60
+  },
+  {
+   "word": "been",
+   "zipf": 6.27,
+   "pct": 0.18620871366628655,
+   "rank": 61
+  },
+  {
+   "word": "would",
+   "zipf": 6.27,
+   "pct": 0.18620871366628655,
+   "rank": 62
+  },
+  {
+   "word": "she",
+   "zipf": 6.26,
+   "pct": 0.18197008586099825,
+   "rank": 63
+  },
+  {
+   "word": "new",
+   "zipf": 6.25,
+   "pct": 0.1778279410038923,
+   "rank": 64
+  },
+  {
+   "word": "people",
+   "zipf": 6.25,
+   "pct": 0.1778279410038923,
+   "rank": 65
+  },
+  {
+   "word": "how",
+   "zipf": 6.24,
+   "pct": 0.17378008287493762,
+   "rank": 66
+  },
+  {
+   "word": "some",
+   "zipf": 6.2,
+   "pct": 0.15848931924611143,
+   "rank": 67
+  },
+  {
+   "word": "also",
+   "zipf": 6.19,
+   "pct": 0.15488166189124827,
+   "rank": 68
+  },
+  {
+   "word": "them",
+   "zipf": 6.19,
+   "pct": 0.15488166189124827,
+   "rank": 69
+  },
+  {
+   "word": "now",
+   "zipf": 6.18,
+   "pct": 0.1513561248436207,
+   "rank": 70
+  },
+  {
+   "word": "other",
+   "zipf": 6.16,
+   "pct": 0.1445439770745928,
+   "rank": 71
+  },
+  {
+   "word": "its",
+   "zipf": 6.14,
+   "pct": 0.13803842646028838,
+   "rank": 72
+  },
+  {
+   "word": "our",
+   "zipf": 6.14,
+   "pct": 0.13803842646028838,
+   "rank": 73
+  },
+  {
+   "word": "than",
+   "zipf": 6.13,
+   "pct": 0.13489628825916533,
+   "rank": 74
+  },
+  {
+   "word": "good",
+   "zipf": 6.12,
+   "pct": 0.13182567385564073,
+   "rank": 75
+  },
+  {
+   "word": "only",
+   "zipf": 6.12,
+   "pct": 0.13182567385564073,
+   "rank": 76
+  },
+  {
+   "word": "after",
+   "zipf": 6.11,
+   "pct": 0.1288249551693135,
+   "rank": 77
+  },
+  {
+   "word": "first",
+   "zipf": 6.11,
+   "pct": 0.1288249551693135,
+   "rank": 78
+  },
+  {
+   "word": "him",
+   "zipf": 6.11,
+   "pct": 0.1288249551693135,
+   "rank": 79
+  },
+  {
+   "word": "into",
+   "zipf": 6.11,
+   "pct": 0.1288249551693135,
+   "rank": 80
+  }
+ ],
+ "cutoff_region": {
+  "n_at_cutoff": 237,
+  "n_below_cutoff": 276,
+  "above": [
+   {
+    "word": "abbess",
+    "pct": 3.1622776601683795e-05,
+    "rank": 34247
+   },
+   {
+    "word": "airmail",
+    "pct": 3.1622776601683795e-05,
+    "rank": 34247
+   },
+   {
+    "word": "defrost",
+    "pct": 3.1622776601683795e-05,
+    "rank": 34247
+   },
+   {
+    "word": "laminar",
+    "pct": 3.1622776601683795e-05,
+    "rank": 34247
+   },
+   {
+    "word": "phylogeny",
+    "pct": 3.1622776601683795e-05,
+    "rank": 34247
+   },
+   {
+    "word": "seahorse",
+    "pct": 3.1622776601683795e-05,
+    "rank": 34247
+   }
+  ],
+  "below": [
+   {
+    "word": "bijou",
+    "pct": 3.090295432513592e-05,
+    "rank": 34484
+   },
+   {
+    "word": "cookout",
+    "pct": 3.090295432513592e-05,
+    "rank": 34484
+   },
+   {
+    "word": "iguanas",
+    "pct": 3.090295432513592e-05,
+    "rank": 34484
+   },
+   {
+    "word": "oriel",
+    "pct": 3.090295432513592e-05,
+    "rank": 34484
+   },
+   {
+    "word": "semiotics",
+    "pct": 3.090295432513592e-05,
+    "rank": 34484
+   },
+   {
+    "word": "warthog",
+    "pct": 3.090295432513592e-05,
+    "rank": 34484
+   }
+  ]
+ },
+ "extras": {
+  "proper": "chicago",
+  "abbr": "etc",
+  "roman": "xiv",
+  "apostrophe": "don't"
+ },
+ "by_length": [
+  {
+   "length": 1,
+   "count": 2
+  },
+  {
+   "length": 2,
+   "count": 49
+  },
+  {
+   "length": 3,
+   "count": 640
+  },
+  {
+   "length": 4,
+   "count": 2120
+  },
+  {
+   "length": 5,
+   "count": 3495
+  },
+  {
+   "length": 6,
+   "count": 4824
+  },
+  {
+   "length": 7,
+   "count": 5541
+  },
+  {
+   "length": 8,
+   "count": 5267
+  },
+  {
+   "length": 9,
+   "count": 4505
+  },
+  {
+   "length": 10,
+   "count": 3359
+  },
+  {
+   "length": 11,
+   "count": 2142
+  },
+  {
+   "length": 12,
+   "count": 1310
+  },
+  {
+   "length": 13,
+   "count": 709
+  },
+  {
+   "length": 14,
+   "count": 302
+  },
+  {
+   "length": 15,
+   "count": 147
+  },
+  {
+   "length": 16,
+   "count": 47
+  },
+  {
+   "length": 17,
+   "count": 18
+  },
+  {
+   "length": 18,
+   "count": 3
+  },
+  {
+   "length": 19,
+   "count": 1
+  },
+  {
+   "length": 20,
+   "count": 2
+  }
+ ]
+}

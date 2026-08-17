@@ -46,7 +46,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent.parent.parent))
 from config import *
 from manim import MovingCameraScene
 from bpkfigures.speech_bubble import speech_bubble
-from assets.chalkboard import chalkboard, chalk_letter, CHALK, BOARD_NAVY
+from bpkfigures.chalkboard import chalkboard, chalk_letter, CHALK, BOARD_NAVY
 from assets.hangman_board import merge_pattern, hangman_drawing
 
 # ── the chalk game (beats a–b): WIN, guessed I·N·W (all hits, no misses) ───────
@@ -78,8 +78,7 @@ HANG_SW      = 6.0
 # the guesser is off the LEFT edge: the tail TIP sits at the screen edge and the
 # bubble grows from there (anchored by the tip, NOT move_to — see 94chalkgame).
 BUBBLE_TIP   = np.array([-7.9, 2.4, 0])
-BUBBLE_FS    = 56
-BUBBLE_TAIL  = 1.5
+BUBBLE_FS    = 56       # bigger than the speech_bubble default (single big letter)
 
 # ── layered tree layout (verbatim from 92wintree_test) ────────────────────────
 TOP_Y   = 3.5         # row 0 (the opening guess) sits here
@@ -189,8 +188,9 @@ class Scene01(MovingCameraScene, HangmanScene):
         return L
 
     def _bubble(self, ch):
-        b = speech_bubble(ch.upper(), font_size=BUBBLE_FS, tail="left",
-                          tail_len=BUBBLE_TAIL)
+        # look (pill / colours / tail) is the speech_bubble default now; this scene
+        # only sets the bigger font + anchors the tail tip at the frame edge.
+        b = speech_bubble(ch.upper(), font_size=BUBBLE_FS)
         b.shift(BUBBLE_TIP - b.tip_dot.get_center())   # anchor the tail tip (design coords)
         return self._frame(b)
 

@@ -28,8 +28,10 @@ Script row 04, split on '—' → 22 beats a–v (voiceover ↔ animation zip 1:
   t words17     — all 18 length-17 words in the written (chalk) font, equal-width grid
   u emphasize_i — every i turns gold (a different place in every word)
   v guess17     — 17 blanks; guess I → fill CONSTITUTIONALITY's i's → bubble the word
+  w to_navy     — bridge to scene 05: fade the game out, expand the board until its
+                  navy slate fills the frame (→ scene 05 opens on navy), like scene 01
 
-Render:  render 04c --fast   (…04v)   /   render 04 sub  for the whole scene
+Render:  render 04c --fast   (…04w)   /   render 04 sub  for the whole scene
 
 TIMING KNOBS LEFT AT A GUESS (feel — judge from the video): every fade/morph/
 Create run_time; the montage per-game hold; the bar-morph run_times throughout.
@@ -41,7 +43,8 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from config import *
-from assets.chalkboard import chalkboard, chalk_letter, CHALK
+from bpkfigures.bar_graph import get_bar_chart, morph_bar_chart
+from bpkfigures.chalkboard import chalkboard, chalk_letter, CHALK, BOARD_NAVY
 from assets import game_board as gb
 from assets import greedy_data
 
@@ -50,8 +53,9 @@ DATA = greedy_data.get()
 # ── frequency bar graph (bottom-left, VERTICAL bars, light palette) ───────────
 FBARS_LEFT = -6.5          # x of the first bar's centre column (inside the board)
 FBARS_BASE = -2.9          # baseline y (x-axis) — well clear of the bottom edge
-FBARS_W    = 6.6           # total width across `FBARS_TOP` columns
+FBARS_W    = 7.6           # total width across `FBARS_TOP` columns (extends right)
 FBARS_H    = 1.9           # height of the tallest bar (short enough to clear the blanks)
+FBAR_WFRAC = 0.75          # fraction of a column each bar fills
 FBARS_TOP  = 10            # letters shown
 FBAR_COLOR = LIGHT_BLUE    # light palette — reads on the navy board
 FBAR_HL    = ACCENT_GOLD   # greedy's pick (the guessed letter)
@@ -61,35 +65,32 @@ CHART_COLOR = LIGHT_BLUE
 
 
 def _vbars(pairs, *, top=FBARS_TOP, hl_letter=None, scale_max=None):
-    """A sorted VERTICAL letter-frequency bar graph, bottom-left. `pairs` =
-    [(letter, count)] sorted descending. Returns a VGroup with ``.cols`` =
-    {letter: VGroup(bar, label, value)} so a later beat can morph column-by-column
-    as the candidate set narrows. `hl_letter` (default: the tallest = greedy's
-    pick) is drawn in FBAR_HL. Bars normalise to `scale_max` (default: this call's
-    own max)."""
+    """A sorted VERTICAL letter-frequency bar graph, bottom-left, on the SHARED
+    `get_bar_chart` (written-font labels + counts via chalk factories). `pairs` =
+    [(letter, count)] sorted descending; shown top `top`. `hl_letter` (default: the
+    tallest = greedy's pick) is drawn in FBAR_HL; bars normalise to `scale_max`
+    (default: this call's own max). FIXED 10-slot pitch (`n_slots=top`) so a node
+    with fewer letters keeps its columns in place — the result feeds
+    `morph_bar_chart` for the candidate-narrowing A-walk. `.cols`/`.bars`/`.labels`/
+    `.values` handles come from get_bar_chart."""
     shown = pairs[:top]
-    if scale_max is None:
-        scale_max = max((c for _, c in shown), default=1)
     if hl_letter is None and shown:
         hl_letter = shown[0][0]
-    slot = FBARS_W / top
-    grp = VGroup()
-    grp.cols = {}
-    for i, (ltr, count) in enumerate(shown):
-        x = FBARS_LEFT + (i + 0.5) * slot
-        h = max(count / scale_max * FBARS_H, 1e-3)
-        col = FBAR_HL if ltr == hl_letter else FBAR_COLOR
-        bar = Rectangle(width=slot * 0.68, height=h, fill_color=col,
-                        fill_opacity=1.0, stroke_width=0)
-        bar.move_to([x, FBARS_BASE + h / 2, 0])
-        label = chalk_letter(ltr, height=0.30, stroke_width=3.0, color=CHALK)
-        label.move_to([x, FBARS_BASE - 0.34, 0])
-        value = _chalk_num(count, height=0.20)          # written-font count
-        value.next_to(bar, UP, buff=0.08)
-        col_grp = VGroup(bar, label, value)
-        grp.add(col_grp)
-        grp.cols[ltr] = col_grp
-    return grp
+    return get_bar_chart(
+        shown, center=[FBARS_LEFT + FBARS_W / 2, FBARS_BASE + FBARS_H / 2, 0],
+        width=FBARS_W, height=FBARS_H, y_max=scale_max, n_slots=top,
+        bar_color=FBAR_COLOR,
+        highlight=({hl_letter: FBAR_HL} if hl_letter else None),
+        bar_ratio=FBAR_WFRAC,
+        bar_stroke_width=4, bar_outline="closed",   # 4-sided chalk outline (no x-axis
+                                                    # here), drawn bottom-left up
+        label_factory=lambda ltr: chalk_letter(ltr, height=0.32, stroke_width=3.0,
+                                               color=CHALK),
+        label_buff=0.20,
+        value_labels=True,
+        value_factory=lambda c: _chalk_num(c, height=0.26),
+        value_buff=0.08,
+    )
 
 
 def _chalk_num(n, *, height, stroke_width=2.6, color=CHALK):
@@ -115,20 +116,6 @@ def _chalk_phrase(text, *, height=0.4, stroke_width=3.2, buff=0.10, space=0.34,
         x += L.width + buff
     grp.move_to(ORIGIN)
     return grp
-
-
-def _morph_vbars(scene, old, new, run_time):
-    """Morph one vertical bar graph into the next, pairing columns by letter."""
-    anims = []
-    for ltr, col in old.cols.items():
-        if ltr in new.cols:
-            anims.append(ReplacementTransform(col, new.cols[ltr]))
-        else:
-            anims.append(FadeOut(col))
-    for ltr, col in new.cols.items():
-        if ltr not in old.cols:
-            anims.append(FadeIn(col))
-    scene.play(*anims, run_time=run_time)
 
 
 class Scene04(HangmanScene):
@@ -207,7 +194,9 @@ class Scene04(HangmanScene):
     @subscene
     def root_bars(self):
         self.bars = _vbars(DATA["root"]["bars"])
-        self.play(LaggedStartMap(FadeIn, self.bars, lag_ratio=0.08), run_time=1.4)
+        # draw the bar OUTLINES on (bottom-left up), letters + counts fade in with them
+        self.play(*[Create(b) for b in self.bars.bars],
+                  FadeIn(self.bars.labels), FadeIn(self.bars.values), run_time=1.4)
 
     # d : two A's -> _AA -> the lone BAA; whole word + gallows turn green (win)
     @subscene
@@ -298,10 +287,11 @@ class Scene04(HangmanScene):
         self.play(FadeOut(board), run_time=0.6)
         self.revealed = {}
         self.chart = self._avg_chart()
+        # draw each bar OUTLINE on as one continuous chalk line (bottom-left up), all
+        # at once; axes / labels / y-ticks / title fade in with them
         self.play(FadeIn(self.chart.axes), FadeIn(self.chart.labels),
                   FadeIn(self.chart.yticks), FadeIn(self.chart.title),
-                  LaggedStart(*[GrowFromEdge(b, DOWN) for b in self.chart.bars],
-                              lag_ratio=0.04), run_time=1.8)
+                  *[Create(b) for b in self.chart.bars], run_time=1.8)
 
     # p : the PIRATES chain — a single blank A grows in place, used letters fading
     @subscene
@@ -390,17 +380,19 @@ class Scene04(HangmanScene):
         self.w17 = self._word_grid([e["word"] for e in DATA["len17"]["words"]])
         self.play(LaggedStartMap(FadeIn, self.w17, lag_ratio=0.05), run_time=1.6)
 
-    # u : emphasise every i (a different place in every word)
+    # u : box every i (a different place in every word)
     @subscene
     def emphasize_i(self):
-        eyes = VGroup(*[ch for row in self.w17 for ch in row.i_chars])
-        self.play(eyes.animate.set_color(ACCENT_GOLD), run_time=1.0)
+        eyes = [ch for row in self.w17 for ch in row.i_chars]
+        self.i_boxes = VGroup(*[SurroundingRectangle(i, color=ACCENT_GOLD, buff=0.07,
+                                                     stroke_width=2.5) for i in eyes])
+        self.play(LaggedStartMap(Create, self.i_boxes, lag_ratio=0.04), run_time=1.6)
 
     # v : a 17-letter game (INDISTINGUISHABLE) — guess I (bubble → write), then
     #     guess the whole word; every letter is WRITTEN one at a time
     @subscene
     def guess17(self):
-        self.play(FadeOut(self.w17), run_time=0.5)
+        self.play(FadeOut(self.w17), FadeOut(self.i_boxes), run_time=0.5)
         word = DATA["demo17"]["word"]
         gal, _ = gb.build_gallows()
         # centre the blanks between the board's left inner edge and the gallows
@@ -423,6 +415,23 @@ class Scene04(HangmanScene):
                              for p, ch in enumerate(word) if p not in i_pos],
                             run_time=3.2)
         self.play(FadeOut(wbub), run_time=0.4)
+
+    # w : the bridge to scene 05 — fade the length-17 game out, then EXPAND the
+    #     chalkboard (about the origin) until its navy slate fills the whole frame,
+    #     the wooden frame sliding off-screen. Ends on pure navy so scene 05 opens on
+    #     the same navy background. Mirrors scene 01's `to_tree` board→navy dissolve.
+    @subscene
+    def to_navy(self):
+        # fade the game out AS the board expands — both in one play
+        others = [m for m in self.mobjects if m is not self.cb]
+        self.play(
+            *[FadeOut(m) for m in others],
+            self.cb.animate.scale(5.0, about_point=ORIGIN),
+            run_time=2.0, rate_func=smooth,
+        )
+        self.camera.background_color = BOARD_NAVY
+        self.remove(self.cb)                         # board gone; frame ends on navy
+        self.cb = None
 
     # ── A-walk helpers (c–n) ──────────────────────────────────────────────────
     def _add_miss(self, letter, *, rt_write=0.7, rt_part=0.6):
@@ -471,53 +480,32 @@ class Scene04(HangmanScene):
     def _update_bars(self, board, missed=""):
         node = self._walk_node(board, missed)
         new = _vbars(node["bars"])
-        _morph_vbars(self, self.bars, new, 1.0)
+        self.play(*morph_bar_chart(self.bars, new), run_time=1.0)
         self.bars = new
 
     # ── components for o–v ────────────────────────────────────────────────────
     def _avg_chart(self):
-        """Vertical bar chart of avg greedy misses by word length — one light
-        colour (no special peak) + a y-axis with ticks. Handles: .axes .bars
-        .labels .yticks .bar_of{L} .label_of{L}."""
+        """Vertical bar chart of avg greedy misses by word length, on the SHARED
+        `get_bar_chart` (written-font labels via chalk factories, ink_color=CHALK,
+        y_max=7 so the 6-miss line is meaningful). Handles the beats use: .axes
+        .bars .labels .yticks .title .bar_of{L} .label_of{L}."""
         data = DATA["avg_misses_by_length"]
         lengths = sorted(int(k) for k in data)
-        vals = [data[str(L)]["avg_misses"] for L in lengths]
-        x0, x1, base, height, ytop = -6.0, 6.0, -3.2, 4.2, 7   # plot centred at x=0
-        n = len(lengths)
-        slot = (x1 - x0) / n
-        xaxis = Line([x0, base, 0], [x1, base, 0], color=CHALK, stroke_width=3)
-        yaxis = Line([x0, base, 0], [x0, base + height, 0], color=CHALK,
-                     stroke_width=3)
-        bars, labels, bar_of, label_of = VGroup(), VGroup(), {}, {}
-        for i, L in enumerate(lengths):
-            h = max(vals[i] / ytop * height, 1e-3)
-            x = x0 + (i + 0.5) * slot
-            bar = Rectangle(width=slot * 0.75, height=h, fill_color=CHART_COLOR,
-                            fill_opacity=1.0, stroke_width=0)
-            bar.move_to([x, base + h / 2, 0])
-            bars.add(bar)
-            bar_of[L] = bar
-            lab = _chalk_num(L, height=0.24)                # written-font x-label
-            lab.move_to([x, base - 0.32, 0])
-            labels.add(lab)
-            label_of[L] = lab
-        yticks = VGroup()
-        for t in range(0, ytop + 1, 2):
-            y = base + t / ytop * height
-            tick = Line([x0 - 0.12, y, 0], [x0, y, 0], color=CHALK, stroke_width=2)
-            tl = _chalk_num(t, height=0.22)                 # written-font y-tick
-            tl.next_to(tick, LEFT, buff=0.12)
-            yticks.add(tick, tl)
-        # title in the written (chalk) font — one row, centred over the plot
-        # (chalk is capitals-only, so it reads ALL-CAPS)
-        title = _chalk_phrase("Average Misses by Word Length", height=0.38)
-        title.move_to([(x0 + x1) / 2, base + height + 0.5, 0])
-        grp = VGroup(xaxis, yaxis, bars, labels, yticks, title)
-        grp.shift([0, -grp.get_center()[1], 0])             # centre vertically (no big top gap)
-        grp.axes = VGroup(xaxis, yaxis)
-        grp.bars, grp.labels, grp.yticks, grp.title = bars, labels, yticks, title
-        grp.bar_of, grp.label_of = bar_of, label_of
-        return grp
+        items = [(L, data[str(L)]["avg_misses"]) for L in lengths]
+        chart = get_bar_chart(
+            items, center=[0, 0, 0], width=12.0, height=4.2, y_max=7,
+            bar_color=CHART_COLOR, ink_color=CHALK, bar_ratio=0.75,
+            bar_stroke_width=4, bar_outline="open",   # 3-sided outline (x-axis is base)
+            label_factory=lambda L: _chalk_num(L, height=0.24), label_buff=0.20,
+            x_axis=True, y_axis=True,
+            y_ticks=range(0, 8, 2),
+            y_tick_factory=lambda t: _chalk_num(t, height=0.22),
+            title_mobject=_chalk_phrase("Average Misses by Word Length", height=0.38),
+            title_buff=0.5,
+        )
+        chart.shift([0, -chart.get_center()[1], 0])         # centre vertically
+        chart.axes = VGroup(chart.x_axis, chart.y_axis)     # beats use .axes[0] = x-axis
+        return chart
 
     def _blank_with(self, ch, x, *, y=None):
         """One blank rule at x with a chalk letter written above it (for PIRATES)."""
