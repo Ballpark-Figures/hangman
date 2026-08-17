@@ -10,6 +10,17 @@ loading" for the full cross-machine debugging history.
 @CLAUDE.shared.md
 @CLAUDE.private.md
 
+> **Import canary — check this first.** The two `@import`s above pull in the
+> shared and private rules through committed symlinks. If you cannot see the
+> tokens `SHARED-RULES-LOADED` and `PRIVATE-RULES-LOADED` in your context, those
+> imports **silently failed** and you are missing every shared and private
+> convention. Usual cause: the workspace was opened Windows-side over
+> `\\wsl$\`, where the WSL symlinks are unreadable 23-byte stubs. Recover by
+> reading `bpkfigures/CLAUDE.md` and `dotclaude/CLAUDE.md` directly, and tell the
+> user to reopen the workspace from a WSL shell
+> (`cd ~/projects/ballpark-figures && code <video>.code-workspace`) so the
+> bottom-left of VS Code reads `WSL: Ubuntu-22.04`.
+
 ## Script
 - `animations/Script.md` is the video script. Scenes become
   `scenes/NN<name>.py`. (Fill in this video's script/scene conventions.)
