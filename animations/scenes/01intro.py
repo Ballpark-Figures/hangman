@@ -15,9 +15,9 @@ annotation, fades in the root node, and zooms the camera onto the root — handi
 off to `grow` at the exact root pose.
 
 Script beat ↔ subscene (Script.md row 01, split on '—'):
-  a board    — "Is it possible to play the perfect game…"  fade in gallows + 3 blanks
+  a board    — "Is it possible to play the perfect game…"  DRAW gallows + 3 blanks
   b play_win — "Well no, not really…"                      guess I, N, W (all hits)
-  c to_tree  — "But here's the next best thing."           board→navy; morph to tree root
+  c to_tree  — "But here's the next best thing."           board→navy; morph to tree root + letter
   d grow     — "This is a decision tree…"                  grow the tree; camera dives "yes"
   e zoom_out — "We absolutely can… like this."             pull back to the whole tree
 
@@ -108,12 +108,11 @@ LEAF_GAP = 0.04
 ANN_SW_FRAC = 0.32
 ANN_WINDOW = 0.12
 
-ROW_TIME    = 3.0     # every guess-row takes the SAME time (constant-rate growth)
+ROW_TIME    = 4.0     # every guess-row takes the SAME time (constant-rate growth)
 EASE_FRAC   = 0.4     # first step only: fraction of its time spent ramping to speed
-ROOT_PAUSE  = 1.0     # hold after the opening letter fades onto the root, before diving
 CAM_W_START = 3.0     # camera frame width at the root; each level zooms by SHRINK
 CAM_FULL_W  = 16.0
-ZOOM_OUT_RT = 5.0
+ZOOM_OUT_RT = 4.0
 
 
 def _appear_at_end(t):
@@ -204,7 +203,7 @@ class Scene01(MovingCameraScene, HangmanScene):
         for p in positions:                            # LEFT→RIGHT, stroke-by-stroke
             L = self._reveal_letter(g, self.rules[p])
             self.revealed.add(L)
-            self.play(LaggedStartMap(Create, L, lag_ratio=0.5), run_time=rt_write)
+            self.play(LaggedStartMap(Create, L, lag_ratio=1.0), run_time=rt_write)
         self.play(FadeOut(bub), run_time=rt_out)
 
     def _setup_blanks(self):
@@ -474,13 +473,16 @@ class Scene01(MovingCameraScene, HangmanScene):
     #  SUBSCENES
     # ══════════════════════════════════════════════════════════════════════════
 
-    # a : fade in the gallows and the 3 word blanks
+    # a : draw the 3 word blanks + the gallows (single hand, stroke by stroke)
     @subscene
     def board(self):
         self._setup_blanks()
         self._setup_gallows()
         self._layout_board()          # equal gaps: left→blanks→gallows→right
-        self.play(FadeIn(self.rules), FadeIn(self.hang), run_time=1.2)
+        # DRAW, don't fade: blanks left→right one rule at a time (lag 1.0 = a stroke
+        # finishes before the next), then the gallows (base, then the post/beam/rope).
+        self.play(LaggedStartMap(Create, self.rules, lag_ratio=1.0), run_time=1.2)
+        self.play(LaggedStartMap(Create, self.hang.gallows, lag_ratio=1.0), run_time=1.0)
 
     # b : guess I, N, W — all hits, the word WIN fills in with no misses
     @subscene
@@ -491,10 +493,11 @@ class Scene01(MovingCameraScene, HangmanScene):
 
     # c : the bridge — a PURE IN-FRAME morph (camera never moves; it's been on the root the
     #     whole time). All simultaneous: the chalkboard expands off-screen (its navy fills
-    #     the frame), the blanks + gallows MOVE to their root positions, the root node
-    #     appears, the WIN letters ride the blanks and vanish. The blanks are already at ~the
-    #     root scale (both live in the width-3 frame), so the morph is a gentle nudge — no
-    #     dramatic shrink, no camera, no drift. Ends EXACTLY at scene 92's opening state.
+    #     the frame), the blanks + gallows MOVE to their root positions, the root node +
+    #     its guess LETTER appear, the WIN letters ride the blanks and vanish. The blanks are
+    #     already at ~the root scale (both live in the width-3 frame), so the morph is a gentle
+    #     nudge — no dramatic shrink, no camera, no drift. Ends at scene 92's opening state
+    #     with the opening guess letter already on the root.
     @subscene
     def to_tree(self):
         # letters ride the blanks: the SAME affine that carries rules → root_blanks
@@ -507,22 +510,21 @@ class Scene01(MovingCameraScene, HangmanScene):
             ReplacementTransform(self.rules, self.root_blanks),    # blanks → their root position
             ReplacementTransform(self.hang, self.root_gallows),    # gallows → their root position
             FadeIn(self.root_dot),                                 # the root node appears
+            FadeIn(self.root_letter),                              # its opening-guess letter appears
             self.revealed.animate.scale(lscale, about_point=labout)
                 .shift(lshift).set_opacity(0),                     # letters ride the blanks + vanish
-            run_time=2.5, rate_func=smooth,
+            run_time=1.5, rate_func=smooth,
         )
         self.camera.background_color = BOARD_NAVY
         self.remove(self.cb, self.revealed)          # chalkboard gone; letters faded out
         self.cb = self.rules = self.hang = self.revealed = None    # root_* carry into grow
 
-    # d : the dive. c ended EXACTLY at scene 92's opening state — camera already framed on
-    #     the root, on navy, root node + blanks + gallows in place. Fade the opening letter
-    #     on, then draw the tree row by row while the camera dives down WORD's path.
+    # d : the dive. c ended at scene 92's opening state — camera already framed on the root,
+    #     on navy, root node + its guess letter + blanks + gallows all in place. Open directly
+    #     on the growth: draw the tree row by row while the camera dives down WORD's path.
     @subscene
     def grow(self):
         self.camera.background_color = BOARD_NAVY
-        self.play(FadeIn(self.root_letter), run_time=0.8)         # opening guess letter
-        self.wait(ROOT_PAUSE)                                 # hold on the root before diving
         last = len(self._cam_center) - 1
         for d in sorted(self._by_depth):
             k = min(d + 1, last)

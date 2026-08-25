@@ -13,8 +13,9 @@ On the BRAND light-blue tier-list background. Four beats:
                    of lower/upper bounds where not).
   e brit_list    — repeat the comparison, American (left) → copy morphs into British
                    (right); A↔I in TOP, Z→bottom of LOW↓; arrow AFTER
-  f enc_spelling — below the lists: ENCYCLOPEDIA → ENCYCLOPAEDIA (why A gains in British)
-  g realize_spelling — below that: REALIZE → REALISE (why Z drops in British)
+  f enc_spelling — spotlight A on both lists (dim the rest, à la scene 22); below the
+                   lists: ENCYCLOPEDIA → ENCYCLOPAEDIA (why A gains in British)
+  g realize_spelling — spotlight moves to Z; below that: REALIZE → REALISE (why Z drops)
 
 Numbers/orderings SOURCED: the 49 words + zipf from `assets/scene17_data` (the committed
 cache); the three tier orderings from `assets/tier_list` (TIER_LETTERS /
@@ -70,6 +71,7 @@ class Scene17(HangmanScene):
         self.arrow = None
         self.chart = None
         self.enc = self.realize = None
+        self.lmap = self.rmap = None                   # letter to tile, for e/f emphasis
 
     # ── bar-graph helpers ─────────────────────────────────────────────────────
     def _row_slice(self, r):
@@ -179,7 +181,7 @@ class Scene17(HangmanScene):
         uni = [data["uniform"][str(L)]["avg"] for L in lengths]
         zipf = [data["zipf"][str(L)]["avg"] for L in lengths]
         return grouped_bar_chart(
-            lengths, [("Uniform", UNIFORM_COLOR, uni), ("Frequency Weighted", ZIPF_COLOR, zipf)],
+            lengths, [("Equal Weighted", UNIFORM_COLOR, uni), ("Frequency Weighted", ZIPF_COLOR, zipf)],
             title="Optimal Misses per Word", x_title="Word Length", ink_color=TITLE_COLOR)
 
     @subscene
@@ -202,6 +204,7 @@ class Scene17(HangmanScene):
         self.left = self._filled_list(tl.TIER_LETTERS).move_to([LEFT_X, LIST_Y, 0])
         self.left_title = self._title("American English", LEFT_X)
         self.play(FadeIn(self.left, self.left_title), run_time=0.8)
+        self.wait(5.0)
         self.right = self._filled_list(tl.GB_TIER_LETTERS).move_to([RIGHT_X, LIST_Y, 0])
         self.right_title = self._title("British English", RIGHT_X)
         self._morph_into(self.left, self.right, tl.TIER_LETTERS, tl.GB_TIER_LETTERS,
@@ -210,22 +213,46 @@ class Scene17(HangmanScene):
         self.arrow = Arrow([-1.05, LIST_Y, 0], [1.05, LIST_Y, 0], buff=0.0,
                            color=TITLE_COLOR, stroke_width=6)
         self.play(GrowArrow(self.arrow), run_time=0.5)
+        self.lmap = tl.tile_map(self.left, tl.TIER_LETTERS)      # for f/g emphasis
+        self.rmap = tl.tile_map(self.right, tl.GB_TIER_LETTERS)
+
+    # ── emphasis helper (f/g): only `letters`' tiles stay full; the rest dim ──
+    #     (house "dim the rest", same as scene 22's tier-list emphasis)
+    def _emphasize(self, letters, run_time):
+        targets = set()
+        for m in (self.lmap, self.rmap):
+            for ch in letters:
+                if ch in m:
+                    targets.add(m[ch])
+        anims = []
+        for tier_list_ in (self.left, self.right):
+            for cont in tier_list_.contents:
+                for tile in cont:
+                    anims.append(tile.animate.set_opacity(
+                        1.0 if tile in targets else tl.DIM_OPACITY))
+        self.play(*anims, run_time=run_time)
 
     # f : below the lists — ENCYCLOPEDIA → ENCYCLOPAEDIA (why A gains in British)
-    def _play_spell(self, pair):
-        """Reveal a spelling pair in order: first word → growing arrow → second word."""
+    def _play_spell(self, pair, run_time=1.2):
+        """Reveal a spelling pair in order: first word → growing arrow → second word.
+        run_time scales the WHOLE reveal (default 1.2 = 0.4 word + 0.4 arrow + 0.4 word)."""
         left, arrow, right = pair
-        self.play(FadeIn(left), run_time=0.4)
-        self.play(GrowArrow(arrow), run_time=0.4)
-        self.play(FadeIn(right), run_time=0.4)
+        r = run_time / 1.2
+        self.play(FadeIn(left), run_time=0.4 * r)
+        self.play(GrowArrow(arrow), run_time=0.4 * r)
+        self.play(FadeIn(right), run_time=0.4 * r)
 
     @subscene
     def enc_spelling(self):
+        self._emphasize("A", 0.6)                    # spotlight A on both tier lists
+        self.wait(1.0)
         self.enc = self._spell_pair("ENCYCLOPEDIA", "ENCYCLOPAEDIA", SPELL_Y[0])
-        self._play_spell(self.enc)
+        self._play_spell(self.enc, run_time=2.0)
 
     # g : below that — REALIZE → REALISE (why Z drops in British)
     @subscene
     def realize_spelling(self):
+        self._emphasize("Z", 0.6)                    # switch the spotlight to Z
+        self.wait(2.0)
         self.realize = self._spell_pair("REALIZE", "REALISE", SPELL_Y[1])
-        self._play_spell(self.realize)
+        self._play_spell(self.realize, run_time=2.0)

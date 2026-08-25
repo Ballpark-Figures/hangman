@@ -93,9 +93,13 @@ class Scene08(HangmanScene):
                              label_mode="inside", label_font_size=18, inner_frac=0.5,
                              inner_frac_spread=0.6, stroke_color=WHITE)
 
-    def _adjacency_row(self, name, adj, y, word_color):
-        """`name` (VOWEL red / CONSONANT blue) centred at height y, a before-pie to its
-        LEFT and an after-pie to its RIGHT, each linked by a short line."""
+    def _build_adjacency_row(self, name, adj, y, word_color):
+        """Build the pieces of an adjacency row (UNPLAYED): `name` (VOWEL red /
+        CONSONANT blue) centred at height y, a before-pie to its LEFT and an after-pie
+        to its RIGHT, each linked by a short line. Returns (word, line_l, line_r, before,
+        after); the SUBSCENE plays them so the two pie fans stay SEPARATE steps — the
+        'after' pie and the 'before' pie land on different sentences of the narration, so
+        a wait can sit between them (see the g/h bodies)."""
         word = crisp_text(name, font_size=FONT_SIZE_LG,
                           color=word_color).move_to([0, y, 0])
         after = self._class_pie(adj["after"], [4.2, y, 0])
@@ -108,9 +112,7 @@ class Scene08(HangmanScene):
         line_l = Line(word.get_left() + LEFT * 0.25,
                       before.pie_center + RIGHT * (ROW_PIE_R + 0.2),
                       color=WHITE, stroke_width=3)
-        self.play(FadeIn(word), Create(line_l), Create(line_r), run_time=0.8)
-        after.fan_all(self, 1.0)
-        before.fan_all(self, 1.0)
+        return word, line_l, line_r, before, after
 
     # a : turn the background navy
     @subscene
@@ -271,16 +273,29 @@ class Scene08(HangmanScene):
         self.bars = VGroup(bars, nums, length_labels, title)
 
     # g : VOWEL (⅓ down) with before ← VOWEL → after adjacency pies
+    #     (after pie = "followed by a consonant"; before pie = "preceded by a
+    #      consonant" — separate sentences, so the fans are separate plays)
     @subscene
     def vowel_row(self):
         self.play(FadeOut(self.bars), run_time=0.5)
         self.bars = None
-        self._adjacency_row("VOWEL", self.d["adjacency"]["vowel"], ROW_Y, VOWEL_C)
+        word, line_l, line_r, before, after = self._build_adjacency_row(
+            "VOWEL", self.d["adjacency"]["vowel"], ROW_Y, VOWEL_C)
+        self.play(FadeIn(word), Create(line_l), Create(line_r), run_time=0.8)
+        after.fan_all(self, 1.0)      # "...will be followed by a consonant"
+        self.wait(4.0)
+        before.fan_all(self, 1.0)     # "...will be preceded by a consonant"
 
     # h : CONSONANT (⅔ down) with before ← CONSONANT → after adjacency pies
+    #     (after pie = "followed by vowels"; before pie = "preceded by vowels")
     @subscene
     def consonant_row(self):
-        self._adjacency_row("CONSONANT", self.d["adjacency"]["consonant"], -ROW_Y, CONS_C)
+        word, line_l, line_r, before, after = self._build_adjacency_row(
+            "CONSONANT", self.d["adjacency"]["consonant"], -ROW_Y, CONS_C)
+        self.play(FadeIn(word), Create(line_l), Create(line_r), run_time=0.8)
+        after.fan_all(self, 1.0)      # "62% chance of being followed by vowels"
+        self.wait(2.0)
+        before.fan_all(self, 1.0)     # "61% chance of being preceded by vowels"
 
     # i : remove the content FIRST, THEN turn the background back to light blue
     @subscene

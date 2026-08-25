@@ -167,7 +167,7 @@ class Scene03(HangmanScene):
     def columns(self):
         self._setup_table()
         self.play(LaggedStartMap(FadeIn, self.table.words, lag_ratio=0.03),
-                  run_time=2.2)
+                  run_time=5.0)
 
     # b : a % of English text (2 sig figs) beside each word
     @subscene
@@ -210,6 +210,7 @@ class Scene03(HangmanScene):
         self._setup_cutoff()
         self.play(LaggedStartMap(FadeIn, self.cutoff.words, lag_ratio=0.06),
                   run_time=1.2)
+        self.wait(2.0)
         self.play(Create(self.cutoff.divider), FadeIn(self.cutoff.cap), run_time=0.7)
 
     # d : frequency (%) at right FIRST, then rank at left
@@ -217,6 +218,7 @@ class Scene03(HangmanScene):
     def ranks(self):
         self.play(LaggedStartMap(FadeIn, self.cutoff.freqs, lag_ratio=0.05),
                   run_time=1.0)
+        self.wait(2.0)
         self.play(LaggedStartMap(FadeIn, self.cutoff.ranks, lag_ratio=0.05),
                   run_time=1.0)
 
@@ -241,7 +243,7 @@ class Scene03(HangmanScene):
     def _write(self, mob, run_time):
         """Write a chalk phrase on, stroke by stroke (the hand-written look)."""
         strokes = VGroup(*[s for glyph in mob for s in glyph])
-        self.play(LaggedStartMap(Create, strokes, lag_ratio=0.6), run_time=run_time)
+        self.play(LaggedStartMap(Create, strokes, lag_ratio=1.0), run_time=run_time)
 
     def _strike(self, mob, run_time=0.35, color=LIGHT_RED):
         y = mob.get_center()[1]
@@ -258,22 +260,29 @@ class Scene03(HangmanScene):
         self.cascade.add(m)
         self._write(m, run_time)
 
-    def _revise(self, new_value, *, strike_word=True, run_time=0.5):
+    def _revise(self, new_value, *, strike_word=True, run_time=None):
         """Cross off the word (unless kept/green), cross off the current number, and
-        write the new number one row below."""
-        if strike_word and self.pending_word is not None:
-            self._strike(self.pending_word, 0.35)
-        self._strike(self.cur_num, 0.35)
+        write the new number one row below. run_time scales the WHOLE step (each
+        strike 0.35 + the 0.5 write); None = natural timing (r=1)."""
+        do_word = strike_word and self.pending_word is not None
+        r = 1.0 if run_time is None else run_time / (0.35 * (2 if do_word else 1) + 0.5)
+        if do_word:
+            self._strike(self.pending_word, 0.35 * r)
+        self._strike(self.cur_num, 0.35 * r)
         self.cas_y -= CAS_DY
         m = chalk_number(new_value, height=CAS_NUM_H)
         m.move_to([CAS_NUM_R, self.cas_y, 0], aligned_edge=RIGHT)
         self.cur_num, self.cur_value = m, new_value
         self.cascade.add(m)
-        self._write(m, run_time)
+        self._write(m, 0.5 * r)
 
-    def _drop(self, word, new_value):
-        self._write_word(word)
-        self._revise(new_value)
+    def _drop(self, word, new_value, run_time=1.7):
+        """Write the removed word, cross it + the current number off, write the
+        revised total. run_time scales the WHOLE step (default 1.7 = 0.5 write-word
+        + 0.35 + 0.35 strikes + 0.5 write-number)."""
+        r = run_time / 1.7
+        self._write_word(word, run_time=0.5 * r)
+        self._revise(new_value, run_time=1.2 * r)
 
     # f : the TOTAL WORDS tally appears; cross an apostrophe word → 51,077
     @subscene
@@ -312,45 +321,45 @@ class Scene03(HangmanScene):
     # j–n : single letters / initialisms / roman / interjections / profanity
     @subscene
     def single(self):
-        self._drop(STEP["single_letters"]["example"], STEP["single_letters"]["value"])
+        self._drop(STEP["single_letters"]["example"], STEP["single_letters"]["value"], run_time=1.0)
 
     @subscene
     def initial(self):
-        self._drop(STEP["initialisms"]["example"], STEP["initialisms"]["value"])
+        self._drop(STEP["initialisms"]["example"], STEP["initialisms"]["value"], run_time=1.0)
 
     @subscene
     def roman(self):
-        self._drop(STEP["roman_numerals"]["example"], STEP["roman_numerals"]["value"])
+        self._drop(STEP["roman_numerals"]["example"], STEP["roman_numerals"]["value"], run_time=1.0)
 
     @subscene
     def interj(self):
-        self._drop(STEP["interjections"]["example"], STEP["interjections"]["value"])
+        self._drop(STEP["interjections"]["example"], STEP["interjections"]["value"], run_time=1.0)
 
     # n : profanity — a grawlix, not a real word → 34,535
     @subscene
     def profanity(self):
-        self._drop(STEP["profanity"]["example"], STEP["profanity"]["value"])
+        self._drop(STEP["profanity"]["example"], STEP["profanity"]["value"], run_time=1.0)
 
     # o : greek letters, dropping 1 EXTRA (as if pi went too) → 34,527
     @subscene
     def greek(self):
         s = STEP["greek_letters"]
-        self._write_word(s["example"])
-        self._revise(s["value"] - s.get("fake_extra", 0))          # 34,527
+        self._write_word(s["example"], run_time=0.3)
+        self._revise(s["value"] - s.get("fake_extra", 0), run_time=0.7)          # 34,527
 
     # p : PI written in green — brings the count back up +1 → 34,528
     @subscene
     def pi(self):
         self._write_word(STEP["greek_letters"].get("pi_example", "pi"),
-                         color=LIGHT_GREEN)
-        self._revise(STEP["greek_letters"]["value"], strike_word=False)   # 34,528
+                         color=LIGHT_GREEN, run_time=0.3)
+        self._revise(STEP["greek_letters"]["value"], strike_word=False, run_time=0.7)   # 34,528
 
     # q : STYROFOAM green (+6 add-backs) → 34,534, then a removal (−51) → 34,483
     @subscene
     def disagree(self):
         up = STEP["disagree_up"]
-        self._write_word(up["example"], color=LIGHT_GREEN)
-        self._revise(up["value"], strike_word=False)               # 34,534
+        self._write_word(up["example"], color=LIGHT_GREEN, run_time=0.3)
+        self._revise(up["value"], strike_word=False, run_time=0.7)               # 34,534
         down = STEP["disagree_down"]
         self._drop(down["example"], down["value"])                 # → 34,483
 

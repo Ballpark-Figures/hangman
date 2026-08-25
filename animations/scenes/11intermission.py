@@ -64,6 +64,9 @@ SCALE_UP = 5.0                  # chalkboard scale at which its slate fills the 
 
 # ── chalkboard-game layout (beats e–h) ───────────────────────────────────────
 BLANK_Y = -2.6                  # 7 blanks on the LEFT (default cx), lowered from mid-board
+# The guess bubble grows from the LEFT edge; lowered from gb.BUBBLE_TIP's y=2.4 so it
+# clears the top-left "WORDS REMAINING:" count column (which occupies ~y 3.0 down to 1.0).
+BUBBLE_TIP = [gb.BUBBLE_TIP[0], 1.0, 0.0]
 COUNT_X = -6.4                  # top-left "WORDS REMAINING:" column
 COUNT_TOP = 3.0                 # the label's y (first number after the colon, rest below)
 COUNT_H = 0.38                  # chalk height of the count text/numbers
@@ -170,7 +173,7 @@ class Scene11(HangmanScene):
         """Canonical guess: bubble from the left → WRITE (fill each blank on a HIT / miss
         row + the next gallows part on a MISS) → dismiss the bubble. Scales with run_time."""
         r = run_time
-        bub = gb.bubble(letter, tail="left").set_z_index(20)   # above the strikes/chalk
+        bub = gb.bubble(letter, tail="left", tip=BUBBLE_TIP).set_z_index(20)  # above the strikes/chalk
         self.play(GrowFromPoint(bub, bub.tip_dot.get_center()), run_time=0.5 * r)
         if hit:
             word = self.data["figures"]["word"]
@@ -179,7 +182,7 @@ class Scene11(HangmanScene):
             self._write(VGroup(*Ls), 0.9 * r)      # each blank's letter, one at a time
         else:
             L = gb.miss_letter(letter, self.miss_slots_x[self.miss_n])
-            self.play(LaggedStartMap(Create, L, lag_ratio=0.5), run_time=0.6 * r)
+            self.play(LaggedStartMap(Create, L, lag_ratio=1.0), run_time=0.6 * r)
             part = self.hang_parts[self.miss_n]
             self.hang.add(part)
             self.play(Create(part), run_time=0.5 * r)
@@ -204,7 +207,7 @@ class Scene11(HangmanScene):
         strike = Line(cur.get_left(), cur.get_right(), color=ACCENT_RED,
                       stroke_width=4).set_z_index(1)
         new = chalk_number(new_count, height=COUNT_H)
-        new.next_to(cur, DOWN, buff=0.22, aligned_edge=LEFT)  # under the FIRST number
+        new.next_to(cur, DOWN, buff=0.22, aligned_edge=RIGHT)  # RIGHT-aligned under 5541
         self.count_nums.append(new)
         self.count_group.add(strike, new)
         self.play(Create(strike), run_time=0.4 * run_time)
@@ -261,6 +264,7 @@ class Scene11(HangmanScene):
     def only_tier(self):
         self._setup_pie()
         self.play(FadeIn(self.pie_title), run_time=0.6)
+        self.wait(2.0)
         self.pie.fan_sectors(self, [0], 0.9)
 
     # c : "Word Known" — narrowed to a single option using only those letters
@@ -272,6 +276,7 @@ class Scene11(HangmanScene):
     @subscene
     def miss_dist(self):
         self.pie.fan_sectors(self, [2], 0.9)                       # No more misses
+        self.wait(2.0)
         self.pie.fan_group(self, [3, 4], 1.2)                      # 1 + 2+ from one origin
 
     # e : chalkboard reverse-in; 7 blanks at the BOTTOM; gallows; WORDS REMAINING: 5541
@@ -287,17 +292,17 @@ class Scene11(HangmanScene):
         # REVERSE dissolve: the slate contracts out of the full frame, the wooden frame
         # sliding in from off-screen, revealing the light-blue surround.
         self.play(self.cb.animate.scale(1.0 / SCALE_UP, about_point=ORIGIN),
-                  run_time=1.4, rate_func=smooth)
-        self._write(self.rules, 1.4)                              # blanks, one at a time (L→R)
-        self.play(Create(self.hang), run_time=0.8)                # the gallows
-        self._draw_count(1.6)                                     # WORDS REMAINING: 5541
+                  run_time=0.75, rate_func=smooth)
+        self._write(self.rules, 0.75)                              # blanks, one at a time (L→R)
+        self.play(Create(self.hang), run_time=0.75)                # the gallows
+        self._draw_count(0.75)                                     # WORDS REMAINING: 5541
 
     # f : play FIGURES up to & incl. the I (e·s·i hits); count ticks 5541→1166→231→21
     @subscene
     def figures(self):
         for st in self.data["figures"]["steps"][:self.i_cut]:     # e, s, i (all hits)
-            self._guess(st["letter"], st["hit"], 1.0)
-            self._update_count(st["count"], 1.0)
+            self._guess(st["letter"], st["hit"], 0.8)
+            self._update_count(st["count"], 0.5)
 
     # g : erase the count, write out the remaining words, play the rest crossing them off
     @subscene

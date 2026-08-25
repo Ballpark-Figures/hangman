@@ -2,7 +2,7 @@
 
 One subscene per letter, A..Z (so `render 96a` = A … `render 96z` = Z). Each shows:
   • the letter grid tucked top-left, the chosen letter big at bottom-left,
-  • "Location Frequencies": the length-2..10 position heatmaps (middle),
+  • "Position Frequencies": the length-2..10 position heatmaps (middle),
   • "Top ngrams": the top-5 bigrams + top-5 trigrams, letter-centered (right).
 The grid enters + chooses A on the first beat; every later beat swaps to the next
 letter and refreshes the heatmaps + ngrams. Titles are persistent.
@@ -24,18 +24,15 @@ from assets.letter_ngrams import letter_ngrams
 LETTERS = string.ascii_uppercase
 
 HEAT_CENTER  = np.array([0.2, -0.4, 0.0])      # heatmap stack center (middle)
-LOC_TITLE    = np.array([0.2, 3.2, 0.0])       # "Location Frequencies" (2 lines)
-NG_TITLE     = np.array([5.3, 3.2, 0.0])       # "Top N-grams" (2 lines, same y)
+LOC_TITLE    = np.array([0.2, 3.2, 0.0])       # "Position Frequencies" (1 line)
+NG_TITLE     = np.array([5.3, 3.2, 0.0])       # "Top N-grams" (1 line, same y)
 NG_X         = 5.3                             # anchored-letter column x (right side)
 
 
 class LetterGridTest(HangmanScene):
 
-    def _two_line(self, l1, l2, center):
-        # crisp_paragraph spaces lines by font metrics (descender-independent), so
-        # both titles get identical leading regardless of which letters descend.
-        return crisp_paragraph(l1, l2, font_size=30, color=BLACK,
-                               alignment="center").move_to(center)
+    def _one_line(self, text, center):
+        return crisp_text(text, font_size=30, color=BLACK).move_to(center)
 
     def _rise(self, parent, rows, *, lag_ratio=0.14, shift=0.28):
         """Reveal `parent`'s `rows` one at a time with OVERLAPPING upward fades:
@@ -65,8 +62,8 @@ class LetterGridTest(HangmanScene):
             self.grid.to_edge(LEFT, buff=0.8).set_y(0)
             self.grid.slide_in(self, run_time=1.0)
             self.grid.choose(self, LETTERS[idx], run_time=1.1)
-            self.loc_title = self._two_line("Location", "Frequencies", LOC_TITLE)
-            self.ng_title = self._two_line("Top", "N-grams", NG_TITLE)
+            self.loc_title = self._one_line("Position Frequencies", LOC_TITLE)
+            self.ng_title = self._one_line("Top N-grams", NG_TITLE)
             # location frequencies + top N-grams each rise in row-by-row
             self.play(FadeIn(self.loc_title),
                       self._rise(heat, self._heat_rows(heat)), run_time=1.3)

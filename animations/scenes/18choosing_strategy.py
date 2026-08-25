@@ -5,7 +5,9 @@ by naively picking the hardest single words, reject that, then hill-climb a per-
 frequency distribution (via letter-combo multipliers) that maximises the best-opener
 guesser's average misses — starting from a UNIFORM (every word equally likely) game.
 
-BEAT MAP (Script.md scene 18; --- delimited, 6 beats a-f + a transition beat g):
+BEAT MAP (Script.md scene 18; --- delimited, 6 script beats a-f + a transition beat g.
+NOTE script beat c is SPLIT across scene beats c (word bars) + d (letter-combo bars), so
+the scene has 8 subscenes a-h — the two bar sides land on separate beats for pacing):
   a most_misses  — table "Words with Most Misses" (cols Words / # Misses), the words
                    the OPTIMAL guesser misses most. Words in BLUE; rows rise in with a
                    lagged upward cascade; only the top (14-miss) words are listed.
@@ -14,25 +16,28 @@ BEAT MAP (Script.md scene 18; --- delimited, 6 beats a-f + a transition beat g):
   b greedy_tree  — the GREEDY best-opener tree (uniform state, opener 'a'), LETTERED, built
                    LEVEL-BY-LEVEL from the top (intro-style, no camera): edges draw in from
                    their parents, nodes + guess letters fade in. It IS buckets[0]["tree"] —
-                   the SAME tree the c–f mini trees use. SOURCED scene18_data (_greedy_tree,
+                   the SAME tree the c–g mini trees use. SOURCED scene18_data (_greedy_tree,
                    guess per node).
   c strategy     — FIRST the beat-b box slides to the top-left mini slot while its letters
                    fade, morphing into the shape-only mini tree (ReplacementTransform each
-                   dot/edge onto its mini twin). THEN "Average Misses: N" (counter, top);
-                   LEFT = the most common real 2-letter words (by zipf), RIGHT = the most
-                   common letter-combos, each a MULTI-ROW block of bars (3 rows of 10,
-                   scene-17 style). Starts UNIFORM (every bar equal). SOURCED scene18_data.
-  d try_keep     — a combo bar AND the words exhibiting it rise TOGETHER → the avg counts
+                   dot/edge onto its mini twin). THEN "Average Misses: N" (counter, top); the
+                   LEFT word bars (most common real 2-letter words by zipf) grow in — a
+                   MULTI-ROW block (3 rows of 10, scene-17 style). Starts UNIFORM (every bar
+                   equal). SOURCED scene18_data.
+  d letter_bars  — the RIGHT letter-combo bars (highest adjustment factor) grow in — same
+                   3-rows-of-10 block. Split out of beat c so the word bars and the letter
+                   bars land on separate beats.
+  e try_keep     — a combo bar AND the words exhibiting it rise TOGETHER → the avg counts
                    UP; we KEEP it. Rising bars flash GREEN + the number flashes GREEN.
-  e try_undo     — a DIFFERENT change → the avg counts DOWN (a failure, number CRIMSON) →
+  f try_undo     — a DIFFERENT change → the avg counts DOWN (a failure, number CRIMSON) →
                    undo (NO number colour) → reset to the uniform start (NO number colour).
                    Rule: the avg number flashes green on a RISE, crimson on a DROP, but an
                    UNDO/reset counts with no colour change. A frequency adjustment moves the
                    combo bars and the word bars at the SAME time (one play).
-  f replay       — replay the optimization uniform→final in N_BUCKETS steps: each step
+  g replay       — replay the optimization uniform→final in N_BUCKETS steps: each step
                    morphs the combo bars, then the word bars, then the avg (grow = green,
                    shrink = crimson).
-  g clear_all    — TRANSITION (not a script beat): fade bars/avg/tree out → blank, for scene 19
+  h clear_all    — TRANSITION (not a script beat): fade bars/avg/tree out → blank, for scene 19
 
 REUSE MAP (styling sources):
   - bars    : bpkfigures.bar_graph get_bar_chart / grow_bars (scene-17 word-frequency bars)
@@ -42,7 +47,7 @@ REUSE MAP (styling sources):
 
 FLAGS (owned by a human — tune/decide in the timing+polish pass):
   - beat b: the lettered greedy tree sits on a navy card (the tree world is navy, scenes
-    01/05); GT_BOX / GT_DOT_R / GT_LETTER_H / GT_LEVEL_RT + card sizing are layout guesses.
+    01/05); GT_BOX / GT_DOT_R / GT_LETTER_H + card sizing are layout guesses.
   - TRACK_N (30) / PER_ROW (10) / row geometry / BAR_LABEL_FS / all run_times = guesses.
 """
 from pathlib import Path
@@ -94,7 +99,6 @@ GT_BOX = (14.4, 6.2, 0.0, 0.55)   # big tree plotting box: W, H, centre x, centr
 GT_DOT_R = 0.14                   # letter-holding node radius (big)
 GT_LETTER_H = 0.16                # guess-letter height (navy, knocked out of the chalk dot)
 GT_EDGE_W = 2.0                   # edge stroke width (big display)
-GT_LEVEL_RT = 0.7                 # each level takes the SAME time → constant-rate (continuous)
 GT_DOT_APPEAR = 0.9               # child nodes pop at this fraction of the edge growth (intro)
 GT_EASE_FRAC = 0.4                # first level only: fraction of its time ramping up to speed
 
@@ -300,6 +304,18 @@ class Scene18(HangmanScene):
             base += [base_y] * len(chart.bars)
         return charts, bars, base
 
+    def _grow_side(self, charts, run_time):
+        """Add ONE side's charts and grow their bars up from the axis (scene-17 style),
+        each chart's labels fading in alongside. Word bars grow in beat c, the letter-
+        combo bars in beat d — same entrance, one helper."""
+        bars, label_fades = [], []
+        for chart in charts:
+            self.add(chart)
+            chart.labels.set_opacity(0)
+            bars += list(chart.bars)
+            label_fades.append(chart.labels.animate.set_opacity(1))
+        grow_bars(self, bars, run_time, lag=0.02, extra=label_fades)
+
     def _grow_anim(self, bar, base_y, h0, h1, flash=None):
         """One bar height h0→h1, flashing a colour while it changes then settling to blue.
         flash=None → direction (grow GREEN / shrink CRIMSON); flash=<colour> → force that
@@ -376,6 +392,7 @@ class Scene18(HangmanScene):
 
         self.table = VGroup(title, hdr, rows)
         self.play(FadeIn(title), FadeIn(hdr), run_time=0.6)
+        self.wait(2.0)
         self.play(LaggedStart(*[row.animate.shift(UP * 0.4).set_opacity(1) for row in rows],
                               lag_ratio=0.18), run_time=1.4)
 
@@ -410,11 +427,12 @@ class Scene18(HangmanScene):
         # (lag_ratio=1.0 → each level starts exactly as the previous ends) so there are NO
         # per-`play` boundary frames between levels — a single seamless timeline that never
         # stops (the intro used separate plays but hid the seams under its moving camera).
+        level_rt = 0.7           # each level takes the SAME time → constant-rate (continuous)
         levels = []
         for d in range(1, len(tree.level_nodes)):
             first = (d == 1)
             rf = _ease_then_linear if first else linear
-            rt = GT_LEVEL_RT / (1 - GT_EASE_FRAC / 2) if first else GT_LEVEL_RT
+            rt = level_rt / (1 - GT_EASE_FRAC / 2) if first else level_rt
             grows = [GrowFromPoint(ng, pc, rate_func=rf) for ng, pc in tree.level_nodes[d]]
             levels.append(AnimationGroup(
                 Create(tree.level_edges[d], lag_ratio=0.0, rate_func=rf), *grows, run_time=rt))
@@ -453,22 +471,22 @@ class Scene18(HangmanScene):
         self.combo_vals = list(uni["combo_mult"])
 
         self.play(FadeIn(self.avg_readout), run_time=0.6)
-        all_bars, label_fades = [], []
-        for chart in (*self.word_charts, *self.combo_charts):
-            self.add(chart)
-            chart.labels.set_opacity(0)
-            all_bars += list(chart.bars)
-            label_fades.append(chart.labels.animate.set_opacity(1))
-        grow_bars(self, all_bars, 1.3, lag=0.02, extra=label_fades)
+        self._grow_side(self.word_charts, 1.3)             # LEFT word bars (letter bars → beat d)
 
-    # ── d : a combo + its words rise TOGETHER → avg + tree update → keep ────────
+    # ── d : the letter-combo bars appear (RIGHT half) — split out of beat c, so the
+    #     word bars (c) and the letter bars land on separate beats ────────────────
+    @subscene
+    def letter_bars(self):
+        self._grow_side(self.combo_charts, 1.3)
+
+    # ── e : a combo + its words rise TOGETHER → avg + tree update → keep ────────
     @subscene
     def try_keep(self):
         after = self.data["example_keep"]["after"]
         self._apply_state(after, 0.9)                          # combo + word bars rise together (green)
         self._count_and_tree(after, 0.8)                       # avg ticks UP + tree updates (kept)
 
-    # ── e : a different change → avg counts DOWN (failure) → undo → reset ──────
+    # ── f : a different change → avg counts DOWN (failure) → undo → reset ──────
     @subscene
     def try_undo(self):
         undo = self.data["example_undo"]
@@ -482,7 +500,7 @@ class Scene18(HangmanScene):
         # together in ONE play, kept BLUE
         self._apply_state_at_once(undo["reset"], run_time=0.9, flash=WORD_BLUE)
 
-    # ── f : replay the optimization uniform→final, one step per change ─────────
+    # ── g : replay the optimization uniform→final, one step per change ─────────
     @subscene
     def replay(self):
         buckets = self.data["optimization"]["buckets"]         # 0 (uniform) .. final
@@ -491,7 +509,7 @@ class Scene18(HangmanScene):
             self._apply_state(b, step)                         # combo + word bars move together
             self._count_and_tree(b, step * 0.9)                # avg + tree update together
 
-    # g : TRANSITION to scene 19 — fade everything (bars, avg readout, tree) out to the
+    # h : TRANSITION to scene 19 — fade everything (bars, avg readout, tree) out to the
     #     blank brand background, which scene 19 opens on. (updaters are already cleared.)
     @subscene
     def clear_all(self):

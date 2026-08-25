@@ -105,15 +105,15 @@ class Scene22(HangmanScene):
     def ing_board(self):
         self._setup_ing_board()
         self.play(LaggedStartMap(Create, self.rules7, lag_ratio=1.0), run_time=2.0)
-        self.play(LaggedStartMap(Create, self.hang7.gallows, lag_ratio=0.6),
+        self.play(LaggedStartMap(Create, self.hang7.gallows, lag_ratio=1.0),
                   run_time=1.6)
         # bubble-then-write each of I·N·G into its blank (all hits — generic board)
         for ch, pos in zip("ing", ING_POS):
             bub = gb.bubble(ch, tail="left")
-            self.play(GrowFromPoint(bub, bub.tip_dot.get_center()), run_time=0.7)
+            self.play(GrowFromPoint(bub, bub.tip_dot.get_center()), run_time=0.4)
             L = gb.reveal_letter(ch, self.rules7[pos])
             self.rev7.add(L)
-            self.play(LaggedStartMap(Create, L, lag_ratio=0.5), run_time=0.9)
+            self.play(LaggedStartMap(Create, L, lag_ratio=1.0), run_time=0.4)
             self.play(FadeOut(bub), run_time=0.4)
 
     # ── bar-chart helper (beats b/c) ──────────────────────────────────────────

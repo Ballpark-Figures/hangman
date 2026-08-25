@@ -86,7 +86,6 @@ TL_SCALE = 0.80                     # tier list scale once tucked left
 #    CHALK tier list above it, gallows unchanged on the right ────────────────────
 GAME_BLANK_Y = -2.6                 # word blanks near the bottom-left (as in scene 11)
 CTL_MARGIN   = 0.45                 # inset of the chalk tier list from its box
-CTL_GOLD_BUFF = 0.08               # gold guess-box padding
 
 
 # ── the example game (beat j…): word + guess order = optimal/uniform trace ─────
@@ -199,7 +198,7 @@ class Scene16(HangmanScene):
     # ── b : emphasise top, then top-two, … down to all lit (dim the rest) ──────
     @subscene
     def walk_down(self):
-        self.play(*tl.emphasize(self.tl, 0), run_time=0.6)     # top tier alone
+        self.play(*tl.emphasize(self.tl, 0), run_time=2.0)     # top tier alone
         for i in range(1, self.tl.n):                          # grow the lit set down
             self.play(*tl.emphasize(self.tl, range(i + 1)), run_time=0.4)
         self.play(*tl.reset(self.tl), run_time=0.4)            # back to all full
@@ -227,6 +226,7 @@ class Scene16(HangmanScene):
     @subscene
     def fill_high(self):
         self._fill(1, 0.8)                                     # HIGH↑
+        self.wait(1.0)
         self._fill(2, 0.8)                                     # HIGH↓
 
     # ── g : extend by MID↑ ────────────────────────────────────────────────────
@@ -252,7 +252,10 @@ class Scene16(HangmanScene):
         self.hang, self.hang_parts = gb.build_gallows()
         self.miss_n = 0
         self.miss_row = VGroup()
-        self.miss_slots_x = gb.miss_slots(self.hang, MISSES)
+        # RESERVE the fixed 6 miss slots (letters=None → the full 6-wide row scene 2
+        # uses), NOT a row centred on our 2 misses — so the T/B land in their absolute
+        # positions and the layout never gives away how many misses are coming.
+        self.miss_slots_x = gb.miss_slots(self.hang)
         self.hit_marks = VGroup()                         # revealed letters (for recolour)
         self.gold_boxes = VGroup()                        # accumulated guess boxes
 
@@ -302,8 +305,13 @@ class Scene16(HangmanScene):
         # width available: word centre out to whichever edge is closer (keep clear of gallows)
         half_w = min(word_cx - (-(gb.BOARD_W / 2 - 0.34)), gallows_left - word_cx) - CTL_MARGIN
         box_w, box_h = 2 * half_w, (board_top - word_top) - 2 * CTL_MARGIN
-        rows.scale(min(box_w / rows.width, box_h / rows.height, 1.0))
+        s = min(box_w / rows.width, box_h / rows.height, 1.0)
+        rows.scale(s)
         rows.move_to([word_cx, (word_top + board_top) / 2, 0])
+        # gold-box CELL = the on-screen slot pitch, so consecutive guesses' boxes ABUT
+        # (touch) horizontally as well as vertically — a fixed grid, not glyph-hugging.
+        self.ctl_cell_w = let_pitch * s
+        self.ctl_cell_h = row_pitch * s
         self.chalk_tl = rows
         return rows
 
@@ -316,7 +324,7 @@ class Scene16(HangmanScene):
         self.tl = None
         self.play(FadeIn(self.cb), run_time=0.8)
         self.play(LaggedStartMap(Create, self.rules, lag_ratio=1.0), run_time=1.8)
-        self.play(LaggedStartMap(Create, self.hang.gallows, lag_ratio=0.6), run_time=1.6)
+        self.play(LaggedStartMap(Create, self.hang.gallows, lag_ratio=1.0), run_time=1.6)
         # then bring the chalk tier list in — a bulk reference display, so it FADES in
         # (row by row), like the other reference lists/grids (scene 04/11)
         self._build_chalk_tierlist()
@@ -324,27 +332,32 @@ class Scene16(HangmanScene):
                   run_time=1.6)
 
     # ── the recurring "play one guess" beat (k–s) ─────────────────────────────
-    def _guess(self, i, *, rt_box, rt_write, rt_part):
+    def _guess(self, i, *, rt_box, rt_pause, rt_write, rt_part):
         """Gold-box the guess on the tier list FIRST (the 'here's my guess' beat —
-        replaces the speech bubble for this scene), THEN write the letter into its
-        blank(s) on a HIT, or the miss row + next gallows part on a MISS."""
+        replaces the speech bubble for this scene), PAUSE for `rt_pause`, THEN write the
+        letter into its blank(s) on a HIT, or the miss row + next gallows part on a
+        MISS."""
         g = GUESSES[i]
         positions = [p for p, c in enumerate(WORD) if c == g]
-        # 1. gold box around this guess in the chalk tier list (accumulates)
-        box = SurroundingRectangle(self.ctl_tiles[g], color=ACCENT_GOLD,
-                                   buff=CTL_GOLD_BUFF, stroke_width=4).set_z_index(3)
+        # 1. gold box around this guess in the chalk tier list (accumulates) — a fixed
+        # CELL centred on the tile (slot-pitch sized) so adjacent boxes touch both ways
+        box = Rectangle(width=self.ctl_cell_w, height=self.ctl_cell_h,
+                        color=ACCENT_GOLD, stroke_width=4).set_z_index(3)
+        box.move_to(self.ctl_tiles[g].get_center())
         self.gold_boxes.add(box)
         self.play(Create(box), run_time=rt_box)
+        if rt_pause > 0:                                  # optional beat between box and write
+            self.wait(rt_pause)
         # 2. write the letter
         if positions:                                     # HIT — write each occurrence
             for p in positions:
                 L = gb.reveal_letter(g, self.rules[p])
                 self.hit_marks.add(L)
-                self.play(LaggedStartMap(Create, L, lag_ratio=0.5), run_time=rt_write)
+                self.play(LaggedStartMap(Create, L, lag_ratio=1.0), run_time=rt_write)
         else:                                             # MISS — miss row + next part
             m = gb.miss_letter(g, self.miss_slots_x[len(self.miss_row)])
             self.miss_row.add(m)
-            self.play(LaggedStartMap(Create, m, lag_ratio=0.5), run_time=rt_write)
+            self.play(LaggedStartMap(Create, m, lag_ratio=1.0), run_time=rt_write)
             part = self.hang_parts[self.miss_n]
             self.hang.add(part)
             self.miss_n += 1
@@ -353,40 +366,40 @@ class Scene16(HangmanScene):
     # k–s : the nine guesses E S T R A L B P Y (B is the flagged 2nd miss)
     @subscene
     def guess_e(self):
-        self._guess(0, rt_box=0.5, rt_write=0.9, rt_part=0.7)
+        self._guess(0, rt_box=0.5, rt_pause=1.5, rt_write=0.9, rt_part=0.7)
 
     @subscene
     def guess_s(self):
-        self._guess(1, rt_box=0.5, rt_write=0.9, rt_part=0.7)
+        self._guess(1, rt_box=0.5, rt_pause=0.3, rt_write=0.9, rt_part=0.7)
 
     @subscene
     def guess_t(self):
-        self._guess(2, rt_box=0.5, rt_write=0.9, rt_part=0.7)
+        self._guess(2, rt_box=0.5, rt_pause=0.3, rt_write=0.9, rt_part=0.7)
 
     @subscene
     def guess_r(self):
-        self._guess(3, rt_box=0.5, rt_write=0.9, rt_part=0.7)
+        self._guess(3, rt_box=0.5, rt_pause=0.3, rt_write=0.9, rt_part=0.7)
 
     @subscene
     def guess_a(self):
-        self._guess(4, rt_box=0.5, rt_write=0.9, rt_part=0.7)
+        self._guess(4, rt_box=0.5, rt_pause=0.3, rt_write=0.9, rt_part=0.7)
 
     @subscene
     def guess_l(self):
-        self._guess(5, rt_box=0.5, rt_write=0.9, rt_part=0.7)
+        self._guess(5, rt_box=0.5, rt_pause=0.3, rt_write=0.9, rt_part=0.7)
 
     # q : guess B — the sourced 2nd miss the script omits (see the module flag)
     @subscene
     def guess_b(self):
-        self._guess(6, rt_box=0.5, rt_write=0.9, rt_part=0.7)
+        self._guess(6, rt_box=0.5, rt_pause=0.05, rt_write=0.9, rt_part=0.7)
 
     @subscene
     def guess_p(self):
-        self._guess(7, rt_box=0.5, rt_write=0.9, rt_part=0.7)
+        self._guess(7, rt_box=0.5, rt_pause=0.05, rt_write=0.9, rt_part=0.7)
 
     @subscene
     def guess_y(self):
-        self._guess(8, rt_box=0.5, rt_write=0.9, rt_part=0.7)
+        self._guess(8, rt_box=0.5, rt_pause=0.05, rt_write=0.9, rt_part=0.7)
 
     # ── t : turn the letters, blanks, and gallows green (per script) ──────────
     @subscene

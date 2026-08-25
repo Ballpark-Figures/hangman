@@ -44,7 +44,7 @@ Render:  render 02a --fast … 02i   /   render 02 sub  for the whole scene
 
 TIMING KNOBS LEFT AT A GUESS (feel — judge from the video): every guess's
 bubble/write/part/out run_times, the colour-demo per-part 0.5s, the win-hold /
-reset run_times in `win`, and the green/red flash time (FLASH_RT).
+reset run_times in `win`, and the green/red flash time (in `win`/`lose`).
 """
 from pathlib import Path
 import sys
@@ -75,7 +75,6 @@ def _part_color(k):
 # win/loss flash: every white chalk mark on the board flashes colour — green when the
 # guesser wins (returning to white as the word fades), red when they lose (LIGHT_GREEN
 # / LIGHT_RED from the intro palette).
-FLASH_RT = 0.5     # go-to-colour time on the win; half the there-and-back on the loss
 
 
 class Scene02(HangmanScene):
@@ -125,13 +124,13 @@ class Scene02(HangmanScene):
         for p in [p for p, c in enumerate(WORD) if c == ch]:
             L = self._reveal_letter(ch, self.rules[p])
             letters.add(L)
-            self.play(LaggedStartMap(Create, L, lag_ratio=0.5), run_time=run_time)
+            self.play(LaggedStartMap(Create, L, lag_ratio=1.0), run_time=run_time)
         self.hits[ch] = letters
 
     def _write_miss(self, ch, *, rt_write, rt_part):
         """A miss: write ch below the gallows, then draw the next body part (white)."""
         miss = self._miss_letter(ch)
-        self.play(LaggedStartMap(Create, miss, lag_ratio=0.5), run_time=rt_write)
+        self.play(LaggedStartMap(Create, miss, lag_ratio=1.0), run_time=rt_write)
         part = self.hang_parts[self.miss_n]
         part.set_color(CHALK)            # reset any leftover demo colour (beat g)
         self.hang.add(part)
@@ -180,13 +179,13 @@ class Scene02(HangmanScene):
     @subscene
     def blanks(self):
         self._setup_blanks()
-        self.play(LaggedStartMap(Create, self.rules, lag_ratio=0.8), run_time=2.2)
+        self.play(LaggedStartMap(Create, self.rules, lag_ratio=1.0), run_time=2.2)
 
     # c : draw the gallows on the right
     @subscene
     def gallows(self):
         self._setup_gallows()
-        self.play(LaggedStartMap(Create, self.hang.gallows, lag_ratio=0.6),
+        self.play(LaggedStartMap(Create, self.hang.gallows, lag_ratio=1.0),
                   run_time=1.6)
 
     # d : the guesser guesses a letter — pop the 'A' bubble
@@ -220,7 +219,7 @@ class Scene02(HangmanScene):
             self.play(Create(part), run_time=0.5)
         # revert: head back to white, fade the other 5 parts back out
         rest = VGroup(*self.hang_parts[1:])
-        self.play(head.animate.set_color(CHALK), FadeOut(rest), run_time=0.8)
+        self.play(head.animate.set_color(CHALK), FadeOut(rest), run_time=0.3)
         for p in self.hang_parts[1:]:
             self.hang.remove(p)
 
@@ -230,16 +229,15 @@ class Scene02(HangmanScene):
     @subscene
     def win(self):
         for g in WIN_HITS:
-            self._pop_bubble(g, 0.6)
-            self._write_hit(g, 0.8)
+            self._pop_bubble(g, 0.3)
+            self._write_hit(g, 0.3)
             self._dismiss_bubble(0.3)
         self.play(self._chalk_marks().animate.set_color(LIGHT_GREEN),  # flash green
-                  run_time=FLASH_RT)
-        self.wait(0.4)                                           # VO: "…they win"
+                  run_time=0.3)                                       # VO: "…they win"
         won = VGroup(*[self.hits[g] for g in WIN_HITS])
         kept = self._chalk_marks(exclude=[self.hits[g] for g in WIN_HITS])
         self.play(FadeOut(won),                                  # completed word fades…
-                  kept.animate.set_color(CHALK), run_time=0.8)   # …the rest back to white
+                  kept.animate.set_color(CHALK), run_time=0.3)   # …the rest back to white
         for g in WIN_HITS:
             self.hits.pop(g, None)         # only the A's remain in self.hits now
 
@@ -249,8 +247,8 @@ class Scene02(HangmanScene):
     @subscene
     def lose(self):
         for g in LOSE_MISS:
-            self._pop_bubble(g, 0.6)
-            self._write_miss(g, rt_write=0.8, rt_part=0.6)
+            self._pop_bubble(g, 0.3)
+            self._write_miss(g, rt_write=0.3, rt_part=0.3)
             self._dismiss_bubble(0.3)
         self.play(self._chalk_marks().animate.set_color(LIGHT_RED),    # flash red…
-                  rate_func=there_and_back, run_time=FLASH_RT * 2)      # …and back to white
+                  run_time=0.3)

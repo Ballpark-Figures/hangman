@@ -127,9 +127,9 @@ class Scene21(HangmanScene):
         self._setup_game7()
         self.play(FadeOut(self.chart), run_time=0.5)
         self.chart = None
-        self.play(LaggedStartMap(Create, self.rules7, lag_ratio=1.0), run_time=2.0)
-        self.play(LaggedStartMap(Create, self.hang7.gallows, lag_ratio=0.6),
-                  run_time=1.6)
+        self.play(LaggedStartMap(Create, self.rules7, lag_ratio=1.0), run_time=0.5)
+        self.play(LaggedStartMap(Create, self.hang7.gallows, lag_ratio=1.0),
+                  run_time=0.5)
 
     # ── d : guess I, N, G → written into the LAST 3 blanks (the reduction) ─────
     @subscene
@@ -138,10 +138,10 @@ class Scene21(HangmanScene):
         # hits — a generic 7-blank board, so no underlying word / no misses)
         for ch, pos in zip("ing", ING_POS):
             bub = gb.bubble(ch, tail="left")
-            self.play(GrowFromPoint(bub, bub.tip_dot.get_center()), run_time=0.7)
+            self.play(GrowFromPoint(bub, bub.tip_dot.get_center()), run_time=0.5)
             L = gb.reveal_letter(ch, self.rules7[pos])
             self.rev7.add(L)
-            self.play(LaggedStartMap(Create, L, lag_ratio=0.5), run_time=0.9)
+            self.play(LaggedStartMap(Create, L, lag_ratio=1.0), run_time=0.5)
             self.play(FadeOut(bub), run_time=0.4)
 
     # ── e : clear the demo; LEFT = 100 4-letter words, RIGHT = 500 7-letter ────
@@ -212,7 +212,7 @@ class Scene21(HangmanScene):
     def gaining(self):
         self._setup_gaining()
         self.play(LaggedStartMap(Create, self.rulesG, lag_ratio=1.0), run_time=2.0)
-        self.play(LaggedStartMap(Create, self.hangG.gallows, lag_ratio=0.6),
+        self.play(LaggedStartMap(Create, self.hangG.gallows, lag_ratio=1.0),
                   run_time=1.6)
         # start with ING (as the strategy guarantees), then the leftover A — all hits
         for g in GAINING_GUESSES:
@@ -222,5 +222,5 @@ class Scene21(HangmanScene):
             for p in positions:                           # LEFT → RIGHT, one at a time
                 L = gb.reveal_letter(g, self.rulesG[p])
                 self.revG.add(L)
-                self.play(LaggedStartMap(Create, L, lag_ratio=0.5), run_time=0.9)
+                self.play(LaggedStartMap(Create, L, lag_ratio=1.0), run_time=0.9)
             self.play(FadeOut(bub), run_time=0.4)

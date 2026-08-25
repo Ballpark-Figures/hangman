@@ -139,7 +139,7 @@ class Scene04(HangmanScene):
     #  a–b : montage + settle
     # ══════════════════════════════════════════════════════════════════════════
 
-    def _show_game(self, entry):
+    def _show_game(self, entry, run_time=0.5):
         """Fill the fixed board with one finished greedy game, tinted by result."""
         col = LIGHT_GREEN if entry["win"] else LIGHT_RED
         letters = VGroup()
@@ -157,7 +157,7 @@ class Scene04(HangmanScene):
         self._game_parts = parts
         self.play(FadeIn(letters), FadeIn(misses), *[FadeIn(p) for p in parts],
                   self.rules.animate.set_color(col),
-                  self.hang.gallows.animate.set_color(col), run_time=0.5)
+                  self.hang.gallows.animate.set_color(col), run_time=run_time)
 
     def _clear_game(self, run_time=0.4):
         self.play(FadeOut(self._game), *[FadeOut(p) for p in self._game_parts],
@@ -171,13 +171,13 @@ class Scene04(HangmanScene):
     def montage(self):
         self._setup_board()
         # draw the blanks, THEN the gallows (not together — like scene 02)
-        self.play(LaggedStartMap(Create, self.rules, lag_ratio=0.8), run_time=2.0)
-        self.play(LaggedStartMap(Create, self.hang.gallows, lag_ratio=0.6),
+        self.play(LaggedStartMap(Create, self.rules, lag_ratio=1.0), run_time=0.6)
+        self.play(LaggedStartMap(Create, self.hang.gallows, lag_ratio=1.0),
                   run_time=1.6)
         games = DATA["montage"]
         for i, entry in enumerate(games):
             self._show_game(entry)
-            self.wait(0.5)                                       # VO
+            self.wait(0.2)                                       # VO
             if i < len(games) - 1:
                 self._clear_game()
 
@@ -203,9 +203,10 @@ class Scene04(HangmanScene):
     def two_a(self):
         self._reveal_pattern("_aa")
         self._update_bars("_aa")
+        self.wait(2.0)
         L = gb.reveal_letter("b", self.rules[0])
         self.revealed[0] = L
-        self.play(LaggedStartMap(Create, L, lag_ratio=0.5), run_time=0.7)
+        self.play(LaggedStartMap(Create, L, lag_ratio=1.0), run_time=0.7)
         won = VGroup(self.rules, self.hang, *self.revealed.values())
         self.play(won.animate.set_color(LIGHT_GREEN), run_time=0.6)   # win: all green
 
@@ -244,18 +245,18 @@ class Scene04(HangmanScene):
 
     @subscene
     def miss_e(self):
-        self._add_miss("e")
-        self._update_bars("___", missed="aoe")
+        self._add_miss("e", rt_write=0.3, rt_part=0.3)
+        self._update_bars("___", missed="aoe", run_time=0.5)
 
     @subscene
     def miss_i(self):
-        self._add_miss("i")
-        self._update_bars("___", missed="aoei")
+        self._add_miss("i", rt_write=0.3, rt_part=0.3)
+        self._update_bars("___", missed="aoei", run_time=0.5)
 
     @subscene
     def miss_u(self):
-        self._add_miss("u")
-        self._update_bars("___", missed="aoeiu")
+        self._add_miss("u", rt_write=0.3, rt_part=0.3)
+        self._update_bars("___", missed="aoeiu", run_time=0.5)
 
     # m : Y misses (full hangman); the word is now determined — collapse the bars
     @subscene
@@ -271,7 +272,7 @@ class Scene04(HangmanScene):
         for p, ch in enumerate("nth"):
             L = gb.reveal_letter(ch, self.rules[p])
             self.revealed[p] = L
-            self.play(LaggedStartMap(Create, L, lag_ratio=0.5), run_time=0.5)
+            self.play(LaggedStartMap(Create, L, lag_ratio=1.0), run_time=0.5)
         lost = VGroup(self.rules, self.hang, self.miss_row, *self.revealed.values())
         self.play(lost.animate.set_color(LIGHT_RED), run_time=0.6)
 
@@ -308,7 +309,7 @@ class Scene04(HangmanScene):
         alpha.next_to(gal.gallows.get_bottom(), DOWN, buff=0.3)
         alpha.set_x(gal.gallows.get_center()[0])
         alpha_map = dict(zip(pool_chars, alpha_letters))
-        self.play(LaggedStartMap(Create, gal.gallows, lag_ratio=0.5),
+        self.play(LaggedStartMap(Create, gal.gallows, lag_ratio=1.0),
                   FadeIn(alpha), run_time=1.2)
 
         chain = [p["word"] for p in DATA["pirates_chain"]]   # a, at, …, pirates
@@ -399,21 +400,22 @@ class Scene04(HangmanScene):
         board_left = -(gb.BOARD_W / 2 - 0.34)
         cx = (board_left + gal.gallows.get_left()[0]) / 2
         rules = gb.build_rules(len(word), slot=0.40, gap=0.10, cx=cx)
-        self.play(LaggedStartMap(Create, gal.gallows, lag_ratio=0.5), run_time=1.2)
-        self.play(LaggedStartMap(Create, rules, lag_ratio=1.0), run_time=2.6)  # one at a time
+        # blanks first (drawn one at a time), THEN the gallows — the standard order
+        self.play(LaggedStartMap(Create, rules, lag_ratio=1.0), run_time=1.0)  # one at a time
+        self.play(LaggedStartMap(Create, gal.gallows, lag_ratio=1.0), run_time=1.0)
         i_pos = DATA["demo17"]["i_positions"]
         # guess I: bubble, THEN write every i (one at a time)
         ibub = gb.bubble("i", tail="left")
         self.play(GrowFromPoint(ibub, ibub.tip_dot.get_center()), run_time=0.6)
         self._write_letters([gb.reveal_letter("i", rules[p]) for p in i_pos],
-                            run_time=1.8)
+                            run_time=1.0)
         self.play(FadeOut(ibub), run_time=0.4)
         # guess the whole word: bubble the word, then write the rest one at a time (fast)
         wbub = gb.bubble(word.upper(), tail="left", font_size=30)
         self.play(GrowFromPoint(wbub, wbub.tip_dot.get_center()), run_time=0.7)
         self._write_letters([gb.reveal_letter(ch, rules[p])
                              for p, ch in enumerate(word) if p not in i_pos],
-                            run_time=3.2)
+                            run_time=2.0)
         self.play(FadeOut(wbub), run_time=0.4)
 
     # w : the bridge to scene 05 — fade the length-17 game out, then EXPAND the
@@ -427,7 +429,7 @@ class Scene04(HangmanScene):
         self.play(
             *[FadeOut(m) for m in others],
             self.cb.animate.scale(5.0, about_point=ORIGIN),
-            run_time=2.0, rate_func=smooth,
+            run_time=1.0, rate_func=smooth,
         )
         self.camera.background_color = BOARD_NAVY
         self.remove(self.cb)                         # board gone; frame ends on navy
@@ -437,7 +439,7 @@ class Scene04(HangmanScene):
     def _add_miss(self, letter, *, rt_write=0.7, rt_part=0.6):
         L = gb.miss_letter(letter, self.miss_slots_x[self.miss_n])
         self.miss_row.add(L)
-        self.play(LaggedStartMap(Create, L, lag_ratio=0.5), run_time=rt_write)
+        self.play(LaggedStartMap(Create, L, lag_ratio=1.0), run_time=rt_write)
         part = self.hang_parts[self.miss_n]
         part.set_color(CHALK)            # reset any leftover montage tint (a)
         self.hang.add(part)
@@ -459,14 +461,17 @@ class Scene04(HangmanScene):
                 return nd
         raise KeyError(f"no walk node for {board!r} missed={missed!r}")
 
-    def _reveal_pattern(self, board):
-        for p, ch in enumerate(board):
-            if ch != "_":
-                L = gb.reveal_letter(ch, self.rules[p])
-                self.revealed[p] = L
-                self.play(LaggedStartMap(Create, L, lag_ratio=0.5), run_time=0.6)
+    def _reveal_pattern(self, board, run_time=None):
+        """Write each revealed letter (0.6 each). run_time, if given, is the TOTAL
+        for the pattern, split across the revealed letters; None = 0.6 each."""
+        revealed = [(p, ch) for p, ch in enumerate(board) if ch != "_"]
+        per = 0.6 if run_time is None else run_time / max(1, len(revealed))
+        for p, ch in revealed:
+            L = gb.reveal_letter(ch, self.rules[p])
+            self.revealed[p] = L
+            self.play(LaggedStartMap(Create, L, lag_ratio=1.0), run_time=per)
 
-    def _reset_pattern(self):
+    def _reset_pattern(self, run_time=0.4):
         """Clean chalk board between the (alternative) A-outcome beats: fade the
         revealed letters and restore rules + gallows to chalk (a win tinted them)."""
         anims = [FadeOut(VGroup(*self.revealed.values()))] if self.revealed else []
@@ -474,13 +479,13 @@ class Scene04(HangmanScene):
             anims.append(self.rules.animate.set_color(CHALK))
             anims.append(self.hang.animate.set_color(CHALK))
         if anims:
-            self.play(*anims, run_time=0.4)
+            self.play(*anims, run_time=run_time)
         self.revealed = {}
 
-    def _update_bars(self, board, missed=""):
+    def _update_bars(self, board, missed="", run_time=1.0):
         node = self._walk_node(board, missed)
         new = _vbars(node["bars"])
-        self.play(*morph_bar_chart(self.bars, new), run_time=1.0)
+        self.play(*morph_bar_chart(self.bars, new), run_time=run_time)
         self.bars = new
 
     # ── components for o–v ────────────────────────────────────────────────────

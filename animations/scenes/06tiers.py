@@ -82,9 +82,9 @@ class Scene06(HangmanScene):
         self.play(LaggedStart(*[FadeIn(row, shift=0.4 * UP)
                                 for row in self.tl.rows], lag_ratio=0.15),
                   run_time=1.4)
-        self.wait(0.4)                                   # VO
-        self._pulse(0, 0.7)                              # S — most useful
-        self._pulse(self.tl.n - 1, 0.7)                 # F — least useful
+        self.wait(4.5)                                   # VO
+        self._pulse(0, 1.5)                              # S — most useful
+        self._pulse(self.tl.n - 1, 1.5)                 # F — least useful
 
     # b : emphasise the S tier (dim the rest)
     @subscene
@@ -99,7 +99,7 @@ class Scene06(HangmanScene):
     # d : un-dim one more tier at a time until all 7 are lit again
     @subscene
     def cascade(self):
-        step = 0.45                                      # lockstep per-tier reveal
+        step = 0.75                                      # lockstep per-tier reveal
         for i in range(2, self.tl.n):
             self.play(*tl.emphasize(self.tl, range(i + 1)), run_time=step)
 

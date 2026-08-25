@@ -89,12 +89,12 @@ class ChalkGame(HangmanScene):
             # (positions is ascending), each stroke-by-stroke
             for p in positions:
                 L = self._reveal_letter(g, self.rules[p])
-                self.play(LaggedStartMap(Create, L, lag_ratio=0.5),
+                self.play(LaggedStartMap(Create, L, lag_ratio=1.0),
                           run_time=rt_write)
         else:
             # a miss: the letter goes below the gallows, THEN the next body part
             miss = self._miss_letter(g)
-            self.play(LaggedStartMap(Create, miss, lag_ratio=0.5), run_time=rt_write)
+            self.play(LaggedStartMap(Create, miss, lag_ratio=1.0), run_time=rt_write)
             part = self.hang_parts[self.miss_n]
             self.hang.add(part)
             self.miss_n += 1
@@ -120,13 +120,13 @@ class ChalkGame(HangmanScene):
     @subscene
     def blanks(self):
         self._setup_blanks()
-        self.play(LaggedStartMap(Create, self.rules, lag_ratio=0.8), run_time=2.2)
+        self.play(LaggedStartMap(Create, self.rules, lag_ratio=1.0), run_time=2.2)
 
     # b : draw the gallows on the right
     @subscene
     def gallows(self):
         self._setup_gallows()
-        self.play(LaggedStartMap(Create, self.hang.gallows, lag_ratio=0.6),
+        self.play(LaggedStartMap(Create, self.hang.gallows, lag_ratio=1.0),
                   run_time=1.6)
 
     # c : 'E' → MISS below gallows + head (miss #1)

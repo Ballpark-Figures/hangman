@@ -11,11 +11,18 @@ START-MODE ASSUMPTION (flag): continuation of 14 (centred). Flip to a blank star
 (`build_board(on_screen=False)` + an `establish` beat) if something clears the screen
 between 14 and 15.
 
-Beats a–m: X/Z/J/Q each as intro → heatmap → n-gram, then recenter.
+Beats a–e: X establishes the views via the merged `intro_letter_views` (heatmap + n-gram
+rise in BEHIND the tuck, like scene 13's P), then Z/J/Q are each a single RAPID crossfade
+switch (`rapid_letter` — heatmap morphs, n-gram crossfades, big letters cross), then
+recenter. (Scene 15's Script.md animation column is blank, so the beat split is a
+convention choice; using the rapid "quick change" machinery from scenes 13/14 throughout.)
+  a x_intro   — X fills in, tuck ↖ + copy ↙, views rise behind (`intro_letter_views`)
+  b z_rapid · c j_rapid · d q_rapid — rapid crossfade switches
+  e recenter  — clear views + big letter; tier list returns to CENTRE (list now COMPLETE)
 
 TIMING KNOBS LEFT AT A GUESS (feel — judge from the video): every run_time below.
 
-Render:  render 15a --fast  (…15m)  /  render 15 sub  for the whole scene
+Render:  render 15a --fast  (…15e)  /  render 15 sub  for the whole scene
 """
 from pathlib import Path
 import sys
@@ -38,71 +45,30 @@ class Scene15(TierLetterScene):
     def setup_scene(self):
         self.build_board(on_screen=True)            # continuation of 14 (centred)
 
-    # ── X ───────────────────────────────────────────────────────────────────────
-    # a : fill X into LOW↓, tuck the list ↖, send a copy of X ↙
+    # ── X — establishes the views the rapid trio morphs through ──────────────────
+    # a : fill X into LOW↓, tuck the list ↖ + send a copy of X ↙, with X's heatmap +
+    #     n-gram RISING IN BEHIND that leftward motion (like scene 13's P)
     @subscene
     def x_intro(self):
-        self.intro_letter(0, 1.2)
+        self.intro_letter_views(0, "x", 0.6, 1.2)
 
-    # b : position-frequency heatmaps
+    # ── Z, J, Q : rapid crossfade switches (heatmap morphs, n-gram crossfades, letters cross) ──
+    # b : rapid crossfade-switch to Z
     @subscene
-    def x_heat(self):
-        self.show_heat("x", 1.0)
+    def z_rapid(self):
+        self.rapid_letter(1, "z", 0.6)
 
-    # c : add the n-gram view
+    # c : rapid crossfade-switch to J
     @subscene
-    def x_ngram(self):
-        self.add_ngram("x", 0.8)
+    def j_rapid(self):
+        self.rapid_letter(2, "j", 0.6)
 
-    # ── Z ───────────────────────────────────────────────────────────────────────
-    # d : Z's turn
+    # d : rapid crossfade-switch to Q
     @subscene
-    def z_intro(self):
-        self.advance_letter(1, 0.9, 1.0)
+    def q_rapid(self):
+        self.rapid_letter(3, "q", 0.6)
 
-    # e : heatmaps for Z
-    @subscene
-    def z_heat(self):
-        self.show_heat("z", 1.0)
-
-    # f : add the n-gram view for Z
-    @subscene
-    def z_ngram(self):
-        self.add_ngram("z", 0.8)
-
-    # ── J ───────────────────────────────────────────────────────────────────────
-    # g : J's turn
-    @subscene
-    def j_intro(self):
-        self.advance_letter(2, 0.9, 1.0)
-
-    # h : heatmaps for J
-    @subscene
-    def j_heat(self):
-        self.show_heat("j", 1.0)
-
-    # i : add the n-gram view for J
-    @subscene
-    def j_ngram(self):
-        self.add_ngram("j", 0.8)
-
-    # ── Q ───────────────────────────────────────────────────────────────────────
-    # j : Q's turn
-    @subscene
-    def q_intro(self):
-        self.advance_letter(3, 0.9, 1.0)
-
-    # k : heatmaps for Q
-    @subscene
-    def q_heat(self):
-        self.show_heat("q", 1.0)
-
-    # l : add the n-gram view for Q
-    @subscene
-    def q_ngram(self):
-        self.add_ngram("q", 0.8)
-
-    # m : clear views + big letter; tier list returns to CENTRE (list now COMPLETE)
+    # e : clear views + big letter; tier list returns to CENTRE (list now COMPLETE)
     @subscene
     def recenter(self):
         self.recenter_board(1.0)

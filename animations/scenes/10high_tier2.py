@@ -3,9 +3,9 @@
 Built on the shared `TierLetterScene` base (assets/tier_letter_scene.py). Back-to-back
 continuation of scene 09: opens on the named tier list CENTRED (top tier E/I/A + HIGH↑
 S/R already filled, as 09 left it), works the HIGH↓ tier (TIER_LETTERS[2] = "TNO") with
-heatmap + n-gram views per letter (no common-uses, like 96), returns the tier list to
-CENTRE, then CLEARS it — scene 11 is the (animated) intermission, NOT a talking head, so
-10 must end blank (like 07 before the 08 interlude), not hand a centred list forward.
+heatmap + n-gram views per letter (no common-uses, like 96), then FADES EVERYTHING out —
+scene 11 is the (animated) intermission, NOT a talking head, so 10 must end blank (like
+07 before the 08 interlude), not hand a centred list forward.
 
 Unlike scene 09's HIGH↑ tier, only N and O carry common-uses beats here (script row
 10) — T is heatmap + n-gram only. Each common-uses state is SOURCED from
@@ -13,7 +13,7 @@ letter_analysis.ipynb's `guesses_of_letter_all_lengths(<letter>)` at STRATEGY=op
 WEIGHTING=uniform, sorted by n_words descending; "first 6 examples" = .head(6).
 Reproduced by `math/common_uses_scene10.py`, which prints these exact rows.
 
-Beats a–m:
+Beats a–l:
   a T intro     fill T into HIGH↓; tier list → top-left; copy of T → ↙
   b T heatmap   position-frequency heatmaps
   c T ngram     add the n-gram view
@@ -25,12 +25,11 @@ Beats a–m:
   i O heatmap   heatmaps for O
   j O ngram     add the n-gram view for O
   k O common    common-uses — first 6 examples from the table (O_COMMON)
-  l recenter    clear views + big letter; tier list returns to CENTRE (completed HIGH tier)
-  m clear_list  TRANSITION: fade the tier list out → blank, for the intermission (11)
+  l close_out   fade EVERYTHING (O view, big O, tier list) out → blank, for the intermission (11)
 
 TIMING KNOBS LEFT AT A GUESS (feel — judge from the video): every run_time below.
 
-Render:  render 10a --fast  (…10k)  /  render 10 sub  for the whole scene
+Render:  render 10a --fast  (…10l)  /  render 10 sub  for the whole scene
 """
 from pathlib import Path
 import sys
@@ -134,14 +133,10 @@ class Scene10(TierLetterScene):
     def o_common(self):
         self.show_common(O_COMMON, 0.9)
 
-    # l : clear views + big letter; tier list returns to CENTRE (the completed HIGH tier)
+    # l : end the HIGH tier — fade EVERYTHING (O view, big O, tier list) out to blank.
+    #     No recenter flourish: scene 11 (the intermission) opens on a navy interlude
+    #     with no tier list, so 10 just fades the final O view + list off (cf. 07, which
+    #     close_all's before 08).
     @subscene
-    def recenter(self):
-        self.recenter_board(1.0)
-
-    # m : TRANSITION to scene 11 — fade the completed tier list off, ending BLANK.
-    #     Scene 11 (the intermission) opens on a navy interlude with no tier list, so
-    #     10 must not leave the list on screen (cf. 07, which close_all's before 08).
-    @subscene
-    def clear_list(self):
-        self.play(FadeOut(self.tl), run_time=0.8)
+    def close_out(self):
+        self.close_all(1.0)

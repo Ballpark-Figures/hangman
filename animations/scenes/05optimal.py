@@ -539,7 +539,7 @@ class Scene05(HangmanScene):
         order = [o["letter"] for o in self._split_openers()]
         for ch in order[1:] + order[:1]:
             self.play(Transform(self.node_letter, self._node_letter(ch, self.node)),
-                      run_time=0.07)
+                      run_time=0.2)
 
     # ── d : spread 28 copies into a 4×7 grid, then each opener sprouts its next
     #        level (try every first letter, see every situation) ─────────────────
@@ -567,7 +567,9 @@ class Scene05(HangmanScene):
     def a_dive(self):
         self._e_isolate_a(1.2)
         self._e_walk_children(2.4)      # total for the walk (split across the children)
+        self.wait(1.0)
         self._e_focus_leftmost(0.6)
+        self.wait(2.0)
         self._e_option_grid(2.6)        # grid of every next-letter option from A-miss
 
     def _e_isolate_a(self, run_time):
@@ -767,8 +769,8 @@ class Scene05(HangmanScene):
         src = self.grid[0]                               # the top-left (A→O) tree from e
         # fade everything else out first, then piece-by-piece transform the top-left tree
         # into the cells (O shrinks into the path, O-miss becomes each new drilled node)
-        self.play(FadeOut(VGroup(*self.grid[1:])), run_time=0.45)
-        self._transform_into(src, cells, 1.5)
+        self.play(FadeOut(VGroup(*self.grid[1:])), run_time=0.3)
+        self._transform_into(src, cells, 1.0)
         self.grid = VGroup(*cells)
         self._resolve()                                   # keep drilling to the {BY,MY} base
 
@@ -2084,6 +2086,7 @@ class Scene05(HangmanScene):
         self.op_cells = self._opener_cells()
         self._co_to_corner(0.4, 1.4, 0.5)  # '2.50' fades first, morph A into the corner, THEN its label
         self._co_fill_grid(1.4)            # the other 19 opener trees fill the rest of the grid
+        self.wait(1.0)
         self._co_pick_winner(1.0)          # green the winning (A) tree IN its grid slot, fade the rest
         self._co_return(1.6)               # morph A back to full screen, greening BACK to red-white
 

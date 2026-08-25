@@ -12,10 +12,12 @@ START-MODE ASSUMPTION (flag): continuation of 13 (centred). If a talking head / 
 row-20 "bottom-tier shoutout" clears the screen before this, flip to a blank start:
 `build_board(on_screen=False)` + an `establish` beat (`self.enter_centered(0.8)`).
 
-F/V/W each run intro → heatmap → n-gram. The Y section is expanded: after Y's big-letter
-intro come three example-word beats (e/f/g) and a common-uses beat (j) closing the section;
-K then gets a SPECIAL staged position-frequency reveal (the Tversky-Kahneman availability-
-heuristic bit) instead of a single heatmap beat, then its n-gram + recenter.
+F and V each run intro → heatmap → n-gram; W uses the RAPID crossfade transition from V
+(scene 13's P/M/B machinery — `rapid_letter`), so V→W is a single morph beat. The Y section
+is expanded: after Y's big-letter intro come three example-word beats (e/f/g) and a
+common-uses beat (j) closing the section; K then gets a SPECIAL staged position-frequency
+reveal (the Tversky-Kahneman availability-heuristic bit) instead of a single heatmap beat,
+then its n-gram + recenter.
   a f_intro · b f_heat · c f_ngram
   d y_intro        — Y fills in, big copy ↙
   e y_words_blue   — YESTERYEAR (large, Ys BLUE) fades in rising
@@ -23,15 +25,16 @@ heuristic bit) instead of a single heatmap beat, then its n-gram + recenter.
   g y_words_out    — both example words fade out
   h y_heat · i y_ngram
   j y_common       — "Example Uses" — Y's top 4 table cases (optimal/uniform)
-  k v_intro · l v_heat · m v_ngram · n w_intro · o w_heat · p w_ngram
-  q k_intro        — K fills in, copy ↙ (unchanged advance)
-  r k_heat_gray    — position-frequency view enters with ALL boxes GREY (no data yet)
-  s k_flash_cols   — flash column 1, then column 3 (yahtzee row-highlight style)
-  t k_reveal_c1    — colour position 1 only; vmax = that column's max (full range on it)
-  u k_reveal_c3    — colour positions 1-3; vmax = cols-1-3 max (col 1 washes out)
-  v k_reveal_all   — colour every position; final vmax = data max (position 4 dominates)
-  w k_ngram        — add the n-gram view (C/N/L/R)
-  x recenter       — hand off to scene 15
+  k v_intro · l v_heat · m v_ngram
+  n w_rapid        — rapid crossfade V→W (heatmap morphs, n-gram crossfades, letters cross)
+  o k_intro        — K fills in, copy ↙ (unchanged advance)
+  p k_heat_gray    — position-frequency view enters with ALL boxes GREY (no data yet)
+  q k_flash_cols   — flash column 1, then column 3 (yahtzee row-highlight style)
+  r k_reveal_c1    — colour position 1 only; vmax = that column's max (full range on it)
+  s k_reveal_c3    — colour positions 1-3; vmax = cols-1-3 max (col 1 washes out)
+  t k_reveal_all   — colour every position; final vmax = data max (position 4 dominates)
+  u k_ngram        — add the n-gram view (C/N/L/R)
+  v recenter       — hand off to scene 15
 The staged vmax rescaling IS the payoff: col 1 looks saturated at p, then washes out as
 positions 3 then 4 reveal a higher max. Hue stays BLUE (K's consonant convention) at
 every stage; `k_reveal_all` reproduces the standard `show_heat("k")` state exactly, so
@@ -39,7 +42,7 @@ every stage; `k_reveal_all` reproduces the standard `show_heat("k")` state exact
 
 TIMING KNOBS LEFT AT A GUESS (feel — judge from the video): every run_time below.
 
-Render:  render 14a --fast  (…14x)  /  render 14 sub  for the whole scene
+Render:  render 14a --fast  (…14v)  /  render 14 sub  for the whole scene
 """
 from pathlib import Path
 import sys
@@ -177,21 +180,13 @@ class Scene14(TierLetterScene):
     def v_ngram(self):
         self.add_ngram("v", 0.8)
 
-    # ── W ───────────────────────────────────────────────────────────────────────
-    # n : W's turn
+    # ── W — rapid transition from V (scene 13's P/M/B machinery) ─────────────────
+    # n : rapid crossfade-switch to W — V's heatmap MORPHS + n-gram CROSSFADES to W,
+    #     the big V returns up AS the big W slides down (incoming/outgoing move together).
+    #     Requires V's views to be up already (v_heat/v_ngram above).
     @subscene
-    def w_intro(self):
-        self.advance_letter(3, 0.9, 1.0)
-
-    # o : heatmaps for W
-    @subscene
-    def w_heat(self):
-        self.show_heat("w", 1.0)
-
-    # p : add the n-gram view for W
-    @subscene
-    def w_ngram(self):
-        self.add_ngram("w", 0.8)
+    def w_rapid(self):
+        self.rapid_letter(3, "w", 0.6)
 
     # ── K — the staged position-frequency reveal (availability heuristic) ────────
     # K's heatmap builds in gray, flashes cols 1 & 3, then reveals position-by-position
@@ -256,47 +251,47 @@ class Scene14(TierLetterScene):
         self.play(FadeOut(fill), FadeOut(border), run_time=0.25 * r)
         self.remove(fill, border)
 
-    # q : K's turn — fill in, copy ↙
+    # o : K's turn — fill in, copy ↙
     @subscene
     def k_intro(self):
         self.advance_letter(4, 0.9, 1.0)
 
-    # r : position-frequency view enters, every box GREY (no data yet)
+    # p : position-frequency view enters, every box GREY (no data yet)
     @subscene
     def k_heat_gray(self):
         self._k_gray_view()
         self.play(FadeIn(self.loc_title),
                   self._rise(self.heat, self._heat_rows(self.heat)), run_time=1.0)
 
-    # s : flash the 1st column, then the 3rd column (availability-heuristic setup)
+    # q : flash the 1st column, then the 3rd column (availability-heuristic setup)
     @subscene
     def k_flash_cols(self):
-        self._flash_column(0, 1.3)          # position 1
-        self._flash_column(2, 1.3)          # position 3
+        self._flash_column(0, 0.5)          # position 1
+        self._flash_column(2, 0.7)          # position 3
 
-    # t : reveal position 1 only — scale so the full white→blue range covers just it
+    # r : reveal position 1 only — scale so the full white→blue range covers just it
     @subscene
     def k_reveal_c1(self):
         self._recolor_cols([0], self._vmax_over([0]), 1.0)
 
-    # u : reveal positions 1-3 — rescale so the range now covers cols 1-3 (col 1 washes out)
+    # s : reveal positions 1-3 — rescale so the range now covers cols 1-3 (col 1 washes out)
     @subscene
     def k_reveal_c3(self):
         self._recolor_cols([0, 1, 2], self._vmax_over([0, 1, 2]), 1.0)
 
-    # v : reveal the rest — final scale (data vmax); position 4 dominates
+    # t : reveal the rest — final scale (data vmax); position 4 dominates
     @subscene
     def k_reveal_all(self):
         data = lhd.get("k")
         ncols = max(len(data["rows"][L]) for L in data["lengths"])
         self._recolor_cols(list(range(ncols)), data["vmax"], 1.0)
 
-    # w : add the n-gram view for K
+    # u : add the n-gram view for K
     @subscene
     def k_ngram(self):
         self.add_ngram("k", 0.8)
 
-    # x : clear views + big letter; tier list returns to CENTRE (for scene 15)
+    # v : clear views + big letter; tier list returns to CENTRE (for scene 15)
     @subscene
     def recenter(self):
         self.recenter_board(1.0)

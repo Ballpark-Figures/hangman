@@ -9,7 +9,11 @@ so we repeatedly strip an ending (Y / ED / ER / ES / ING) and REFLOW the list in
 the stripped words fade out while, overlapping, survivors slide up and new words rise in
 from the bottom to refill the slots.
 
-BEAT MAP (Script.md scene 20; --- delimited, 14 beats a-n + a transition beat o):
+BEAT MAP (Script.md scene 20; --- delimited, 14 script beats + a transition beat.
+NOTE the script has 7-letter patterns + words as TWO beats, but they are COMBINED here into
+ONE beat i `seven_full` — matching six_full (script beat d, "patterns and words together") —
+so the scene has 13 subscenes a-m + transition n against the script's 14+1 (script rows for
+7-letter patterns/words map to the single beat i; update the script row to merge them):
   a five_patterns   — title "5-Letter Words"; LEFT Common Letter Patterns.
   b five_words      — RIGHT Common Words (almost all end in Y).
   c remove_y        — strip Y-ending words + reflow → what's left usually ends in S.
@@ -18,14 +22,13 @@ BEAT MAP (Script.md scene 20; --- delimited, 14 beats a-n + a transition beat o)
   f remove_er       — strip ER endings + reflow.
   g remove_es       — strip ES endings + reflow.
   h remove_ing      — strip ING endings + reflow → only NUTMEG & AZALEA remain.
-  i seven_patterns  — title → "7-Letter Words"; clear len-6; LEFT Common Letter Patterns.
-  j seven_words     — RIGHT Common Words (all end in ING).
-  k remove_ing7     — strip ING endings + reflow → NOTHING left.
-  l eight_full      — title → "8-Letter Words"; clear; LEFT patterns + RIGHT words together.
-  m nine_full       — title → "9-Letter Words"; clear; patterns + words together.
-  n sixteen_full    — title → "16-Letter Words"; clear; ONLY Common Words, CENTERED + bigger,
+  i seven_full      — title → "7-Letter Words"; clear len-6; LEFT patterns + RIGHT words TOGETHER.
+  j remove_ing7     — strip ING endings + reflow → NOTHING left.
+  k eight_full      — title → "8-Letter Words"; clear; LEFT patterns + RIGHT words together.
+  l nine_full       — title → "9-Letter Words"; clear; patterns + words together.
+  m sixteen_full    — title → "16-Letter Words"; clear; ONLY Common Words, CENTERED + bigger,
                       10 rows, columns spread WIDER, no patterns table (top word UNDERREPRESENTED).
-  o clear_all       — TRANSITION (not a script beat): fade the table out → blank, for scene 21.
+  n clear_all       — TRANSITION (not a script beat): fade the table out → blank, for scene 21.
 
 DATA (SOURCED, cached): assets.long_words_data -> long_words_cache.json. Per length:
 `common_patterns` (boosted multiplier rows, uppercased) + `words` (every word the strategy
@@ -47,7 +50,7 @@ FLAGS (owned by a human — tune/decide in the timing+polish pass):
   - Length-9 (beat m) is only partly ING (dominance is strongest at 7/8) — shown faithfully; the
     script's beat-m VO was updated to match ("not as many clear patterns for even longer words").
 
-Render:  render 20a --fast (…20o)  /  render 20 sub  for the whole scene
+Render:  render 20a --fast (…20n)  /  render 20 sub  for the whole scene
 """
 from pathlib import Path
 import sys
@@ -213,25 +216,20 @@ class Scene20(WordTablesScene):
     def remove_ing(self):
         self._filter_words("ING", 1.1)
 
-    # i : "7-Letter Words"; clear len-6; LEFT Common Letter Patterns
+    # i : "7-Letter Words"; clear len-6; LEFT patterns + RIGHT words TOGETHER (like six_full)
     @subscene
-    def seven_patterns(self):
+    def seven_full(self):
         self._next_length(7, 0.6)
         self.left = self._pat_table(7)
-        self._reveal(self.left, 1.4)
-
-    # j : RIGHT Common Words (all end in ING)
-    @subscene
-    def seven_words(self):
         self.right = self._word_table(7)
-        self._reveal(self.right, 1.4)
+        self._reveal_pair(self.left, self.right, 1.6)
 
-    # k : strip ING endings + reflow → NOTHING left
+    # j : strip ING endings + reflow → NOTHING left
     @subscene
     def remove_ing7(self):
         self._filter_words("ING", 0.9)
 
-    # l : "8-Letter Words"; clear; LEFT patterns + RIGHT words together
+    # k : "8-Letter Words"; clear; LEFT patterns + RIGHT words together
     @subscene
     def eight_full(self):
         self._next_length(8, 0.6)
@@ -239,7 +237,7 @@ class Scene20(WordTablesScene):
         self.right = self._word_table(8)
         self._reveal_pair(self.left, self.right, 1.6)
 
-    # m : "9-Letter Words"; clear; patterns + words together
+    # l : "9-Letter Words"; clear; patterns + words together
     @subscene
     def nine_full(self):
         self._next_length(9, 0.6)
@@ -247,7 +245,7 @@ class Scene20(WordTablesScene):
         self.right = self._word_table(9)
         self._reveal_pair(self.left, self.right, 1.6)
 
-    # n : "16-Letter Words"; clear; ONLY Common Words, CENTERED, 10 rows, bigger font,
+    # m : "16-Letter Words"; clear; ONLY Common Words, CENTERED, 10 rows, bigger font,
     #     columns spread WIDER (word ↔ %) — no patterns table here (top word UNDERREPRESENTED)
     @subscene
     def sixteen_full(self):
@@ -256,7 +254,7 @@ class Scene20(WordTablesScene):
         VGroup(self.right.title, self.right.header, self.right.rows).scale(1.25, about_edge=UP)
         self._reveal(self.right, 1.6)
 
-    # o : TRANSITION to scene 21 — fade the table(s) out to the blank brand background;
+    # n : TRANSITION to scene 21 — fade the table(s) out to the blank brand background;
     #     scene 21 then fades the chalkboard IN on that clean frame (its `bring_board`).
     @subscene
     def clear_all(self):
