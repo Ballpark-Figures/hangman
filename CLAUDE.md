@@ -103,9 +103,11 @@ live in the scene file (render tooling AST-scans it), so the base holds only hel
   (`tier_tiles[slot]`), so a scene can reveal them in a PRESENTATION order that follows the
   narration; filling non-contiguous slots leaves visible gaps until the rest fill in. Use
   `rapid_letter` for letters the script GROUPS by shared profile, `advance_letter`
-  otherwise. Done in 13 (present P/M/B rapid then U/G/H; tier lists PUGMBH). (Scene 14 was
-  briefly built this way for V→W but is now a straight F/Y/V/W/K — the tier lists FYVWK, W
-  above K, so no reorder is needed.)
+  otherwise. Done in 13 (present P/M/B rapid then U/G/H; tier lists PUGMBH). NOTE `rapid_letter`
+  (the crossfade-morph transition machinery) is INDEPENDENT of reveal-order reordering: scene 14
+  reveals F/Y/V/W/K in straight slot order (no reorder) yet still uses `rapid_letter` for the
+  V→W transition (V establishes the views, W is a single rapid morph beat) — so "use rapid" and
+  "reorder slots" are separate choices.
 - **Views** = the position heatmap ("Location Frequencies") + top n-grams ("Top N-grams"),
   each entering with 96's row-by-row rise, titles persisting; numbers come from the
   committed caches (`letter_heat_data` / `letter_ngram_data`). A row with no common-uses
@@ -250,6 +252,25 @@ greedy, greedy_word, best_opener, best_opener_word):
   different centre), `gb.build_gallows()` → `(container, parts)`, `gb.miss_slots(container,
   letters)`, and `gb.reveal_letter` / `gb.miss_letter` / `gb.bubble`. A scene keeps its
   own `self.rules`/`self.hang`/`self.miss_slots_x` handles built from these.
+- **ESTABLISHING A BOARD: the word BLANKS appear BEFORE the gallows — ALWAYS.** When a
+  game's board is first drawn/faded in, the blanks (rules, drawn one at a time
+  left→right) come first, THEN the gallows (base, then post/beam/rope). This is the
+  convention in 02rules + 94chalkgame, and scene 01's `board`; scene 04's `guess17` was
+  fixed to match (2026-08-17). Do NOT draw the gallows first.
+- **DRAWING BLANKS OR THE GALLOWS = `lag_ratio=1.0` — NEVER a partial lag.** We're
+  simulating a SINGLE PERSON writing on the chalkboard, so every DISTINCT mark of the
+  blanks (each rule) and the gallows (base, post/beam/rope, and in scene 23's mini
+  drawings each `_chalk_frame` stroke) is drawn strictly one-after-another:
+  `LaggedStartMap(Create, <rules-or-gallows>, lag_ratio=1.0)`. A partial lag (0.5/0.6/0.8)
+  draws several strokes at once — WRONG. **EVERY chalk-stroke `Create` uses `lag_ratio=1.0`,
+  no exceptions** — the blanks, the gallows, AND a single mark's own strokes (a guessed
+  letter, a miss letter, a chalk number/phrase). There is NO "internal strokes may overlap
+  at 0.5" carve-out: a single hand writes one stroke fully before the next, always.
+  (Earlier this doc sanctioned `lag_ratio=0.5` for a single mark's internal strokes; that
+  was wrong and pervasive — 24 sites across 9 scenes — and swept to 1.0 on 2026-08-20.
+  NOTE the sweep changed NO timings: `lag_ratio` only redistributes stroke starts WITHIN a
+  play, while `self.play(run_time=X)` scales the whole `LaggedStart` to X — so total
+  duration is unchanged, the strokes just stop overlapping.)
 - **Guessing a letter is a STANDARD TWO-STEP: (1) a speech bubble containing the letter
   pops from the left edge (`gb.bubble`), then (2) the letter is WRITTEN ON — chalk
   strokes via `Create`, LEFT→RIGHT — into its blank(s) on a hit, or into the miss row +
@@ -266,10 +287,10 @@ greedy, greedy_word, best_opener, best_opener_word):
   guessed letter written into its blank(s), the running miss row, the "Words Remaining"
   header/number: draw these with `LaggedStartMap(Create, strokes, lag_ratio=1.0)` (lag
   1.0 = a stroke finishes before the next begins) — NOT `lag_ratio < 1` (draws several
-  at once) or a bare `Create(group)`. A single letter's own strokes may overlap slightly
-  (the miss row uses `lag_ratio=0.5` for one letter), but DISTINCT active marks (each
-  blank, each guessed letter) are strictly one-after-another. (Bit us repeatedly on the
-  blanks getting drawn simultaneously.)
+  at once) or a bare `Create(group)`. This holds DOWN TO THE STROKE: even a single
+  letter's own strokes are drawn one fully before the next (`lag_ratio=1.0`), not
+  overlapped — same as DISTINCT active marks (each blank, each guessed letter). (Bit us
+  repeatedly on the blanks getting drawn simultaneously.)
 - **EXCEPTION — a BULK reference LIST/GRID (many words shown at once, not "written" as
   gameplay) FADES IN as a group, it is NOT drawn stroke-by-stroke.** e.g. scene 11's ~21
   remaining-words grid and scene 04's 156 E-combos: build the items, `arrange_in_grid`,
