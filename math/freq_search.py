@@ -169,12 +169,22 @@ class FrequencySearch:
         """Every (letter, pattern) multiplier for this length, highest first."""
         import pandas as pd
         n_words = np.bincount(self.flat_keys, minlength=self.M)
+        # ...restricted to words with NONZERO final weight. A word's frequency is the
+        # PRODUCT of its patterns' multipliers, and a multiplier can hit 0 in the
+        # sequential phase — zeroing every word it touches — so a pattern can carry
+        # words yet appear in none with positive weight. `n_nonzero_words` counts only
+        # the words carrying this pattern whose final freq > 0.
+        counts = np.diff(np.append(self.word_ptr, self.flat_keys.size))
+        flat_word = np.repeat(np.arange(self.game.N), counts)
+        nz_flat = self.freq[flat_word] > 0
+        n_nonzero_words = np.bincount(self.flat_keys[nz_flat], minlength=self.M)
         return pd.DataFrame({
             "letter": [ALPHABET[int(c)] for c in self.key_letter],
             "pattern": self.pattern,
             "mask": [int(m) for m in self.key_mask],
             "multiplier": self.mult,
-            "n_words": n_words,          # how many words carry this pattern
+            "n_words": n_words,                    # how many words carry this pattern
+            "n_nonzero_words": n_nonzero_words,    # ...of those, how many have freq > 0
         }).sort_values("multiplier", ascending=False).reset_index(drop=True)
 
     def frequencies_df(self):
