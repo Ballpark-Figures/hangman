@@ -18,6 +18,17 @@ media/
 # animations tree.
 animations/**/cache/
 
+# DaVinci Resolve local artifacts (per-project, machine-local binaries — never
+# commit). Gallery stills / PowerGrades and the render cache are pointed here by
+# the project's colorGalleryStillsLocation / perfCacheClipsLocation settings; a
+# .drp is an editable project backup, never uploaded (see bpkfigures/PUBLISHING.md).
+.gallery/
+CacheClip/
+*.drp
+Resolve Project Backups/
+# `render NN --stills` staging dir (anim copies + still PNGs + .swap versions).
+edit_clips/
+
 # Machine-local solver working data: resume checkpoints (.ckpt) and memo
 # pickles, regenerable and potentially GBs. Committed results (final trees,
 # csv logs) live under math/data/shared/ and ARE tracked.
