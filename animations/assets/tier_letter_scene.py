@@ -4,7 +4,7 @@ Walks ONE tier's letters with the recurring visual: the letter fills into its ti
 row, the tier list tucks ×TL_SHRINK to the top-left, and a big COPY of the letter
 slides ↙ recolouring white→brand blue; the next letter removes the on-screen views,
 sends the corner copy back AS it fades into the tier, then sends its own copy down.
-Each letter shows the position-frequency heatmap + n-gram views (Location Frequencies
+Each letter shows the position-frequency heatmap + n-gram views (Position Frequencies
 / Top N-grams) and — where the script calls for it — a leading common-uses list.
 
 A subclass sets three class attributes:
@@ -16,8 +16,11 @@ blank start that later fades the list in), and defines its own @subscene beats f
 the inherited helpers:
     enter_centered(rt)               blank start: fade the centred list in
     intro_letter(i, rt)              first letter: fill + tuck + copy ↙
+    intro_letter_views(i, ch, rt_fill, rt)  first letter: fill, then tuck + copy ↙ with
+                                     the heatmap + n-gram rising in BEHIND the tuck
     advance_letter(i, rt_ret, rt_dn) later letters: clear views, return+appear, copy ↙
     show_heat(ch, rt) / add_ngram(ch, rt)
+    show_views(ch, rt)               heatmap + n-gram rise in TOGETHER in one beat
     show_common(rows, rt)            only if the tier has a common-uses beat
     clear_views(rt)
     recenter_board(rt)               tuck → centre (hand off to the next tier scene)
@@ -104,6 +107,39 @@ class TierLetterScene(HangmanScene):
                   run_time=run_time)
         self.corner, self.corner_home, self.corner_char = copy, self.tier_tiles[i], ch
 
+    def intro_letter_views(self, i, ch, run_time_fill, run_time):
+        """`intro_letter` with the views RISING IN BEHIND the tuck: fill tile `i`, then
+        in ONE play tuck the list ↖, send the copy ↙, AND rise the heatmap + n-gram in
+        TOGETHER — so the Position/N-gram views come in from BEHIND the leftward-moving
+        tier list and big letter (both are z-raised so they stay in front). Leaves the
+        views up (as `show_views` would), so a following `rapid_letter` can morph them.
+        Use for a first letter whose views should establish DURING the intro rather than
+        in a separate beat."""
+        self.play(self.tier_tiles[i].animate.set_opacity(1), run_time=run_time_fill)
+        copy = self.tier_tiles[i].copy()
+        self.add(copy)
+        # keep the tier list + big letter IN FRONT so the views rise in behind them
+        self.tl.set_z_index(1)
+        copy.set_z_index(1)
+        # build the views up-front so they can rise in the SAME play as the tuck
+        new_heat = letter_heatmaps(ch, center=HEAT_CENTER, high_color=tl.heat_color(ch))
+        heat_title = self._title1("Position Frequencies", HEAT_CENTER[0])
+        top_y = new_heat.heatmaps[0].get_top()[1]
+        bot_y = new_heat.heatmaps[-1].get_bottom()[1]
+        new_ng = letter_ngrams(ch, center_x=NG_X, top_y=top_y, bottom_y=bot_y,
+                               letter_color=tl.ink_color(ch))
+        ng_title = self._title1("Top N-grams", NG_X)
+        self.play(self.tl.animate.scale(TL_SHRINK).to_corner(UL, buff=TL_TOP_BUFF),
+                  copy.animate.scale_to_fit_height(self._big_h)
+                  .move_to(self._corner_target(copy)).set_color(tl.ink_color(ch)),
+                  FadeIn(heat_title), FadeIn(ng_title),
+                  self._rise(new_heat, self._heat_rows(new_heat)),
+                  self._rise(new_ng, new_ng.rows),
+                  run_time=run_time)
+        self.corner, self.corner_home, self.corner_char = copy, self.tier_tiles[i], ch
+        self.heat, self.loc_title = new_heat, heat_title
+        self.ngram, self.ng_title = new_ng, ng_title
+
     def _send_copy_down(self, tile, ch, run_time):
         copy = tile.copy()
         self.add(copy)
@@ -137,27 +173,36 @@ class TierLetterScene(HangmanScene):
         self.clear_views()
         self.switch_letter(i, run_time_return, run_time_down)
 
-    def rapid_letter(self, i, ch, run_time_switch, run_time_down):
-        """Rapid-succession switch for a group of similar letters shown back-to-back:
-        in ONE play the corner copy returns AS tile `i` fades in AND the heatmap MORPHS
-        + the n-gram CROSSFADES to `ch` (the views are not removed and rebuilt); then
-        tile `i`'s copy moves ↙. Titles persist. Requires the views to be up already."""
+    def rapid_letter(self, i, ch, run_time):
+        """Rapid-succession switch for a group of similar letters shown back-to-back, all
+        in ONE play: the OUTGOING corner copy returns to its tier slot WHILE the INCOMING
+        copy of tile `i` slides ↙ to the corner AT THE SAME TIME (the two big letters
+        cross paths), tile `i` fades into the tier, and the heatmap MORPHS + the n-gram
+        CROSSFADES to `ch` (views are not removed and rebuilt). Titles persist. Requires
+        the views to be up already."""
         new_heat = letter_heatmaps(ch, center=HEAT_CENTER, high_color=tl.heat_color(ch))
         top_y = self.heat.heatmaps[0].get_top()[1]
         bot_y = self.heat.heatmaps[-1].get_bottom()[1]
         new_ng = letter_ngrams(ch, center_x=NG_X, top_y=top_y, bottom_y=bot_y,
                                letter_color=tl.ink_color(ch))
         c, tile = self.corner, self.corner_home
+        # incoming: a copy of the new tile starts AT its slot (full opacity, in front)
+        # and slides down as the outgoing copy returns — both move together
+        down = self.tier_tiles[i].copy()
+        down.set_opacity(1)
+        down.set_z_index(1)
+        self.add(down)
         self.play(c.animate.scale_to_fit_height(tile.height).move_to(tile.get_center())
                   .set_color(tl.tile_color(self.corner_char)),
                   self.tier_tiles[i].animate.set_opacity(1),
+                  down.animate.scale_to_fit_height(self._big_h)
+                  .move_to(self._corner_target(down)).set_color(tl.ink_color(ch)),
                   ReplacementTransform(self.heat, new_heat),
                   FadeOut(self.ngram), FadeIn(new_ng),
-                  run_time=run_time_switch)
+                  run_time=run_time)
         self.remove(c)
         self.heat, self.ngram = new_heat, new_ng
-        self.corner = self.corner_home = None
-        self._send_copy_down(self.tier_tiles[i], ch, run_time_down)
+        self.corner, self.corner_home, self.corner_char = down, self.tier_tiles[i], ch
 
     def recenter_board(self, run_time):
         """Clear the views + big letter and send the tier list back to CENTRE (hand
@@ -211,7 +256,7 @@ class TierLetterScene(HangmanScene):
         (so a common-uses view swaps straight into the heatmap; a no-op fade when the
         views were already cleared)."""
         new = letter_heatmaps(ch, center=HEAT_CENTER, high_color=tl.heat_color(ch))
-        title = self._title("Location", "Frequencies", HEAT_CENTER[0])
+        title = self._title1("Position Frequencies", HEAT_CENTER[0])
         fades = self._fade_current()
         self.play(*fades, FadeIn(title),
                   self._rise(new, self._heat_rows(new)), run_time=run_time)
@@ -223,9 +268,29 @@ class TierLetterScene(HangmanScene):
         bot_y = self.heat.heatmaps[-1].get_bottom()[1]
         self.ngram = letter_ngrams(ch, center_x=NG_X, top_y=top_y, bottom_y=bot_y,
                                    letter_color=tl.ink_color(ch))
-        self.ng_title = self._title("Top", "N-grams", NG_X)
+        self.ng_title = self._title1("Top N-grams", NG_X)
         self.play(FadeIn(self.ng_title),
                   self._rise(self.ngram, self.ngram.rows), run_time=run_time)
+
+    def show_views(self, ch, run_time):
+        """Rise the position-frequency heatmap AND the n-gram view in TOGETHER, in one
+        play (both appear at once — not heat-then-add-ngram over two beats). Fades
+        whatever's currently up out in the SAME play (a no-op fade when already clear).
+        The n-gram is aligned to the heatmap's row band, computed from the built heat
+        mobject before it animates."""
+        new_heat = letter_heatmaps(ch, center=HEAT_CENTER, high_color=tl.heat_color(ch))
+        heat_title = self._title1("Position Frequencies", HEAT_CENTER[0])
+        top_y = new_heat.heatmaps[0].get_top()[1]
+        bot_y = new_heat.heatmaps[-1].get_bottom()[1]
+        new_ng = letter_ngrams(ch, center_x=NG_X, top_y=top_y, bottom_y=bot_y,
+                               letter_color=tl.ink_color(ch))
+        ng_title = self._title1("Top N-grams", NG_X)
+        fades = self._fade_current()
+        self.play(*fades, FadeIn(heat_title), FadeIn(ng_title),
+                  self._rise(new_heat, self._heat_rows(new_heat)),
+                  self._rise(new_ng, new_ng.rows), run_time=run_time)
+        self.heat, self.loc_title = new_heat, heat_title
+        self.ngram, self.ng_title = new_ng, ng_title
 
     def show_common(self, rows, run_time):
         """The common-uses list (blank/partly-played boards + red misses), swapping in
@@ -233,7 +298,7 @@ class TierLetterScene(HangmanScene):
         and the screen bottom."""
         new = common_uses(list(rows))
         new.set_x(CU_CENTER_X)
-        title = self._title1("Common Uses", CU_CENTER_X)
+        title = self._title1("Example Uses", CU_CENTER_X)
         new.set_y((title.get_bottom()[1] + -config.frame_y_radius) / 2)
         fades = self._fade_current()
         self.play(*fades, FadeIn(title),

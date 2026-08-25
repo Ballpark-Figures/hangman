@@ -87,10 +87,13 @@ def reveal_letter(ch, rule, *, color=CHALK, height=LETTER_H, stroke_width=LETTER
 def miss_slots(container, letters=None, *, capacity=6):
     """Centred x-positions for the wrong-guess tally under the gallows base.
 
-    Pass the ACTUAL miss letters to centre the finished row by their real glyph
-    widths (so it sits centred under the gallows once complete); otherwise a
-    uniform `capacity`-slot row (default 6) is centred. Measured off the gallows
-    base so it tracks the gallows if it moves."""
+    CONVENTION for gameplay scenes: call WITHOUT `letters` so misses drop into the
+    fixed `capacity`-slot row (default 6 — the full width scene 2 uses). A miss then
+    lands in its absolute slot regardless of how many misses the game actually gets,
+    so the layout never gives away the eventual miss count. Only pass the ACTUAL miss
+    letters when you deliberately want the finished row centred by its real glyph
+    widths (e.g. scene 2, which happens to have all 6). Measured off the gallows base
+    so it tracks the gallows if it moves."""
     gallows_cx = container.gallows[0].get_center()[0]
     chars = list(letters) if letters else ["n"] * capacity
     tmpl = VGroup(*[chalk_letter(c, height=MISS_H, stroke_width=MISS_SW, color=CHALK)

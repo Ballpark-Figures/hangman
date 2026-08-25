@@ -7501,10 +7501,6 @@
     "6": {
       "common_patterns": [
         {
-          "pattern": "_K__K_",
-          "multiplier": 16.0
-        },
-        {
           "pattern": "_____D",
           "multiplier": 8.125
         },
@@ -7529,24 +7525,28 @@
           "multiplier": 4.0
         },
         {
-          "pattern": "_J____",
-          "multiplier": 4.0
-        },
-        {
-          "pattern": "___GG_",
-          "multiplier": 4.0
-        },
-        {
-          "pattern": "M_MM__",
-          "multiplier": 4.0
-        },
-        {
-          "pattern": "__BB_B",
-          "multiplier": 4.0
-        },
-        {
           "pattern": "C__C__",
           "multiplier": 3.5
+        },
+        {
+          "pattern": "Z_____",
+          "multiplier": 3.25
+        },
+        {
+          "pattern": "___F__",
+          "multiplier": 2.875
+        },
+        {
+          "pattern": "__X___",
+          "multiplier": 2.5
+        },
+        {
+          "pattern": "____N_",
+          "multiplier": 2.375
+        },
+        {
+          "pattern": "K__K__",
+          "multiplier": 2.25
         }
       ],
       "words": [
@@ -10375,32 +10375,32 @@
           "multiplier": 4.125
         },
         {
-          "pattern": "G___G__",
-          "multiplier": 4.0
-        },
-        {
-          "pattern": "D_DD___",
-          "multiplier": 4.0
-        },
-        {
-          "pattern": "N__N___",
-          "multiplier": 4.0
-        },
-        {
-          "pattern": "_____B_",
-          "multiplier": 4.0
-        },
-        {
-          "pattern": "P_P____",
-          "multiplier": 4.0
-        },
-        {
           "pattern": "_W_____",
           "multiplier": 4.0
         },
         {
-          "pattern": "__GG___",
-          "multiplier": 4.0
+          "pattern": "B__B___",
+          "multiplier": 3.875
+        },
+        {
+          "pattern": "P_PP___",
+          "multiplier": 3.625
+        },
+        {
+          "pattern": "B_BB___",
+          "multiplier": 3.0
+        },
+        {
+          "pattern": "P__P___",
+          "multiplier": 2.25
+        },
+        {
+          "pattern": "__BB___",
+          "multiplier": 2.25
+        },
+        {
+          "pattern": "_EE____",
+          "multiplier": 2.125
         }
       ],
       "words": [
@@ -11841,10 +11841,6 @@
     "8": {
       "common_patterns": [
         {
-          "pattern": "__E__E__",
-          "multiplier": 510.75
-        },
-        {
           "pattern": "______N_",
           "multiplier": 75.5
         },
@@ -11857,36 +11853,40 @@
           "multiplier": 68.75
         },
         {
-          "pattern": "_A__A_A_",
-          "multiplier": 65.375
-        },
-        {
           "pattern": "_____I__",
           "multiplier": 41.0
         },
         {
-          "pattern": "_Y___Y__",
-          "multiplier": 35.5
+          "pattern": "__PP____",
+          "multiplier": 9.25
         },
         {
-          "pattern": "L____LL_",
-          "multiplier": 32.0
+          "pattern": "_FF_____",
+          "multiplier": 8.375
         },
         {
-          "pattern": "_O_O_O__",
-          "multiplier": 32.0
+          "pattern": "C_C_____",
+          "multiplier": 5.25
         },
         {
-          "pattern": "____RR__",
-          "multiplier": 24.75
+          "pattern": "__ZZ____",
+          "multiplier": 4.75
         },
         {
-          "pattern": "______P_",
-          "multiplier": 21.25
+          "pattern": "T_T_____",
+          "multiplier": 4.75
         },
         {
-          "pattern": "__N_N___",
-          "multiplier": 19.375
+          "pattern": "____Z___",
+          "multiplier": 4.5
+        },
+        {
+          "pattern": "__J_____",
+          "multiplier": 4.25
+        },
+        {
+          "pattern": "___H____",
+          "multiplier": 4.0
         }
       ],
       "words": [

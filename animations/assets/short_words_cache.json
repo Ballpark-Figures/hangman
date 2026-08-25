@@ -160,9 +160,9 @@
         "converged": false
       },
       "7": {
-        "avg": 4.014,
-        "lower": 3.5746,
-        "upper": 4.4534,
+        "avg": 4.0909,
+        "lower": 4.0257,
+        "upper": 4.1561,
         "converged": false
       },
       "8": {
@@ -449,10 +449,6 @@
           "multiplier": 4.0
         },
         {
-          "pattern": "_M_M",
-          "multiplier": 4.0
-        },
-        {
           "pattern": "__LL",
           "multiplier": 4.0
         },
@@ -470,6 +466,10 @@
         },
         {
           "pattern": "__K_",
+          "multiplier": 2.0
+        },
+        {
+          "pattern": "___K",
           "multiplier": 2.0
         }
       ],

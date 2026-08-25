@@ -66,7 +66,10 @@ def _build_tables(freq_search):
         freq_df = s.frequencies_df()                            # sorted frequency desc
         total = float(freq_df["frequency"].sum())
 
-        above = mult_df[mult_df.multiplier > 1]                 # boosted (Common)
+        # Common (frequent) combos: boosted AND actually exhibited by at least one word
+        # with nonzero final weight (a boosted combo whose carrying words all got zeroed
+        # out by some other pattern is not shown — it appears in no real word).
+        above = mult_df[(mult_df.multiplier > 1) & (mult_df.n_nonzero_words > 0)]
         nonzero = freq_df[freq_df.frequency > 0]                # every word the strategy uses
         words = nonzero if spec["words"] == "all" else nonzero.head(spec["words"])
         tables[str(L)] = {

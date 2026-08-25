@@ -50,6 +50,6 @@ def view_title(text, x, y, *, font_size=30, color=BLACK):
 
 
 def view_title2(l1, l2, x, y, *, font_size=30, color=BLACK):
-    """A two-line view title (e.g. 'Location'/'Frequencies', 'Top'/'N-grams')."""
+    """A two-line view title (e.g. 'Before'/'After')."""
     return crisp_paragraph(l1, l2, font_size=font_size, color=color,
                            alignment="center").move_to([x, y, 0])

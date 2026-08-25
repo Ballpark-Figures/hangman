@@ -55,7 +55,7 @@ WEIGHTING = "uniform"
 FILL_CAPPED = True          # finish cap-truncated optimal branches with greedy
 PLOT_LENGTHS = list(range(1, 21))   # computed/cached for every length …
 # … but the plot DISPLAYS only these rows, to match the position-frequency
-# ("Location Frequencies") heatmap views in the tier scenes, which use
+# ("Position Frequencies") heatmap views in the tier scenes, which use
 # letter_heat_data.LENGTHS = range(2, 11). So the plot shows lengths 2..10.
 DISPLAY_LENGTHS = list(range(2, 11))
 
